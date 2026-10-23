@@ -6,9 +6,9 @@ This is the single source of truth for the current state. If another doc disagre
 
 * **The whole flash is backed up and verified.** `rk.py rawdump` read all 1024 physical NAND blocks (data plus spare). Two passes matched, and a live `rk_restore.py diff` found the cabinet still identical. `tools/sftl_rebuild.py` turns that raw image into the logical disk offline. Every partition is extracted; rootfs and data both pass their filesystem checks.
 * **The game list is understood.** The menu program `/usr/bin/game` (rootfs, MiniGUI) has 12 entries compiled in. For a pick it runs `/data/start.sh <index> <smoothing> <speed>`, and that shell script maps the index to an emulator binary in `/data/Games/`. Details are in [FIRMWARE_ANALYSIS.md](FIRMWARE_ANALYSIS.md).
-* **A recovery plan exists:** [RECOVERY.md](RECOVERY.md). The restore tool `tools/rk_restore.py` is written, but its write path has **never been run**. Proving it is a test ladder (T1–T3) that needs the user's approval for each rung.
-* Nothing has ever been written to the cabinet's flash.
-* **Custom games:** the cross toolchain and probe program are built and tested offline (`games/`, GAMEDEV.md section 6). Next: the RECOVERY.md test ladder T1–T3, then the probe behind tile 10 (`tools/data_patch.py`; preview = 8 `data` blocks). Both need the user's written approval per block list.
+* **A recovery plan exists:** [RECOVERY.md](RECOVERY.md). **USB raw restore (path A) does not work with `plug_3032slc`:** its erase command reports success but erases nothing above block 8 (test ladder 2026-10-23, confirmed by disassembly; RECOVERY.md path A). The flash content is unchanged (full `diff`: none).
+* No byte of the cabinet's flash has changed. Erase/program commands were sent for blocks 8 and 91 only; both were no-ops.
+* **Custom games:** the cross toolchain and probe program are built and tested offline (`games/`, GAMEDEV.md section 6). Installing them by raw block patch (`tools/data_patch.py`) is blocked with the current plug. The likely better route is writing through the cabinet's own Linux or U-Boot (UART console or U-Boot rockusb), which needs the UART pads. Decision pending with the user.
 
 ## Hardware state right now
 

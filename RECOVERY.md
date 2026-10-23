@@ -76,7 +76,14 @@ Always start the same way: cold plug with the switch **OFF**, then `rk.py state`
 
 ## 5. Restore paths
 
-### Path A: USB raw block restore (primary; coded, untested)
+### Path A: USB raw block restore (BLOCKED with `plug_3032slc`: erase is a no-op above block 8)
+
+> [!WARNING]
+> Tested 2026-10-23 12:39 (approved T1–T3). T1 (block 8, already erased) "passed" but proved nothing. In T2, `ERASE_NORMAL` on block 91 returned status 0, yet the block read back unchanged, and a full `diff` showed the chip untouched. The tool stopped before programming. The cabinet is unchanged.
+>
+> Cause, from disassembling `rk3032_usbplug_slc_v2.63.bin` (load address `0x63000000`): opcode `0x06` (switch at `0xe774` → `0xe358`) and `0x0B` (→ `0xe2ea`) both call `0x12d4a(block, count, force)`, which calls the storage driver's erase hook. The erase function at `0xbec6` returns 0 **without erasing** when the start block is above 8, and clips the range to blocks 0–7 (skipping bad blocks, string "ce: %x is bad block skip"). So this plug can only erase the boot-block area. `ERASE_FORCE` most likely reaches the same code and stays on the never-send list.
+>
+> Path A therefore can't restore `data`/`rootfs` blocks with this plug. Recovery of data blocks currently relies on path B (U-Boot rockusb) or path D (programmer). Reads (`rawdump`, `diff`) are unaffected.
 
 This puts back the exact physical pages, including SFTL's own metadata. The factory SFTL (5.0.55) then finds exactly the state it left. That's why it's the primary path: it doesn't depend on how the plug's SFTL version (5.0.53/5.0.58) would lay data out, and it isn't limited to 32 MiB the way `READ_LBA`/`WRITE_LBA` are.
 
@@ -134,6 +141,8 @@ The aim is to prove the write path **before** it's needed, on blocks where failu
 | T1 | `restore $I --blocks 8` | `ERASE_NORMAL` addresses **blocks** on this plug. Block 8 is erased in the backup and on the chip, so only an erase and an FF check happen | If the plug treated the address as a sector or page number, it would erase inside block 0 (a boot block copy). The full `diff` afterwards shows exactly what changed, and `restore --blocks 0 --include-boot-blocks` puts it back |
 | T2 | `restore $I --blocks 91` | `WRITE_SECTOR` programs data and spare correctly over a full 64-page block. Pair 90/91 is **fully stale**: every logical page in it has a newer copy elsewhere (the rebuild map proves it), so SFTL never reads it as current data | Block 91 is left wrong. SFTL erases stale blocks before reuse, and `restore --blocks 91` can try again |
 | T3 | `restore $I --blocks 21` | A live data block round-trips. Pair 20/21 holds only `rootfs` pages (`sftl_rebuild.py --where rootfs` marks it `*`), and rootfs is read-only at runtime | If it fails, part of the rootfs is wrong until restored: logo then black. Mask ROM is still there |
+
+**Result 2026-10-23:** T1 ran (no change), T2 stopped at "not 0xFF after erase" (the erase was a no-op, see path A warning), T3 not run. Full `diff` after each: none.
 
 After T3 passes, path A is proven, and the cabinet can be put back to 2026-10-23 state at any time. Only then should anything that changes the flash on purpose be considered (RUNBOOK.md Phase 3, path B).
 
