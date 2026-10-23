@@ -1,4 +1,4 @@
-# Status: what is known, as of 2026-10-23 12:30
+# Status: what is known, as of 2026-10-23 12:50
 
 This is the single source of truth for the current state. If another doc disagrees with this one, this one wins. Update it at the end of every session.
 
@@ -8,7 +8,7 @@ This is the single source of truth for the current state. If another doc disagre
 * **The game list is understood.** The menu program `/usr/bin/game` (rootfs, MiniGUI) has 12 entries compiled in. For a pick it runs `/data/start.sh <index> <smoothing> <speed>`, and that shell script maps the index to an emulator binary in `/data/Games/`. Details are in [FIRMWARE_ANALYSIS.md](FIRMWARE_ANALYSIS.md).
 * **A recovery plan exists:** [RECOVERY.md](RECOVERY.md). **USB raw restore (path A) does not work with `plug_3032slc`:** its erase command reports success but erases nothing above block 8 (test ladder 2026-10-23, confirmed by disassembly; RECOVERY.md path A). The flash content is unchanged (full `diff`: none).
 * No byte of the cabinet's flash has changed. Erase/program commands were sent for blocks 8 and 91 only; both were no-ops.
-* **Custom games:** the cross toolchain and probe program are built and tested offline (`games/`, GAMEDEV.md section 6). Installing them by raw block patch (`tools/data_patch.py`) is blocked with the current plug. The likely better route is writing through the cabinet's own Linux or U-Boot (UART console or U-Boot rockusb), which needs the UART pads. Decision pending with the user.
+* **Custom games:** toolchain and probe are built (`games/`, GAMEDEV.md section 6). Installing them needs U-Boot rockusb over the UART pads (RECOVERY.md path B): no download key exists on this board, and the kernel disables the UART, so Ctrl+D at power-on is the way in. Not tried yet.
 
 ## Hardware state right now
 

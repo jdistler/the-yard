@@ -115,9 +115,18 @@ Rules for path A:
 * Never write through `WRITE_LBA` with the plug. The plug's SFTL would rewrite map pages in its own format and version.
 * Blocks 0–7 need `--include-boot-blocks`. Restore them last, so that if something goes wrong earlier, the old boot block still boots whatever is intact.
 
-### Path B: logical restore through U-Boot rockusb (theory)
+### Path B: logical restore through U-Boot rockusb (offline analysis 2026-10-23; never entered)
 
-If U-Boot still works (logo appears), its rockusb mode uses the factory SFTL and could take `WRITE_LBA` of the partition images. That needs a UART or a download key to enter (RUNBOOK.md § Step 1.3). It's only useful if path A is impossible, and nothing about it is tested.
+U-Boot 2017.09 in the `uboot` partition writes the SPI NAND through the same SFTL the kernel uses (`FtlWrite`, `sfc_nand_erase_block` are in the image). Its `download` command runs `rockusb 0 $devtype $devnum`, and this board's boot device is `spinand` (FIRMWARE_ANALYSIS.md). A rockusb write is a logical-sector write, so SFTL updates its own map. The legacy raw opcode is rejected (`CMD Not support, pls use new version Tool`); the write that works is the mass-storage one. Nothing here has been run on the cabinet.
+
+There is no download key to press. The image does contain `download key pressed... ` and an ADC key driver (`adc-keys`, `rockchip,saradc`), but neither U-Boot's own device tree nor the kernel tree has an `adc-keys` or `saradc` node. The control deck is `uart-keys`, which U-Boot never reads. Holding a cabinet button at power-on does not enter download mode.
+
+Ways in, both untested:
+
+* **UART, the realistic one.** U-Boot's console is uart2 at 115200 (pads inside the shield, 3.3 V; INTERFACING_AND_MODES.md). `bootdelay=0`, so Ctrl+D has to be arriving as U-Boot starts; it runs `rockusb`. Ctrl+C is a shell. The shell has `ext4load` and `fatwrite` and no `ext4write`, so putting a file on `data` is a rockusb write from the PC, not a shell redirect. The kernel then disables uart2, so this console does not become a Linux login.
+* **`reboot loader` from a root shell.** The kernel image contains the reboot-mode driver, and its tree maps `loader` to `0x5242c301` (GRF + `0x1d8`), which is U-Boot's `BOOT_LOADER` and prints `enter Rockusb!`. There is no root shell until some other path exists, so this is how a later game build would re-enter rockusb, not how we get in the first time.
+
+Some Rockchip U-Boot rockusb builds return `0xCC` for reads past 32 MB (`RKUSB_READ_LIMIT_ADDR`). This image was not proven to have that cap. Writes in the matching source are not capped. Confirm with a read of a known sector above 32 MB before trusting a dump from this mode. A write should be one partition, checked with `rk_restore.py diff` afterwards (switch OFF, Mask ROM, read-only).
 
 ### Path C: SD card (theory, for diagnosis)
 
