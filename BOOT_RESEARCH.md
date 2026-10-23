@@ -2,7 +2,7 @@
 
 > This is the chronological lab notebook. Early sections contain theories that later turned out wrong (cables, 300 MHz, "RK3036", "eMMC"). For the current truth, read [STATUS.md](STATUS.md). For procedure, read [RUNBOOK.md](RUNBOOK.md).
 
-Notes from the live cabinet. The goal is to learn how this Partycade boots, where the stock game list comes from, and what it would take to add a game we wrote. Nothing in this log was written to the cabinet's flash.
+Notes from the live cabinet. The goal is to learn how this Partycade boots, where the stock game list comes from, and what it would take to add a game we wrote. Early sessions only read the flash. From device 60 on, approved restores did write. The current chip is not the morning master. See STATUS.md "Pickup".
 
 ## Where to start
 
@@ -208,4 +208,15 @@ Cold plug, then `boot --plug plug_3032slc` on device 57, which came up as loader
 * Block classification corrected along the way. Pairs like 18/19 hold "special" pages (odd LPA `0xFFFFFFFD`, even type `0x0000`, magic `0x12345678`), so they're not free blocks. Pair 90/91 is fully stale (verified from the rebuild map), so it's the first write target in the test ladder. Block 1023 has page 0 all-zero, so never write it.
 * `tools/sftl_patch.py`: writes a modified logical image back over the current physical copies. Offline test: adding `Games/hello.sh` and editing one line of `start.sh` changed 6 LPAs in 6 blocks (828, 829, 872, 873, 892, 893). Rebuilding from the patched raw reproduced the modified image exactly, and `e2fsck` was clean.
 
-Device 58 was left running `plug_3032slc`. Nothing was written to the cabinet.
+Device 58 was left running `plug_3032slc`. Nothing was written to the cabinet in this session.
+
+## Session 5, devices 59–66 (2026-10-23 13:00–15:10): writes work, and the probe is on tile 10
+
+Current truth is STATUS.md "Pickup" and GAMEDEV.md § 2. This section is the trail.
+
+* Stock `plug_3032slc` erase and write both return success and do nothing above block 8. The clips are in the RAM loader (`0xbec6` erase, `0xbf3c` write), not in the cabinet flash. `plug_3032slc_erase` nops `0xbee2`, `0xbef4`, `0xbf62`, and `0xbfee`. The last nop keeps the caller's spare metadata. Wire sha256 `53574f36…df91`.
+* A 32-sector `WRITE_SECTOR` never returns a status packet because progress is `bytes >> 9` and 32 × 528 counts as 33. The earlier busy-poll theory was wrong. Nothing was programmed. Counts below 32 are safe. `rk_restore.py` refuses ≥ 32, writes one page, and compares 2048 data bytes plus the first 8 spare bytes.
+* Device 64 restored all 64 pages of block 91. Then, with approval, it installed the probe on blocks 828, 829, 872, 873, 884, 885, 892, 893. Diff against the patched image: none. Dumps: `~/partycade-dumps/2026-10-23_probe_tile10/`.
+* The user played Dig Dug II (now the probe). Screen was rotated 90° clockwise. Framebuffer is 1024×768 @ 60, KMSDRM, opengles2, ALSA. Device 66 read the chip back (`2026-10-23_probe_played`, sha256 `5d8f173c…a2ad`). The deck is the stick, 1-player, 2-player, three buttons on the right, and volume. Those five buttons are codes A, B, X, L, and R. Which label is which code is still open. Select, start, and the other advertised codes are not on this deck. The power switch ended the session, so `probe.log` has no exit line.
+
+Device 66 was left running `plug_3032slc_erase`, switch OFF. Do not restore the whole chip from the morning master.

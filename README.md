@@ -36,7 +36,7 @@ Documentation and tooling for the **Arcade1Up Pac-Man Partycade (12-in-1)**, Cos
 | Storage | Winbond W25N01GV 1 Gbit **SPI NAND** (ID `EF AA 21`), Rockchip SFTL, GPT with 5 partitions | verified; whole chip backed up |
 | Software | U-Boot 2017.09 → Linux 4.4.194 → SquashFS rootfs (Buildroot, glibc 2.29, armhf) → MiniGUI menu → `/data/start.sh` → SDL2 emulators (all built May 2023) | verified (flash dump) |
 | Display | BOE `DV170YGZ-N10`, 17" 1280×1024 LVDS | label; LVDS panel in device tree |
-| Controls | Control deck `GB-CON-5 V02`; key events reach Linux through a `uart-keys` driver | verified (device tree) |
+| Controls | Control deck `GB-CON-5 V02`: 4-way stick, 1-player and 2-player on the left, three buttons on the right, volume. `uart-keys` reports them as one joystick. See [GAMEDEV.md](GAMEDEV.md) | verified (probe log, 2026-10-23) |
 | Power | 12V DC barrel, center positive | label |
 | Micro-USB | Rockchip OTG. Linux runs it as **host** (`dr_mode = "host"`), so the PC sees nothing in normal mode. ADB is configured in the rootfs but unreachable for that reason. | verified |
 | Boot switch ("NC") | **OFF** = USB Mask ROM (`2207:301a`, dark screen). **ON** = normal game boot. Read only at cold power-up. | verified |

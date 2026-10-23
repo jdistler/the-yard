@@ -8,6 +8,7 @@ Read these, in this order, before doing anything:
 2. [RUNBOOK.md](RUNBOOK.md): hard rules, the session loop, and the phase you're in.
 3. [RECOVERY.md](RECOVERY.md): how to get the cabinet back if anything goes wrong. Read it before any step that could change the cabinet.
 4. [tools/README.md](tools/README.md): what each tool does.
+5. [GAMEDEV.md](GAMEDEV.md), when the task is a game. The cabinet currently runs `games/probe` on menu tile 10 (Dig Dug II). STATUS.md "Pickup" is the live hardware state.
 
 ## Non-negotiable
 

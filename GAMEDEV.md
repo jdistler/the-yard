@@ -25,14 +25,38 @@ The control deck talks to the SoC over a serial line. A kernel driver, `uart-key
 | Joystick up / down / left / right | `KEY_UP 0x67`, `KEY_DOWN 0x6c`, `KEY_LEFT 0x69`, `KEY_RIGHT 0x6a` |
 | Buttons a, b, c, x, y, z, l, r, l2, r2 | `BTN_A 0x130` … `BTN_TR2 0x139` |
 | select, start, mode, bl, br | `0x13a` … `0x13e` |
-| Volume up / down | `0x73` / `0x72` (handled by the driver) |
+| Volume up / down | `0x73` / `0x72` (they also reach the game; see below) |
 
-How these reach SDL is **to be probed**. The stock games use joystick axes, so the driver probably also reports an X/Y axis. SDL 2.0.7 normally numbers the `BTN_*` codes in order (A = 0, B = 1, …), but which physical button is which `BTN_*` is unknown. So is whether the arrows also arrive as keyboard events. The first program we put on the cabinet answers all of this (§ 5, step 3).
+Measured on the cabinet 2026-10-23 (probe log from `~/partycade-dumps/2026-10-23_probe_played/probe.log`). One joystick, name `uart-keys`, guid `19000000010000000100000000010000`: **0 axes, 21 buttons, 0 hats**. There is no second joystick. SDL 2.0.7 numbers the buttons like this: `BTN_*` `0x130`–`0x13e` are buttons 0–14 (`button = code - 0x130`), then the `KEY_*` codes in ascending order are buttons 15–20.
+
+| What arrived | evdev code | SDL joystick button | Also a key event |
+| :--- | :--- | :--- | :--- |
+| A | `0x130` | 0 | no |
+| B | `0x131` | 1 | no |
+| X | `0x133` | 3 | no |
+| L | `0x136` | 6 | no |
+| R | `0x137` | 7 | no |
+| Up / Left / Right / Down | `0x67` / `0x69` / `0x6a` / `0x6c` | 15 / 16 / 17 / 18 | yes (`Up` `Down` `Left` `Right`) |
+| Volume down / up | `0x72` / `0x73` | 19 / 20 | yes |
+
+Directions are joystick buttons plus keyboard events, not axes. Holding a control makes evdev repeat (`value 2`); the SDL joystick and the keyboard path do not.
+
+The physical deck, from the user after that session, is the whole control set:
+
+* Left of the joystick: **1-player** on top, **2-player** below it.
+* The 4-way joystick.
+* Right of the joystick: three buttons, two on the top row and one below them, shifted left.
+* Volume + and volume −.
+* The power switch. It is not a key. It was the last thing tested, which is why `probe.log` stops at 25.3 s in the middle of an L press and has no exit line.
+
+Those five play buttons are the five codes in the table (A, B, X, L, R). Which label is which code is not known yet. The driver still advertises C, Y, Z, L2, R2, select, start, mode, bl, and br (joystick buttons 2, 4, 5, 8–14). None of them are on this deck, and none of them appear in the log.
+
+The probe's picture was rotated **90° clockwise** on the cabinet. The framebuffer itself is landscape: KMSDRM, opengles2, flags `0xe`, output and display **1024×768 @ 60**. A game draws upright by rotating the presented frame 90° counter-clockwise. Audio came up as ALSA.
 
 **Rules for our games, so they behave like stock ones:**
 
 * Accept input from **both** joystick events and keyboard events, through one mapping table in the code. That keeps the PC and the cabinet the same code.
-* **Always have a way to quit back to the menu** (e.g. hold select + start for 2 s). The menu is stuck until the game exits.
+* **Always have a way to quit back to the menu.** This deck has no select or start button, so a select+start combo never fires. Use two real buttons held together (the 1-player and 2-player buttons, once their codes are known). The menu is stuck until the game exits. Cutting power does not return to the menu, and it drops the last second of the log.
 * Don't touch the volume. Optionally show the `/data/spk_volume` overlay like stock games do.
 
 ## 3. What a game binary must be
@@ -69,9 +93,9 @@ Who does what: **PC** = the agent on this PC, no hardware. **User** = something 
 | 0 | Back up `~/partycade-dumps/` off this PC | User | No |
 | 1 | **Toolchain** (done): `games/toolchain/Dockerfile`, see section 6 | PC | No |
 | 2 | **Game skeleton** (done): `games/common/cab.{h,c}` plus `games/probe/`; builds for PC and cabinet, smoke-tested under `qemu-arm-static` with the rootfs libraries | PC | No |
-| 3 | **Prove the restore path:** [RECOVERY.md](RECOVERY.md) test ladder T1, T2, T3 | User + Approval | Yes (test blocks, restored) |
-| 4 | **Probe on tile 10 (Dig Dug II), option A** (built; offline preview of the raw-block route: 8 blocks). That route is blocked because `plug_3032slc` cannot erase those blocks (RECOVERY.md path A). The install is a U-Boot rockusb write of the `data` partition instead (path B), which needs the UART pads. Probe behavior: log `/data/Games/probe.log`, quit on SELECT+START held 1 s or 60 s idle. Command in section 6 | PC builds; User + Approval to flash | Yes (`data`, via rockusb) |
-| 5 | The user plays with the probe: presses every button and notes what the screen says. Then a `rawdump` (read-only) brings `/data/probe.log` back to the PC through `sftl_rebuild.py`. Write the real control map into this file | User, then PC | No |
+| 3 | **Prove the restore path** (done): block 91 erased, programmed, and read back with `plug_3032slc_erase`. Counts of 32 or more sectors hang the loader; the tool writes one page at a time | User + Approval | Yes (block 91, restored) |
+| 4 | **Probe on tile 10 (Dig Dug II)** (flashed 2026-10-23): `/data/Games/probe`, and that tile's `start.sh` line runs it. Blocks 828, 829, 872, 873, 884, 885, 892, 893. Diff against the patched image was none | Done | Yes (`data`) |
+| 5 | Probe played and the log read back (`2026-10-23_probe_played`). The deck is the stick, 1-player, 2-player, three buttons on the right, and volume. Codes are in § 2. Which of A/B/X/L/R is which physical button is still open | Done | No |
 | 6 | **First real game** behind the same tile, or a tiny "more games" menu there. Same flash path | PC + User + Approval | Yes (`data`) |
 | 7 | **Our launcher (option B):** build it, measure the rootfs change offline (`S50ui` hook, rebuilt SquashFS, `sftl_patch.py --part rootfs`), check the stock menu fallback, then flash once | PC + User + Approval | Yes (`rootfs`, once) |
 | 8 | From then on, each new game is a folder in `/data/games/<name>/` plus a line in the launcher's list: a `data`-only change. Optionally set up ADB first to skip the switch flips | Repeat | `data` only |
@@ -95,7 +119,8 @@ games/
 * Play on the PC: `out/pc/probe`. Keys: arrows; Z X C = A B C; A S D = X Y Z; Q W = L R; 1 2 = L2 R2; Backspace = SELECT; Return = START; Tab = MODE. Escape quits.
 * Smoke-test the ARM build without the cabinet (`qemu-arm-static` is in `~/.local/bin`):
   `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PROBE_SELFTEST=1 CAB_SCREENSHOT=/tmp/s.bmp qemu-arm-static -L $ROOTFS out/cab/probe` must exit 0 within a few seconds (the self-test presses A, then holds SELECT+START).
-* Install behind tile 10, offline, from a fresh `rawdump` taken in the same Mask ROM session:
+* The probe install already happened (2026-10-23). Tile 10's `start.sh` line is `GAME_NAME=probe`, and `/data/Games/probe` is the cabinet binary. Running the command below again will fail, because `GAME_NAME="Mappy d"` is no longer in `start.sh`. Undo of that install is a restore of blocks 828, 829, 872, 873, 884, 885, 892, 893 from `~/partycade-dumps/2026-10-23_probe_tile10/nand_raw.bin`.
+* The next game uses the same tool on a **fresh** `rawdump` from the session you will write in. Put the new binary at `Games/<name>` and point case `10)` at it (the current text to replace is `GAME_NAME=probe`). The command that did the probe, kept here as the pattern:
 
 ```
 python3 tools/data_patch.py RAW ~/partycade-dumps/<date>_probe_tile10 \
@@ -103,4 +128,4 @@ python3 tools/data_patch.py RAW ~/partycade-dumps/<date>_probe_tile10 \
   --replace 'start.sh:GAME_NAME="Mappy d":GAME_NAME=probe'
 ```
 
-  It prints the blocks and the `rk_restore.py restore` command. Undo = restore the same blocks from RAW. To get the log back: `rawdump`, `sftl_rebuild.py`, then `debugfs -R 'dump /Games/probe.log probe.log' data.img`.
+  It prints the blocks and the `rk_restore.py restore` command. To read a log back: `rawdump`, `sftl_rebuild.py`, extract the `data` partition (offset `0x22c00`, `0xf000` sectors), then `debugfs -R 'dump /Games/probe.log probe.log' data.img`. The log is written about once a second and on a clean exit. Cutting power drops the tail.
