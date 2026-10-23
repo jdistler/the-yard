@@ -59,6 +59,14 @@ STAGES = {
                          sha="bfe4a7db5a27e8ac471bce5b6bff6f39b885f96fa1086ade610052a89896cfbc",
                          note="USE THIS: READ_LBA also stops at 0x10000, but READ_SECTOR reads the whole "
                               "chip (devices 57->58)"),
+    # Same blob, two Thumb edits so opcode 0x06 erases the block it is given. Stock returns
+    # success and erases nothing above block 8 (cmp r4,#8 / bhi, then rsb r6,r4,#8). The inner
+    # call is SPI NAND block-erase 0xD8 of page block*64, so one request is one block.
+    "plug_3032slc_erase": dict(src="rk3032_usbplug_slc_v2.63.bin", kind="plug",
+                               sha="bd6cd1df7022bb9004d3e77a92507168ed7e89112aab915d2d6145032e91b195",
+                               patch=((0xbee2, bytes.fromhex("02d8"), bytes.fromhex("00bf")),
+                                      (0xbef4, bytes.fromhex("01d9"), bytes.fromhex("01e0"))),
+                               note="patched erase: nop the block>8 return, branch over the count clip"),
 }
 
 FILL = b"\xcc" * SECTOR  # what plug_3032 returns for sectors it does not serve
@@ -114,7 +122,12 @@ def rkcrc32(data):
 
 def encode_stage(name):
     st = STAGES[name]
-    plain = open(os.path.join(RKBIN, st["src"]), "rb").read()
+    plain = bytearray(open(os.path.join(RKBIN, st["src"]), "rb").read())
+    for off, old, new in st.get("patch", ()):
+        if plain[off:off + len(old)] != old:
+            raise SystemExit(f"{name}: patch at {off:#x} expected {old.hex()}, found {plain[off:off+len(old)].hex()}")
+        plain[off:off + len(new)] = new
+    plain = bytes(plain)
     if st["kind"] == "ddr":
         # Rockchip packer: zero-pad to a 2048 multiple, RC4 (image < 64 KiB, so the
         # packer's 16-bit length truncation does not matter).
