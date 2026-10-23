@@ -182,3 +182,30 @@ Offline (`~/partycade-dumps/extracted/`):
 Next is `plug_3032slc` on a cold plug, which is RUNBOOK Phase 1, Step 1.1. Device 56 was left running `plug_3032`.
 
 Tool hardening the same session: a test dump of LBA `0xFFF0`+32 showed no fill warning, because the crossing read returned stale bytes. `read_lba` now splits at every `0x10000` boundary, and the same dump now reports 16 real sectors and 16 fill sectors. The full backup above was unaffected: its 128-sector reads ended exactly at `0x10000`.
+
+## Session 4, devices 57–58 (2026-10-23 11:50–12:40): the whole chip, and a recovery plan
+
+Cold plug, then `boot --plug plug_3032slc` on device 57, which came up as loader device 58. `info`: chip `3032`, flash `EF AA 21`, 220672 sectors, 256-sector blocks, 4-sector pages, capability `0x27`. `READ_LBA` at ≥ `0x10000` still returned `0xCC`. So the 32 MiB limit is the same in both RK3032 plugs.
+
+**The way around it: `READ_SECTOR` (opcode `0x04`) reads physical NAND, and has no limit.** Each sector is 528 bytes (512 data + 16 spare), and the chip is 262144 sectors (1024 blocks × 64 pages × 4). I added the opcode to `rk.py`'s read-only list and added `rk.py rawdump`.
+
+* `rawdump --verify`: every chunk read twice and matched. A second full pass without verify gave the identical sha256 `024af9ed…429e`. Each pass takes about 40 s.
+
+**Rebuilding the logical disk** (`tools/sftl_rebuild.py`, offline):
+
+* Attempt 1 used the odd-half spare `u32@0` as the LPA and accepted every page: 208 sectors differed from the `READ_LBA` dump in the first 32 MiB.
+* Attempt 2 accepted only pages whose even-half spare has type `0xF095` and pair index = block/2: **0 sectors differed** in the first 32 MiB. But above 32 MiB, `e2fsck -fn data.img` found multiply-claimed blocks and bitmap differences, and `PacLand.sav` showed as a deleted inode.
+* Root cause: the newest copy was chosen by the odd-half `u32@+4`, which isn't an ordering. LPA `0x482A` had copies in block pair 90/91 (odd `u32@+4` = `0x3082a`, data = PNG bytes, wrong) and pair 390/391 (`0xb42b`, data = the expected ext2 indirect-block list 2731, 2732, …). The even-half `u32@+4` ranks them correctly (`0x6434` < `0xacd0`), and within a block it counts up by one per page. So it's the write sequence.
+* Attempt 3 selects by the even-half sequence: 0 sectors differ in the first 32 MiB, `e2fsck -fn data.img` is clean (113 files), and `unsquashfs` extracts the whole rootfs. Rebuilt image sha256 `94568231…d377`.
+
+**What the firmware is** (details in FIRMWARE_ANALYSIS.md): Buildroot 2018.02-rc3, glibc 2.29, armhf. `S50ui` starts the MiniGUI menu `/usr/bin/game`, which has 12 entries compiled in and calls `/data/start.sh <index> <smoothing> <speed>`. `start.sh` maps the index to one of 8 SDL2 emulator binaries in `/data/Games`. `.usb_config` enables ADB and `adbd` ships, but OTG is forced to host by the device tree: a lead for a root shell. Nothing in rootfs or data reads `sdfwupdate`.
+
+**Recovery work** (RECOVERY.md):
+
+* The spare layout from `reference/kernel-rkflash/sfc_nand.c`: W25N01GV meta words are at OOB `+0x04` and `+0x14`, and the bad-block marker is OOB bytes 0–1. `READ_SECTOR` returns only the two meta words. `rk_restore.py native` builds a 2048+64 image for an external programmer.
+* Write framing from `reference/rkdeveloptool`: `ERASE_NORMAL 0x06` addresses blocks; `WRITE_SECTOR 0x05` addresses physical sectors, ≤ 32 per command, 528 bytes each (the same layout as `READ_SECTOR`).
+* `tools/rk_restore.py`: `plan`, `native`, and `diff` (read-only), plus a locked `restore`. **`diff` against device 58: all 1024 blocks identical to the backup.** That's a third, independent read of the whole chip. `restore` has never been run.
+* Block classification corrected along the way. Pairs like 18/19 hold "special" pages (odd LPA `0xFFFFFFFD`, even type `0x0000`, magic `0x12345678`), so they're not free blocks. Pair 90/91 is fully stale (verified from the rebuild map), so it's the first write target in the test ladder. Block 1023 has page 0 all-zero, so never write it.
+* `tools/sftl_patch.py`: writes a modified logical image back over the current physical copies. Offline test: adding `Games/hello.sh` and editing one line of `start.sh` changed 6 LPAs in 6 blocks (828, 829, 872, 873, 892, 893). Rebuilding from the patched raw reproduced the modified image exactly, and `e2fsck` was clean.
+
+Device 58 was left running `plug_3032slc`. Nothing was written to the cabinet.

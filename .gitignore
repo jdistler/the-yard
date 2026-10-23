@@ -7,4 +7,6 @@ tools/rksend
 # Flash dumps must never be committed (stock firmware and licensed game data)
 dumps/
 *.img
+*.bin
+!captures/gpt_lba1-33.bin
 __pycache__/

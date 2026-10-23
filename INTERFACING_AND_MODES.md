@@ -103,7 +103,7 @@ For real-time diagnostic output during the normal boot sequence:
 * **Location:** Three circular test pads labeled `TX`, `RX`, and `GND` located on the PCB inside the metal shielding box.
 * **Logic Level:** **3.3V TTL** (Do not connect 5V UART signals directly to avoid damaging the SoC).
 * **Baud Rate:** **115,200** 8N1 is expected. The U-Boot env has `baudrate=115200` and the kernel cmdline has `console=ttyS2,115200`. Rockchip's 1.5 Mbaud default doesn't apply to this build. Not yet verified on the pads.
-* **What it gives you:** U-Boot output, plus the U-Boot hotkeys (Ctrl+C for a shell, Ctrl+D for rockusb download mode), which are useful for reading the full flash (see [RUNBOOK.md](RUNBOOK.md) Phase 1, Step 1.3). The kernel may print nothing, since uart2 is disabled in its device tree.
+* **What it gives you:** U-Boot output, plus the U-Boot hotkeys (Ctrl+C for a shell, Ctrl+D for rockusb download mode), which are useful for checking whether U-Boot sees the SD slot (`mmc list`; see [RUNBOOK.md](RUNBOOK.md) Phase 4). They are no longer needed for reading the flash, because `rk.py rawdump` reads all of it over USB. The kernel may print nothing, since uart2 is disabled in its device tree.
 * **Access:** the pads are inside the metal shield, behind the cover, which hasn't been removed as of 2026-10-23.
 * **Wiring:**
   * USB-UART Adapter `GND` → Board `GND`

@@ -33,6 +33,12 @@ fi
 clone rkdeveloptool https://github.com/rockchip-linux/rkdeveloptool.git
 clone xrock https://github.com/xboot/xrock.git
 clone rkflashtool https://github.com/linux-rockchip/rkflashtool.git
+# Rockchip kernel 4.4 SPI NAND + SFTL driver (spare layout, bad-block marks); single files, the tree is huge.
+mkdir -p kernel-rkflash
+for f in rk_sftl.h rk_sftl_arm_v7.S rkflash_blk.c rksfc_base.c flash.c sfc.c sfc_nand.c sfc_nand.h sfc_nand_mtd.c; do
+  [ -f "kernel-rkflash/$f" ] || curl -sf -o "kernel-rkflash/$f" \
+    "https://raw.githubusercontent.com/rockchip-linux/kernel/develop-4.4/drivers/rkflash/$f" || echo "kernel-rkflash/$f: not fetched"
+done
 
 echo
 for r in rkbin u-boot rkdeveloptool xrock rkflashtool; do

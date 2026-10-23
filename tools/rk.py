@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Read-only USB tool for the Partycade's RK3036 (GBX70-V01).
+"""Read-only USB tool for the Partycade's RK3032 (GBX70-V01).
 
 Every subcommand either reads host state or reads from the cabinet. There is no
 write, erase, reset, or storage-change code path in this file, and the bulk
-command builder refuses any opcode outside READ_ONLY_OPCODES.
+command builder refuses any opcode outside READ_ONLY_OPCODES. Recovery writes
+live only in rk_restore.py (see RECOVERY.md).
 
 Run `tools/rk.py -h` for the subcommands. See tools/README.md and RUNBOOK.md.
 """
@@ -56,13 +57,17 @@ STAGES = {
                       note="WORKS: sees the SPI NAND; reads starting at LBA >= 0x10000 return 0xCC fill"),
     "plug_3032slc": dict(src="rk3032_usbplug_slc_v2.63.bin", kind="plug",
                          sha="bfe4a7db5a27e8ac471bce5b6bff6f39b885f96fa1086ade610052a89896cfbc",
-                         note="NEXT TO TRY: RK3032 SLC/SPI-NAND plug, newer SFTL 5.0.58"),
+                         note="USE THIS: READ_LBA also stops at 0x10000, but READ_SECTOR reads the whole "
+                              "chip (devices 57->58)"),
 }
 
 FILL = b"\xcc" * SECTOR  # what plug_3032 returns for sectors it does not serve
 
-OP = dict(TEST_UNIT_READY=0x00, READ_FLASH_ID=0x01, READ_LBA=0x14, READ_FLASH_INFO=0x1A,
+OP = dict(TEST_UNIT_READY=0x00, READ_FLASH_ID=0x01, READ_SECTOR=0x04, READ_LBA=0x14, READ_FLASH_INFO=0x1A,
           READ_CHIP_INFO=0x1B, READ_STORAGE=0x2B, READ_CAPABILITY=0xAA)
+RAW_UNIT = 528            # READ_SECTOR returns 512 data + 16 spare per physical sector
+RAW_SECTORS = 262144      # W25N01GV: 1024 blocks x 64 pages x 4 sectors
+PAGE_SECTORS = 4
 READ_ONLY_OPCODES = frozenset(OP.values())
 
 NAND_MAKERS = {0xEC: "Samsung", 0x98: "Toshiba/Kioxia", 0xAD: "SK Hynix", 0x2C: "Micron",
@@ -242,6 +247,20 @@ class Loader:
         cbw = struct.pack("<IIIBBB", 0x43425355, tag, 0, 0, 0, 6) + bytes(16)
         self.dev.write(EP_OUT, cbw, timeout=2000)
         self.dev.read(EP_IN, 13, timeout=2000)
+
+    def read_raw(self, sector, count):
+        """Physical NAND read (bypasses SFTL). Returns count*528 bytes."""
+        out = bytearray()
+        while count:
+            n = min(count, 128)
+            data, status = self.command(OP["READ_SECTOR"], n * RAW_UNIT, lba=sector, count=n, cdblen=10,
+                                        timeout=10000)
+            if status != 0 or len(data) != n * RAW_UNIT:
+                raise SystemExit(f"READ_SECTOR {sector:#x}+{n}: status {status}, got {len(data)} bytes")
+            out += data
+            sector += n
+            count -= n
+        return bytes(out)
 
     def read_lba(self, lba, count):
         # plug_3032 returns stale buffer bytes (not 0xCC) for the part of a single
@@ -624,6 +643,46 @@ def cmd_dump(a):
         print(f"WARNING: {fill} of {count} sectors are 0xCC fill, not flash data. This dump is INCOMPLETE.")
 
 
+def cmd_rawdump(a):
+    """Whole-chip physical image via READ_SECTOR: RAW_SECTORS x 528 bytes, page-interleaved data+spare."""
+    start, count = int(a.start, 0), int(a.count, 0)
+    if start % PAGE_SECTORS or count % PAGE_SECTORS:
+        raise SystemExit("start and count must be multiples of 4 (one NAND page)")
+    out = a.out
+    out_path_ok(out, count * RAW_UNIT)
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    done = os.path.getsize(out) // (RAW_UNIT * PAGE_SECTORS) * PAGE_SECTORS if os.path.exists(out) else 0
+    if done > count:
+        raise SystemExit(f"{out} is larger than the requested range; move it aside first.")
+    if done:
+        print(f"Resuming {out} at sector {done} of {count}")
+    L = Loader()
+    t0 = time.time()
+    try:
+        with open(out, "r+b" if done else "wb") as f:
+            f.truncate(done * RAW_UNIT)
+            f.seek(done * RAW_UNIT)
+            step = 1024
+            while done < count:
+                n = min(step, count - done)
+                data = L.read_raw(start + done, n)
+                if a.verify and L.read_raw(start + done, n) != data:
+                    raise SystemExit(f"Verify mismatch at raw sector {start + done:#x}; stopping (file kept up to here).")
+                f.write(data)
+                f.flush()
+                done += n
+                rate = done * RAW_UNIT / max(time.time() - t0, 1e-6) / 2 ** 20
+                print(f"\r{done}/{count} raw sectors ({done * 100 // count}%) {rate:.2f} MiB/s", end="", flush=True)
+    finally:
+        L.close()
+    print()
+    h = hashlib.sha256(open(out, "rb").read()).hexdigest()
+    with open(out + ".sha256", "w") as f:
+        f.write(f"{h}  {os.path.basename(out)}  raw_sector={start:#x} count={count:#x} unit=528\n")
+    log("rawdump", devnum=L.devnum, start=start, count=count, out=out, sha256=h, verified=a.verify)
+    print(f"{out}: sha256 {h}")
+
+
 def cmd_log(a):
     for e in log_entries()[-a.n:]:
         extra = {k: v for k, v in e.items() if k not in ("ts", "boot_id", "action")}
@@ -652,6 +711,10 @@ def main():
     d.add_argument("--part"); d.add_argument("--start"); d.add_argument("--count"); d.add_argument("-o", "--out")
     d.add_argument("--verify", action="store_true")
     d.set_defaults(f=cmd_dump)
+    rw = sub.add_parser("rawdump", help="loader: physical NAND image via READ_SECTOR (512+16 per sector)")
+    rw.add_argument("--start", default="0"); rw.add_argument("--count", default=str(RAW_SECTORS))
+    rw.add_argument("-o", "--out", required=True); rw.add_argument("--verify", action="store_true")
+    rw.set_defaults(f=cmd_rawdump)
     lg = sub.add_parser("log", help="show the last N log entries")
     lg.add_argument("-n", type=int, default=20)
     lg.set_defaults(f=cmd_log)

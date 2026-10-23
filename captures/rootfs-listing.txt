@@ -1,0 +1,1998 @@
+drwxr-xr-x root/root               331 2023-05-11 06:06 
+-rw-r--r-- root/root                 0 2020-04-29 08:31 /.gitkeep
+drwxr-xr-x root/root               924 2023-05-11 06:06 /bin
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/ash -> busybox
+-rwsr-xr-x root/root            674748 2023-05-11 06:06 /bin/busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/cat -> busybox
+-rwxr-xr-x root/root              9640 2023-05-11 06:06 /bin/chattr
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/chgrp -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/chmod -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/chown -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/cp -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/cpio -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/date -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/dd -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/df -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/dmesg -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/dnsdomainname -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/dumpkmap -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/echo -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/egrep -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/false -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/fdflush -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/fgrep -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/getopt -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/grep -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/gunzip -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/gzip -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/hostname -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/kill -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/link -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/linux32 -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/linux64 -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/ln -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/login -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/ls -> busybox
+-rwxr-xr-x root/root              9636 2023-05-11 06:06 /bin/lsattr
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/mkdir -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/mknod -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/mktemp -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/more -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/mount -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/mountpoint -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/mt -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/mv -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/netstat -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/nice -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/pidof -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/ping -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/pipe_progress -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/printenv -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/ps -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/pwd -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/rm -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/rmdir -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/run-parts -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/sed -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/setarch -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/setpriv -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/setserial -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/sh -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/sleep -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/stty -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/su -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/sync -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/tar -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/touch -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/true -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/umount -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/uname -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/usleep -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/vi -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/watch -> busybox
+lrwxrwxrwx root/root                 7 2021-11-03 22:40 /bin/zcat -> busybox
+lrwxrwxrwx root/root                 8 2020-04-29 08:31 /data -> userdata
+drwxr-xr-x root/root                63 2021-11-03 23:59 /dev
+crw--w--w- root/root             5,  1 2023-05-11 06:06 /dev/console
+lrwxrwxrwx root/root                10 2020-04-29 08:31 /dev/log -> ../tmp/log
+drwxr-xr-x root/root                 3 2020-04-29 08:31 /dev/pts
+drwxr-xr-x root/root                 3 2020-04-29 08:31 /dev/shm
+drwxr-xr-x root/root               449 2023-05-11 06:06 /etc
+-rwxr-xr-x root/root              9076 2023-05-11 06:05 /etc/MiniGUI.cfg
+-rw-r--r-- root/root             12474 2021-11-03 23:25 /etc/drirc
+lrwxrwxrwx root/root                17 2021-11-03 23:30 /etc/dropbear -> /var/run/dropbear
+-rw-r--r-- root/root               469 2020-05-05 20:18 /etc/fstab
+-rw-r--r-- root/root               321 2023-05-11 06:06 /etc/group
+-rw-r--r-- root/root                 5 2023-05-11 06:06 /etc/hostname
+-rw-r--r-- root/root                35 2023-05-11 06:06 /etc/hosts
+drwxr-xr-x root/root               199 2023-04-17 06:07 /etc/init.d
+-rw-r--r-- root/root                11 2021-11-03 23:39 /etc/init.d/.usb_config
+-rwxr-xr-x root/root               670 2021-11-03 22:40 /etc/init.d/S01logging
+-rwxr-xr-x root/root              1594 2021-11-03 22:42 /etc/init.d/S10udev
+-rwxr-xr-x root/root              1272 2021-11-03 23:32 /etc/init.d/S20urandom
+-rwxr-xr-x root/root             10276 2021-11-03 23:39 /etc/init.d/S21mountall.sh
+-rwxr-xr-x root/root               438 2021-11-03 23:32 /etc/init.d/S40network
+-rwxr-xr-x root/root              1354 2021-11-03 23:30 /etc/init.d/S50dropbear
+-rwxr-xr-x root/root               556 2023-04-17 06:07 /etc/init.d/S50ui
+-rwxr-xr-x root/root              8943 2021-11-03 23:39 /etc/init.d/S50usbdevice
+-rwxr-xr-x root/root               423 2021-11-03 23:32 /etc/init.d/rcK
+-rwxr-xr-x root/root               408 2021-11-03 23:32 /etc/init.d/rcS
+-rw-r--r-- root/root              1029 2023-05-11 06:06 /etc/inittab
+-rw-r--r-- root/root                21 2023-05-11 06:06 /etc/issue
+-rw-r--r-- root/root              7937 2023-05-11 06:06 /etc/ld.so.cache
+-rw-r--r-- root/root               808 2021-11-03 23:31 /etc/mke2fs.conf
+lrwxrwxrwx root/root                19 2020-04-29 08:31 /etc/mtab -> ../proc/self/mounts
+drwxr-xr-x root/root               106 2021-11-03 23:32 /etc/network
+drwxr-xr-x root/root                 3 2020-04-29 08:31 /etc/network/if-down.d
+drwxr-xr-x root/root                 3 2020-04-29 08:31 /etc/network/if-post-down.d
+drwxr-xr-x root/root                33 2023-05-11 06:06 /etc/network/if-pre-up.d
+-rwxr-xr-x root/root               576 2020-04-29 08:31 /etc/network/if-pre-up.d/wait_iface
+drwxr-xr-x root/root                 3 2020-04-29 08:31 /etc/network/if-up.d
+-rw-r--r-- root/root                77 2021-11-03 23:32 /etc/network/interfaces
+-rw-r--r-- root/root               230 2021-11-03 23:59 /etc/nsswitch.conf
+lrwxrwxrwx root/root                21 2023-05-11 06:06 /etc/os-release -> ../usr/lib/os-release
+-rw-r--r-- root/root               340 2020-04-29 08:31 /etc/passwd
+-rw-r--r-- root/root               326 2021-11-03 21:58 /etc/profile
+drwxr-xr-x root/root                31 2020-04-29 08:31 /etc/profile.d
+-rw-r--r-- root/root                10 2020-04-29 08:31 /etc/profile.d/umask.sh
+-rw-r--r-- root/root              2744 2020-04-29 08:31 /etc/protocols
+lrwxrwxrwx root/root                18 2020-04-29 08:31 /etc/resolv.conf -> ../tmp/resolv.conf
+-rw-r--r-- root/root             29439 2022-09-26 21:38 /etc/retroarch.cfg
+-rw-r--r-- root/root             10873 2020-04-29 08:31 /etc/services
+-rw------- root/root               277 2023-05-11 06:06 /etc/shadow
+-rw-r--r-- root/root                 8 2021-11-03 23:59 /etc/shells
+drwxr-xr-x root/root                85 2021-11-03 22:44 /etc/ssl
+drwxr-xr-x root/root                 3 2021-11-03 22:44 /etc/ssl/certs
+drwxr-xr-x root/root                63 2021-11-03 22:44 /etc/ssl/man
+drwxr-xr-x root/root                 3 2021-11-03 22:44 /etc/ssl/man/man1
+drwxr-xr-x root/root                 3 2021-11-03 22:44 /etc/ssl/man/man3
+drwxr-xr-x root/root                 3 2021-11-03 22:44 /etc/ssl/man/man5
+drwxr-xr-x root/root                 3 2021-11-03 22:44 /etc/ssl/man/man7
+drwxr-xr-x root/root                 3 2021-11-03 22:44 /etc/ssl/misc
+-rw-r--r-- root/root             10835 2021-11-03 22:44 /etc/ssl/openssl.cnf
+drwxr-xr-x root/root                 3 2021-11-03 22:44 /etc/ssl/private
+drwxr-xr-x root/root                61 2021-08-23 04:30 /etc/udev
+drwxr-xr-x root/root               474 2021-11-03 22:42 /etc/udev/hwdb.d
+-rw-r--r-- root/root           1711714 2021-11-03 22:42 /etc/udev/hwdb.d/20-OUI.hwdb
+-rw-r--r-- root/root            146047 2021-11-03 22:42 /etc/udev/hwdb.d/20-acpi-vendor.hwdb
+-rw-r--r-- root/root             64856 2021-11-03 22:42 /etc/udev/hwdb.d/20-bluetooth-vendor-product.hwdb
+-rw-r--r-- root/root               111 2021-11-03 22:42 /etc/udev/hwdb.d/20-net-ifname.hwdb
+-rw-r--r-- root/root             14976 2021-11-03 22:42 /etc/udev/hwdb.d/20-pci-classes.hwdb
+-rw-r--r-- root/root           2986588 2021-11-03 22:42 /etc/udev/hwdb.d/20-pci-vendor-model.hwdb
+-rw-r--r-- root/root               783 2021-11-03 22:42 /etc/udev/hwdb.d/20-sdio-classes.hwdb
+-rw-r--r-- root/root              4067 2021-11-03 22:42 /etc/udev/hwdb.d/20-sdio-vendor-model.hwdb
+-rw-r--r-- root/root              8070 2021-11-03 22:42 /etc/udev/hwdb.d/20-usb-classes.hwdb
+-rw-r--r-- root/root           1219045 2021-11-03 22:42 /etc/udev/hwdb.d/20-usb-vendor-model.hwdb
+-rw-r--r-- root/root              1810 2021-11-03 22:42 /etc/udev/hwdb.d/20-vmbus-class.hwdb
+-rw-r--r-- root/root             14396 2021-11-03 22:42 /etc/udev/hwdb.d/60-evdev.hwdb
+-rw-r--r-- root/root             63140 2021-11-03 22:42 /etc/udev/hwdb.d/60-keyboard.hwdb
+-rw-r--r-- root/root             16220 2021-11-03 22:42 /etc/udev/hwdb.d/60-sensor.hwdb
+-rw-r--r-- root/root             21254 2021-11-03 22:42 /etc/udev/hwdb.d/70-mouse.hwdb
+-rw-r--r-- root/root              6518 2021-11-03 22:42 /etc/udev/hwdb.d/70-pointingstick.hwdb
+-rw-r--r-- root/root              1668 2021-11-03 22:42 /etc/udev/hwdb.d/70-touchpad.hwdb
+drwxr-xr-x root/root                35 2021-08-23 04:31 /etc/udev/rules.d
+-rwxr-xr-x root/root                71 2020-04-29 08:31 /etc/udev/rules.d/60-drm.rules
+-rw-r--r-- root/root                49 2021-11-03 22:42 /etc/udev/udev.conf
+-rw-r--r-- root/root               130 2023-05-11 06:06 /etc/version
+-rwxr-xr-x root/root               178 2021-11-03 23:59 /init
+drwxr-xr-x root/root               882 2023-05-11 06:06 /lib
+-rwxr-xr-x root/root            158640 2023-05-11 06:06 /lib/ld-2.29.so
+lrwxrwxrwx root/root                10 2021-11-03 22:08 /lib/ld-linux-armhf.so.3 -> ld-2.29.so
+-rwxr-xr-x root/root              9816 2023-05-11 06:06 /lib/libanl-2.29.so
+lrwxrwxrwx root/root                14 2021-11-03 22:08 /lib/libanl.so.1 -> libanl-2.29.so
+lrwxrwxrwx root/root                18 2021-11-03 22:13 /lib/libatomic.so -> libatomic.so.1.2.0
+lrwxrwxrwx root/root                18 2021-11-03 22:13 /lib/libatomic.so.1 -> libatomic.so.1.2.0
+-rwxr-xr-x root/root             13524 2023-05-11 06:06 /lib/libatomic.so.1.2.0
+lrwxrwxrwx root/root                17 2021-11-03 22:41 /lib/libblkid.so.1 -> libblkid.so.1.1.0
+-rwxr-xr-x root/root            228088 2023-05-11 06:06 /lib/libblkid.so.1.1.0
+-rwxr-xr-x root/root           1242892 2023-05-11 06:06 /lib/libc-2.29.so
+lrwxrwxrwx root/root                12 2021-11-03 22:08 /lib/libc.so.6 -> libc-2.29.so
+-rwxr-xr-x root/root             30144 2023-05-11 06:06 /lib/libcrypt-2.29.so
+lrwxrwxrwx root/root                16 2021-11-03 22:08 /lib/libcrypt.so.1 -> libcrypt-2.29.so
+-rwxr-xr-x root/root              9660 2023-05-11 06:06 /lib/libdl-2.29.so
+lrwxrwxrwx root/root                13 2021-11-03 22:08 /lib/libdl.so.2 -> libdl-2.29.so
+-rw-r--r-- root/root               132 2021-11-03 22:13 /lib/libgcc_s.so
+-rw-r--r-- root/root            116220 2023-05-11 06:06 /lib/libgcc_s.so.1
+-rwxr--r-- root/root             58636 2023-05-11 06:06 /lib/libhq2x.so
+-rwxr-xr-x root/root            370072 2023-05-11 06:06 /lib/libm-2.29.so
+lrwxrwxrwx root/root                12 2021-11-03 22:08 /lib/libm.so.6 -> libm-2.29.so
+-rwxr-xr-x root/root             17872 2023-05-11 06:06 /lib/libnss_dns-2.29.so
+lrwxrwxrwx root/root                18 2021-11-03 22:08 /lib/libnss_dns.so.2 -> libnss_dns-2.29.so
+-rwxr-xr-x root/root             38428 2023-05-11 06:06 /lib/libnss_files-2.29.so
+lrwxrwxrwx root/root                20 2021-11-03 22:08 /lib/libnss_files.so.2 -> libnss_files-2.29.so
+-rwxr-xr-x root/root            129976 2023-05-11 06:06 /lib/libpthread-2.29.so
+lrwxrwxrwx root/root                18 2021-11-03 22:08 /lib/libpthread.so.0 -> libpthread-2.29.so
+-rwxr-xr-x root/root             67268 2023-05-11 06:06 /lib/libresolv-2.29.so
+lrwxrwxrwx root/root                17 2021-11-03 22:08 /lib/libresolv.so.2 -> libresolv-2.29.so
+-rwxr-xr-x root/root             26488 2023-05-11 06:06 /lib/librt-2.29.so
+lrwxrwxrwx root/root                13 2021-11-03 22:08 /lib/librt.so.1 -> librt-2.29.so
+-rwxr--r-- root/root            941448 2023-05-11 06:06 /lib/libsqlite3.so
+lrwxrwxrwx root/root                19 2021-12-23 02:17 /lib/libsqlite3.so.0 -> libsqlite3.so.0.8.6
+-rwxr--r-- root/root            941448 2023-05-11 06:06 /lib/libsqlite3.so.0.8.6
+lrwxrwxrwx root/root                16 2021-11-03 22:42 /lib/libudev.so.1 -> libudev.so.1.6.3
+-rwxr-xr-x root/root            104560 2023-05-11 06:06 /lib/libudev.so.1.6.3
+-rwxr-xr-x root/root              9688 2023-05-11 06:06 /lib/libutil-2.29.so
+lrwxrwxrwx root/root                15 2021-11-03 22:08 /lib/libutil.so.1 -> libutil-2.29.so
+lrwxrwxrwx root/root                16 2021-11-03 22:41 /lib/libuuid.so.1 -> libuuid.so.1.3.0
+-rwxr-xr-x root/root             22072 2023-05-11 06:06 /lib/libuuid.so.1.3.0
+drwxr-xr-x root/root               121 2023-05-11 06:06 /lib/udev
+-rwxr-xr-x root/root             67520 2023-05-11 06:06 /lib/udev/ata_id
+-rwxr-xr-x root/root             79832 2023-05-11 06:06 /lib/udev/cdrom_id
+-rwxr-xr-x root/root             67556 2023-05-11 06:06 /lib/udev/collect
+-rwxr-xr-x root/root              5496 2023-05-11 06:06 /lib/udev/mtd_probe
+drwxr-xr-x root/root               701 2021-11-03 23:39 /lib/udev/rules.d
+-rw-r--r-- root/root              3677 2021-11-03 22:42 /lib/udev/rules.d/50-udev-default.rules
+-rw-r--r-- root/root               620 2021-11-03 22:42 /lib/udev/rules.d/60-block.rules
+-rw-r--r-- root/root              1071 2021-11-03 22:42 /lib/udev/rules.d/60-cdrom_id.rules
+-rw-r--r-- root/root               413 2021-11-03 22:42 /lib/udev/rules.d/60-drm.rules
+-rw-r--r-- root/root               974 2021-11-03 22:42 /lib/udev/rules.d/60-evdev.rules
+-rw-r--r-- root/root               282 2021-11-03 22:42 /lib/udev/rules.d/60-input-id.rules
+-rw-r--r-- root/root               616 2021-11-03 22:42 /lib/udev/rules.d/60-persistent-alsa.rules
+-rw-r--r-- root/root              2710 2021-11-03 22:42 /lib/udev/rules.d/60-persistent-input.rules
+-rw-r--r-- root/root              1509 2021-11-03 22:42 /lib/udev/rules.d/60-persistent-storage-tape.rules
+-rw-r--r-- root/root              6521 2021-11-03 22:42 /lib/udev/rules.d/60-persistent-storage.rules
+-rw-r--r-- root/root               769 2021-11-03 22:42 /lib/udev/rules.d/60-persistent-v4l.rules
+-rw-r--r-- root/root               727 2021-11-03 22:42 /lib/udev/rules.d/60-sensor.rules
+-rw-r--r-- root/root              1190 2021-11-03 22:42 /lib/udev/rules.d/60-serial.rules
+-rw-r--r-- root/root              1268 2021-11-03 23:39 /lib/udev/rules.d/61-partition-init.rules
+-rw-r--r-- root/root              1682 2021-11-03 23:39 /lib/udev/rules.d/61-sd-cards-auto-mount.rules
+-rw-r--r-- root/root                80 2021-11-03 23:39 /lib/udev/rules.d/61-usbdevice.rules
+-rw-r--r-- root/root               584 2021-11-03 22:42 /lib/udev/rules.d/64-btrfs.rules
+-rw-r--r-- root/root               432 2021-11-03 22:42 /lib/udev/rules.d/70-joystick.rules
+-rw-r--r-- root/root               734 2021-11-03 22:42 /lib/udev/rules.d/70-mouse.rules
+-rw-r--r-- root/root               473 2021-11-03 22:42 /lib/udev/rules.d/70-touchpad.rules
+-rw-r--r-- root/root               452 2021-11-03 22:42 /lib/udev/rules.d/75-net-description.rules
+-rw-r--r-- root/root               174 2021-11-03 22:42 /lib/udev/rules.d/75-probe_mtd.rules
+-rw-r--r-- root/root              4816 2021-11-03 22:42 /lib/udev/rules.d/78-sound-card.rules
+-rw-r--r-- root/root               615 2021-11-03 22:42 /lib/udev/rules.d/80-drivers.rules
+-rw-r--r-- root/root               491 2021-11-03 22:42 /lib/udev/rules.d/80-net-name-slot.rules
+-rwxr-xr-x root/root             76260 2023-05-11 06:06 /lib/udev/scsi_id
+-rwxr-xr-x root/root             46992 2023-05-11 06:06 /lib/udev/v4l_id
+lrwxrwxrwx root/root                 3 2021-11-03 21:58 /lib32 -> lib
+lrwxrwxrwx root/root                11 2021-11-03 22:40 /linuxrc -> bin/busybox
+drwxr-xr-x root/root                 3 2020-04-29 08:31 /media
+drwxr-xr-x root/root                29 2021-11-03 23:39 /mnt
+drwxr-xr-x root/root                 3 2021-11-03 23:39 /mnt/sdcard
+drwxr-xr-x root/root                 3 2021-11-03 23:39 /oem
+drwxr-xr-x root/root                 3 2020-04-29 08:31 /opt
+drwxr-xr-x root/root                 3 2020-04-29 08:31 /proc
+drwx------ root/root                 3 2020-04-29 08:31 /root
+drwxr-xr-x root/root                 3 2020-04-29 08:31 /run
+drwxr-xr-x root/root              1125 2023-05-11 06:06 /sbin
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/arp -> ../bin/busybox
+-rwxr-xr-x root/root             17956 2023-05-11 06:06 /sbin/badblocks
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/blkid -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/devmem -> ../bin/busybox
+-rwxr-xr-x root/root             18092 2023-05-11 06:06 /sbin/dumpe2fs
+-rwxr-xr-x root/root              9668 2023-05-11 06:06 /sbin/e2freefrag
+-rwxr-xr-x root/root            227360 2023-05-11 06:06 /sbin/e2fsck
+lrwxrwxrwx root/root                 7 2021-11-03 23:31 /sbin/e2label -> tune2fs
+-rwxr-xr-x root/root             13832 2023-05-11 06:06 /sbin/e2undo
+-rwxr-xr-x root/root             13824 2023-05-11 06:06 /sbin/e4crypt
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/fdisk -> ../bin/busybox
+-rwxr-xr-x root/root             13744 2023-05-11 06:06 /sbin/filefrag
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/freeramdisk -> ../bin/busybox
+-rwxr-xr-x root/root             18028 2023-05-11 06:06 /sbin/fsck
+lrwxrwxrwx root/root                 6 2021-11-03 23:31 /sbin/fsck.ext2 -> e2fsck
+lrwxrwxrwx root/root                 6 2021-11-03 23:31 /sbin/fsck.ext3 -> e2fsck
+lrwxrwxrwx root/root                 6 2021-11-03 23:31 /sbin/fsck.ext4 -> e2fsck
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/fstrim -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/getty -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/halt -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/hdparm -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/hwclock -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/ifconfig -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/ifdown -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/ifup -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/init -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/insmod -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/ip -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/ipaddr -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/iplink -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/ipneigh -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/iproute -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/iprule -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/iptunnel -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/klogd -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/loadkmap -> ../bin/busybox
+-rwxr-xr-x root/root              9672 2023-05-11 06:06 /sbin/logsave
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/losetup -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/lsmod -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/makedevs -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/mdev -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/mkdosfs -> ../bin/busybox
+-rwxr-xr-x root/root             92512 2023-05-11 06:06 /sbin/mke2fs
+lrwxrwxrwx root/root                 6 2021-11-03 23:31 /sbin/mkfs.ext2 -> mke2fs
+lrwxrwxrwx root/root                 6 2021-11-03 23:31 /sbin/mkfs.ext3 -> mke2fs
+lrwxrwxrwx root/root                 6 2021-11-03 23:31 /sbin/mkfs.ext4 -> mke2fs
+-rwxr-xr-x root/root              5508 2023-05-11 06:06 /sbin/mklost+found
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/mkswap -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/modprobe -> ../bin/busybox
+-rwxr-xr-x root/root             30392 2023-05-11 06:06 /sbin/mount.cifs
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/nameif -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/pivot_root -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/poweroff -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/reboot -> ../bin/busybox
+-rwxr-xr-x root/root             51120 2023-05-11 06:06 /sbin/resize2fs
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/rmmod -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/route -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/runlevel -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/setconsole -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/start-stop-daemon -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/sulogin -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/swapoff -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/swapon -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/switch_root -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/sysctl -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/syslogd -> ../bin/busybox
+-rwxr-xr-x root/root             75960 2023-05-11 06:06 /sbin/tune2fs
+lrwxrwxrwx root/root                16 2021-11-03 22:42 /sbin/udevadm -> /usr/bin/udevadm
+-rwxr-xr-x root/root            219528 2023-05-11 06:06 /sbin/udevd
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/udhcpc -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/uevent -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/vconfig -> ../bin/busybox
+lrwxrwxrwx root/root                14 2021-11-03 22:40 /sbin/watchdog -> ../bin/busybox
+lrwxrwxrwx root/root                10 2021-11-03 23:39 /sdcard -> mnt/sdcard
+drwxr-xr-x root/root                 3 2020-04-29 08:31 /sys
+drwxrwxrwt root/root                 3 2020-04-29 08:31 /tmp
+lrwxrwxrwx root/root                10 2021-11-03 23:39 /udisk -> media/usb0
+drwxr-xr-x root/root                31 2023-05-11 06:06 /userdata
+-rw-r--r-- root/root                 0 2020-04-29 08:31 /userdata/.gitkeep
+drwxr-xr-x root/root               135 2021-05-21 20:09 /usr
+drwxr-xr-x root/root              2568 2022-06-21 04:50 /usr/bin
+-rwxr-xr-x root/root             51100 2023-05-11 06:06 /usr/bin/PCBA_TEST
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/[ -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/[[ -> ../../bin/busybox
+-rwxr-xr-x root/root             96504 2023-05-11 06:06 /usr/bin/adbd
+-rwxr-xr-x root/root             43188 2023-05-11 06:06 /usr/bin/alsamixer
+-rwxr-xr-x root/root             38920 2023-05-11 06:06 /usr/bin/amixer
+-rwxr-xr-x root/root             55288 2023-05-11 06:06 /usr/bin/aplay
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/ar -> ../../bin/busybox
+-rwxr-xr-x root/root             55288 2023-05-11 06:06 /usr/bin/arecord
+-rwxr-xr-x root/root             22268 2023-05-11 06:06 /usr/bin/aserver
+-rwxr-xr-x root/root              2519 2020-04-29 08:31 /usr/bin/av_config.sh
+-rwxr-xr-x root/root              3971 2020-04-29 08:31 /usr/bin/av_helper.sh
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/awk -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/basename -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/bunzip2 -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/bzcat -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/chrt -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/chvt -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/cksum -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/clear -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/cmp -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/crontab -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/cut -> ../../bin/busybox
+lrwxrwxrwx root/root                16 2021-11-03 23:30 /usr/bin/dbclient -> ../sbin/dropbear
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/dc -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/deallocvt -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/diff -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/dirname -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/dos2unix -> ../../bin/busybox
+-rwxr-xr-x root/root               989 2020-07-11 01:43 /usr/bin/drm-hotplug.sh
+lrwxrwxrwx root/root                16 2021-11-03 23:30 /usr/bin/dropbearconvert -> ../sbin/dropbear
+lrwxrwxrwx root/root                16 2021-11-03 23:30 /usr/bin/dropbearkey -> ../sbin/dropbear
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/du -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/eject -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/env -> ../../bin/busybox
+-rwxr-xr-x root/root             26060 2023-05-11 06:06 /usr/bin/evtest
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/expr -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/factor -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/fallocate -> ../../bin/busybox
+-rwxr-xr-x root/root            240784 2023-05-11 06:06 /usr/bin/ffmpeg
+-rwxr-xr-x root/root            109220 2023-05-11 06:06 /usr/bin/ffplay
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/find -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/flock -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/fold -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/free -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/fuser -> ../../bin/busybox
+-rwxr-xr-x root/root             73396 2023-05-11 06:06 /usr/bin/game
+-rwxr-xr-x root/root            310920 2023-05-11 06:06 /usr/bin/gdbserver
+-rwxr-xr-x root/root               221 2021-11-03 23:39 /usr/bin/glmarktest.sh
+-rwxr-xr-x root/root              1741 2022-05-17 01:18 /usr/bin/gpio-spk-init-logo.sh
+-rwxr-xr-x root/root              1688 2021-05-26 20:25 /usr/bin/gpio-spk-init.sh
+-rwxr-xr-x root/root              1522 2022-05-16 06:57 /usr/bin/gpio-volctrl.sh
+-rwxr-xr-x root/root                70 2021-11-03 23:39 /usr/bin/gstaudiotest.sh
+-rwxr-xr-x root/root               201 2021-11-03 23:39 /usr/bin/gstmp3play.sh
+-rwxr-xr-x root/root               280 2021-11-03 23:39 /usr/bin/gstmp4play.sh
+-rwxr-xr-x root/root               322 2021-11-03 23:39 /usr/bin/gstvideoplay.sh
+-rwxr-xr-x root/root               100 2021-11-03 23:39 /usr/bin/gstvideotest.sh
+-rwxr-xr-x root/root               186 2021-11-03 23:39 /usr/bin/gstwavplay.sh
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/head -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/hexdump -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/hostid -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/id -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/install -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/ipcrm -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/ipcs -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/killall -> ../../bin/busybox
+-rwxr-xr-x root/root             22032 2023-05-11 06:06 /usr/bin/kms-steal-crtc
+-rwxr-xr-x root/root             13944 2023-05-11 06:06 /usr/bin/kms-universal-planes
+-rwxr-xr-x root/root              9660 2023-05-11 06:06 /usr/bin/kmstest
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/last -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/less -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/logger -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/logname -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/lsof -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/lspci -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/lsscsi -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/lsusb -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/lzcat -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/lzma -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/lzopcat -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/md5sum -> ../../bin/busybox
+-rwxr-xr-x root/root             13892 2023-05-11 06:06 /usr/bin/memtester
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/mesg -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/microcom -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/mkfifo -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/mkpasswd -> ../../bin/busybox
+-rwxr-xr-x root/root              9636 2023-05-11 06:06 /usr/bin/modeprint
+-rwxr-xr-x root/root             42676 2023-05-11 06:06 /usr/bin/modetest
+-rwxr-xr-x root/root               219 2021-11-03 23:39 /usr/bin/mp3play.sh
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/nl -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/nohup -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/nproc -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/nslookup -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/od -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/openvt -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/passwd -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/paste -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/patch -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/printf -> ../../bin/busybox
+-rwxr-xr-x root/root              9716 2023-05-11 06:06 /usr/bin/proptest
+lrwxrwxrwx root/root                 7 2021-11-03 22:15 /usr/bin/python -> python2
+lrwxrwxrwx root/root                 9 2021-11-03 22:15 /usr/bin/python2 -> python2.7
+-rwxr-xr-x root/root              5460 2023-05-11 06:06 /usr/bin/python2.7
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/readlink -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/realpath -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/renice -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/reset -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/resize -> ../../bin/busybox
+-rwxr-xr-x root/root              2679 2021-11-03 23:39 /usr/bin/resize-helper
+-rwxr-xr-x root/root           2724732 2023-05-11 06:06 /usr/bin/retroarch
+-rwxr-xr-x root/root             26404 2022-09-26 21:38 /usr/bin/retroarch-cg2glsl
+lrwxrwxrwx root/root                16 2021-11-03 23:30 /usr/bin/scp -> ../sbin/dropbear
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/seq -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/setkeycodes -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/setsid -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/sha1sum -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/sha256sum -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/sha3sum -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/sha512sum -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/shred -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/sort -> ../../bin/busybox
+-rwxr-xr-x root/root              1697 2021-03-03 04:59 /usr/bin/spk-init-logo.sh
+-rwxr-xr-x root/root              1330 2022-04-14 21:42 /usr/bin/spk-init.sh
+lrwxrwxrwx root/root                16 2021-11-03 23:30 /usr/bin/ssh -> ../sbin/dropbear
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/strings -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/svc -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/tail -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/tee -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/telnet -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/test -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/tftp -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/time -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/top -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/tr -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/traceroute -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/truncate -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/tty -> ../../bin/busybox
+-rwxr-xr-x root/root              1697 2022-05-16 06:31 /usr/bin/uart-spk-init-logo.sh
+-rwxr-xr-x root/root            227684 2023-05-11 06:06 /usr/bin/udevadm
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/uniq -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/unix2dos -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/unlink -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/unlzma -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/unlzop -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/unxz -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/unzip -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/uptime -> ../../bin/busybox
+-rwxr-xr-x root/root              1509 2021-11-03 23:39 /usr/bin/usbdevice
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/uudecode -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/uuencode -> ../../bin/busybox
+-rwxr-xr-x root/root              9672 2023-05-11 06:06 /usr/bin/vbltest
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/vlock -> ../../bin/busybox
+-rwxr-xr-x root/root              1188 2022-04-14 21:42 /usr/bin/volctrl.sh
+-rwxr-xr-x root/root              1335 2021-07-22 10:36 /usr/bin/volctrl_gemini.sh
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/w -> ../../bin/busybox
+-rwxr-xr-x root/root             30248 2023-05-11 06:06 /usr/bin/wayland-scanner
+-rwxr-xr-x root/root               164 2021-11-03 23:39 /usr/bin/waylandtest.sh
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/wc -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/wget -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/which -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/who -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/whoami -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/xargs -> ../../bin/busybox
+-rwxr-xr-x root/root             13796 2023-05-11 06:06 /usr/bin/xmlcatalog
+-rwxr-xr-x root/root             47516 2023-05-11 06:06 /usr/bin/xmllint
+-rwxr-xr-x root/root             17996 2023-05-11 06:06 /usr/bin/xmlwf
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/xxd -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/xz -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/xzcat -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/bin/yes -> ../../bin/busybox
+drwxr-xr-x root/root                34 2022-01-07 02:09 /usr/etc
+-rw-r--r-- root/root              8988 2022-01-07 02:09 /usr/etc/MiniGUI.cfg
+drwxr-xr-x root/root              3699 2023-05-11 06:06 /usr/lib
+drwxr-xr-x root/root               646 2023-05-11 06:06 /usr/lib/alsa-lib
+-rwxr-xr-x root/root             18004 2023-05-11 06:06 /usr/lib/alsa-lib/libasound_module_ctl_arcam_av.so
+-rwxr-xr-x root/root             13744 2023-05-11 06:06 /usr/lib/alsa-lib/libasound_module_ctl_oss.so
+-rwxr-xr-x root/root             18008 2023-05-11 06:06 /usr/lib/alsa-lib/libasound_module_pcm_a52.so
+-rwxr-xr-x root/root              9576 2023-05-11 06:06 /usr/lib/alsa-lib/libasound_module_pcm_oss.so
+-rwxr-xr-x root/root              9792 2023-05-11 06:06 /usr/lib/alsa-lib/libasound_module_pcm_upmix.so
+-rwxr-xr-x root/root              9712 2023-05-11 06:06 /usr/lib/alsa-lib/libasound_module_pcm_usb_stream.so
+-rwxr-xr-x root/root              9548 2023-05-11 06:06 /usr/lib/alsa-lib/libasound_module_pcm_vdownmix.so
+-rwxr-xr-x root/root              9504 2023-05-11 06:06 /usr/lib/alsa-lib/libasound_module_rate_lavcrate.so
+lrwxrwxrwx root/root                33 2021-11-03 23:28 /usr/lib/alsa-lib/libasound_module_rate_lavcrate_fast.so -> libasound_module_rate_lavcrate.so
+lrwxrwxrwx root/root                33 2021-11-03 23:28 /usr/lib/alsa-lib/libasound_module_rate_lavcrate_faster.so -> libasound_module_rate_lavcrate.so
+lrwxrwxrwx root/root                33 2021-11-03 23:28 /usr/lib/alsa-lib/libasound_module_rate_lavcrate_high.so -> libasound_module_rate_lavcrate.so
+lrwxrwxrwx root/root                33 2021-11-03 23:28 /usr/lib/alsa-lib/libasound_module_rate_lavcrate_higher.so -> libasound_module_rate_lavcrate.so
+-rwxr-xr-x root/root             15108 2023-05-11 06:06 /usr/lib/alsa-lib/libasound_module_rate_speexrate.so
+lrwxrwxrwx root/root                34 2021-11-03 23:28 /usr/lib/alsa-lib/libasound_module_rate_speexrate_best.so -> libasound_module_rate_speexrate.so
+lrwxrwxrwx root/root                34 2021-11-03 23:28 /usr/lib/alsa-lib/libasound_module_rate_speexrate_medium.so -> libasound_module_rate_speexrate.so
+lrwxrwxrwx root/root                11 2021-11-03 23:38 /usr/lib/libEGL.so -> libEGL.so.1
+lrwxrwxrwx root/root                10 2021-11-03 23:38 /usr/lib/libEGL.so.1 -> libmali.so
+lrwxrwxrwx root/root                17 2021-11-03 23:38 /usr/lib/libGLESv1_CM.so -> libGLESv1_CM.so.1
+lrwxrwxrwx root/root                10 2021-11-03 23:38 /usr/lib/libGLESv1_CM.so.1 -> libmali.so
+lrwxrwxrwx root/root                14 2021-11-03 23:38 /usr/lib/libGLESv2.so -> libGLESv2.so.2
+lrwxrwxrwx root/root                10 2021-11-03 23:38 /usr/lib/libGLESv2.so.2 -> libmali.so
+lrwxrwxrwx root/root                12 2021-11-03 23:38 /usr/lib/libMali.so -> libMali.so.1
+lrwxrwxrwx root/root                10 2021-11-03 23:38 /usr/lib/libMali.so.1 -> libmali.so
+lrwxrwxrwx root/root                10 2021-11-03 23:38 /usr/lib/libMaliOpenCL.so -> libmali.so
+lrwxrwxrwx root/root                16 2021-11-03 23:38 /usr/lib/libOpenCL.so -> libMaliOpenCL.so
+lrwxrwxrwx root/root                20 2022-02-24 21:18 /usr/lib/libSDL2-2.0.so.0 -> libSDL2-2.0.so.0.7.0
+-rwxr-xr-x root/root           1258892 2023-05-11 06:06 /usr/lib/libSDL2-2.0.so.0.7.0
+lrwxrwxrwx root/root                20 2022-02-24 21:18 /usr/lib/libSDL2.so -> libSDL2-2.0.so.0.7.0
+lrwxrwxrwx root/root                26 2020-12-25 03:32 /usr/lib/libSDL2_image-2.0.so.0 -> libSDL2_image-2.0.so.0.0.1
+-rwxr-xr-x root/root             54728 2023-05-11 06:06 /usr/lib/libSDL2_image-2.0.so.0.0.1
+lrwxrwxrwx root/root                26 2020-12-25 03:32 /usr/lib/libSDL2_image.so -> libSDL2_image-2.0.so.0.0.1
+lrwxrwxrwx root/root                26 2021-11-03 23:40 /usr/lib/libSDL2_mixer-2.0.so.0 -> libSDL2_mixer-2.0.so.0.0.1
+-rwxr-xr-x root/root            127048 2023-05-11 06:06 /usr/lib/libSDL2_mixer-2.0.so.0.0.1
+lrwxrwxrwx root/root                26 2021-11-03 23:40 /usr/lib/libSDL2_mixer.so -> libSDL2_mixer-2.0.so.0.0.1
+lrwxrwxrwx root/root                18 2021-11-03 22:36 /usr/lib/libasound.so -> libasound.so.2.0.0
+lrwxrwxrwx root/root                18 2021-11-03 22:36 /usr/lib/libasound.so.2 -> libasound.so.2.0.0
+-rwxr-xr-x root/root            812328 2023-05-11 06:06 /usr/lib/libasound.so.2.0.0
+lrwxrwxrwx root/root                23 2021-11-03 23:28 /usr/lib/libavcodec.so -> libavcodec.so.58.35.100
+lrwxrwxrwx root/root                23 2021-11-03 23:28 /usr/lib/libavcodec.so.58 -> libavcodec.so.58.35.100
+-rwxr-xr-x root/root          11090208 2023-05-11 06:06 /usr/lib/libavcodec.so.58.35.100
+lrwxrwxrwx root/root                23 2021-11-03 23:28 /usr/lib/libavdevice.so -> libavdevice.so.58.5.100
+lrwxrwxrwx root/root                23 2021-11-03 23:28 /usr/lib/libavdevice.so.58 -> libavdevice.so.58.5.100
+-rwxr-xr-x root/root             72828 2023-05-11 06:06 /usr/lib/libavdevice.so.58.5.100
+lrwxrwxrwx root/root                23 2021-11-03 23:28 /usr/lib/libavfilter.so -> libavfilter.so.7.40.101
+lrwxrwxrwx root/root                23 2021-11-03 23:28 /usr/lib/libavfilter.so.7 -> libavfilter.so.7.40.101
+-rwxr-xr-x root/root           2007760 2023-05-11 06:06 /usr/lib/libavfilter.so.7.40.101
+lrwxrwxrwx root/root                24 2021-11-03 23:28 /usr/lib/libavformat.so -> libavformat.so.58.20.100
+lrwxrwxrwx root/root                24 2021-11-03 23:28 /usr/lib/libavformat.so.58 -> libavformat.so.58.20.100
+-rwxr-xr-x root/root           2067040 2023-05-11 06:06 /usr/lib/libavformat.so.58.20.100
+lrwxrwxrwx root/root                22 2021-11-03 23:28 /usr/lib/libavutil.so -> libavutil.so.56.22.100
+lrwxrwxrwx root/root                22 2021-11-03 23:28 /usr/lib/libavutil.so.56 -> libavutil.so.56.22.100
+-rwxr-xr-x root/root            415600 2023-05-11 06:06 /usr/lib/libavutil.so.56.22.100
+lrwxrwxrwx root/root                27 2021-11-03 22:41 /usr/lib/libblkid.so -> ../../lib/libblkid.so.1.1.0
+lrwxrwxrwx root/root                15 2021-11-03 23:31 /usr/lib/libcom_err.so -> libcom_err.so.2
+lrwxrwxrwx root/root                17 2021-11-03 23:31 /usr/lib/libcom_err.so.2 -> libcom_err.so.2.1
+-rwxr-xr-x root/root              9620 2023-05-11 06:06 /usr/lib/libcom_err.so.2.1
+lrwxrwxrwx root/root                18 2021-11-03 22:44 /usr/lib/libcrypto.so -> libcrypto.so.1.0.0
+-rwxr-xr-x root/root           1362236 2023-05-11 06:06 /usr/lib/libcrypto.so.1.0.0
+lrwxrwxrwx root/root                17 2021-11-03 22:41 /usr/lib/libcurses.so -> libncurses.so.6.0
+-rwxr--r-- root/root              5352 2023-05-11 06:06 /usr/lib/libdeck.so
+lrwxrwxrwx root/root                15 2022-02-24 20:50 /usr/lib/libdrm.so -> libdrm.so.2.4.0
+lrwxrwxrwx root/root                15 2022-02-24 20:50 /usr/lib/libdrm.so.2 -> libdrm.so.2.4.0
+-rwxr-xr-x root/root             46680 2023-05-11 06:06 /usr/lib/libdrm.so.2.4.0
+lrwxrwxrwx root/root                24 2022-02-24 20:50 /usr/lib/libdrm_rockchip.so -> libdrm_rockchip.so.1.0.0
+lrwxrwxrwx root/root                24 2022-02-24 20:50 /usr/lib/libdrm_rockchip.so.1 -> libdrm_rockchip.so.1.0.0
+-rwxr-xr-x root/root              9448 2023-05-11 06:06 /usr/lib/libdrm_rockchip.so.1.0.0
+lrwxrwxrwx root/root                11 2021-11-03 23:31 /usr/lib/libe2p.so -> libe2p.so.2
+lrwxrwxrwx root/root                13 2021-11-03 23:31 /usr/lib/libe2p.so.2 -> libe2p.so.2.3
+-rwxr-xr-x root/root             26956 2023-05-11 06:06 /usr/lib/libe2p.so.2.3
+lrwxrwxrwx root/root                17 2021-11-03 22:44 /usr/lib/libexpat.so -> libexpat.so.1.6.7
+lrwxrwxrwx root/root                17 2021-11-03 22:44 /usr/lib/libexpat.so.1 -> libexpat.so.1.6.7
+-rwxr-xr-x root/root            112116 2023-05-11 06:06 /usr/lib/libexpat.so.1.6.7
+lrwxrwxrwx root/root                14 2021-11-03 23:31 /usr/lib/libext2fs.so -> libext2fs.so.2
+lrwxrwxrwx root/root                16 2021-11-03 23:31 /usr/lib/libext2fs.so.2 -> libext2fs.so.2.4
+-rwxr-xr-x root/root            241100 2023-05-11 06:06 /usr/lib/libext2fs.so.2.4
+lrwxrwxrwx root/root                15 2021-11-03 22:14 /usr/lib/libffi.so -> libffi.so.6.0.4
+lrwxrwxrwx root/root                15 2021-11-03 22:14 /usr/lib/libffi.so.6 -> libffi.so.6.0.4
+-rwxr-xr-x root/root             26140 2023-05-11 06:06 /usr/lib/libffi.so.6.0.4
+lrwxrwxrwx root/root                12 2021-11-03 22:41 /usr/lib/libform.so -> libform.so.6
+lrwxrwxrwx root/root                14 2021-11-03 22:41 /usr/lib/libform.so.6 -> libform.so.6.0
+-rwxr-xr-x root/root             43068 2023-05-11 06:06 /usr/lib/libform.so.6.0
+lrwxrwxrwx root/root                21 2021-11-03 22:38 /usr/lib/libfreetype.so -> libfreetype.so.6.15.0
+lrwxrwxrwx root/root                21 2021-11-03 22:38 /usr/lib/libfreetype.so.6 -> libfreetype.so.6.15.0
+-rwxr-xr-x root/root            477080 2023-05-11 06:06 /usr/lib/libfreetype.so.6.15.0
+lrwxrwxrwx root/root                11 2021-11-03 23:38 /usr/lib/libgbm.so -> libgbm.so.1
+lrwxrwxrwx root/root                10 2021-11-03 23:38 /usr/lib/libgbm.so.1 -> libmali.so
+lrwxrwxrwx root/root                17 2021-11-03 23:25 /usr/lib/libglapi.so -> libglapi.so.0.0.0
+lrwxrwxrwx root/root                17 2021-11-03 23:25 /usr/lib/libglapi.so.0 -> libglapi.so.0.0.0
+-rwxr-xr-x root/root            152980 2023-05-11 06:06 /usr/lib/libglapi.so.0.0.0
+lrwxrwxrwx root/root                13 2021-11-03 23:32 /usr/lib/libjpeg.so -> libjpeg.so.62
+lrwxrwxrwx root/root                17 2021-11-03 23:32 /usr/lib/libjpeg.so.62 -> libjpeg.so.62.3.0
+-rwxr-xr-x root/root            194436 2023-05-11 06:06 /usr/lib/libjpeg.so.62.3.0
+lrwxrwxrwx root/root                16 2021-11-03 22:39 /usr/lib/libkmod.so -> libkmod.so.2.3.2
+lrwxrwxrwx root/root                16 2021-11-03 22:39 /usr/lib/libkmod.so.2 -> libkmod.so.2.3.2
+-rwxr-xr-x root/root             59112 2023-05-11 06:06 /usr/lib/libkmod.so.2.3.2
+lrwxrwxrwx root/root                15 2022-02-24 20:50 /usr/lib/libkms.so -> libkms.so.1.0.0
+lrwxrwxrwx root/root                15 2022-02-24 20:50 /usr/lib/libkms.so.1 -> libkms.so.1.0.0
+-rwxr-xr-x root/root              9464 2023-05-11 06:06 /usr/lib/libkms.so.1.0.0
+-rw-r--r-- root/root            945336 2021-11-03 23:38 /usr/lib/libmali-utgard-400-r7p0-wayland.so
+lrwxrwxrwx root/root                12 2021-11-03 23:38 /usr/lib/libmali.so -> libmali.so.1
+lrwxrwxrwx root/root                34 2021-11-03 23:38 /usr/lib/libmali.so.1 -> libmali-utgard-400-r7p0-wayland.so
+lrwxrwxrwx root/root                12 2021-11-03 22:41 /usr/lib/libmenu.so -> libmenu.so.6
+lrwxrwxrwx root/root                14 2021-11-03 22:41 /usr/lib/libmenu.so.6 -> libmenu.so.6.0
+-rwxr-xr-x root/root             22068 2023-05-11 06:06 /usr/lib/libmenu.so.6.0
+lrwxrwxrwx root/root                27 2022-01-07 02:09 /usr/lib/libminigui_ths-3.2.so.0 -> libminigui_ths-3.2.so.0.0.0
+-rwxr-xr-x root/root           1252356 2023-05-11 06:06 /usr/lib/libminigui_ths-3.2.so.0.0.0
+lrwxrwxrwx root/root                27 2022-01-07 02:09 /usr/lib/libminigui_ths.so -> libminigui_ths-3.2.so.0.0.0
+lrwxrwxrwx root/root                15 2021-11-03 22:41 /usr/lib/libncurses.so -> libncurses.so.6
+lrwxrwxrwx root/root                17 2021-11-03 22:41 /usr/lib/libncurses.so.6 -> libncurses.so.6.0
+-rwxr-xr-x root/root            199884 2023-05-11 06:06 /usr/lib/libncurses.so.6.0
+lrwxrwxrwx root/root                13 2021-11-03 22:41 /usr/lib/libpanel.so -> libpanel.so.6
+lrwxrwxrwx root/root                15 2021-11-03 22:41 /usr/lib/libpanel.so.6 -> libpanel.so.6.0
+-rwxr-xr-x root/root              9408 2023-05-11 06:06 /usr/lib/libpanel.so.6.0
+lrwxrwxrwx root/root                21 2021-11-03 23:36 /usr/lib/libpixman-1.so -> libpixman-1.so.0.34.0
+lrwxrwxrwx root/root                21 2021-11-03 23:36 /usr/lib/libpixman-1.so.0 -> libpixman-1.so.0.34.0
+-rwxr-xr-x root/root            534232 2023-05-11 06:06 /usr/lib/libpixman-1.so.0.34.0
+lrwxrwxrwx root/root                11 2021-12-20 21:00 /usr/lib/libpng.so -> libpng12.so
+lrwxrwxrwx root/root                16 2021-12-20 21:00 /usr/lib/libpng.so.3 -> libpng.so.3.59.0
+-rwxr-xr-x root/root            121160 2023-05-11 06:06 /usr/lib/libpng.so.3.59.0
+lrwxrwxrwx root/root                18 2021-12-20 21:00 /usr/lib/libpng12.so -> libpng12.so.0.59.0
+lrwxrwxrwx root/root                18 2021-12-20 21:00 /usr/lib/libpng12.so.0 -> libpng12.so.0.59.0
+-rwxr-xr-x root/root            112528 2023-05-11 06:06 /usr/lib/libpng12.so.0.59.0
+lrwxrwxrwx root/root                19 2021-12-20 20:53 /usr/lib/libpng16.so -> libpng16.so.16.34.0
+lrwxrwxrwx root/root                19 2021-12-20 20:53 /usr/lib/libpng16.so.16 -> libpng16.so.16.34.0
+-rwxr-xr-x root/root            149372 2023-05-11 06:06 /usr/lib/libpng16.so.16.34.0
+lrwxrwxrwx root/root                19 2021-11-03 22:15 /usr/lib/libpython2.7.so -> libpython2.7.so.1.0
+-rwxr-xr-x root/root           1591816 2023-05-11 06:06 /usr/lib/libpython2.7.so.1.0
+drwxr-xr-x root/root               166 2023-05-11 06:06 /usr/lib/libretro
+-rwxr--r-- root/root          37141752 2023-05-11 06:06 /usr/lib/libretro/fbalpha_libretro.so
+-rwxr--r-- root/root           2849548 2023-05-11 06:06 /usr/lib/libretro/genesis_plus_gx_libretro.so
+-rwxr--r-- root/root           8611716 2023-05-11 06:06 /usr/lib/libretro/mame2000_libretro.so
+drwxr-xr-x root/root                85 2023-05-11 06:06 /usr/lib/libretro/mame2003-plus
+drwxr-xr-x root/root                 3 2021-04-13 03:15 /usr/lib/libretro/mame2003-plus/artwork
+drwxr-xr-x root/root                 3 2021-04-13 03:15 /usr/lib/libretro/mame2003-plus/cfg
+drwxr-xr-x root/root                 3 2021-04-13 03:15 /usr/lib/libretro/mame2003-plus/hi
+-rwxr--r-- root/root            131788 2021-02-20 01:09 /usr/lib/libretro/mame2003-plus/hiscore.dat
+drwxr-xr-x root/root                 3 2021-04-13 03:15 /usr/lib/libretro/mame2003-plus/samples
+-rwxr--r-- root/root          22925300 2023-05-11 06:06 /usr/lib/libretro/mame2003_libretro.so
+lrwxrwxrwx root/root                10 2021-11-03 23:31 /usr/lib/libss.so -> libss.so.2
+lrwxrwxrwx root/root                12 2021-11-03 23:31 /usr/lib/libss.so.2 -> libss.so.2.0
+-rwxr-xr-x root/root             17952 2023-05-11 06:06 /usr/lib/libss.so.2.0
+lrwxrwxrwx root/root                15 2021-11-03 22:44 /usr/lib/libssl.so -> libssl.so.1.0.0
+-rwxr-xr-x root/root            309192 2023-05-11 06:06 /usr/lib/libssl.so.1.0.0
+lrwxrwxrwx root/root                19 2021-11-03 22:13 /usr/lib/libstdc++.so -> libstdc++.so.6.0.22
+lrwxrwxrwx root/root                19 2021-11-03 22:13 /usr/lib/libstdc++.so.6 -> libstdc++.so.6.0.22
+-rwxr-xr-x root/root            996912 2023-05-11 06:06 /usr/lib/libstdc++.so.6.0.22
+-rw-r--r-- root/root              2564 2021-11-03 22:13 /usr/lib/libstdc++.so.6.0.22-gdb.py
+lrwxrwxrwx root/root                24 2021-11-03 23:28 /usr/lib/libswresample.so -> libswresample.so.3.3.100
+lrwxrwxrwx root/root                24 2021-11-03 23:28 /usr/lib/libswresample.so.3 -> libswresample.so.3.3.100
+-rwxr-xr-x root/root             79348 2023-05-11 06:06 /usr/lib/libswresample.so.3.3.100
+lrwxrwxrwx root/root                21 2021-11-03 23:28 /usr/lib/libswscale.so -> libswscale.so.5.3.100
+lrwxrwxrwx root/root                21 2021-11-03 23:28 /usr/lib/libswscale.so.5 -> libswscale.so.5.3.100
+-rwxr-xr-x root/root            362248 2023-05-11 06:06 /usr/lib/libswscale.so.5.3.100
+lrwxrwxrwx root/root                17 2021-11-03 23:32 /usr/lib/libturbojpeg.so -> libturbojpeg.so.0
+lrwxrwxrwx root/root                21 2021-11-03 23:32 /usr/lib/libturbojpeg.so.0 -> libturbojpeg.so.0.2.0
+-rwxr-xr-x root/root            243792 2023-05-11 06:06 /usr/lib/libturbojpeg.so.0.2.0
+lrwxrwxrwx root/root                26 2021-11-03 22:42 /usr/lib/libudev.so -> ../../lib/libudev.so.1.6.3
+lrwxrwxrwx root/root                26 2021-11-03 22:41 /usr/lib/libuuid.so -> ../../lib/libuuid.so.1.3.0
+lrwxrwxrwx root/root                26 2021-11-03 22:46 /usr/lib/libwayland-client.so -> libwayland-client.so.0.3.0
+lrwxrwxrwx root/root                26 2021-11-03 22:46 /usr/lib/libwayland-client.so.0 -> libwayland-client.so.0.3.0
+-rwxr-xr-x root/root             34720 2023-05-11 06:06 /usr/lib/libwayland-client.so.0.3.0
+lrwxrwxrwx root/root                26 2021-11-03 22:46 /usr/lib/libwayland-cursor.so -> libwayland-cursor.so.0.0.0
+lrwxrwxrwx root/root                26 2021-11-03 22:46 /usr/lib/libwayland-cursor.so.0 -> libwayland-cursor.so.0.0.0
+-rwxr-xr-x root/root             25992 2023-05-11 06:06 /usr/lib/libwayland-cursor.so.0.0.0
+lrwxrwxrwx root/root                19 2021-11-03 23:38 /usr/lib/libwayland-egl.so -> libwayland-egl.so.1
+lrwxrwxrwx root/root                10 2021-11-03 23:38 /usr/lib/libwayland-egl.so.1 -> libmali.so
+lrwxrwxrwx root/root                26 2021-11-03 22:46 /usr/lib/libwayland-server.so -> libwayland-server.so.0.1.0
+lrwxrwxrwx root/root                26 2021-11-03 22:46 /usr/lib/libwayland-server.so.0 -> libwayland-server.so.0.1.0
+-rwxr-xr-x root/root             47160 2023-05-11 06:06 /usr/lib/libwayland-server.so.0.1.0
+lrwxrwxrwx root/root                21 2021-11-03 23:33 /usr/lib/libxkbcommon.so -> libxkbcommon.so.0.0.0
+lrwxrwxrwx root/root                21 2021-11-03 23:33 /usr/lib/libxkbcommon.so.0 -> libxkbcommon.so.0.0.0
+-rwxr-xr-x root/root            210568 2023-05-11 06:06 /usr/lib/libxkbcommon.so.0.0.0
+lrwxrwxrwx root/root                16 2021-11-03 22:45 /usr/lib/libxml2.so -> libxml2.so.2.9.7
+lrwxrwxrwx root/root                16 2021-11-03 22:45 /usr/lib/libxml2.so.2 -> libxml2.so.2.9.7
+-rwxr-xr-x root/root           1056712 2023-05-11 06:06 /usr/lib/libxml2.so.2.9.7
+lrwxrwxrwx root/root                14 2021-11-03 22:37 /usr/lib/libz.so -> libz.so.1.2.11
+lrwxrwxrwx root/root                14 2021-11-03 22:37 /usr/lib/libz.so.1 -> libz.so.1.2.11
+-rwxr-xr-x root/root             75280 2023-05-11 06:06 /usr/lib/libz.so.1.2.11
+-rw-r--r-- root/root               122 2023-05-11 06:06 /usr/lib/os-release
+drwxr-xr-x root/root              4172 2023-05-11 06:06 /usr/lib/python2.7
+-rw-r--r-- root/root             22747 2021-11-03 22:15 /usr/lib/python2.7/BaseHTTPServer.py
+-rw-r--r-- root/root              5744 2021-11-03 22:15 /usr/lib/python2.7/Bastion.py
+-rw-r--r-- root/root             13089 2021-11-03 22:15 /usr/lib/python2.7/CGIHTTPServer.py
+-rw-r--r-- root/root             27746 2021-11-03 22:15 /usr/lib/python2.7/ConfigParser.py
+-rw-r--r-- root/root             26538 2021-11-03 22:15 /usr/lib/python2.7/Cookie.py
+-rw-r--r-- root/root             10500 2021-11-03 22:15 /usr/lib/python2.7/DocXMLRPCServer.py
+-rw-r--r-- root/root             17171 2021-11-03 22:15 /usr/lib/python2.7/HTMLParser.py
+-rw-r--r-- root/root             12769 2021-11-03 22:15 /usr/lib/python2.7/LICENSE.txt
+-rw-r--r-- root/root              6482 2021-11-03 22:15 /usr/lib/python2.7/MimeWriter.py
+-rw-r--r-- root/root              8577 2021-11-03 22:15 /usr/lib/python2.7/Queue.py
+-rw-r--r-- root/root              7997 2021-11-03 22:15 /usr/lib/python2.7/SimpleHTTPServer.py
+-rw-r--r-- root/root             25812 2021-11-03 22:15 /usr/lib/python2.7/SimpleXMLRPCServer.py
+-rw-r--r-- root/root             23948 2021-11-03 22:15 /usr/lib/python2.7/SocketServer.py
+-rw-r--r-- root/root             10662 2021-11-03 22:15 /usr/lib/python2.7/StringIO.py
+-rw-r--r-- root/root              7060 2021-11-03 22:15 /usr/lib/python2.7/UserDict.py
+-rw-r--r-- root/root              3644 2021-11-03 22:15 /usr/lib/python2.7/UserList.py
+-rwxr-xr-x root/root              9687 2021-11-03 22:15 /usr/lib/python2.7/UserString.py
+-rw-r--r-- root/root              6553 2021-11-03 22:15 /usr/lib/python2.7/_LWPCookieJar.py
+-rw-r--r-- root/root              5797 2021-11-03 22:15 /usr/lib/python2.7/_MozillaCookieJar.py
+-rw-r--r-- root/root              4380 2021-11-03 22:15 /usr/lib/python2.7/__future__.py
+-rw-r--r-- root/root                64 2021-11-03 22:15 /usr/lib/python2.7/__phello__.foo.py
+-rw-r--r-- root/root             18619 2021-11-03 22:15 /usr/lib/python2.7/_abcoll.py
+-rw-r--r-- root/root             19100 2021-11-03 22:15 /usr/lib/python2.7/_osx_support.py
+-rw-r--r-- root/root             69630 2021-11-03 22:15 /usr/lib/python2.7/_pyio.py
+-rw-r--r-- root/root             20728 2021-11-03 22:15 /usr/lib/python2.7/_strptime.py
+-rw-r--r-- root/root             18576 2021-11-03 22:15 /usr/lib/python2.7/_sysconfigdata.py
+-rw-r--r-- root/root              7260 2021-11-03 22:15 /usr/lib/python2.7/_threading_local.py
+-rw-r--r-- root/root              5911 2021-11-03 22:15 /usr/lib/python2.7/_weakrefset.py
+-rw-r--r-- root/root              7145 2021-11-03 22:15 /usr/lib/python2.7/abc.py
+-rw-r--r-- root/root             34579 2021-11-03 22:15 /usr/lib/python2.7/aifc.py
+-rw-r--r-- root/root                60 2021-11-03 22:15 /usr/lib/python2.7/antigravity.py
+-rw-r--r-- root/root              2663 2021-11-03 22:15 /usr/lib/python2.7/anydbm.py
+-rw-r--r-- root/root             89228 2021-11-03 22:15 /usr/lib/python2.7/argparse.py
+-rw-r--r-- root/root             11805 2021-11-03 22:15 /usr/lib/python2.7/ast.py
+-rw-r--r-- root/root             11581 2021-11-03 22:15 /usr/lib/python2.7/asynchat.py
+-rw-r--r-- root/root             20943 2021-11-03 22:15 /usr/lib/python2.7/asyncore.py
+-rw-r--r-- root/root              1705 2021-11-03 22:15 /usr/lib/python2.7/atexit.py
+-rw-r--r-- root/root              7597 2021-11-03 22:15 /usr/lib/python2.7/audiodev.py
+-rwxr-xr-x root/root             11807 2021-11-03 22:15 /usr/lib/python2.7/base64.py
+-rw-r--r-- root/root             21714 2021-11-03 22:15 /usr/lib/python2.7/bdb.py
+-rw-r--r-- root/root             14698 2021-11-03 22:15 /usr/lib/python2.7/binhex.py
+-rw-r--r-- root/root              2595 2021-11-03 22:15 /usr/lib/python2.7/bisect.py
+-rwxr-xr-x root/root              6574 2021-11-03 22:15 /usr/lib/python2.7/cProfile.py
+-rw-r--r-- root/root             23384 2021-11-03 22:15 /usr/lib/python2.7/calendar.py
+-rwxr-xr-x root/root             35800 2021-11-03 22:15 /usr/lib/python2.7/cgi.py
+-rw-r--r-- root/root             12175 2021-11-03 22:15 /usr/lib/python2.7/cgitb.py
+-rw-r--r-- root/root              5419 2021-11-03 22:15 /usr/lib/python2.7/chunk.py
+-rw-r--r-- root/root             15026 2021-11-03 22:15 /usr/lib/python2.7/cmd.py
+-rw-r--r-- root/root             10189 2021-11-03 22:15 /usr/lib/python2.7/code.py
+-rw-r--r-- root/root             36143 2021-11-03 22:15 /usr/lib/python2.7/codecs.py
+-rw-r--r-- root/root              5999 2021-11-03 22:15 /usr/lib/python2.7/codeop.py
+-rw-r--r-- root/root             27798 2021-11-03 22:15 /usr/lib/python2.7/collections.py
+-rw-r--r-- root/root              3691 2021-11-03 22:15 /usr/lib/python2.7/colorsys.py
+-rw-r--r-- root/root              2545 2021-11-03 22:15 /usr/lib/python2.7/commands.py
+-rw-r--r-- root/root              7763 2021-11-03 22:15 /usr/lib/python2.7/compileall.py
+drwxr-xr-x root/root               210 2021-11-03 22:15 /usr/lib/python2.7/compiler
+-rw-r--r-- root/root              1023 2021-11-03 22:15 /usr/lib/python2.7/compiler/__init__.py
+-rw-r--r-- root/root             37508 2021-11-03 22:15 /usr/lib/python2.7/compiler/ast.py
+-rw-r--r-- root/root               468 2021-11-03 22:15 /usr/lib/python2.7/compiler/consts.py
+-rw-r--r-- root/root              1893 2021-11-03 22:15 /usr/lib/python2.7/compiler/future.py
+-rw-r--r-- root/root              1794 2021-11-03 22:15 /usr/lib/python2.7/compiler/misc.py
+-rw-r--r-- root/root             24268 2021-11-03 22:15 /usr/lib/python2.7/compiler/pyassem.py
+-rw-r--r-- root/root             47809 2021-11-03 22:15 /usr/lib/python2.7/compiler/pycodegen.py
+-rw-r--r-- root/root             14489 2021-11-03 22:15 /usr/lib/python2.7/compiler/symbols.py
+-rw-r--r-- root/root              1444 2021-11-03 22:15 /usr/lib/python2.7/compiler/syntax.py
+-rw-r--r-- root/root             53116 2021-11-03 22:15 /usr/lib/python2.7/compiler/transformer.py
+-rw-r--r-- root/root              3896 2021-11-03 22:15 /usr/lib/python2.7/compiler/visitor.py
+drwxr-xr-x root/root                31 2021-11-03 22:15 /usr/lib/python2.7/config
+-rw-r--r-- root/root             56234 2021-11-03 22:15 /usr/lib/python2.7/config/Makefile
+-rw-r--r-- root/root              4424 2021-11-03 22:15 /usr/lib/python2.7/contextlib.py
+-rw-r--r-- root/root             65000 2021-11-03 22:15 /usr/lib/python2.7/cookielib.py
+-rw-r--r-- root/root             11533 2021-11-03 22:15 /usr/lib/python2.7/copy.py
+-rw-r--r-- root/root              6974 2021-11-03 22:15 /usr/lib/python2.7/copy_reg.py
+-rw-r--r-- root/root             16708 2021-11-03 22:15 /usr/lib/python2.7/csv.py
+drwxr-xr-x root/root               102 2021-11-03 22:15 /usr/lib/python2.7/ctypes
+-rw-r--r-- root/root             17468 2021-11-03 22:15 /usr/lib/python2.7/ctypes/__init__.py
+-rw-r--r-- root/root              1999 2021-11-03 22:15 /usr/lib/python2.7/ctypes/_endian.py
+drwxr-xr-x root/root               154 2023-05-11 06:06 /usr/lib/python2.7/ctypes/macholib
+-rw-r--r-- root/root               296 2021-11-03 22:15 /usr/lib/python2.7/ctypes/macholib/README.ctypes
+-rw-r--r-- root/root               154 2021-11-03 22:15 /usr/lib/python2.7/ctypes/macholib/__init__.py
+-rw-r--r-- root/root              5128 2021-11-03 22:15 /usr/lib/python2.7/ctypes/macholib/dyld.py
+-rw-r--r-- root/root              1828 2021-11-03 22:15 /usr/lib/python2.7/ctypes/macholib/dylib.py
+-rwxr-xr-x root/root                84 2021-11-03 22:15 /usr/lib/python2.7/ctypes/macholib/fetch_macholib
+-rw-r--r-- root/root                75 2021-11-03 22:15 /usr/lib/python2.7/ctypes/macholib/fetch_macholib.bat
+-rw-r--r-- root/root              2201 2021-11-03 22:15 /usr/lib/python2.7/ctypes/macholib/framework.py
+-rw-r--r-- root/root             10528 2021-11-03 22:15 /usr/lib/python2.7/ctypes/util.py
+-rw-r--r-- root/root              5135 2021-11-03 22:15 /usr/lib/python2.7/ctypes/wintypes.py
+-rw-r--r-- root/root               498 2021-11-03 22:15 /usr/lib/python2.7/dbhash.py
+-rw-r--r-- root/root            221933 2021-11-03 22:15 /usr/lib/python2.7/decimal.py
+-rw-r--r-- root/root             82325 2021-11-03 22:15 /usr/lib/python2.7/difflib.py
+-rw-r--r-- root/root              1126 2021-11-03 22:15 /usr/lib/python2.7/dircache.py
+-rw-r--r-- root/root              6499 2021-11-03 22:15 /usr/lib/python2.7/dis.py
+drwxr-xr-x root/root               593 2021-11-03 22:15 /usr/lib/python2.7/distutils
+-rw-r--r-- root/root               295 2021-11-03 22:15 /usr/lib/python2.7/distutils/README
+-rw-r--r-- root/root               236 2021-11-03 22:15 /usr/lib/python2.7/distutils/__init__.py
+-rw-r--r-- root/root              8219 2021-11-03 22:15 /usr/lib/python2.7/distutils/archive_util.py
+-rw-r--r-- root/root             14941 2021-11-03 22:15 /usr/lib/python2.7/distutils/bcppcompiler.py
+-rw-r--r-- root/root             46708 2021-11-03 22:15 /usr/lib/python2.7/distutils/ccompiler.py
+-rw-r--r-- root/root             19270 2021-11-03 22:15 /usr/lib/python2.7/distutils/cmd.py
+drwxr-xr-x root/root               623 2021-11-03 22:15 /usr/lib/python2.7/distutils/command
+-rw-r--r-- root/root               822 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/__init__.py
+-rw-r--r-- root/root              5596 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/bdist.py
+-rw-r--r-- root/root              5196 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/bdist_dumb.py
+-rw-r--r-- root/root             35193 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/bdist_msi.py
+-rw-r--r-- root/root             21049 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/bdist_rpm.py
+-rw-r--r-- root/root             14999 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/bdist_wininst.py
+-rw-r--r-- root/root              5437 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/build.py
+-rw-r--r-- root/root              8131 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/build_clib.py
+-rw-r--r-- root/root             32426 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/build_ext.py
+-rw-r--r-- root/root             16338 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/build_py.py
+-rw-r--r-- root/root              4638 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/build_scripts.py
+-rw-r--r-- root/root              5569 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/check.py
+-rw-r--r-- root/root              2814 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/clean.py
+-rw-r--r-- root/root               719 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/command_template
+-rw-r--r-- root/root             13130 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/config.py
+-rw-r--r-- root/root             26260 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/install.py
+-rw-r--r-- root/root              2845 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/install_data.py
+-rw-r--r-- root/root              2587 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/install_egg_info.py
+-rw-r--r-- root/root              1346 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/install_headers.py
+-rw-r--r-- root/root              8338 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/install_lib.py
+-rw-r--r-- root/root              2068 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/install_scripts.py
+-rw-r--r-- root/root             11839 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/register.py
+-rw-r--r-- root/root             18557 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/sdist.py
+-rw-r--r-- root/root              7000 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/upload.py
+-rw-r--r-- root/root             61440 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/wininst-6.0.exe
+-rw-r--r-- root/root             65536 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/wininst-7.1.exe
+-rw-r--r-- root/root             61440 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/wininst-8.0.exe
+-rw-r--r-- root/root            223744 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/wininst-9.0-amd64.exe
+-rw-r--r-- root/root            196096 2021-11-03 22:15 /usr/lib/python2.7/distutils/command/wininst-9.0.exe
+-rw-r--r-- root/root              4134 2021-11-03 22:15 /usr/lib/python2.7/distutils/config.py
+-rw-r--r-- root/root              9019 2021-11-03 22:15 /usr/lib/python2.7/distutils/core.py
+-rw-r--r-- root/root             17735 2021-11-03 22:15 /usr/lib/python2.7/distutils/cygwinccompiler.py
+-rw-r--r-- root/root               162 2021-11-03 22:15 /usr/lib/python2.7/distutils/debug.py
+-rw-r--r-- root/root              3509 2021-11-03 22:15 /usr/lib/python2.7/distutils/dep_util.py
+-rw-r--r-- root/root              7868 2021-11-03 22:15 /usr/lib/python2.7/distutils/dir_util.py
+-rw-r--r-- root/root             50049 2021-11-03 22:15 /usr/lib/python2.7/distutils/dist.py
+-rw-r--r-- root/root             11931 2021-11-03 22:15 /usr/lib/python2.7/distutils/emxccompiler.py
+-rw-r--r-- root/root              3494 2021-11-03 22:15 /usr/lib/python2.7/distutils/errors.py
+-rw-r--r-- root/root             10904 2021-11-03 22:15 /usr/lib/python2.7/distutils/extension.py
+-rw-r--r-- root/root             17948 2021-11-03 22:15 /usr/lib/python2.7/distutils/fancy_getopt.py
+-rw-r--r-- root/root              8131 2021-11-03 22:15 /usr/lib/python2.7/distutils/file_util.py
+-rw-r--r-- root/root             12689 2021-11-03 22:15 /usr/lib/python2.7/distutils/filelist.py
+-rw-r--r-- root/root              1686 2021-11-03 22:15 /usr/lib/python2.7/distutils/log.py
+-rw-r--r-- root/root             31004 2021-11-03 22:15 /usr/lib/python2.7/distutils/msvc9compiler.py
+-rw-r--r-- root/root             23637 2021-11-03 22:15 /usr/lib/python2.7/distutils/msvccompiler.py
+-rw-r--r-- root/root              8648 2021-11-03 22:15 /usr/lib/python2.7/distutils/spawn.py
+-rw-r--r-- root/root             17344 2021-11-03 22:15 /usr/lib/python2.7/distutils/sysconfig.py
+-rw-r--r-- root/root             12428 2021-11-03 22:15 /usr/lib/python2.7/distutils/text_file.py
+-rw-r--r-- root/root             13677 2021-11-03 22:15 /usr/lib/python2.7/distutils/unixccompiler.py
+-rw-r--r-- root/root             18236 2021-11-03 22:15 /usr/lib/python2.7/distutils/util.py
+-rw-r--r-- root/root             11433 2021-11-03 22:15 /usr/lib/python2.7/distutils/version.py
+-rw-r--r-- root/root              5095 2021-11-03 22:15 /usr/lib/python2.7/distutils/versionpredicate.py
+-rw-r--r-- root/root            105095 2021-11-03 22:15 /usr/lib/python2.7/doctest.py
+-rw-r--r-- root/root              9141 2021-11-03 22:15 /usr/lib/python2.7/dumbdbm.py
+-rw-r--r-- root/root              4418 2021-11-03 22:15 /usr/lib/python2.7/dummy_thread.py
+-rw-r--r-- root/root              2804 2021-11-03 22:15 /usr/lib/python2.7/dummy_threading.py
+drwxr-xr-x root/root               292 2021-11-03 22:15 /usr/lib/python2.7/email
+-rw-r--r-- root/root              2856 2021-11-03 22:15 /usr/lib/python2.7/email/__init__.py
+-rw-r--r-- root/root             15733 2021-11-03 22:15 /usr/lib/python2.7/email/_parseaddr.py
+-rw-r--r-- root/root              5794 2021-11-03 22:15 /usr/lib/python2.7/email/base64mime.py
+-rw-r--r-- root/root             16044 2021-11-03 22:15 /usr/lib/python2.7/email/charset.py
+-rw-r--r-- root/root              2015 2021-11-03 22:15 /usr/lib/python2.7/email/encoders.py
+-rw-r--r-- root/root              1628 2021-11-03 22:15 /usr/lib/python2.7/email/errors.py
+-rw-r--r-- root/root             21516 2021-11-03 22:15 /usr/lib/python2.7/email/feedparser.py
+-rw-r--r-- root/root             14203 2021-11-03 22:15 /usr/lib/python2.7/email/generator.py
+-rw-r--r-- root/root             22243 2021-11-03 22:15 /usr/lib/python2.7/email/header.py
+-rw-r--r-- root/root              2202 2021-11-03 22:15 /usr/lib/python2.7/email/iterators.py
+-rw-r--r-- root/root             30723 2021-11-03 22:15 /usr/lib/python2.7/email/message.py
+drwxr-xr-x root/root               179 2021-11-03 22:15 /usr/lib/python2.7/email/mime
+-rw-r--r-- root/root                 0 2021-11-03 22:15 /usr/lib/python2.7/email/mime/__init__.py
+-rw-r--r-- root/root              1256 2021-11-03 22:15 /usr/lib/python2.7/email/mime/application.py
+-rw-r--r-- root/root              2683 2021-11-03 22:15 /usr/lib/python2.7/email/mime/audio.py
+-rw-r--r-- root/root               794 2021-11-03 22:15 /usr/lib/python2.7/email/mime/base.py
+-rw-r--r-- root/root              1764 2021-11-03 22:15 /usr/lib/python2.7/email/mime/image.py
+-rw-r--r-- root/root              1286 2021-11-03 22:15 /usr/lib/python2.7/email/mime/message.py
+-rw-r--r-- root/root              1573 2021-11-03 22:15 /usr/lib/python2.7/email/mime/multipart.py
+-rw-r--r-- root/root               691 2021-11-03 22:15 /usr/lib/python2.7/email/mime/nonmultipart.py
+-rw-r--r-- root/root              1006 2021-11-03 22:15 /usr/lib/python2.7/email/mime/text.py
+-rw-r--r-- root/root              3299 2021-11-03 22:15 /usr/lib/python2.7/email/parser.py
+-rw-r--r-- root/root             10848 2021-11-03 22:15 /usr/lib/python2.7/email/quoprimime.py
+-rw-r--r-- root/root             10026 2021-11-03 22:15 /usr/lib/python2.7/email/utils.py
+drwxr-xr-x root/root              2283 2023-05-11 06:06 /usr/lib/python2.7/encodings
+-rw-r--r-- root/root              5698 2021-11-03 22:15 /usr/lib/python2.7/encodings/__init__.py
+-rw-r--r-- root/root             14848 2021-11-03 22:15 /usr/lib/python2.7/encodings/aliases.py
+-rw-r--r-- root/root              1248 2021-11-03 22:15 /usr/lib/python2.7/encodings/ascii.py
+-rw-r--r-- root/root              2371 2021-11-03 22:15 /usr/lib/python2.7/encodings/base64_codec.py
+-rw-r--r-- root/root              1019 2021-11-03 22:15 /usr/lib/python2.7/encodings/big5.py
+-rw-r--r-- root/root              1039 2021-11-03 22:15 /usr/lib/python2.7/encodings/big5hkscs.py
+-rw-r--r-- root/root              3026 2021-11-03 22:15 /usr/lib/python2.7/encodings/bz2_codec.py
+-rw-r--r-- root/root              2084 2021-11-03 22:15 /usr/lib/python2.7/encodings/charmap.py
+-rw-r--r-- root/root             13377 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp037.py
+-rw-r--r-- root/root             13824 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp1006.py
+-rw-r--r-- root/root             13369 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp1026.py
+-rw-r--r-- root/root             13361 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp1140.py
+-rw-r--r-- root/root             13942 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp1250.py
+-rw-r--r-- root/root             13617 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp1251.py
+-rw-r--r-- root/root             13767 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp1252.py
+-rw-r--r-- root/root             13350 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp1253.py
+-rw-r--r-- root/root             13758 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp1254.py
+-rw-r--r-- root/root             12722 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp1255.py
+-rw-r--r-- root/root             13070 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp1256.py
+-rw-r--r-- root/root             13630 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp1257.py
+-rw-r--r-- root/root             13620 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp1258.py
+-rw-r--r-- root/root             12311 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp424.py
+-rw-r--r-- root/root             34820 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp437.py
+-rw-r--r-- root/root             13377 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp500.py
+-rw-r--r-- root/root             13694 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp720.py
+-rw-r--r-- root/root             34937 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp737.py
+-rw-r--r-- root/root             34732 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp775.py
+-rw-r--r-- root/root             34361 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp850.py
+-rw-r--r-- root/root             35258 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp852.py
+-rw-r--r-- root/root             34106 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp855.py
+-rw-r--r-- root/root             12679 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp856.py
+-rw-r--r-- root/root             34164 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp857.py
+-rw-r--r-- root/root             34271 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp858.py
+-rw-r--r-- root/root             34937 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp860.py
+-rw-r--r-- root/root             34889 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp861.py
+-rw-r--r-- root/root             33626 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp862.py
+-rw-r--r-- root/root             34508 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp863.py
+-rw-r--r-- root/root             33919 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp864.py
+-rw-r--r-- root/root             34874 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp865.py
+-rw-r--r-- root/root             34652 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp866.py
+-rw-r--r-- root/root             33221 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp869.py
+-rw-r--r-- root/root             12851 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp874.py
+-rw-r--r-- root/root             13110 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp875.py
+-rw-r--r-- root/root              1023 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp932.py
+-rw-r--r-- root/root              1023 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp949.py
+-rw-r--r-- root/root              1023 2021-11-03 22:15 /usr/lib/python2.7/encodings/cp950.py
+-rw-r--r-- root/root              1051 2021-11-03 22:15 /usr/lib/python2.7/encodings/euc_jis_2004.py
+-rw-r--r-- root/root              1051 2021-11-03 22:15 /usr/lib/python2.7/encodings/euc_jisx0213.py
+-rw-r--r-- root/root              1027 2021-11-03 22:15 /usr/lib/python2.7/encodings/euc_jp.py
+-rw-r--r-- root/root              1027 2021-11-03 22:15 /usr/lib/python2.7/encodings/euc_kr.py
+-rw-r--r-- root/root              1031 2021-11-03 22:15 /usr/lib/python2.7/encodings/gb18030.py
+-rw-r--r-- root/root              1027 2021-11-03 22:15 /usr/lib/python2.7/encodings/gb2312.py
+-rw-r--r-- root/root              1015 2021-11-03 22:15 /usr/lib/python2.7/encodings/gbk.py
+-rw-r--r-- root/root              2342 2021-11-03 22:15 /usr/lib/python2.7/encodings/hex_codec.py
+-rw-r--r-- root/root              7391 2021-11-03 22:15 /usr/lib/python2.7/encodings/hp_roman8.py
+-rw-r--r-- root/root              1011 2021-11-03 22:15 /usr/lib/python2.7/encodings/hz.py
+-rw-r--r-- root/root              8474 2021-11-03 22:15 /usr/lib/python2.7/encodings/idna.py
+-rw-r--r-- root/root              1053 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso2022_jp.py
+-rw-r--r-- root/root              1061 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso2022_jp_1.py
+-rw-r--r-- root/root              1061 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso2022_jp_2.py
+-rw-r--r-- root/root              1073 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso2022_jp_2004.py
+-rw-r--r-- root/root              1061 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso2022_jp_3.py
+-rw-r--r-- root/root              1069 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso2022_jp_ext.py
+-rw-r--r-- root/root              1053 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso2022_kr.py
+-rw-r--r-- root/root             13432 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso8859_1.py
+-rw-r--r-- root/root             13845 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso8859_10.py
+-rw-r--r-- root/root             12591 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso8859_11.py
+-rw-r--r-- root/root             13527 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso8859_13.py
+-rw-r--r-- root/root             13908 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso8859_14.py
+-rw-r--r-- root/root             13468 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso8859_15.py
+-rw-r--r-- root/root             13813 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso8859_16.py
+-rw-r--r-- root/root             13660 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso8859_2.py
+-rw-r--r-- root/root             13345 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso8859_3.py
+-rw-r--r-- root/root             13632 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso8859_4.py
+-rw-r--r-- root/root             13271 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso8859_5.py
+-rw-r--r-- root/root             11089 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso8859_6.py
+-rw-r--r-- root/root             13100 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso8859_7.py
+-rw-r--r-- root/root             11292 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso8859_8.py
+-rw-r--r-- root/root             13412 2021-11-03 22:15 /usr/lib/python2.7/encodings/iso8859_9.py
+-rw-r--r-- root/root              1023 2021-11-03 22:15 /usr/lib/python2.7/encodings/johab.py
+-rw-r--r-- root/root             14035 2021-11-03 22:15 /usr/lib/python2.7/encodings/koi8_r.py
+-rw-r--r-- root/root             14018 2021-11-03 22:15 /usr/lib/python2.7/encodings/koi8_u.py
+-rw-r--r-- root/root              1264 2021-11-03 22:15 /usr/lib/python2.7/encodings/latin_1.py
+-rw-r--r-- root/root             36723 2021-11-03 22:15 /usr/lib/python2.7/encodings/mac_arabic.py
+-rw-r--r-- root/root             14358 2021-11-03 22:15 /usr/lib/python2.7/encodings/mac_centeuro.py
+-rw-r--r-- root/root             13889 2021-11-03 22:15 /usr/lib/python2.7/encodings/mac_croatian.py
+-rw-r--r-- root/root             13710 2021-11-03 22:15 /usr/lib/python2.7/encodings/mac_cyrillic.py
+-rw-r--r-- root/root             15426 2021-11-03 22:15 /usr/lib/python2.7/encodings/mac_farsi.py
+-rw-r--r-- root/root             13977 2021-11-03 22:15 /usr/lib/python2.7/encodings/mac_greek.py
+-rw-r--r-- root/root             13754 2021-11-03 22:15 /usr/lib/python2.7/encodings/mac_iceland.py
+-rw-r--r-- root/root              8565 2021-11-03 22:15 /usr/lib/python2.7/encodings/mac_latin2.py
+-rw-r--r-- root/root             13736 2021-11-03 22:15 /usr/lib/python2.7/encodings/mac_roman.py
+-rw-r--r-- root/root             13917 2021-11-03 22:15 /usr/lib/python2.7/encodings/mac_romanian.py
+-rw-r--r-- root/root             13769 2021-11-03 22:15 /usr/lib/python2.7/encodings/mac_turkish.py
+-rw-r--r-- root/root              1211 2021-11-03 22:15 /usr/lib/python2.7/encodings/mbcs.py
+-rw-r--r-- root/root              2936 2021-11-03 22:15 /usr/lib/python2.7/encodings/palmos.py
+-rw-r--r-- root/root              8950 2021-11-03 22:15 /usr/lib/python2.7/encodings/ptcp154.py
+-rw-r--r-- root/root              6813 2021-11-03 22:15 /usr/lib/python2.7/encodings/punycode.py
+-rw-r--r-- root/root              2193 2021-11-03 22:15 /usr/lib/python2.7/encodings/quopri_codec.py
+-rw-r--r-- root/root              1208 2021-11-03 22:15 /usr/lib/python2.7/encodings/raw_unicode_escape.py
+-rwxr-xr-x root/root              2612 2021-11-03 22:15 /usr/lib/python2.7/encodings/rot_13.py
+-rw-r--r-- root/root              1039 2021-11-03 22:15 /usr/lib/python2.7/encodings/shift_jis.py
+-rw-r--r-- root/root              1059 2021-11-03 22:15 /usr/lib/python2.7/encodings/shift_jis_2004.py
+-rw-r--r-- root/root              1059 2021-11-03 22:15 /usr/lib/python2.7/encodings/shift_jisx0213.py
+-rw-r--r-- root/root               953 2021-11-03 22:15 /usr/lib/python2.7/encodings/string_escape.py
+-rw-r--r-- root/root             12556 2021-11-03 22:15 /usr/lib/python2.7/encodings/tis_620.py
+-rw-r--r-- root/root              1299 2021-11-03 22:15 /usr/lib/python2.7/encodings/undefined.py
+-rw-r--r-- root/root              1184 2021-11-03 22:15 /usr/lib/python2.7/encodings/unicode_escape.py
+-rw-r--r-- root/root              1196 2021-11-03 22:15 /usr/lib/python2.7/encodings/unicode_internal.py
+-rw-r--r-- root/root              3984 2021-11-03 22:15 /usr/lib/python2.7/encodings/utf_16.py
+-rw-r--r-- root/root              1037 2021-11-03 22:15 /usr/lib/python2.7/encodings/utf_16_be.py
+-rw-r--r-- root/root              1037 2021-11-03 22:15 /usr/lib/python2.7/encodings/utf_16_le.py
+-rw-r--r-- root/root              5128 2021-11-03 22:15 /usr/lib/python2.7/encodings/utf_32.py
+-rw-r--r-- root/root               930 2021-11-03 22:15 /usr/lib/python2.7/encodings/utf_32_be.py
+-rw-r--r-- root/root               930 2021-11-03 22:15 /usr/lib/python2.7/encodings/utf_32_le.py
+-rw-r--r-- root/root               946 2021-11-03 22:15 /usr/lib/python2.7/encodings/utf_7.py
+-rw-r--r-- root/root              1005 2021-11-03 22:15 /usr/lib/python2.7/encodings/utf_8.py
+-rw-r--r-- root/root              3685 2021-11-03 22:15 /usr/lib/python2.7/encodings/utf_8_sig.py
+-rw-r--r-- root/root              3772 2021-11-03 22:15 /usr/lib/python2.7/encodings/uu_codec.py
+-rw-r--r-- root/root              3048 2021-11-03 22:15 /usr/lib/python2.7/encodings/zlib_codec.py
+drwxr-xr-x root/root                90 2021-11-03 22:15 /usr/lib/python2.7/ensurepip
+-rw-r--r-- root/root              6674 2021-11-03 22:15 /usr/lib/python2.7/ensurepip/__init__.py
+-rw-r--r-- root/root                88 2021-11-03 22:15 /usr/lib/python2.7/ensurepip/__main__.py
+drwxr-xr-x root/root                98 2021-11-03 22:15 /usr/lib/python2.7/ensurepip/_bundled
+-rw-r--r-- root/root           1323545 2021-11-03 22:15 /usr/lib/python2.7/ensurepip/_bundled/pip-18.1-py2.py3-none-any.whl
+-rw-r--r-- root/root            573107 2021-11-03 22:15 /usr/lib/python2.7/ensurepip/_bundled/setuptools-40.6.2-py2.py3-none-any.whl
+-rw-r--r-- root/root               808 2021-11-03 22:15 /usr/lib/python2.7/ensurepip/_uninstall.py
+-rw-r--r-- root/root              9588 2021-11-03 22:15 /usr/lib/python2.7/filecmp.py
+-rw-r--r-- root/root             13746 2021-11-03 22:15 /usr/lib/python2.7/fileinput.py
+-rw-r--r-- root/root              3315 2021-11-03 22:15 /usr/lib/python2.7/fnmatch.py
+-rw-r--r-- root/root             14911 2021-11-03 22:15 /usr/lib/python2.7/formatter.py
+-rw-r--r-- root/root              4732 2021-11-03 22:15 /usr/lib/python2.7/fpformat.py
+-rw-r--r-- root/root             22390 2021-11-03 22:15 /usr/lib/python2.7/fractions.py
+-rw-r--r-- root/root             38194 2021-11-03 22:15 /usr/lib/python2.7/ftplib.py
+-rw-r--r-- root/root              4806 2021-11-03 22:15 /usr/lib/python2.7/functools.py
+-rw-r--r-- root/root              3201 2021-11-03 22:15 /usr/lib/python2.7/genericpath.py
+-rw-r--r-- root/root              7319 2021-11-03 22:15 /usr/lib/python2.7/getopt.py
+-rw-r--r-- root/root              5563 2021-11-03 22:15 /usr/lib/python2.7/getpass.py
+-rw-r--r-- root/root             22588 2021-11-03 22:15 /usr/lib/python2.7/gettext.py
+-rw-r--r-- root/root              3114 2021-11-03 22:15 /usr/lib/python2.7/glob.py
+-rw-r--r-- root/root             19028 2021-11-03 22:15 /usr/lib/python2.7/gzip.py
+-rw-r--r-- root/root              7842 2021-11-03 22:15 /usr/lib/python2.7/hashlib.py
+-rw-r--r-- root/root             18295 2021-11-03 22:15 /usr/lib/python2.7/heapq.py
+-rw-r--r-- root/root              4588 2021-11-03 22:15 /usr/lib/python2.7/hmac.py
+drwxr-xr-x root/root                81 2021-11-03 22:15 /usr/lib/python2.7/hotshot
+-rw-r--r-- root/root              2670 2021-11-03 22:15 /usr/lib/python2.7/hotshot/__init__.py
+-rw-r--r-- root/root              6239 2021-11-03 22:15 /usr/lib/python2.7/hotshot/log.py
+-rw-r--r-- root/root              2582 2021-11-03 22:15 /usr/lib/python2.7/hotshot/stats.py
+-rw-r--r-- root/root               767 2021-11-03 22:15 /usr/lib/python2.7/hotshot/stones.py
+-rw-r--r-- root/root             18056 2021-11-03 22:15 /usr/lib/python2.7/htmlentitydefs.py
+-rw-r--r-- root/root             12869 2021-11-03 22:15 /usr/lib/python2.7/htmllib.py
+-rw-r--r-- root/root             50665 2021-11-03 22:15 /usr/lib/python2.7/httplib.py
+-rw-r--r-- root/root             18986 2021-11-03 22:15 /usr/lib/python2.7/ihooks.py
+-rw-r--r-- root/root             48366 2021-11-03 22:15 /usr/lib/python2.7/imaplib.py
+-rw-r--r-- root/root              3541 2021-11-03 22:15 /usr/lib/python2.7/imghdr.py
+drwxr-xr-x root/root                34 2021-11-03 22:15 /usr/lib/python2.7/importlib
+-rw-r--r-- root/root              1327 2021-11-03 22:15 /usr/lib/python2.7/importlib/__init__.py
+-rw-r--r-- root/root             25764 2021-11-03 22:15 /usr/lib/python2.7/imputil.py
+-rw-r--r-- root/root             43008 2021-11-03 22:15 /usr/lib/python2.7/inspect.py
+-rw-r--r-- root/root              3322 2021-11-03 22:15 /usr/lib/python2.7/io.py
+drwxr-xr-x root/root               103 2021-11-03 22:15 /usr/lib/python2.7/json
+-rw-r--r-- root/root             14721 2021-11-03 22:15 /usr/lib/python2.7/json/__init__.py
+-rw-r--r-- root/root             13698 2021-11-03 22:15 /usr/lib/python2.7/json/decoder.py
+-rw-r--r-- root/root             16399 2021-11-03 22:15 /usr/lib/python2.7/json/encoder.py
+-rw-r--r-- root/root              2297 2021-11-03 22:15 /usr/lib/python2.7/json/scanner.py
+-rw-r--r-- root/root               997 2021-11-03 22:15 /usr/lib/python2.7/json/tool.py
+-rwxr-xr-x root/root              1996 2021-11-03 22:15 /usr/lib/python2.7/keyword.py
+drwxr-xr-x root/root               935 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload
+-rw-r--r-- root/root              1525 2021-11-03 22:15 /usr/lib/python2.7/lib-dynload/Python-2.7.16-py2.7.egg-info
+-rwxr-xr-x root/root              9644 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_bisect.so
+-rwxr-xr-x root/root             25924 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_codecs_iso2022.so
+-rwxr-xr-x root/root             27324 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_collections.so
+-rwxr-xr-x root/root             23056 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_csv.so
+-rwxr-xr-x root/root            107512 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_ctypes.so
+-rwxr-xr-x root/root             17848 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_ctypes_test.so
+-rwxr-xr-x root/root             47880 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_elementtree.so
+-rwxr-xr-x root/root              9916 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_functools.so
+-rwxr-xr-x root/root             13708 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_heapq.so
+-rwxr-xr-x root/root             22824 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_hotshot.so
+-rwxr-xr-x root/root            119240 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_io.so
+-rwxr-xr-x root/root             39168 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_json.so
+-rwxr-xr-x root/root             13904 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_locale.so
+-rwxr-xr-x root/root             18196 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_lsprof.so
+-rwxr-xr-x root/root              9884 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_md5.so
+-rwxr-xr-x root/root             31588 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_multibytecodec.so
+-rwxr-xr-x root/root             23032 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_multiprocessing.so
+-rwxr-xr-x root/root              9852 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_random.so
+-rwxr-xr-x root/root             13980 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_sha.so
+-rwxr-xr-x root/root             18312 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_sha256.so
+-rwxr-xr-x root/root             51080 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_sha512.so
+-rwxr-xr-x root/root             60464 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_socket.so
+-rwxr-xr-x root/root             31744 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_struct.so
+-rwxr-xr-x root/root             53288 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/_testcapi.so
+-rwxr-xr-x root/root             31328 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/array.so
+-rwxr-xr-x root/root             26356 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/audioop.so
+-rwxr-xr-x root/root             17988 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/binascii.so
+-rwxr-xr-x root/root             72512 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/cPickle.so
+-rwxr-xr-x root/root             14608 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/cStringIO.so
+-rwxr-xr-x root/root             38552 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/cmath.so
+-rwxr-xr-x root/root              5356 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/crypt.so
+-rwxr-xr-x root/root             78780 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/datetime.so
+-rwxr-xr-x root/root             13668 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/fcntl.so
+-rwxr-xr-x root/root              5412 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/future_builtins.so
+-rwxr-xr-x root/root              9608 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/grp.so
+-rwxr-xr-x root/root             38856 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/itertools.so
+-rwxr-xr-x root/root             34896 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/math.so
+-rwxr-xr-x root/root             18320 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/mmap.so
+-rwxr-xr-x root/root             24404 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/operator.so
+-rwxr-xr-x root/root             67868 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/parser.so
+-rwxr-xr-x root/root              9732 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/resource.so
+-rwxr-xr-x root/root             18572 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/select.so
+-rwxr-xr-x root/root              9616 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/spwd.so
+-rwxr-xr-x root/root             18092 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/strop.so
+drwxr-xr-x root/root                66 2021-11-03 22:15 /usr/lib/python2.7/lib-dynload/sysconfigdata
+-rw-r--r-- root/root             18576 2021-11-03 22:15 /usr/lib/python2.7/lib-dynload/sysconfigdata/_sysconfigdata.py
+-rw-r--r-- root/root             21609 2021-11-03 22:15 /usr/lib/python2.7/lib-dynload/sysconfigdata/_sysconfigdata.pyc
+-rwxr-xr-x root/root              9612 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/syslog.so
+-rwxr-xr-x root/root             15504 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/termios.so
+-rwxr-xr-x root/root             18092 2023-05-11 06:06 /usr/lib/python2.7/lib-dynload/time.so
+-rw-r--r-- root/root              4027 2021-11-03 22:15 /usr/lib/python2.7/linecache.py
+-rw-r--r-- root/root            102834 2021-11-03 22:15 /usr/lib/python2.7/locale.py
+drwxr-xr-x root/root                70 2021-11-03 22:15 /usr/lib/python2.7/logging
+-rw-r--r-- root/root             61666 2021-11-03 22:15 /usr/lib/python2.7/logging/__init__.py
+-rw-r--r-- root/root             34773 2021-11-03 22:15 /usr/lib/python2.7/logging/config.py
+-rw-r--r-- root/root             48297 2021-11-03 22:15 /usr/lib/python2.7/logging/handlers.py
+-rw-r--r-- root/root              6289 2021-11-03 22:15 /usr/lib/python2.7/macpath.py
+-rw-r--r-- root/root              2731 2021-11-03 22:15 /usr/lib/python2.7/macurl2path.py
+-rw-r--r-- root/root             81240 2021-11-03 22:15 /usr/lib/python2.7/mailbox.py
+-rw-r--r-- root/root              7429 2021-11-03 22:15 /usr/lib/python2.7/mailcap.py
+-rw-r--r-- root/root             14643 2021-11-03 22:15 /usr/lib/python2.7/markupbase.py
+-rw-r--r-- root/root               358 2021-11-03 22:15 /usr/lib/python2.7/md5.py
+-rw-r--r-- root/root             33434 2021-11-03 22:15 /usr/lib/python2.7/mhlib.py
+-rw-r--r-- root/root              7168 2021-11-03 22:15 /usr/lib/python2.7/mimetools.py
+-rw-r--r-- root/root             21028 2021-11-03 22:15 /usr/lib/python2.7/mimetypes.py
+-rwxr-xr-x root/root             15021 2021-11-03 22:15 /usr/lib/python2.7/mimify.py
+-rw-r--r-- root/root             24461 2021-11-03 22:15 /usr/lib/python2.7/modulefinder.py
+-rw-r--r-- root/root              4820 2021-11-03 22:15 /usr/lib/python2.7/multifile.py
+drwxr-xr-x root/root               250 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing
+-rw-r--r-- root/root              7805 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing/__init__.py
+-rw-r--r-- root/root             14710 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing/connection.py
+drwxr-xr-x root/root                55 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing/dummy
+-rw-r--r-- root/root              4481 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing/dummy/__init__.py
+-rw-r--r-- root/root              2807 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing/dummy/connection.py
+-rw-r--r-- root/root             17157 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing/forking.py
+-rw-r--r-- root/root              8581 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing/heap.py
+-rw-r--r-- root/root             36715 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing/managers.py
+-rw-r--r-- root/root             24201 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing/pool.py
+-rw-r--r-- root/root              9684 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing/process.py
+-rw-r--r-- root/root             12296 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing/queues.py
+-rw-r--r-- root/root              6582 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing/reduction.py
+-rw-r--r-- root/root              7756 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing/sharedctypes.py
+-rw-r--r-- root/root             10654 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing/synchronize.py
+-rw-r--r-- root/root             11006 2021-11-03 22:15 /usr/lib/python2.7/multiprocessing/util.py
+-rw-r--r-- root/root              1878 2021-11-03 22:15 /usr/lib/python2.7/mutex.py
+-rw-r--r-- root/root              5888 2021-11-03 22:15 /usr/lib/python2.7/netrc.py
+-rw-r--r-- root/root               610 2021-11-03 22:15 /usr/lib/python2.7/new.py
+-rw-r--r-- root/root             21470 2021-11-03 22:15 /usr/lib/python2.7/nntplib.py
+-rw-r--r-- root/root             19429 2021-11-03 22:15 /usr/lib/python2.7/ntpath.py
+-rw-r--r-- root/root              2419 2021-11-03 22:15 /usr/lib/python2.7/nturl2path.py
+-rw-r--r-- root/root             10319 2021-11-03 22:15 /usr/lib/python2.7/numbers.py
+-rw-r--r-- root/root              5474 2021-11-03 22:15 /usr/lib/python2.7/opcode.py
+-rw-r--r-- root/root             61203 2021-11-03 22:15 /usr/lib/python2.7/optparse.py
+-rw-r--r-- root/root             25910 2021-11-03 22:15 /usr/lib/python2.7/os.py
+-rw-r--r-- root/root              4635 2021-11-03 22:15 /usr/lib/python2.7/os2emxpath.py
+-rw-r--r-- root/root              7914 2021-11-03 22:15 /usr/lib/python2.7/pdb.doc
+-rwxr-xr-x root/root             46099 2021-11-03 22:15 /usr/lib/python2.7/pdb.py
+-rw-r--r-- root/root             45489 2021-11-03 22:15 /usr/lib/python2.7/pickle.py
+-rw-r--r-- root/root             74523 2021-11-03 22:15 /usr/lib/python2.7/pickletools.py
+-rw-r--r-- root/root              9582 2021-11-03 22:15 /usr/lib/python2.7/pipes.py
+-rw-r--r-- root/root             20243 2021-11-03 22:15 /usr/lib/python2.7/pkgutil.py
+drwxr-xr-x root/root                89 2023-05-11 06:06 /usr/lib/python2.7/plat-linux2
+-rw-r--r-- root/root              5035 2021-11-03 22:15 /usr/lib/python2.7/plat-linux2/CDROM.py
+-rw-r--r-- root/root              1628 2021-11-03 22:15 /usr/lib/python2.7/plat-linux2/DLFCN.py
+-rw-r--r-- root/root             13030 2021-11-03 22:15 /usr/lib/python2.7/plat-linux2/IN.py
+-rw-r--r-- root/root              3420 2021-11-03 22:15 /usr/lib/python2.7/plat-linux2/TYPES.py
+-rwxr-xr-x root/root               195 2021-11-03 22:15 /usr/lib/python2.7/plat-linux2/regen
+-rwxr-xr-x root/root             52788 2021-11-03 22:15 /usr/lib/python2.7/platform.py
+-rw-r--r-- root/root             15185 2021-11-03 22:15 /usr/lib/python2.7/plistlib.py
+-rw-r--r-- root/root              8416 2021-11-03 22:15 /usr/lib/python2.7/popen2.py
+-rw-r--r-- root/root             12824 2021-11-03 22:15 /usr/lib/python2.7/poplib.py
+-rw-r--r-- root/root              8003 2021-11-03 22:15 /usr/lib/python2.7/posixfile.py
+-rw-r--r-- root/root             14293 2021-11-03 22:15 /usr/lib/python2.7/posixpath.py
+-rw-r--r-- root/root             11777 2021-11-03 22:15 /usr/lib/python2.7/pprint.py
+-rwxr-xr-x root/root             22782 2021-11-03 22:15 /usr/lib/python2.7/profile.py
+-rw-r--r-- root/root             26712 2021-11-03 22:15 /usr/lib/python2.7/pstats.py
+-rw-r--r-- root/root              5058 2021-11-03 22:15 /usr/lib/python2.7/pty.py
+-rw-r--r-- root/root              5936 2021-11-03 22:15 /usr/lib/python2.7/py_compile.py
+-rw-r--r-- root/root             13388 2021-11-03 22:15 /usr/lib/python2.7/pyclbr.py
+-rwxr-xr-x root/root             95949 2021-11-03 22:15 /usr/lib/python2.7/pydoc.py
+-rwxr-xr-x root/root              6969 2021-11-03 22:15 /usr/lib/python2.7/quopri.py
+-rw-r--r-- root/root             32457 2021-11-03 22:15 /usr/lib/python2.7/random.py
+-rw-r--r-- root/root             13423 2021-11-03 22:15 /usr/lib/python2.7/re.py
+-rw-r--r-- root/root              4296 2021-11-03 22:15 /usr/lib/python2.7/repr.py
+-rw-r--r-- root/root             20148 2021-11-03 22:15 /usr/lib/python2.7/rexec.py
+-rw-r--r-- root/root             33542 2021-11-03 22:15 /usr/lib/python2.7/rfc822.py
+-rw-r--r-- root/root              5991 2021-11-03 22:15 /usr/lib/python2.7/rlcompleter.py
+-rw-r--r-- root/root              7695 2021-11-03 22:15 /usr/lib/python2.7/robotparser.py
+-rw-r--r-- root/root             11081 2021-11-03 22:15 /usr/lib/python2.7/runpy.py
+-rw-r--r-- root/root              5088 2021-11-03 22:15 /usr/lib/python2.7/sched.py
+-rw-r--r-- root/root             19050 2021-11-03 22:15 /usr/lib/python2.7/sets.py
+-rw-r--r-- root/root             17884 2021-11-03 22:15 /usr/lib/python2.7/sgmllib.py
+-rw-r--r-- root/root               393 2021-11-03 22:15 /usr/lib/python2.7/sha.py
+-rw-r--r-- root/root              8178 2021-11-03 22:15 /usr/lib/python2.7/shelve.py
+-rw-r--r-- root/root             11164 2021-11-03 22:15 /usr/lib/python2.7/shlex.py
+-rw-r--r-- root/root             19871 2021-11-03 22:15 /usr/lib/python2.7/shutil.py
+drwxr-xr-x root/root                29 2021-11-03 22:15 /usr/lib/python2.7/site-packages
+-rw-r--r-- root/root               119 2021-11-03 22:15 /usr/lib/python2.7/site-packages/README
+-rw-r--r-- root/root             19168 2021-11-03 22:15 /usr/lib/python2.7/site.py
+-rwxr-xr-x root/root             18543 2021-11-03 22:15 /usr/lib/python2.7/smtpd.py
+-rwxr-xr-x root/root             32135 2021-11-03 22:15 /usr/lib/python2.7/smtplib.py
+-rw-r--r-- root/root              5973 2021-11-03 22:15 /usr/lib/python2.7/sndhdr.py
+-rw-r--r-- root/root             20615 2021-11-03 22:15 /usr/lib/python2.7/socket.py
+-rw-r--r-- root/root               384 2021-11-03 22:15 /usr/lib/python2.7/sre.py
+-rw-r--r-- root/root             19823 2021-11-03 22:15 /usr/lib/python2.7/sre_compile.py
+-rw-r--r-- root/root              7197 2021-11-03 22:15 /usr/lib/python2.7/sre_constants.py
+-rw-r--r-- root/root             30700 2021-11-03 22:15 /usr/lib/python2.7/sre_parse.py
+-rw-r--r-- root/root             37455 2021-11-03 22:15 /usr/lib/python2.7/ssl.py
+-rw-r--r-- root/root              1842 2021-11-03 22:15 /usr/lib/python2.7/stat.py
+-rw-r--r-- root/root               898 2021-11-03 22:15 /usr/lib/python2.7/statvfs.py
+-rw-r--r-- root/root             21548 2021-11-03 22:15 /usr/lib/python2.7/string.py
+-rw-r--r-- root/root             12449 2021-11-03 22:15 /usr/lib/python2.7/stringold.py
+-rw-r--r-- root/root             13522 2021-11-03 22:15 /usr/lib/python2.7/stringprep.py
+-rw-r--r-- root/root                82 2021-11-03 22:15 /usr/lib/python2.7/struct.py
+-rw-r--r-- root/root             50520 2021-11-03 22:15 /usr/lib/python2.7/subprocess.py
+-rw-r--r-- root/root             17222 2021-11-03 22:15 /usr/lib/python2.7/sunau.py
+-rw-r--r-- root/root              1399 2021-11-03 22:15 /usr/lib/python2.7/sunaudio.py
+-rwxr-xr-x root/root              2058 2021-11-03 22:15 /usr/lib/python2.7/symbol.py
+-rw-r--r-- root/root              7437 2021-11-03 22:15 /usr/lib/python2.7/symtable.py
+-rw-r--r-- root/root             22831 2021-11-03 22:15 /usr/lib/python2.7/sysconfig.py
+drwxr-xr-x root/root                40 2021-11-03 22:15 /usr/lib/python2.7/sysconfigdata
+-rw-r--r-- root/root             18576 2021-11-03 22:15 /usr/lib/python2.7/sysconfigdata/_sysconfigdata.py
+-rwxr-xr-x root/root             11340 2021-11-03 22:15 /usr/lib/python2.7/tabnanny.py
+-rw-r--r-- root/root             90568 2021-11-03 22:15 /usr/lib/python2.7/tarfile.py
+-rw-r--r-- root/root             27036 2021-11-03 22:15 /usr/lib/python2.7/telnetlib.py
+-rw-r--r-- root/root             19547 2021-11-03 22:15 /usr/lib/python2.7/tempfile.py
+-rw-r--r-- root/root             17215 2021-11-03 22:15 /usr/lib/python2.7/textwrap.py
+-rw-r--r-- root/root              1002 2021-11-03 22:15 /usr/lib/python2.7/this.py
+-rw-r--r-- root/root             47132 2021-11-03 22:15 /usr/lib/python2.7/threading.py
+-rwxr-xr-x root/root             12792 2021-11-03 22:15 /usr/lib/python2.7/timeit.py
+-rw-r--r-- root/root              3142 2021-11-03 22:15 /usr/lib/python2.7/toaiff.py
+-rw-r--r-- root/root              2922 2021-11-03 22:15 /usr/lib/python2.7/token.py
+-rw-r--r-- root/root             17483 2021-11-03 22:15 /usr/lib/python2.7/tokenize.py
+-rwxr-xr-x root/root             29891 2021-11-03 22:15 /usr/lib/python2.7/trace.py
+-rw-r--r-- root/root             11285 2021-11-03 22:15 /usr/lib/python2.7/traceback.py
+-rw-r--r-- root/root               879 2021-11-03 22:15 /usr/lib/python2.7/tty.py
+-rw-r--r-- root/root              2094 2021-11-03 22:15 /usr/lib/python2.7/types.py
+drwxr-xr-x root/root               183 2021-11-03 22:15 /usr/lib/python2.7/unittest
+-rw-r--r-- root/root              2718 2021-11-03 22:15 /usr/lib/python2.7/unittest/__init__.py
+-rw-r--r-- root/root               238 2021-11-03 22:15 /usr/lib/python2.7/unittest/__main__.py
+-rw-r--r-- root/root             42765 2021-11-03 22:15 /usr/lib/python2.7/unittest/case.py
+-rw-r--r-- root/root             13497 2021-11-03 22:15 /usr/lib/python2.7/unittest/loader.py
+-rw-r--r-- root/root              9083 2021-11-03 22:15 /usr/lib/python2.7/unittest/main.py
+-rw-r--r-- root/root              6308 2021-11-03 22:15 /usr/lib/python2.7/unittest/result.py
+-rw-r--r-- root/root              6533 2021-11-03 22:15 /usr/lib/python2.7/unittest/runner.py
+-rw-r--r-- root/root              2411 2021-11-03 22:15 /usr/lib/python2.7/unittest/signals.py
+-rw-r--r-- root/root              9809 2021-11-03 22:15 /usr/lib/python2.7/unittest/suite.py
+-rw-r--r-- root/root              4606 2021-11-03 22:15 /usr/lib/python2.7/unittest/util.py
+-rw-r--r-- root/root             59990 2021-11-03 22:15 /usr/lib/python2.7/urllib.py
+-rw-r--r-- root/root             52513 2021-11-03 22:15 /usr/lib/python2.7/urllib2.py
+-rw-r--r-- root/root             15888 2021-11-03 22:15 /usr/lib/python2.7/urlparse.py
+-rw-r--r-- root/root              1627 2021-11-03 22:15 /usr/lib/python2.7/user.py
+-rwxr-xr-x root/root              6555 2021-11-03 22:15 /usr/lib/python2.7/uu.py
+-rw-r--r-- root/root             23175 2021-11-03 22:15 /usr/lib/python2.7/uuid.py
+-rw-r--r-- root/root             14823 2021-11-03 22:15 /usr/lib/python2.7/warnings.py
+-rw-r--r-- root/root             18582 2021-11-03 22:15 /usr/lib/python2.7/wave.py
+-rw-r--r-- root/root             14830 2021-11-03 22:15 /usr/lib/python2.7/weakref.py
+-rwxr-xr-x root/root             22726 2021-11-03 22:15 /usr/lib/python2.7/webbrowser.py
+-rw-r--r-- root/root              3379 2021-11-03 22:15 /usr/lib/python2.7/whichdb.py
+drwxr-xr-x root/root               129 2021-11-03 22:15 /usr/lib/python2.7/wsgiref
+-rw-r--r-- root/root               586 2021-11-03 22:15 /usr/lib/python2.7/wsgiref/__init__.py
+-rw-r--r-- root/root             15982 2021-11-03 22:15 /usr/lib/python2.7/wsgiref/handlers.py
+-rw-r--r-- root/root              5879 2021-11-03 22:15 /usr/lib/python2.7/wsgiref/headers.py
+-rw-r--r-- root/root              4974 2021-11-03 22:15 /usr/lib/python2.7/wsgiref/simple_server.py
+-rw-r--r-- root/root              5576 2021-11-03 22:15 /usr/lib/python2.7/wsgiref/util.py
+-rw-r--r-- root/root             14743 2021-11-03 22:15 /usr/lib/python2.7/wsgiref/validate.py
+-rw-r--r-- root/root               187 2021-11-03 22:15 /usr/lib/python2.7/wsgiref.egg-info
+-rw-r--r-- root/root              6069 2021-11-03 22:15 /usr/lib/python2.7/xdrlib.py
+-rw-r--r-- root/root             34865 2021-11-03 22:15 /usr/lib/python2.7/xmllib.py
+-rw-r--r-- root/root             52136 2021-11-03 22:15 /usr/lib/python2.7/xmlrpclib.py
+-rw-r--r-- root/root             59477 2021-11-03 22:15 /usr/lib/python2.7/zipfile.py
+lrwxrwxrwx root/root                17 2021-11-03 22:41 /usr/lib/terminfo -> ../share/terminfo
+-rw-r--r-- root/root               341 2021-11-03 22:45 /usr/lib/xml2Conf.sh
+lrwxrwxrwx root/root                 3 2021-11-03 21:58 /usr/lib32 -> lib
+drwxr-xr-x root/root                28 2021-11-04 00:55 /usr/local
+drwxr-xr-x root/root                30 2023-05-11 06:05 /usr/local/share
+drwxr-xr-x root/root                57 2023-05-11 06:06 /usr/local/share/minigui
+-rwxr-xr-x root/root              9076 2023-05-11 06:05 /usr/local/share/minigui/MiniGUI.cfg
+drwxr-xr-x root/root               117 2023-05-11 06:05 /usr/local/share/minigui/res
+drwxr-xr-x root/root               887 2023-05-11 06:06 /usr/local/share/minigui/res/bmp
+-rwxr-xr-x root/root              4110 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/classic_check_button.bmp
+-rwxr-xr-x root/root              3510 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/classic_radio_button.bmp
+-rwxr-xr-x root/root              4214 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/fashion_check_btn.bmp
+-rwxr-xr-x root/root              4216 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/fashion_radio_btn.bmp
+-rwxr-xr-x root/root              4110 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/flat_check_button.bmp
+-rwxr-xr-x root/root              4110 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/flat_radio_button.bmp
+-rwxr-xr-x root/root               170 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_arrows.gif
+-rwxr-xr-x root/root              3128 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_arrows_shell.bmp
+-rwxr-xr-x root/root              1600 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_bborder.bmp
+-rwxr-xr-x root/root            230456 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_bkgnd.bmp
+-rwxr-xr-x root/root              1256 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_caption.gif
+-rwxr-xr-x root/root              4216 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_checkbtn.bmp
+-rwxr-xr-x root/root              4199 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_cpn_btn.gif
+-rwxr-xr-x root/root              4086 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_header.bmp
+-rwxr-xr-x root/root              1576 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_lborder.bmp
+-rwxr-xr-x root/root               318 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_pb_htrack.gif
+-rwxr-xr-x root/root               440 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_pb_htruck.bmp
+-rwxr-xr-x root/root               310 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_pb_vtrack.gif
+-rwxr-xr-x root/root               416 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_pb_vtruck.bmp
+-rwxr-xr-x root/root              1891 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_pushbtn.gif
+-rwxr-xr-x root/root              1857 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_radiobtn.gif
+-rwxr-xr-x root/root              1576 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_rborder.bmp
+-rwxr-xr-x root/root             14200 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_sb_arrows.bmp
+-rwxr-xr-x root/root              2440 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_sb_hshaft.bmp
+-rwxr-xr-x root/root              2520 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_sb_hthumb.bmp
+-rwxr-xr-x root/root              2440 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_sb_vshaft.bmp
+-rwxr-xr-x root/root              4280 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_sb_vthumb.bmp
+-rwxr-xr-x root/root               957 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_tab.gif
+-rwxr-xr-x root/root              1362 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_tb_horz.gif
+-rwxr-xr-x root/root              1451 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_tb_vert.gif
+-rwxr-xr-x root/root              1600 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_tborder.bmp
+-rwxr-xr-x root/root               168 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_tbslider_h.gif
+-rwxr-xr-x root/root               167 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_tbslider_v.gif
+-rwxr-xr-x root/root               560 2023-05-11 06:05 /usr/local/share/minigui/res/bmp/skin_tree.bmp
+drwxr-xr-x root/root               856 2023-05-11 06:06 /usr/local/share/minigui/res/cursor
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/d_arrow.cur
+-rwxr-xr-x root/root               326 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/d_beam.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/d_busy.cur
+-rwxr-xr-x root/root               326 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/d_cross.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/d_help.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/d_move.cur
+-rwxr-xr-x root/root               518 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/d_none.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/d_pencil.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/d_sizenesw.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/d_sizens.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/d_sizenwse.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/d_sizewe.cur
+-rwxr-xr-x root/root               326 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/d_uparrow.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/d_wait.cur
+-rwxr-xr-x root/root               326 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/g_arrow.cur
+-rwxr-xr-x root/root               326 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/g_col.cur
+-rwxr-xr-x root/root               326 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/g_drag.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/g_help.cur
+-rwxr-xr-x root/root               518 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/g_maginify.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/g_move.cur
+-rwxr-xr-x root/root               518 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/g_nodrop.cur
+-rwxr-xr-x root/root               518 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/g_pencil.cur
+-rwxr-xr-x root/root               326 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/g_rarrow.cur
+-rwxr-xr-x root/root               326 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/g_row.cur
+-rwxr-xr-x root/root               722 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/g_sizenesw.cur
+-rwxr-xr-x root/root               722 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/g_sizens.cur
+-rwxr-xr-x root/root               722 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/g_sizenwse.cur
+-rwxr-xr-x root/root               722 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/g_sizewe.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/h_cross.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/h_ibeam.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/h_move.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/h_ne.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/h_nodrop.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/h_ns.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/h_nw.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/h_point.cur
+-rwxr-xr-x root/root               326 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/h_select.cur
+-rwxr-xr-x root/root               766 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/h_we.cur
+-rwxr-xr-x root/root               326 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/ho_line.cur
+-rwxr-xr-x root/root               326 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/ho_sizeb.cur
+-rwxr-xr-x root/root               326 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/ho_split.cur
+-rwxr-xr-x root/root               326 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/ve_line.cur
+-rwxr-xr-x root/root               326 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/ve_sizeb.cur
+-rwxr-xr-x root/root               326 2023-05-11 06:05 /usr/local/share/minigui/res/cursor/ve_split.cur
+drwxr-xr-x root/root               103 2023-05-11 06:06 /usr/local/share/minigui/res/font
+-rwxr-xr-x root/root              4096 2023-05-11 06:05 /usr/local/share/minigui/res/font/8x16-iso8859-1.bin
+-rwxr-xr-x root/root             75728 2023-05-11 06:05 /usr/local/share/minigui/res/font/font.ttf
+-rwxr-xr-x root/root            243648 2023-05-11 06:05 /usr/local/share/minigui/res/font/song-16-gb2312.bin
+-rwxr--r-- root/root             48124 2023-05-11 06:05 /usr/local/share/minigui/res/font/yugothib.ttf
+drwxr-xr-x root/root               400 2023-05-11 06:06 /usr/local/share/minigui/res/icon
+-rwxr-xr-x root/root              1078 2023-05-11 06:05 /usr/local/share/minigui/res/icon/excalmatory-flat.ico
+-rwxr-xr-x root/root              3638 2023-05-11 06:05 /usr/local/share/minigui/res/icon/excalmatory.ico
+-rwxr-xr-x root/root              1078 2023-05-11 06:05 /usr/local/share/minigui/res/icon/failed-flat.ico
+-rwxr-xr-x root/root              3638 2023-05-11 06:05 /usr/local/share/minigui/res/icon/failed.ico
+-rwxr-xr-x root/root              1078 2023-05-11 06:05 /usr/local/share/minigui/res/icon/fold-flat.ico
+-rwxr-xr-x root/root               318 2023-05-11 06:05 /usr/local/share/minigui/res/icon/fold.ico
+-rwxr-xr-x root/root              1078 2023-05-11 06:05 /usr/local/share/minigui/res/icon/folder-flat.ico
+-rwxr-xr-x root/root              1078 2023-05-11 06:05 /usr/local/share/minigui/res/icon/folder.ico
+-rwxr-xr-x root/root              3638 2023-05-11 06:05 /usr/local/share/minigui/res/icon/form-flat.ico
+-rwxr-xr-x root/root              3638 2023-05-11 06:05 /usr/local/share/minigui/res/icon/form.ico
+-rwxr-xr-x root/root              1078 2023-05-11 06:05 /usr/local/share/minigui/res/icon/help-flat.ico
+-rwxr-xr-x root/root              3638 2023-05-11 06:05 /usr/local/share/minigui/res/icon/help.ico
+-rwxr-xr-x root/root              1078 2023-05-11 06:05 /usr/local/share/minigui/res/icon/textfile-flat.ico
+-rwxr-xr-x root/root              1078 2023-05-11 06:05 /usr/local/share/minigui/res/icon/textfile.ico
+-rwxr-xr-x root/root              1078 2023-05-11 06:05 /usr/local/share/minigui/res/icon/unfold-flat.ico
+-rwxr-xr-x root/root              1078 2023-05-11 06:05 /usr/local/share/minigui/res/icon/unfold.ico
+-rwxr-xr-x root/root              1078 2023-05-11 06:05 /usr/local/share/minigui/res/icon/warning-flat.ico
+-rwxr-xr-x root/root              3638 2023-05-11 06:05 /usr/local/share/minigui/res/icon/warning.ico
+drwxr-xr-x root/root              1640 2023-05-11 06:06 /usr/local/share/minigui/res/images
+-rwxr-xr-- root/root             50954 2023-05-11 06:05 /usr/local/share/minigui/res/images/background.jpg
+-rwxr-xr-- root/root              1619 2023-05-11 06:05 /usr/local/share/minigui/res/images/button_0.png
+-rwxr-xr-- root/root              2041 2023-05-11 06:05 /usr/local/share/minigui/res/images/button_1.png
+-rwxr-xr-- root/root              1286 2023-05-11 06:05 /usr/local/share/minigui/res/images/down_0.png
+-rwxr-xr-- root/root              1756 2023-05-11 06:05 /usr/local/share/minigui/res/images/down_1.png
+-rwxr-xr-- root/root            314162 2023-05-11 06:05 /usr/local/share/minigui/res/images/game0_controls.jpg
+-rwxr--r-- root/root            563391 2023-05-11 06:05 /usr/local/share/minigui/res/images/game0_settings.jpg
+-rwxr--r-- root/root            316681 2023-05-11 06:05 /usr/local/share/minigui/res/images/game10_controls.jpg
+-rwxr--r-- root/root            558360 2023-05-11 06:05 /usr/local/share/minigui/res/images/game10_settings.jpg
+-rwxr--r-- root/root            227243 2023-05-11 06:05 /usr/local/share/minigui/res/images/game11_controls.jpg
+-rwxr--r-- root/root            568961 2023-05-11 06:05 /usr/local/share/minigui/res/images/game11_settings.jpg
+-rwxr-xr-- root/root            645599 2023-05-11 06:05 /usr/local/share/minigui/res/images/game1_controls.jpg
+-rwxr--r-- root/root            558194 2023-05-11 06:05 /usr/local/share/minigui/res/images/game1_settings.jpg
+-rwxr-xr-- root/root            316093 2023-05-11 06:05 /usr/local/share/minigui/res/images/game2_controls.jpg
+-rwxr--r-- root/root            570815 2023-05-11 06:05 /usr/local/share/minigui/res/images/game2_settings.jpg
+-rwxr-xr-- root/root            312518 2023-05-11 06:05 /usr/local/share/minigui/res/images/game3_controls.jpg
+-rwxr--r-- root/root            560529 2023-05-11 06:05 /usr/local/share/minigui/res/images/game3_settings.jpg
+-rwxr-xr-- root/root            320287 2023-05-11 06:05 /usr/local/share/minigui/res/images/game4_controls.jpg
+-rwxr--r-- root/root            567072 2023-05-11 06:05 /usr/local/share/minigui/res/images/game4_settings.jpg
+-rwxr-xr-- root/root            313395 2023-05-11 06:05 /usr/local/share/minigui/res/images/game5_controls.jpg
+-rwxr--r-- root/root            568364 2023-05-11 06:05 /usr/local/share/minigui/res/images/game5_settings.jpg
+-rwxr-xr-- root/root            230853 2023-05-11 06:05 /usr/local/share/minigui/res/images/game6_controls.jpg
+-rwxr--r-- root/root            582799 2023-05-11 06:05 /usr/local/share/minigui/res/images/game6_settings.jpg
+-rwxr--r-- root/root            228503 2023-05-11 06:05 /usr/local/share/minigui/res/images/game7_controls.jpg
+-rwxr--r-- root/root            557582 2023-05-11 06:05 /usr/local/share/minigui/res/images/game7_settings.jpg
+-rwxr--r-- root/root            226743 2023-05-11 06:05 /usr/local/share/minigui/res/images/game8_controls.jpg
+-rwxr--r-- root/root            554158 2023-05-11 06:05 /usr/local/share/minigui/res/images/game8_settings.jpg
+-rwxr--r-- root/root            314137 2023-05-11 06:05 /usr/local/share/minigui/res/images/game9_controls.jpg
+-rwxr--r-- root/root            562897 2023-05-11 06:05 /usr/local/share/minigui/res/images/game9_settings.jpg
+-rwxr-xr-- root/root            688948 2023-05-11 06:05 /usr/local/share/minigui/res/images/game_0.jpg
+-rwxr-xr-- root/root            688000 2023-05-11 06:05 /usr/local/share/minigui/res/images/game_1.jpg
+-rwxr--r-- root/root            688080 2023-05-11 06:05 /usr/local/share/minigui/res/images/game_10.jpg
+-rwxr--r-- root/root            688041 2023-05-11 06:05 /usr/local/share/minigui/res/images/game_11.jpg
+-rwxr-xr-- root/root            687995 2023-05-11 06:05 /usr/local/share/minigui/res/images/game_2.jpg
+-rwxr-xr-- root/root            687474 2023-05-11 06:05 /usr/local/share/minigui/res/images/game_3.jpg
+-rwxr-xr-- root/root            688211 2023-05-11 06:05 /usr/local/share/minigui/res/images/game_4.jpg
+-rwxr-xr-- root/root            687459 2023-05-11 06:05 /usr/local/share/minigui/res/images/game_5.jpg
+-rwxr-xr-- root/root            686719 2023-05-11 06:05 /usr/local/share/minigui/res/images/game_6.jpg
+-rwxr--r-- root/root            686781 2023-05-11 06:05 /usr/local/share/minigui/res/images/game_7.jpg
+-rwxr--r-- root/root            686614 2023-05-11 06:05 /usr/local/share/minigui/res/images/game_8.jpg
+-rwxr--r-- root/root            687419 2023-05-11 06:05 /usr/local/share/minigui/res/images/game_9.jpg
+-rwxr--r-- root/root               279 2023-05-11 06:05 /usr/local/share/minigui/res/images/hiscores_reset.png
+-rwxr-xr-- root/root              1273 2023-05-11 06:05 /usr/local/share/minigui/res/images/left_0.png
+-rwxr-xr-- root/root              1729 2023-05-11 06:05 /usr/local/share/minigui/res/images/left_1.png
+-rwxr-xr-- root/root            318656 2023-05-11 06:05 /usr/local/share/minigui/res/images/legal.jpg
+-rwxr-xr-- root/root             65242 2023-05-11 06:05 /usr/local/share/minigui/res/images/logo.jpg
+-rwxr--r-- root/root           1849543 2023-05-11 06:05 /usr/local/share/minigui/res/images/logo.mp4
+-rwxr-xr-- root/root              1235 2023-05-11 06:05 /usr/local/share/minigui/res/images/right_0.png
+-rwxr-xr-- root/root              1703 2023-05-11 06:05 /usr/local/share/minigui/res/images/right_1.png
+-rwxr--r-- root/root               279 2023-05-11 06:05 /usr/local/share/minigui/res/images/settings_reset.png
+-rwxr--r-- root/root               373 2023-05-11 06:05 /usr/local/share/minigui/res/images/settings_select.png
+-rwxr-xr-- root/root              4118 2023-05-11 06:05 /usr/local/share/minigui/res/images/settings_text0.png
+-rwxr-xr-- root/root              4056 2023-05-11 06:05 /usr/local/share/minigui/res/images/settings_text1.png
+-rwxr-xr-- root/root              1288 2023-05-11 06:05 /usr/local/share/minigui/res/images/up_0.png
+-rwxr-xr-- root/root              1780 2023-05-11 06:05 /usr/local/share/minigui/res/images/up_1.png
+-rwxr-xr-- root/root              3265 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_0.png
+-rwxr-xr-- root/root              2648 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_1.png
+-rwxr-xr-- root/root              3488 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_10.png
+-rwxr-xr-- root/root              2846 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_11.png
+-rwxr-xr-- root/root              3111 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_12.png
+-rwxr-xr-- root/root              3131 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_13.png
+-rwxr-xr-- root/root              3114 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_14.png
+-rwxr-xr-- root/root              2945 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_15.png
+-rwxr-xr-- root/root              2914 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_2.png
+-rwxr-xr-- root/root              3005 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_3.png
+-rwxr-xr-- root/root              3015 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_4.png
+-rwxr-xr-- root/root              2868 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_5.png
+-rwxr-xr-- root/root              3143 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_6.png
+-rwxr-xr-- root/root              2824 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_7.png
+-rwxr-xr-- root/root              3327 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_8.png
+-rwxr-xr-- root/root              3119 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_9.png
+-rwxr-xr-- root/root              1038 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_center.png
+-rwxr-xr-- root/root               906 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_down.png
+-rwxr-xr-- root/root              1044 2023-05-11 06:05 /usr/local/share/minigui/res/images/volume_up.png
+drwxr-xr-x root/root               127 2023-05-11 06:06 /usr/local/share/minigui/res/music
+-rwxr-xr-x root/root            207504 2023-05-11 06:05 /usr/local/share/minigui/res/music/1khz0dbL.wav
+-rwxr-xr-x root/root            188192 2023-05-11 06:05 /usr/local/share/minigui/res/music/1khz0dbLR.wav
+-rwxr-xr-x root/root            193682 2023-05-11 06:05 /usr/local/share/minigui/res/music/2khz0dbR.wav
+-rwxr-xr-x root/root             97092 2023-05-11 06:05 /usr/local/share/minigui/res/music/select_ding_low.wav
+-rwxr-xr-x root/root             12160 2023-05-11 06:05 /usr/local/share/minigui/res/music/select_noise.wav
+drwxr-xr-x root/root                34 2023-05-11 06:06 /usr/local/share/minigui/res/string
+-rwxr-xr-x root/root               340 2023-05-11 06:05 /usr/local/share/minigui/res/string/EN-UTF8.bin
+drwxr-xr-x root/root               429 2023-05-11 06:06 /usr/sbin
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/addgroup -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/adduser -> ../../bin/busybox
+-rwxr-xr-x root/root             35453 2021-11-03 23:28 /usr/sbin/alsaconf
+-rwxr-xr-x root/root             72500 2023-05-11 06:06 /usr/sbin/alsactl
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/arping -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/chroot -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/crond -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/delgroup -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/deluser -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/dnsd -> ../../bin/busybox
+-rwxr-xr-x root/root            211432 2023-05-11 06:06 /usr/sbin/dropbear
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/ether-wake -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/fbset -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/fdformat -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/fsfreeze -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/i2cdetect -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/i2cdump -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/i2cget -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/i2cset -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/inetd -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/killall5 -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/loadfont -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/partprobe -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/rdate -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/readprofile -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/setlogcons -> ../../bin/busybox
+lrwxrwxrwx root/root                17 2021-11-03 22:40 /usr/sbin/ubirename -> ../../bin/busybox
+drwxr-xr-x root/root               158 2022-09-26 22:45 /usr/share
+drwxr-xr-x root/root                26 2021-11-03 23:51 /usr/share/X11
+drwxr-xr-x root/root               114 2021-11-03 23:51 /usr/share/X11/xkb
+drwxr-xr-x root/root               264 2021-11-03 23:51 /usr/share/X11/xkb/compat
+-rw-r--r-- root/root              1712 2021-11-03 23:51 /usr/share/X11/xkb/compat/README
+-rw-r--r-- root/root              1121 2021-11-03 23:51 /usr/share/X11/xkb/compat/accessx
+-rw-r--r-- root/root              1054 2021-11-03 23:51 /usr/share/X11/xkb/compat/basic
+-rw-r--r-- root/root               507 2021-11-03 23:51 /usr/share/X11/xkb/compat/caps
+-rw-r--r-- root/root               228 2021-11-03 23:51 /usr/share/X11/xkb/compat/complete
+-rw-r--r-- root/root              1644 2021-11-03 23:51 /usr/share/X11/xkb/compat/iso9995
+-rw-r--r-- root/root               986 2021-11-03 23:51 /usr/share/X11/xkb/compat/japan
+-rw-r--r-- root/root               469 2021-11-03 23:51 /usr/share/X11/xkb/compat/ledcaps
+-rw-r--r-- root/root               466 2021-11-03 23:51 /usr/share/X11/xkb/compat/lednum
+-rw-r--r-- root/root               486 2021-11-03 23:51 /usr/share/X11/xkb/compat/ledscroll
+-rw-r--r-- root/root              1396 2021-11-03 23:51 /usr/share/X11/xkb/compat/level5
+-rw-r--r-- root/root              2724 2021-11-03 23:51 /usr/share/X11/xkb/compat/misc
+-rw-r--r-- root/root              4604 2021-11-03 23:51 /usr/share/X11/xkb/compat/mousekeys
+-rw-r--r-- root/root              1133 2021-11-03 23:51 /usr/share/X11/xkb/compat/olpc
+-rw-r--r-- root/root               340 2021-11-03 23:51 /usr/share/X11/xkb/compat/pc
+-rw-r--r-- root/root              1226 2021-11-03 23:51 /usr/share/X11/xkb/compat/pc98
+-rw-r--r-- root/root              1842 2021-11-03 23:51 /usr/share/X11/xkb/compat/xfree86
+-rw-r--r-- root/root              1457 2021-11-03 23:51 /usr/share/X11/xkb/compat/xtest
+drwxr-xr-x root/root               403 2021-11-03 23:51 /usr/share/X11/xkb/geometry
+-rw-r--r-- root/root               461 2021-11-03 23:51 /usr/share/X11/xkb/geometry/README
+-rw-r--r-- root/root              6228 2021-11-03 23:51 /usr/share/X11/xkb/geometry/amiga
+-rw-r--r-- root/root              5775 2021-11-03 23:51 /usr/share/X11/xkb/geometry/ataritt
+-rw-r--r-- root/root              4540 2021-11-03 23:51 /usr/share/X11/xkb/geometry/chicony
+-rw-r--r-- root/root             20245 2021-11-03 23:51 /usr/share/X11/xkb/geometry/dell
+drwxr-xr-x root/root                47 2021-11-03 23:51 /usr/share/X11/xkb/geometry/digital_vndr
+-rw-r--r-- root/root             20636 2021-11-03 23:51 /usr/share/X11/xkb/geometry/digital_vndr/lk
+-rw-r--r-- root/root             10864 2021-11-03 23:51 /usr/share/X11/xkb/geometry/digital_vndr/pc
+-rw-r--r-- root/root              7169 2021-11-03 23:51 /usr/share/X11/xkb/geometry/digital_vndr/unix
+-rw-r--r-- root/root              3839 2021-11-03 23:51 /usr/share/X11/xkb/geometry/everex
+-rw-r--r-- root/root              7781 2021-11-03 23:51 /usr/share/X11/xkb/geometry/fujitsu
+-rw-r--r-- root/root              5457 2021-11-03 23:51 /usr/share/X11/xkb/geometry/hhk
+-rw-r--r-- root/root             17353 2021-11-03 23:51 /usr/share/X11/xkb/geometry/hp
+-rw-r--r-- root/root              6500 2021-11-03 23:51 /usr/share/X11/xkb/geometry/keytronic
+-rw-r--r-- root/root              4036 2021-11-03 23:51 /usr/share/X11/xkb/geometry/kinesis
+-rw-r--r-- root/root             41055 2021-11-03 23:51 /usr/share/X11/xkb/geometry/macintosh
+-rw-r--r-- root/root             12607 2021-11-03 23:51 /usr/share/X11/xkb/geometry/microsoft
+-rw-r--r-- root/root              4152 2021-11-03 23:51 /usr/share/X11/xkb/geometry/nec
+-rw-r--r-- root/root              1264 2021-11-03 23:51 /usr/share/X11/xkb/geometry/nokia
+-rw-r--r-- root/root              4017 2021-11-03 23:51 /usr/share/X11/xkb/geometry/northgate
+-rw-r--r-- root/root             40560 2021-11-03 23:51 /usr/share/X11/xkb/geometry/pc
+-rw-r--r-- root/root              5878 2021-11-03 23:51 /usr/share/X11/xkb/geometry/sanwa
+drwxr-xr-x root/root                51 2021-11-03 23:51 /usr/share/X11/xkb/geometry/sgi_vndr
+-rw-r--r-- root/root             15323 2021-11-03 23:51 /usr/share/X11/xkb/geometry/sgi_vndr/O2
+-rw-r--r-- root/root             10401 2021-11-03 23:51 /usr/share/X11/xkb/geometry/sgi_vndr/indigo
+-rw-r--r-- root/root             14976 2021-11-03 23:51 /usr/share/X11/xkb/geometry/sgi_vndr/indy
+-rw-r--r-- root/root              4961 2021-11-03 23:51 /usr/share/X11/xkb/geometry/sony
+-rw-r--r-- root/root              8282 2021-11-03 23:51 /usr/share/X11/xkb/geometry/steelseries
+-rw-r--r-- root/root             19823 2021-11-03 23:51 /usr/share/X11/xkb/geometry/sun
+-rw-r--r-- root/root              9728 2021-11-03 23:51 /usr/share/X11/xkb/geometry/teck
+-rw-r--r-- root/root             12135 2021-11-03 23:51 /usr/share/X11/xkb/geometry/thinkpad
+-rw-r--r-- root/root             21188 2021-11-03 23:51 /usr/share/X11/xkb/geometry/typematrix
+-rw-r--r-- root/root              2766 2021-11-03 23:51 /usr/share/X11/xkb/geometry/winbook
+drwxr-xr-x root/root               265 2021-11-03 23:51 /usr/share/X11/xkb/keycodes
+-rw-r--r-- root/root               416 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/README
+-rw-r--r-- root/root              2176 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/aliases
+-rw-r--r-- root/root              3401 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/amiga
+-rw-r--r-- root/root              1839 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/ataritt
+drwxr-xr-x root/root                35 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/digital_vndr
+-rw-r--r-- root/root              6133 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/digital_vndr/lk
+-rw-r--r-- root/root              6102 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/digital_vndr/pc
+-rw-r--r-- root/root                68 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/empty
+-rw-r--r-- root/root              8656 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/evdev
+-rw-r--r-- root/root              3715 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/fujitsu
+-rw-r--r-- root/root              4971 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/hp
+-rw-r--r-- root/root              3146 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/ibm
+-rw-r--r-- root/root               283 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/jolla
+-rw-r--r-- root/root              4466 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/macintosh
+-rw-r--r-- root/root               762 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/olpc
+drwxr-xr-x root/root                53 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/sgi_vndr
+-rw-r--r-- root/root              2311 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/sgi_vndr/indigo
+-rw-r--r-- root/root              3683 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/sgi_vndr/indy
+-rw-r--r-- root/root               260 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/sgi_vndr/iris
+-rw-r--r-- root/root              2954 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/sony
+-rw-r--r-- root/root              5076 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/sun
+-rw-r--r-- root/root              8634 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/xfree86
+-rw-r--r-- root/root              3204 2021-11-03 23:51 /usr/share/X11/xkb/keycodes/xfree98
+drwxr-xr-x root/root               197 2021-11-03 23:51 /usr/share/X11/xkb/rules
+-rw-r--r-- root/root                91 2021-11-03 23:51 /usr/share/X11/xkb/rules/README
+-rw-r--r-- root/root             47986 2021-11-03 23:51 /usr/share/X11/xkb/rules/base
+-rw-r--r-- root/root             35157 2021-11-03 23:51 /usr/share/X11/xkb/rules/base.extras.xml
+-rw-r--r-- root/root             42346 2021-11-03 23:51 /usr/share/X11/xkb/rules/base.lst
+-rw-r--r-- root/root            210844 2021-11-03 23:51 /usr/share/X11/xkb/rules/base.xml
+-rw-r--r-- root/root             43014 2021-11-03 23:51 /usr/share/X11/xkb/rules/evdev
+-rw-r--r-- root/root             35157 2021-11-03 23:51 /usr/share/X11/xkb/rules/evdev.extras.xml
+-rw-r--r-- root/root             42346 2021-11-03 23:51 /usr/share/X11/xkb/rules/evdev.lst
+-rw-r--r-- root/root            210844 2021-11-03 23:51 /usr/share/X11/xkb/rules/evdev.xml
+-rw-r--r-- root/root               743 2021-11-03 23:51 /usr/share/X11/xkb/rules/xfree98
+-rw-r--r-- root/root              1126 2021-11-03 23:51 /usr/share/X11/xkb/rules/xkb.dtd
+drwxr-xr-x root/root              1544 2021-11-03 23:51 /usr/share/X11/xkb/symbols
+-rw-r--r-- root/root             23385 2021-11-03 23:51 /usr/share/X11/xkb/symbols/af
+-rw-r--r-- root/root              4110 2021-11-03 23:51 /usr/share/X11/xkb/symbols/al
+-rw-r--r-- root/root              3363 2021-11-03 23:51 /usr/share/X11/xkb/symbols/altwin
+-rw-r--r-- root/root              9450 2021-11-03 23:51 /usr/share/X11/xkb/symbols/am
+-rw-r--r-- root/root             48051 2021-11-03 23:51 /usr/share/X11/xkb/symbols/apl
+-rw-r--r-- root/root             33618 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ara
+-rw-r--r-- root/root               564 2021-11-03 23:51 /usr/share/X11/xkb/symbols/at
+-rw-r--r-- root/root               179 2021-11-03 23:51 /usr/share/X11/xkb/symbols/au
+-rw-r--r-- root/root              3785 2021-11-03 23:51 /usr/share/X11/xkb/symbols/az
+-rw-r--r-- root/root               680 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ba
+-rw-r--r-- root/root              4291 2021-11-03 23:51 /usr/share/X11/xkb/symbols/bd
+-rw-r--r-- root/root             12792 2021-11-03 23:51 /usr/share/X11/xkb/symbols/be
+-rw-r--r-- root/root             18162 2021-11-03 23:51 /usr/share/X11/xkb/symbols/bg
+-rw-r--r-- root/root             16820 2021-11-03 23:51 /usr/share/X11/xkb/symbols/br
+-rw-r--r-- root/root              1640 2021-11-03 23:51 /usr/share/X11/xkb/symbols/brai
+-rw-r--r-- root/root              4598 2021-11-03 23:51 /usr/share/X11/xkb/symbols/bt
+-rw-r--r-- root/root               981 2021-11-03 23:51 /usr/share/X11/xkb/symbols/bw
+-rw-r--r-- root/root              2059 2021-11-03 23:51 /usr/share/X11/xkb/symbols/by
+-rw-r--r-- root/root             21520 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ca
+-rw-r--r-- root/root              1749 2021-11-03 23:51 /usr/share/X11/xkb/symbols/capslock
+-rw-r--r-- root/root              4120 2021-11-03 23:51 /usr/share/X11/xkb/symbols/cd
+-rw-r--r-- root/root              8293 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ch
+-rw-r--r-- root/root             33794 2021-11-03 23:51 /usr/share/X11/xkb/symbols/cm
+-rw-r--r-- root/root             11176 2021-11-03 23:51 /usr/share/X11/xkb/symbols/cn
+-rw-r--r-- root/root              2303 2021-11-03 23:51 /usr/share/X11/xkb/symbols/compose
+-rw-r--r-- root/root              3354 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ctrl
+-rw-r--r-- root/root             12463 2021-11-03 23:51 /usr/share/X11/xkb/symbols/cz
+-rw-r--r-- root/root             88048 2021-11-03 23:51 /usr/share/X11/xkb/symbols/de
+drwxr-xr-x root/root                55 2021-11-03 23:51 /usr/share/X11/xkb/symbols/digital_vndr
+-rw-r--r-- root/root              4361 2021-11-03 23:51 /usr/share/X11/xkb/symbols/digital_vndr/lk
+-rw-r--r-- root/root              6199 2021-11-03 23:51 /usr/share/X11/xkb/symbols/digital_vndr/pc
+-rw-r--r-- root/root              7959 2021-11-03 23:51 /usr/share/X11/xkb/symbols/digital_vndr/us
+-rw-r--r-- root/root              5462 2021-11-03 23:51 /usr/share/X11/xkb/symbols/digital_vndr/vt
+-rw-r--r-- root/root              2523 2021-11-03 23:51 /usr/share/X11/xkb/symbols/dk
+-rw-r--r-- root/root             10770 2021-11-03 23:51 /usr/share/X11/xkb/symbols/dz
+-rw-r--r-- root/root              4147 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ee
+-rw-r--r-- root/root               101 2021-11-03 23:51 /usr/share/X11/xkb/symbols/empty
+-rw-r--r-- root/root              7632 2021-11-03 23:51 /usr/share/X11/xkb/symbols/epo
+-rw-r--r-- root/root             10247 2021-11-03 23:51 /usr/share/X11/xkb/symbols/es
+-rw-r--r-- root/root              3134 2021-11-03 23:51 /usr/share/X11/xkb/symbols/et
+-rw-r--r-- root/root              5532 2021-11-03 23:51 /usr/share/X11/xkb/symbols/eu
+-rw-r--r-- root/root               629 2021-11-03 23:51 /usr/share/X11/xkb/symbols/eurosign
+-rw-r--r-- root/root             24399 2021-11-03 23:51 /usr/share/X11/xkb/symbols/fi
+-rw-r--r-- root/root              1990 2021-11-03 23:51 /usr/share/X11/xkb/symbols/fo
+-rw-r--r-- root/root             76009 2021-11-03 23:51 /usr/share/X11/xkb/symbols/fr
+drwxr-xr-x root/root                35 2021-11-03 23:51 /usr/share/X11/xkb/symbols/fujitsu_vndr
+-rw-r--r-- root/root              4113 2021-11-03 23:51 /usr/share/X11/xkb/symbols/fujitsu_vndr/jp
+-rw-r--r-- root/root              4391 2021-11-03 23:51 /usr/share/X11/xkb/symbols/fujitsu_vndr/us
+-rw-r--r-- root/root              7604 2021-11-03 23:51 /usr/share/X11/xkb/symbols/gb
+-rw-r--r-- root/root             11999 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ge
+-rw-r--r-- root/root              6566 2021-11-03 23:51 /usr/share/X11/xkb/symbols/gh
+-rw-r--r-- root/root              2357 2021-11-03 23:51 /usr/share/X11/xkb/symbols/gn
+-rw-r--r-- root/root             11305 2021-11-03 23:51 /usr/share/X11/xkb/symbols/gr
+-rw-r--r-- root/root             11981 2021-11-03 23:51 /usr/share/X11/xkb/symbols/group
+drwxr-xr-x root/root                25 2021-11-03 23:51 /usr/share/X11/xkb/symbols/hp_vndr
+-rw-r--r-- root/root              3321 2021-11-03 23:51 /usr/share/X11/xkb/symbols/hp_vndr/us
+-rw-r--r-- root/root              2493 2021-11-03 23:51 /usr/share/X11/xkb/symbols/hr
+-rw-r--r-- root/root             19924 2021-11-03 23:51 /usr/share/X11/xkb/symbols/hu
+-rw-r--r-- root/root              3651 2021-11-03 23:51 /usr/share/X11/xkb/symbols/id
+-rw-r--r-- root/root             20277 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ie
+-rw-r--r-- root/root             16256 2021-11-03 23:51 /usr/share/X11/xkb/symbols/il
+-rw-r--r-- root/root             94681 2021-11-03 23:51 /usr/share/X11/xkb/symbols/in
+-rw-r--r-- root/root             64115 2021-11-03 23:51 /usr/share/X11/xkb/symbols/inet
+-rw-r--r-- root/root               642 2021-11-03 23:51 /usr/share/X11/xkb/symbols/iq
+-rw-r--r-- root/root             12414 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ir
+-rw-r--r-- root/root             14671 2021-11-03 23:51 /usr/share/X11/xkb/symbols/is
+-rw-r--r-- root/root             17722 2021-11-03 23:51 /usr/share/X11/xkb/symbols/it
+drwxr-xr-x root/root                26 2021-11-03 23:51 /usr/share/X11/xkb/symbols/jolla_vndr
+-rw-r--r-- root/root              2143 2021-11-03 23:51 /usr/share/X11/xkb/symbols/jolla_vndr/sbj
+-rw-r--r-- root/root              8462 2021-11-03 23:51 /usr/share/X11/xkb/symbols/jp
+-rw-r--r-- root/root              2173 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ke
+-rw-r--r-- root/root             23758 2021-11-03 23:51 /usr/share/X11/xkb/symbols/keypad
+-rw-r--r-- root/root              6080 2021-11-03 23:51 /usr/share/X11/xkb/symbols/kg
+-rw-r--r-- root/root              4997 2021-11-03 23:51 /usr/share/X11/xkb/symbols/kh
+-rw-r--r-- root/root              3398 2021-11-03 23:51 /usr/share/X11/xkb/symbols/kpdl
+-rw-r--r-- root/root              1168 2021-11-03 23:51 /usr/share/X11/xkb/symbols/kr
+-rw-r--r-- root/root             13786 2021-11-03 23:51 /usr/share/X11/xkb/symbols/kz
+-rw-r--r-- root/root              5588 2021-11-03 23:51 /usr/share/X11/xkb/symbols/la
+-rw-r--r-- root/root              6368 2021-11-03 23:51 /usr/share/X11/xkb/symbols/latam
+-rw-r--r-- root/root             14637 2021-11-03 23:51 /usr/share/X11/xkb/symbols/latin
+-rw-r--r-- root/root              6080 2021-11-03 23:51 /usr/share/X11/xkb/symbols/level3
+-rw-r--r-- root/root              4739 2021-11-03 23:51 /usr/share/X11/xkb/symbols/level5
+-rw-r--r-- root/root              8194 2021-11-03 23:51 /usr/share/X11/xkb/symbols/lk
+-rw-r--r-- root/root             16925 2021-11-03 23:51 /usr/share/X11/xkb/symbols/lt
+-rw-r--r-- root/root             19009 2021-11-03 23:51 /usr/share/X11/xkb/symbols/lv
+-rw-r--r-- root/root             12510 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ma
+drwxr-xr-x root/root               181 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr
+-rw-r--r-- root/root              5105 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/apple
+-rw-r--r-- root/root              3831 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/ch
+-rw-r--r-- root/root              3836 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/de
+-rw-r--r-- root/root              3508 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/dk
+-rw-r--r-- root/root               330 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/fi
+-rw-r--r-- root/root              5566 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/fr
+-rw-r--r-- root/root               557 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/gb
+-rw-r--r-- root/root              5714 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/is
+-rw-r--r-- root/root              2735 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/it
+-rw-r--r-- root/root              1021 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/jp
+-rw-r--r-- root/root              1913 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/latam
+-rw-r--r-- root/root               156 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/nl
+-rw-r--r-- root/root              2118 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/no
+-rw-r--r-- root/root              2585 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/pt
+-rw-r--r-- root/root              2085 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/se
+-rw-r--r-- root/root              4220 2021-11-03 23:51 /usr/share/X11/xkb/symbols/macintosh_vndr/us
+-rw-r--r-- root/root               594 2021-11-03 23:51 /usr/share/X11/xkb/symbols/mao
+-rw-r--r-- root/root              5116 2021-11-03 23:51 /usr/share/X11/xkb/symbols/md
+-rw-r--r-- root/root              1747 2021-11-03 23:51 /usr/share/X11/xkb/symbols/me
+-rw-r--r-- root/root              3097 2021-11-03 23:51 /usr/share/X11/xkb/symbols/mk
+-rw-r--r-- root/root              3329 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ml
+-rw-r--r-- root/root              3572 2021-11-03 23:51 /usr/share/X11/xkb/symbols/mm
+-rw-r--r-- root/root              4274 2021-11-03 23:51 /usr/share/X11/xkb/symbols/mn
+-rw-r--r-- root/root              2982 2021-11-03 23:51 /usr/share/X11/xkb/symbols/mt
+-rw-r--r-- root/root              3392 2021-11-03 23:51 /usr/share/X11/xkb/symbols/mv
+-rw-r--r-- root/root              6991 2021-11-03 23:51 /usr/share/X11/xkb/symbols/my
+-rw-r--r-- root/root              4406 2021-11-03 23:51 /usr/share/X11/xkb/symbols/nbsp
+drwxr-xr-x root/root                25 2021-11-03 23:51 /usr/share/X11/xkb/symbols/nec_vndr
+-rw-r--r-- root/root              6076 2021-11-03 23:51 /usr/share/X11/xkb/symbols/nec_vndr/jp
+-rw-r--r-- root/root              6270 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ng
+-rw-r--r-- root/root              6888 2021-11-03 23:51 /usr/share/X11/xkb/symbols/nl
+-rw-r--r-- root/root             11770 2021-11-03 23:51 /usr/share/X11/xkb/symbols/no
+drwxr-xr-x root/root                54 2021-11-03 23:51 /usr/share/X11/xkb/symbols/nokia_vndr
+-rw-r--r-- root/root             15166 2021-11-03 23:51 /usr/share/X11/xkb/symbols/nokia_vndr/rx-44
+-rw-r--r-- root/root             72095 2021-11-03 23:51 /usr/share/X11/xkb/symbols/nokia_vndr/rx-51
+-rw-r--r-- root/root             27917 2021-11-03 23:51 /usr/share/X11/xkb/symbols/nokia_vndr/su-8w
+-rw-r--r-- root/root              6772 2021-11-03 23:51 /usr/share/X11/xkb/symbols/np
+-rw-r--r-- root/root               930 2021-11-03 23:51 /usr/share/X11/xkb/symbols/olpc
+-rw-r--r-- root/root               389 2021-11-03 23:51 /usr/share/X11/xkb/symbols/parens
+-rw-r--r-- root/root              2389 2021-11-03 23:51 /usr/share/X11/xkb/symbols/pc
+-rw-r--r-- root/root             75980 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ph
+-rw-r--r-- root/root             20661 2021-11-03 23:51 /usr/share/X11/xkb/symbols/pk
+-rw-r--r-- root/root             25591 2021-11-03 23:51 /usr/share/X11/xkb/symbols/pl
+-rw-r--r-- root/root             10506 2021-11-03 23:51 /usr/share/X11/xkb/symbols/pt
+-rw-r--r-- root/root             11247 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ro
+-rw-r--r-- root/root             15362 2021-11-03 23:51 /usr/share/X11/xkb/symbols/rs
+-rw-r--r-- root/root             60793 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ru
+-rw-r--r-- root/root               131 2021-11-03 23:51 /usr/share/X11/xkb/symbols/rupeesign
+-rw-r--r-- root/root             16731 2021-11-03 23:51 /usr/share/X11/xkb/symbols/se
+drwxr-xr-x root/root                25 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sgi_vndr
+-rw-r--r-- root/root              2090 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sgi_vndr/jp
+drwxr-xr-x root/root                91 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sharp_vndr
+-rw-r--r-- root/root              2056 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sharp_vndr/sl-c3x00
+-rw-r--r-- root/root              1926 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sharp_vndr/ws003sh
+-rw-r--r-- root/root              1926 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sharp_vndr/ws007sh
+-rw-r--r-- root/root              2073 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sharp_vndr/ws011sh
+-rw-r--r-- root/root              1849 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sharp_vndr/ws020sh
+-rw-r--r-- root/root              2240 2021-11-03 23:51 /usr/share/X11/xkb/symbols/shift
+-rw-r--r-- root/root               615 2021-11-03 23:51 /usr/share/X11/xkb/symbols/si
+-rw-r--r-- root/root              5328 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sk
+-rw-r--r-- root/root              2220 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sn
+drwxr-xr-x root/root                25 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sony_vndr
+-rw-r--r-- root/root              2892 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sony_vndr/us
+-rw-r--r-- root/root              2331 2021-11-03 23:51 /usr/share/X11/xkb/symbols/srvr_ctrl
+drwxr-xr-x root/root               341 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr
+-rw-r--r-- root/root              6261 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/ara
+-rw-r--r-- root/root              4871 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/be
+-rw-r--r-- root/root              5334 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/br
+-rw-r--r-- root/root              5051 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/ca
+-rw-r--r-- root/root              6627 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/ch
+-rw-r--r-- root/root              4682 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/cz
+-rw-r--r-- root/root              5510 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/de
+-rw-r--r-- root/root              3797 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/dk
+-rw-r--r-- root/root              5819 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/ee
+-rw-r--r-- root/root              4287 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/es
+-rw-r--r-- root/root              4234 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/fi
+-rw-r--r-- root/root              5438 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/fr
+-rw-r--r-- root/root              2800 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/gb
+-rw-r--r-- root/root              5276 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/gr
+-rw-r--r-- root/root              4161 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/it
+-rw-r--r-- root/root              6606 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/jp
+-rw-r--r-- root/root              2665 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/kr
+-rw-r--r-- root/root              5705 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/lt
+-rw-r--r-- root/root              6723 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/lv
+-rw-r--r-- root/root              4216 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/nl
+-rw-r--r-- root/root              4038 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/no
+-rw-r--r-- root/root              4199 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/pl
+-rw-r--r-- root/root              4268 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/pt
+-rw-r--r-- root/root              6052 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/ro
+-rw-r--r-- root/root              6393 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/ru
+-rw-r--r-- root/root              4081 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/se
+-rw-r--r-- root/root              5194 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/sk
+-rw-r--r-- root/root              4304 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/solaris
+-rw-r--r-- root/root              4212 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/tr
+-rw-r--r-- root/root              2186 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/tw
+-rw-r--r-- root/root              5624 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/ua
+-rw-r--r-- root/root              4523 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sun_vndr/us
+-rw-r--r-- root/root              7077 2021-11-03 23:51 /usr/share/X11/xkb/symbols/sy
+-rw-r--r-- root/root               200 2021-11-03 23:51 /usr/share/X11/xkb/symbols/terminate
+-rw-r--r-- root/root              4824 2021-11-03 23:51 /usr/share/X11/xkb/symbols/tg
+-rw-r--r-- root/root             10396 2021-11-03 23:51 /usr/share/X11/xkb/symbols/th
+-rw-r--r-- root/root             10328 2021-11-03 23:51 /usr/share/X11/xkb/symbols/tj
+-rw-r--r-- root/root              1331 2021-11-03 23:51 /usr/share/X11/xkb/symbols/tm
+-rw-r--r-- root/root             17025 2021-11-03 23:51 /usr/share/X11/xkb/symbols/tr
+-rw-r--r-- root/root              3306 2021-11-03 23:51 /usr/share/X11/xkb/symbols/tw
+-rw-r--r-- root/root              4276 2021-11-03 23:51 /usr/share/X11/xkb/symbols/typo
+-rw-r--r-- root/root              3429 2021-11-03 23:51 /usr/share/X11/xkb/symbols/tz
+-rw-r--r-- root/root             15416 2021-11-03 23:51 /usr/share/X11/xkb/symbols/ua
+-rw-r--r-- root/root             79027 2021-11-03 23:51 /usr/share/X11/xkb/symbols/us
+-rw-r--r-- root/root              4126 2021-11-03 23:51 /usr/share/X11/xkb/symbols/uz
+-rw-r--r-- root/root              1231 2021-11-03 23:51 /usr/share/X11/xkb/symbols/vn
+drwxr-xr-x root/root                43 2021-11-03 23:51 /usr/share/X11/xkb/symbols/xfree68_vndr
+-rw-r--r-- root/root              3899 2021-11-03 23:51 /usr/share/X11/xkb/symbols/xfree68_vndr/amiga
+-rw-r--r-- root/root              4672 2021-11-03 23:51 /usr/share/X11/xkb/symbols/xfree68_vndr/ataritt
+-rw-r--r-- root/root              2109 2021-11-03 23:51 /usr/share/X11/xkb/symbols/za
+drwxr-xr-x root/root               195 2021-11-03 23:51 /usr/share/X11/xkb/types
+-rw-r--r-- root/root               246 2021-11-03 23:51 /usr/share/X11/xkb/types/README
+-rw-r--r-- root/root               607 2021-11-03 23:51 /usr/share/X11/xkb/types/basic
+-rw-r--r-- root/root               231 2021-11-03 23:51 /usr/share/X11/xkb/types/cancel
+-rw-r--r-- root/root              4522 2021-11-03 23:51 /usr/share/X11/xkb/types/caps
+-rw-r--r-- root/root               179 2021-11-03 23:51 /usr/share/X11/xkb/types/complete
+-rw-r--r-- root/root               178 2021-11-03 23:51 /usr/share/X11/xkb/types/default
+-rw-r--r-- root/root              5437 2021-11-03 23:51 /usr/share/X11/xkb/types/extra
+-rw-r--r-- root/root               429 2021-11-03 23:51 /usr/share/X11/xkb/types/iso9995
+-rw-r--r-- root/root              8219 2021-11-03 23:51 /usr/share/X11/xkb/types/level5
+-rw-r--r-- root/root               214 2021-11-03 23:51 /usr/share/X11/xkb/types/mousekeys
+-rw-r--r-- root/root               302 2021-11-03 23:51 /usr/share/X11/xkb/types/nokia
+-rw-r--r-- root/root              1955 2021-11-03 23:51 /usr/share/X11/xkb/types/numpad
+-rw-r--r-- root/root              3353 2021-11-03 23:51 /usr/share/X11/xkb/types/pc
+drwxr-xr-x root/root               170 2021-11-03 23:28 /usr/share/alsa
+-rw-r--r-- root/root              9665 2021-11-03 22:36 /usr/share/alsa/alsa.conf
+drwxr-xr-x root/root                29 2021-11-03 22:36 /usr/share/alsa/alsa.conf.d
+-rw-r--r-- root/root               103 2021-11-03 22:36 /usr/share/alsa/alsa.conf.d/README
+drwxr-xr-x root/root              1418 2023-05-11 06:06 /usr/share/alsa/cards
+-rw-r--r-- root/root               669 2021-11-03 22:36 /usr/share/alsa/cards/AACI.conf
+-rw-r--r-- root/root               302 2021-11-03 22:36 /usr/share/alsa/cards/ATIIXP-MODEM.conf
+-rw-r--r-- root/root              2237 2021-11-03 22:36 /usr/share/alsa/cards/ATIIXP-SPDMA.conf
+-rw-r--r-- root/root              2483 2021-11-03 22:36 /usr/share/alsa/cards/ATIIXP.conf
+-rw-r--r-- root/root               437 2021-11-03 22:36 /usr/share/alsa/cards/AU8810.conf
+-rw-r--r-- root/root               159 2021-11-03 22:36 /usr/share/alsa/cards/AU8820.conf
+-rw-r--r-- root/root               520 2021-11-03 22:36 /usr/share/alsa/cards/AU8830.conf
+-rw-r--r-- root/root              5899 2021-11-03 22:36 /usr/share/alsa/cards/Audigy.conf
+-rw-r--r-- root/root              7807 2021-11-03 22:36 /usr/share/alsa/cards/Audigy2.conf
+-rw-r--r-- root/root              2369 2021-11-03 22:36 /usr/share/alsa/cards/Aureon51.conf
+-rw-r--r-- root/root              2499 2021-11-03 22:36 /usr/share/alsa/cards/Aureon71.conf
+-rw-r--r-- root/root              3848 2021-11-03 22:36 /usr/share/alsa/cards/CA0106.conf
+-rw-r--r-- root/root              1784 2021-11-03 22:36 /usr/share/alsa/cards/CMI8338-SWIEC.conf
+-rw-r--r-- root/root              1911 2021-11-03 22:36 /usr/share/alsa/cards/CMI8338.conf
+-rw-r--r-- root/root              2131 2021-11-03 22:36 /usr/share/alsa/cards/CMI8738-MC6.conf
+-rw-r--r-- root/root              2982 2021-11-03 22:36 /usr/share/alsa/cards/CMI8738-MC8.conf
+-rw-r--r-- root/root              1641 2021-11-03 22:36 /usr/share/alsa/cards/CMI8788.conf
+-rw-r--r-- root/root              2945 2021-11-03 22:36 /usr/share/alsa/cards/CS46xx.conf
+-rw-r--r-- root/root              5672 2021-11-03 22:36 /usr/share/alsa/cards/EMU10K1.conf
+-rw-r--r-- root/root              2754 2021-11-03 22:36 /usr/share/alsa/cards/EMU10K1X.conf
+-rw-r--r-- root/root              1367 2021-11-03 22:36 /usr/share/alsa/cards/ENS1370.conf
+-rw-r--r-- root/root              1806 2021-11-03 22:36 /usr/share/alsa/cards/ENS1371.conf
+-rw-r--r-- root/root               152 2021-11-03 22:36 /usr/share/alsa/cards/ES1968.conf
+-rw-r--r-- root/root              4399 2021-11-03 22:36 /usr/share/alsa/cards/Echo_Echo3G.conf
+-rw-r--r-- root/root              1227 2021-11-03 22:36 /usr/share/alsa/cards/FM801.conf
+-rw-r--r-- root/root               333 2021-11-03 22:36 /usr/share/alsa/cards/FWSpeakers.conf
+-rw-r--r-- root/root               702 2021-11-03 22:36 /usr/share/alsa/cards/FireWave.conf
+-rw-r--r-- root/root               217 2021-11-03 22:36 /usr/share/alsa/cards/GUS.conf
+-rw-r--r-- root/root              6773 2021-11-03 22:36 /usr/share/alsa/cards/HDA-Intel.conf
+-rw-r--r-- root/root              1509 2021-11-03 22:36 /usr/share/alsa/cards/HdmiLpeAudio.conf
+-rw-r--r-- root/root              2409 2021-11-03 22:36 /usr/share/alsa/cards/ICE1712.conf
+-rw-r--r-- root/root              2891 2021-11-03 22:36 /usr/share/alsa/cards/ICE1724.conf
+-rw-r--r-- root/root               192 2021-11-03 22:36 /usr/share/alsa/cards/ICH-MODEM.conf
+-rw-r--r-- root/root              3054 2021-11-03 22:36 /usr/share/alsa/cards/ICH.conf
+-rw-r--r-- root/root              2886 2021-11-03 22:36 /usr/share/alsa/cards/ICH4.conf
+-rw-r--r-- root/root              1272 2021-11-03 22:36 /usr/share/alsa/cards/Loopback.conf
+-rw-r--r-- root/root               558 2021-11-03 22:36 /usr/share/alsa/cards/Maestro3.conf
+-rw-r--r-- root/root              4803 2021-11-03 22:36 /usr/share/alsa/cards/NFORCE.conf
+-rw-r--r-- root/root               657 2021-11-03 22:36 /usr/share/alsa/cards/PC-Speaker.conf
+-rw-r--r-- root/root               486 2021-11-03 22:36 /usr/share/alsa/cards/PMac.conf
+-rw-r--r-- root/root               705 2021-11-03 22:36 /usr/share/alsa/cards/PMacToonie.conf
+-rw-r--r-- root/root              1152 2021-11-03 22:36 /usr/share/alsa/cards/PS3.conf
+-rw-r--r-- root/root               780 2021-11-03 22:36 /usr/share/alsa/cards/RME9636.conf
+-rw-r--r-- root/root               780 2021-11-03 22:36 /usr/share/alsa/cards/RME9652.conf
+-rw-r--r-- root/root              1502 2021-11-03 22:36 /usr/share/alsa/cards/SB-XFi.conf
+drwxr-xr-x root/root                65 2021-11-03 22:36 /usr/share/alsa/cards/SI7018
+-rw-r--r-- root/root               251 2021-11-03 22:36 /usr/share/alsa/cards/SI7018/sndoc-mixer.alisp
+-rw-r--r-- root/root               251 2021-11-03 22:36 /usr/share/alsa/cards/SI7018/sndop-mixer.alisp
+-rw-r--r-- root/root              2278 2021-11-03 22:36 /usr/share/alsa/cards/SI7018.conf
+-rw-r--r-- root/root              1792 2021-11-03 22:36 /usr/share/alsa/cards/TRID4DWAVENX.conf
+-rw-r--r-- root/root              9211 2021-11-03 22:36 /usr/share/alsa/cards/USB-Audio.conf
+-rw-r--r-- root/root              1199 2021-11-03 22:36 /usr/share/alsa/cards/VIA686A.conf
+-rw-r--r-- root/root              2756 2021-11-03 22:36 /usr/share/alsa/cards/VIA8233.conf
+-rw-r--r-- root/root              2812 2021-11-03 22:36 /usr/share/alsa/cards/VIA8233A.conf
+-rw-r--r-- root/root              2586 2021-11-03 22:36 /usr/share/alsa/cards/VIA8237.conf
+-rw-r--r-- root/root               830 2021-11-03 22:36 /usr/share/alsa/cards/VX222.conf
+-rw-r--r-- root/root               839 2021-11-03 22:36 /usr/share/alsa/cards/VXPocket.conf
+-rw-r--r-- root/root              1480 2021-11-03 22:36 /usr/share/alsa/cards/VXPocket440.conf
+-rw-r--r-- root/root              1357 2021-11-03 22:36 /usr/share/alsa/cards/YMF744.conf
+-rw-r--r-- root/root               687 2021-11-03 22:36 /usr/share/alsa/cards/aliases.alisp
+-rw-r--r-- root/root              1460 2021-11-03 22:36 /usr/share/alsa/cards/aliases.conf
+-rw-r--r-- root/root              1889 2021-11-03 22:36 /usr/share/alsa/cards/pistachio-card.conf
+-rw-r--r-- root/root              2132 2021-11-03 23:36 /usr/share/alsa/cards/realtek_rt5651-.conf
+-rwxr--r-- root/root              2912 2021-11-03 23:36 /usr/share/alsa/cards/rockchip_rk312x.conf
+-rw-r--r-- root/root              2912 2021-11-03 23:36 /usr/share/alsa/cards/rockchip_rk809-.conf
+-rw-r--r-- root/root              2912 2021-11-03 23:36 /usr/share/alsa/cards/rockchip_rk817-.conf
+-rw-r--r-- root/root              2012 2021-11-03 23:36 /usr/share/alsa/cards/rockchip_rt5640.conf
+-rw-r--r-- root/root               820 2021-11-03 22:36 /usr/share/alsa/cards/vc4-hdmi.conf
+drwxr-xr-x root/root               105 2021-11-03 23:28 /usr/share/alsa/init
+-rw-r--r-- root/root              1808 2021-11-03 23:28 /usr/share/alsa/init/00main
+-rw-r--r-- root/root              1341 2021-11-03 23:28 /usr/share/alsa/init/ca0106
+-rw-r--r-- root/root             10866 2021-11-03 23:28 /usr/share/alsa/init/default
+-rw-r--r-- root/root              1494 2021-11-03 23:28 /usr/share/alsa/init/hda
+-rw-r--r-- root/root               391 2021-11-03 23:28 /usr/share/alsa/init/help
+-rw-r--r-- root/root               932 2021-11-03 23:28 /usr/share/alsa/init/info
+-rw-r--r-- root/root             10699 2021-11-03 23:28 /usr/share/alsa/init/test
+drwxr-xr-x root/root               354 2021-11-03 22:36 /usr/share/alsa/pcm
+-rw-r--r-- root/root               805 2021-11-03 22:36 /usr/share/alsa/pcm/center_lfe.conf
+-rw-r--r-- root/root               762 2021-11-03 22:36 /usr/share/alsa/pcm/default.conf
+-rw-r--r-- root/root              1524 2021-11-03 22:36 /usr/share/alsa/pcm/dmix.conf
+-rw-r--r-- root/root               645 2021-11-03 22:36 /usr/share/alsa/pcm/dpl.conf
+-rw-r--r-- root/root              1538 2021-11-03 22:36 /usr/share/alsa/pcm/dsnoop.conf
+-rw-r--r-- root/root               752 2021-11-03 22:36 /usr/share/alsa/pcm/front.conf
+-rw-r--r-- root/root              1188 2021-11-03 22:36 /usr/share/alsa/pcm/hdmi.conf
+-rw-r--r-- root/root              1213 2021-11-03 22:36 /usr/share/alsa/pcm/iec958.conf
+-rw-r--r-- root/root              1314 2021-11-03 22:36 /usr/share/alsa/pcm/modem.conf
+-rw-r--r-- root/root               744 2021-11-03 22:36 /usr/share/alsa/pcm/rear.conf
+-rw-r--r-- root/root               744 2021-11-03 22:36 /usr/share/alsa/pcm/side.conf
+-rw-r--r-- root/root               906 2021-11-03 22:36 /usr/share/alsa/pcm/surround21.conf
+-rw-r--r-- root/root               884 2021-11-03 22:36 /usr/share/alsa/pcm/surround40.conf
+-rw-r--r-- root/root               987 2021-11-03 22:36 /usr/share/alsa/pcm/surround41.conf
+-rw-r--r-- root/root               986 2021-11-03 22:36 /usr/share/alsa/pcm/surround50.conf
+-rw-r--r-- root/root               937 2021-11-03 22:36 /usr/share/alsa/pcm/surround51.conf
+-rw-r--r-- root/root               985 2021-11-03 22:36 /usr/share/alsa/pcm/surround71.conf
+-rw-r--r-- root/root              3206 2021-11-03 22:36 /usr/share/alsa/sndo-mixer.alisp
+drwxr-xr-x root/root                37 2021-11-03 23:28 /usr/share/alsa/speaker-test
+-rw-r--r-- root/root               118 2021-11-03 23:28 /usr/share/alsa/speaker-test/sample_map.csv
+drwxr-xr-x root/root                64 2021-11-03 22:36 /usr/share/alsa/topology
+drwxr-xr-x root/root                37 2021-11-03 22:36 /usr/share/alsa/topology/broadwell
+-rw-r--r-- root/root              5895 2021-11-03 22:36 /usr/share/alsa/topology/broadwell/broadwell.conf
+drwxr-xr-x root/root                35 2021-11-03 22:36 /usr/share/alsa/topology/bxtrt298
+-rw-r--r-- root/root             74488 2021-11-03 22:36 /usr/share/alsa/topology/bxtrt298/bxt_i2s.conf
+drwxr-xr-x root/root                35 2021-11-03 22:36 /usr/share/alsa/topology/sklrt286
+-rw-r--r-- root/root             66635 2021-11-03 22:36 /usr/share/alsa/topology/sklrt286/skl_i2s.conf
+drwxr-xr-x root/root               270 2021-11-03 22:36 /usr/share/alsa/ucm
+drwxr-xr-x root/root                54 2021-11-03 22:36 /usr/share/alsa/ucm/DAISY-I2S
+-rw-r--r-- root/root                94 2021-11-03 22:36 /usr/share/alsa/ucm/DAISY-I2S/DAISY-I2S.conf
+-rw-r--r-- root/root              1631 2021-11-03 22:36 /usr/share/alsa/ucm/DAISY-I2S/HiFi.conf
+drwxr-xr-x root/root                58 2021-11-03 22:36 /usr/share/alsa/ucm/DB410c
+-rw-r--r-- root/root               138 2021-11-03 22:36 /usr/share/alsa/ucm/DB410c/DB410c.conf
+-rw-r--r-- root/root               419 2021-11-03 22:36 /usr/share/alsa/ucm/DB410c/HDMI
+-rw-r--r-- root/root              2943 2021-11-03 22:36 /usr/share/alsa/ucm/DB410c/HiFi
+drwxr-xr-x root/root                55 2021-11-03 22:36 /usr/share/alsa/ucm/GoogleNyan
+-rw-r--r-- root/root                92 2021-11-03 22:36 /usr/share/alsa/ucm/GoogleNyan/GoogleNyan.conf
+-rw-r--r-- root/root              2201 2021-11-03 22:36 /usr/share/alsa/ucm/GoogleNyan/HiFi.conf
+drwxr-xr-x root/root                69 2021-11-03 22:36 /usr/share/alsa/ucm/PAZ00
+-rw-r--r-- root/root              1141 2021-11-03 22:36 /usr/share/alsa/ucm/PAZ00/HiFi.conf
+-rw-r--r-- root/root              1069 2021-11-03 22:36 /usr/share/alsa/ucm/PAZ00/PAZ00.conf
+-rw-r--r-- root/root              1807 2021-11-03 22:36 /usr/share/alsa/ucm/PAZ00/Record.conf
+drwxr-xr-x root/root               124 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoard
+-rw-r--r-- root/root              1226 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoard/FMAnalog
+-rw-r--r-- root/root               881 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoard/PandaBoard.conf
+-rw-r--r-- root/root              2222 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoard/hifi
+-rw-r--r-- root/root              1244 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoard/hifiLP
+-rw-r--r-- root/root              1336 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoard/record
+-rw-r--r-- root/root              1234 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoard/voice
+-rw-r--r-- root/root              2203 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoard/voiceCall
+drwxr-xr-x root/root               126 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoardES
+-rw-r--r-- root/root              1238 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoardES/FMAnalog
+-rw-r--r-- root/root               898 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoardES/PandaBoardES.conf
+-rw-r--r-- root/root              2234 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoardES/hifi
+-rw-r--r-- root/root              1256 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoardES/hifiLP
+-rw-r--r-- root/root              1348 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoardES/record
+-rw-r--r-- root/root              1246 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoardES/voice
+-rw-r--r-- root/root              2215 2021-11-03 22:36 /usr/share/alsa/ucm/PandaBoardES/voiceCall
+drwxr-xr-x root/root               121 2021-11-03 22:36 /usr/share/alsa/ucm/SDP4430
+-rw-r--r-- root/root              1208 2021-11-03 22:36 /usr/share/alsa/ucm/SDP4430/FMAnalog
+-rw-r--r-- root/root               875 2021-11-03 22:36 /usr/share/alsa/ucm/SDP4430/SDP4430.conf
+-rw-r--r-- root/root              2164 2021-11-03 22:36 /usr/share/alsa/ucm/SDP4430/hifi
+-rw-r--r-- root/root              1206 2021-11-03 22:36 /usr/share/alsa/ucm/SDP4430/hifiLP
+-rw-r--r-- root/root              1194 2021-11-03 22:36 /usr/share/alsa/ucm/SDP4430/record
+-rw-r--r-- root/root              1196 2021-11-03 22:36 /usr/share/alsa/ucm/SDP4430/voice
+-rw-r--r-- root/root              2165 2021-11-03 22:36 /usr/share/alsa/ucm/SDP4430/voiceCall
+drwxr-xr-x root/root                55 2021-11-03 22:36 /usr/share/alsa/ucm/VEYRON-I2S
+-rw-r--r-- root/root              2268 2021-11-03 22:36 /usr/share/alsa/ucm/VEYRON-I2S/HiFi.conf
+-rw-r--r-- root/root                95 2021-11-03 22:36 /usr/share/alsa/ucm/VEYRON-I2S/VEYRON-I2S.conf
+drwxr-xr-x root/root                55 2021-11-03 22:36 /usr/share/alsa/ucm/broadwell-rt286
+-rw-r--r-- root/root              2369 2021-11-03 22:36 /usr/share/alsa/ucm/broadwell-rt286/HiFi
+-rw-r--r-- root/root               121 2021-11-03 22:36 /usr/share/alsa/ucm/broadwell-rt286/broadwell-rt286.conf
+drwxr-xr-x root/root                79 2021-11-03 22:36 /usr/share/alsa/ucm/broxton-rt298
+-rw-r--r-- root/root               560 2021-11-03 22:36 /usr/share/alsa/ucm/broxton-rt298/Hdmi1
+-rw-r--r-- root/root               379 2021-11-03 22:36 /usr/share/alsa/ucm/broxton-rt298/Hdmi2
+-rw-r--r-- root/root              2564 2021-11-03 22:36 /usr/share/alsa/ucm/broxton-rt298/HiFi
+-rw-r--r-- root/root              1639 2021-11-03 22:36 /usr/share/alsa/ucm/broxton-rt298/broxton-rt298.conf
+drwxr-xr-x root/root                57 2021-11-03 22:36 /usr/share/alsa/ucm/bytcr-rt5651
+-rw-r--r-- root/root              2362 2021-11-03 22:36 /usr/share/alsa/ucm/bytcr-rt5651/HiFi.conf
+-rw-r--r-- root/root              5625 2021-11-03 22:36 /usr/share/alsa/ucm/bytcr-rt5651/bytcr-rt5651.conf
+drwxr-xr-x root/root                54 2021-11-03 22:36 /usr/share/alsa/ucm/chtrt5645
+-rw-r--r-- root/root              4965 2021-11-03 22:36 /usr/share/alsa/ucm/chtrt5645/HiFi.conf
+-rw-r--r-- root/root                96 2021-11-03 22:36 /usr/share/alsa/ucm/chtrt5645/chtrt5645.conf
+drwxr-xr-x root/root                79 2021-11-03 22:36 /usr/share/alsa/ucm/skylake-rt286
+-rw-r--r-- root/root               461 2021-11-03 22:36 /usr/share/alsa/ucm/skylake-rt286/Hdmi1
+-rw-r--r-- root/root               461 2021-11-03 22:36 /usr/share/alsa/ucm/skylake-rt286/Hdmi2
+-rw-r--r-- root/root              2487 2021-11-03 22:36 /usr/share/alsa/ucm/skylake-rt286/HiFi
+-rw-r--r-- root/root              1720 2021-11-03 22:36 /usr/share/alsa/ucm/skylake-rt286/skylake-rt286.conf
+drwxr-xr-x root/root                40 2021-11-03 22:36 /usr/share/alsa/ucm/tegraalc5632
+-rw-r--r-- root/root              1063 2021-11-03 22:36 /usr/share/alsa/ucm/tegraalc5632/tegraalc5632.conf
+drwxr-xr-x root/root                40 2022-09-21 07:30 /usr/share/applications
+-rw-r--r-- root/root               413 2022-09-26 21:38 /usr/share/applications/retroarch.desktop
+drwxr-xr-x root/root               186 2021-11-03 23:28 /usr/share/ffmpeg
+-rw-r--r-- root/root             20608 2021-11-03 23:28 /usr/share/ffmpeg/ffprobe.xsd
+-rw-r--r-- root/root               227 2021-11-03 23:28 /usr/share/ffmpeg/libvpx-1080p.ffpreset
+-rw-r--r-- root/root               227 2021-11-03 23:28 /usr/share/ffmpeg/libvpx-1080p50_60.ffpreset
+-rw-r--r-- root/root               219 2021-11-03 23:28 /usr/share/ffmpeg/libvpx-360p.ffpreset
+-rw-r--r-- root/root               227 2021-11-03 23:28 /usr/share/ffmpeg/libvpx-720p.ffpreset
+-rw-r--r-- root/root               227 2021-11-03 23:28 /usr/share/ffmpeg/libvpx-720p50_60.ffpreset
+drwxr-xr-x root/root                33 2022-02-24 20:50 /usr/share/libdrm
+-rw-r--r-- root/root              6419 2022-02-24 20:50 /usr/share/libdrm/amdgpu.ids
+drwxr-xr-x root/root                28 2021-11-03 23:39 /usr/share/minigui
+drwxr-xr-x root/root                30 2021-11-03 23:39 /usr/share/minigui/cmake
+drwxr-xr-x root/root                 3 2022-01-07 02:14 /usr/share/minigui/cmake/Modules
+drwxr-xr-x root/root                36 2022-09-21 07:30 /usr/share/pixmaps
+-rw-r--r-- root/root              2664 2022-09-26 21:38 /usr/share/pixmaps/retroarch.svg
+drwxr-xr-x root/root                78 2021-11-03 22:41 /usr/share/terminfo
+drwxr-xr-x root/root                27 2021-11-03 22:41 /usr/share/terminfo/a
+-rw-r--r-- root/root              1481 2021-11-03 22:41 /usr/share/terminfo/a/ansi
+drwxr-xr-x root/root                27 2021-11-03 22:41 /usr/share/terminfo/d
+-rw-r--r-- root/root               308 2021-11-03 22:41 /usr/share/terminfo/d/dumb
+drwxr-xr-x root/root                28 2021-11-03 22:41 /usr/share/terminfo/l
+-rw-r--r-- root/root              1780 2021-11-03 22:41 /usr/share/terminfo/l/linux
+drwxr-xr-x root/root                69 2021-11-03 22:41 /usr/share/terminfo/p
+-rw-r--r-- root/root              2133 2021-11-03 22:41 /usr/share/terminfo/p/putty
+-rw-r--r-- root/root              2490 2021-11-03 22:41 /usr/share/terminfo/p/putty-256color
+-rw-r--r-- root/root              2113 2021-11-03 22:41 /usr/share/terminfo/p/putty-vt100
+drwxr-xr-x root/root                52 2021-11-03 22:41 /usr/share/terminfo/s
+-rw-r--r-- root/root              1587 2021-11-03 22:41 /usr/share/terminfo/s/screen
+-rw-r--r-- root/root              1912 2021-11-03 22:41 /usr/share/terminfo/s/screen-256color
+drwxr-xr-x root/root                86 2021-11-03 22:41 /usr/share/terminfo/v
+-rw-r--r-- root/root              1194 2021-11-03 22:41 /usr/share/terminfo/v/vt100
+-rw-r--r-- root/root              1199 2021-11-03 22:41 /usr/share/terminfo/v/vt100-putty
+-rw-r--r-- root/root              1188 2021-11-03 22:41 /usr/share/terminfo/v/vt102
+-rw-r--r-- root/root              1377 2021-11-03 22:41 /usr/share/terminfo/v/vt200
+-rw-r--r-- root/root              1377 2021-11-03 22:41 /usr/share/terminfo/v/vt220
+drwxr-xr-x root/root               112 2021-11-03 22:41 /usr/share/terminfo/x
+-rw-r--r-- root/root              3412 2021-11-03 22:41 /usr/share/terminfo/x/xterm
+-rw-r--r-- root/root              1053 2021-11-03 22:41 /usr/share/terminfo/x/xterm+256color
+-rw-r--r-- root/root              3462 2021-11-03 22:41 /usr/share/terminfo/x/xterm-256color
+-rw-r--r-- root/root              1551 2021-11-03 22:41 /usr/share/terminfo/x/xterm-color
+-rw-r--r-- root/root              2240 2021-11-03 22:41 /usr/share/terminfo/x/xterm-xfree86
+drwxr-xr-x root/root                61 2023-05-11 06:06 /usr/share/udhcpc
+-rwxr-xr-x root/root              1923 2021-11-03 22:40 /usr/share/udhcpc/default.script
+drwxr-xr-x root/root                 3 2021-11-03 22:40 /usr/share/udhcpc/default.script.d
+drwxr-xr-x root/root               108 2021-11-03 23:59 /var
+lrwxrwxrwx root/root                 6 2020-04-29 08:31 /var/cache -> ../tmp
+drwxr-xr-x root/root                39 2021-11-03 23:28 /var/lib
+drwxr-xr-x root/root                 3 2021-11-03 23:28 /var/lib/alsa
+lrwxrwxrwx root/root                 9 2020-04-29 08:31 /var/lib/misc -> ../../tmp
+lrwxrwxrwx root/root                 6 2020-04-29 08:31 /var/lock -> ../tmp
+lrwxrwxrwx root/root                 6 2020-04-29 08:31 /var/log -> ../tmp
+lrwxrwxrwx root/root                 6 2020-04-29 08:31 /var/run -> ../run
+lrwxrwxrwx root/root                 6 2020-04-29 08:31 /var/spool -> ../tmp
+lrwxrwxrwx root/root                 6 2020-04-29 08:31 /var/tmp -> ../tmp
+drwxr-xr-x www-data/www-data         3 2021-11-03 23:59 /var/www
