@@ -67,13 +67,40 @@ Who does what: **PC** = the agent on this PC, no hardware. **User** = something 
 | # | Step | Who | Flash change? |
 | :--- | :--- | :--- | :--- |
 | 0 | Back up `~/partycade-dumps/` off this PC | User | No |
-| 1 | **Toolchain:** a Docker image (Debian 10 "buster": gcc-arm-linux-gnueabihf, glibc 2.28) plus SDL 2.0.7 headers. Link against the libraries in the extracted rootfs. Build a "hello" binary and check its required symbol versions with `readelf -V` against the rootfs | PC | No |
-| 2 | **Game skeleton:** one C codebase that builds for the PC (normal SDL2, keyboard) and for the cabinet. Fixed logical resolution, letterboxed; input mapping table; quit combo; 44.1 kHz audio. Optionally run the ARM build under `qemu-arm` with the rootfs libraries (`SDL_VIDEODRIVER=dummy`) as a smoke test; that needs `sudo apt install qemu-user`, which the user runs | PC | No |
-| 3 | **Prove the restore path:** [RECOVERY.md](RECOVERY.md) test ladder T1, T2, T3, one cold plug each | User + Approval | Yes (test blocks, restored) |
-| 4 | **Probe program (option A):** a small SDL2 app reached from one tile through `start.sh`. It shows and logs to `/data/probe.log`: joystick count, names, axes, buttons, hats, keyboard events, screen size, renderer, and an audio tone. Quit with a combo. Flash it (a few `data` blocks) | PC builds; User + Approval to flash | Yes (`data`) |
+| 1 | **Toolchain** (done): `games/toolchain/Dockerfile`, see section 6 | PC | No |
+| 2 | **Game skeleton** (done): `games/common/cab.{h,c}` plus `games/probe/`; builds for PC and cabinet, smoke-tested under `qemu-arm-static` with the rootfs libraries | PC | No |
+| 3 | **Prove the restore path:** [RECOVERY.md](RECOVERY.md) test ladder T1, T2, T3 | User + Approval | Yes (test blocks, restored) |
+| 4 | **Probe on tile 10 (Dig Dug II), option A** (built; offline preview passes: 8 blocks, `828,829,872,873,884,885,892,893` on the 2026-10-23 dump). Shows and logs to `/data/Games/probe.log`: joysticks, axes, buttons, hats, keys, raw `/dev/input` codes, screen, renderer, a beep per button. Quits on SELECT+START held 1 s, or after 60 s with no input. Command in section 6 | PC builds; User + Approval to flash | Yes (`data`) |
 | 5 | The user plays with the probe: presses every button and notes what the screen says. Then a `rawdump` (read-only) brings `/data/probe.log` back to the PC through `sftl_rebuild.py`. Write the real control map into this file | User, then PC | No |
 | 6 | **First real game** behind the same tile, or a tiny "more games" menu there. Same flash path | PC + User + Approval | Yes (`data`) |
 | 7 | **Our launcher (option B):** build it, measure the rootfs change offline (`S50ui` hook, rebuilt SquashFS, `sftl_patch.py --part rootfs`), check the stock menu fallback, then flash once | PC + User + Approval | Yes (`rootfs`, once) |
 | 8 | From then on, each new game is a folder in `/data/games/<name>/` plus a line in the launcher's list: a `data`-only change. Optionally set up ADB first to skip the switch flips | Repeat | `data` only |
 
-Each flash step follows RUNBOOK.md Phase 3, option B: a fresh `rawdump` → edit a copy → `sftl_patch.py` → rebuild check → `diff` says "none" → `restore` the listed blocks → `diff` against the patched image says "none" → switch ON and play.
+Each flash step follows RUNBOOK.md Phase 3, option B: a fresh `rawdump` → edit a copy → `sftl_patch.py` → rebuild check → `diff` says "none" → `restore` the listed blocks → `diff` against the patched image says "none" → switch ON and play. `tools/data_patch.py` does the middle part (edit, patch, rebuild check) in one checked command.
+
+## 6. Building and installing (`games/`)
+
+```
+games/
+  toolchain/Dockerfile   Debian 10 armhf cross GCC 8.3 (glibc 2.28) + SDL 2.0.7 headers; image "partycade-armhf"
+  common/cab.{h,c}       platform layer: window, logical resolution, input map, quit combo, audio, text, log, screenshot
+  common/font8x8_basic.h public-domain 8x8 font
+  probe/probe.c          the controls/screen/audio probe
+  Makefile               TARGET=pc or TARGET=cab; GAMES := probe ...
+  build.sh pc|cab|all    cab builds in Docker against the extracted rootfs, then runs check_binary.sh
+  check_binary.sh        armhf, every NEEDED lib in the rootfs, GLIBC <= 2.29, GLIBCXX <= 3.4.22
+```
+
+* Build: `cd games && ./build.sh all` → `out/pc/<game>` and `out/cab/<game>` (gitignored). The first run builds the Docker image. `ROOTFS=` overrides the rootfs path (default `~/partycade-dumps/2026-10-23_raw_plug3032slc/rootfs`).
+* Play on the PC: `out/pc/probe`. Keys: arrows; Z X C = A B C; A S D = X Y Z; Q W = L R; 1 2 = L2 R2; Backspace = SELECT; Return = START; Tab = MODE. Escape quits.
+* Smoke-test the ARM build without the cabinet (`qemu-arm-static` is in `~/.local/bin`):
+  `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PROBE_SELFTEST=1 CAB_SCREENSHOT=/tmp/s.bmp qemu-arm-static -L $ROOTFS out/cab/probe` must exit 0 within a few seconds (the self-test presses A, then holds SELECT+START).
+* Install behind tile 10, offline, from a fresh `rawdump` taken in the same Mask ROM session:
+
+```
+python3 tools/data_patch.py RAW ~/partycade-dumps/<date>_probe_tile10 \
+  --put games/out/cab/probe:Games/probe:755 \
+  --replace 'start.sh:GAME_NAME="Mappy d":GAME_NAME=probe'
+```
+
+  It prints the blocks and the `rk_restore.py restore` command. Undo = restore the same blocks from RAW. To get the log back: `rawdump`, `sftl_rebuild.py`, then `debugfs -R 'dump /Games/probe.log probe.log' data.img`.

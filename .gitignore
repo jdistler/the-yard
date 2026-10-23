@@ -10,3 +10,6 @@ dumps/
 *.bin
 !captures/gpt_lba1-33.bin
 __pycache__/
+# Game build outputs; recreate with games/build.sh
+games/out/
+*.log

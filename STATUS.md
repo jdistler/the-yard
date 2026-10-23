@@ -8,7 +8,7 @@ This is the single source of truth for the current state. If another doc disagre
 * **The game list is understood.** The menu program `/usr/bin/game` (rootfs, MiniGUI) has 12 entries compiled in. For a pick it runs `/data/start.sh <index> <smoothing> <speed>`, and that shell script maps the index to an emulator binary in `/data/Games/`. Details are in [FIRMWARE_ANALYSIS.md](FIRMWARE_ANALYSIS.md).
 * **A recovery plan exists:** [RECOVERY.md](RECOVERY.md). The restore tool `tools/rk_restore.py` is written, but its write path has **never been run**. Proving it is a test ladder (T1–T3) that needs the user's approval for each rung.
 * Nothing has ever been written to the cabinet's flash.
-* **Next decision is the user's:** how custom games should get onto the cabinet. See [RUNBOOK.md](RUNBOOK.md) Phase 3.
+* **Custom games:** the cross toolchain and probe program are built and tested offline (`games/`, GAMEDEV.md section 6). Next: the RECOVERY.md test ladder T1–T3, then the probe behind tile 10 (`tools/data_patch.py`; preview = 8 `data` blocks). Both need the user's written approval per block list.
 
 ## Hardware state right now
 
