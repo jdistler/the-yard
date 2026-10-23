@@ -83,7 +83,9 @@ Always start the same way: cold plug with the switch **OFF**, then `rk.py state`
 >
 > Cause, from disassembling `rk3032_usbplug_slc_v2.63.bin` (load address `0x63000000`): opcode `0x06` (switch at `0xe774` → `0xe358`) and `0x0B` (→ `0xe2ea`) both call `0x12d4a(block, count, force)`, which calls the storage driver's erase hook. The erase function at `0xbec6` returns 0 **without erasing** when the start block is above 8, and clips the range to blocks 0–7 (skipping bad blocks, string "ce: %x is bad block skip"). So this plug can only erase the boot-block area. `ERASE_FORCE` most likely reaches the same code and stays on the never-send list.
 >
-> Path A therefore can't restore `data`/`rootfs` blocks with this plug. Recovery of data blocks currently relies on path B (U-Boot rockusb) or path D (programmer). Reads (`rawdump`, `diff`) are unaffected.
+> Path A therefore can't restore `data`/`rootfs` blocks with this plug as shipped. Reads (`rawdump`, `diff`) are unaffected. The same clip (`cmp`/`bhi` against 8, then a count clipped with `rsb r6, r4, #8`) is in `rk3032_usbplug_slc_v2.63`, `rk303x_usbplug_slc_v2.64`, `rk303x_usbplug_slc_v2.65`, and `rk3032_usbplug_v2.61`. `rk303x_usbplug_v2.57` does not have that clip, and it also cannot read this chip.
+>
+> The clip is in the loader we send to RAM. It is not in the cabinet's flash. Nopping the early return and the count clip in a private copy of `plug_3032slc`, then repeating T2 on stale block 91, is the no-new-hardware test. Do not send that copy until the user approves that one block. A full `diff` must follow.
 
 This puts back the exact physical pages, including SFTL's own metadata. The factory SFTL (5.0.55) then finds exactly the state it left. That's why it's the primary path: it doesn't depend on how the plug's SFTL version (5.0.53/5.0.58) would lay data out, and it isn't limited to 32 MiB the way `READ_LBA`/`WRITE_LBA` are.
 
