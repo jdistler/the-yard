@@ -1,0 +1,10 @@
+# Upstream clones; recreate with tools/fetch_references.sh
+reference/
+# Generated download stages; recreate with tools/rk.py build
+build/
+# Compiled sender; recreate with make -C tools
+tools/rksend
+# Flash dumps must never be committed (stock firmware and licensed game data)
+dumps/
+*.img
+__pycache__/

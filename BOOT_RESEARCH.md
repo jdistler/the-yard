@@ -1,0 +1,184 @@
+# Boot And Game-List Research
+
+> This is the chronological lab notebook. Early sections contain theories that later turned out wrong (cables, 300 MHz, "RK3036", "eMMC"). For the current truth, read [STATUS.md](STATUS.md). For procedure, read [RUNBOOK.md](RUNBOOK.md).
+
+Notes from the live cabinet. The goal is to learn how this Partycade boots, where the stock game list comes from, and what it would take to add a game we wrote. Nothing in this log was written to the cabinet's flash.
+
+## Where to start
+
+Mask ROM (back switch **OFF**, screen dark, USB ID `2207:301a`) is the right first state.
+
+The stock game menu is not running in that state. The BootROM has skipped the onboard flash on purpose. The 12-game list, the launcher, and the Linux system that draws the menu all live in that flash, and they only start when the switch is **ON** at cold power-up:
+
+```text
+BootROM  ->  loader in flash  ->  Linux  ->  launcher reads the game list  ->  menu on the 17" panel
+```
+
+Switch **ON** is the wrong state for inspection from this PC. In that mode the Micro-USB port becomes a USB host, so the cabinet never appears as a device here, and the kernel messages go to the 3.3V UART pads inside the shield instead of USB.
+
+So the work splits in two:
+
+1. Stay in Mask ROM and read the flash, without booting the menu and without writing anything.
+2. From that read, find the launcher and the file or table that names the games. Adding our own game means fitting whatever that launcher already knows how to start, or replacing the launcher. Which of those is realistic depends on what the flash actually contains. That is still unknown.
+
+## What Mask ROM will and will not answer
+
+Verified on this cabinet, 2026-10-23, while `2207:301a` was on the bus (port `1-6`, device 38, high-speed, `bcdDevice 1.00`):
+
+| What we can see immediately | What we cannot see yet |
+| :--- | :--- |
+| USB identity `2207:301a`, "RK3036 in Mask ROM mode" | Chip details beyond the USB product ID (the bulk chip-info command) |
+| One vendor interface, class `0xFF` / subclass `6` / protocol `5` | Flash type, size, or partition table |
+| Bulk EP `0x81` IN and EP `0x02` OUT, 512-byte packets, bus-powered 400 mA | The game list, rootfs, or boot logs |
+| No manufacturer, product, or serial strings | |
+
+The bulk endpoints are advertised by the BootROM, but they do not carry the Rockchip command protocol yet. A standard read-only command block (test-unit-ready, read-chip-info `0x1B`, read-flash-id `0x01`, read-flash-info `0x1A`) was submitted on EP `0x02`. The host got USB protocol error `-71` (`EPROTO`) on the first packet, with zero bytes transferred. That is expected: before a USB plug is running, the BootROM only implements control-pipe downloads, so nothing answers bulk command blocks. It was never a cable result. `GET_STATUS` on the control pipe is stalled by this BootROM (pipe error), which is normal for a BootROM that only implements the requests it needs. Enumeration itself (device descriptor, configuration) succeeds.
+
+The next step, which still does not write flash, is to send a DDR-init blob and a USB plug into RAM over the control pipe (vendor request `0x40` / `0x0C`, indexes `0x0471` then `0x0472`). Those Rockchip blobs are the public `rk3036_ddr_*` and `rk303x_usbplug_*` files. Once the plug is running, the same bulk commands can identify the storage and read it. Rockchip's own tools RC4-encrypt both stages with the published 16-byte mask-ROM key before the CRC-16/CCITT trailer. The encoding is documented in [tools/README.md](tools/README.md).
+
+Every download before 11:20 on 2026-10-23 was plaintext, and most used the 300 MHz blob. Rockchip's RK3036 loader uses the 396 MHz blob. Flash was not modified by any of them.
+
+## USB reset warning
+
+The BootROM brings up its USB device block once, at cold power-up. A port reset from this PC does not run that startup again. After the link is wedged, only removing both the Micro-USB cable and the 12V barrel (USB VBUS back-powers the CPU) gets a new enumeration.
+
+What happened on 2026-10-23, and what not to repeat:
+
+* Bulk reads failed with `EPROTO` (`-71`). That left the pipe unhappy. The right response was to stop.
+* Instead, `libusb` port resets were sent to "clear" it. 10:28:46 and 10:31:10 were still answered and the chip stayed device 38.
+* A later reset, issued while a control transfer was already timing out, was not answered. From 10:32:30 the kernel logged `device descriptor read/64, error -110`, then `device not accepting address, error -71`, then a disconnect. The host kept retrying addresses 39–42 on its own and the BootROM never came back.
+* 10:37:47 — after the cold-plug sequence, it enumerated cleanly again as device 43, still `2207:301a` on port `1-6`.
+
+Rules for the next session: do not call a USB port reset, do not clear-halt in a loop, and do not leave a probe blocked inside `libusb`. If a transfer returns `EPROTO` or times out, stop. Cancelling the transfer is itself enough to wedge the control pipe. Flash was not written during any of this.
+
+## Second session, device 43 (10:37 cold plug, same cable and blue SS port)
+
+One vendor control OUT was sent on the fresh enumeration: the Rockchip DDR-init blob `rk3036_ddr_300MHz_v1.11.bin` (3804 bytes, "RK30" header) plus the CRC-16/CCITT trailer the BootROM expects, request `0x40` / `0x0C`, index `0x0471`. No RC4. No port reset. The transfer timed out at 4 seconds. `lsusb` still listed device 43, and the kernel logged nothing new, but a following `GET_DESCRIPTOR` on endpoint 0 also timed out. The BootROM had stayed inside the cancelled control transfer and will not answer again until both plugs are pulled.
+
+That means a loader upload is not a safe thing to retry on this cable. Enumeration uses an 18-byte descriptor read and succeeds. The loader upload is one 3806-byte control write and does not complete. The same split showed up earlier as `EPROTO` on the first 31-byte bulk packet. Short setup packets work. The following data stage does not. The cable in use is USB-C to USB-A on a blue SuperSpeed port, with the cabinet jack being Micro-USB, so there is an adapter in the path. That is the thing to change before another upload is attempted.
+
+## Hub test, device 47 (2026-10-23 10:55)
+
+The front USB-C port brought up a bus-powered dock, not a single hub:
+
+* Port `1-2` / `2-2`: VIA Labs `2109:2817` (USB 2.0) and `2109:0817` (USB 3.0).
+* Behind that, a Realtek RTS5411 `0bda:5411` (USB 2.0) and `0bda:0411` (USB 3.0). The dock also enumerated a Genesys SD reader and a Realtek RTL8153 Ethernet adapter on the SuperSpeed side.
+* The RK3036 enumerated on the USB 2.0 side at `1-2.2.4`, device 47, `2207:301a`, high-speed, at 10:55:25. Same cable and rigid Micro-USB-to-USB-C adapter as the direct rear-port attempts.
+
+One DDR-init control write (`0x471`, 3806 bytes on the wire) timed out at 5 seconds. No port reset, no second try. A descriptor read after that also timed out, so the control pipe is stuck again until both plugs are pulled. Two hub transceivers between the PC and the cabinet did not change the failure. The pieces still shared with the failing direct connection are the USB-C-to-USB-A cable and the rigid Micro-USB-to-USB-C adapter.
+
+## Direct cable, no SET_CONFIGURATION, device 49 (2026-10-23 11:05)
+
+Same straight Micro-USB to USB-A cable, rear port `1-6`, fresh enumeration at 11:04:48 as device 49. Interface claimed, kernel configuration left as enumeration set it, no `SET_CONFIGURATION` from this process. One `0x471` write of the 300 MHz DDR blob timed out at 5.00 seconds. No USB disconnect was logged. The control pipe stopped answering after the host cancelled the transfer.
+
+## Direct Micro-USB to USB-A cable, device 48 (2026-10-23 11:02)
+
+The hub was unplugged at 10:59:43. A straight Micro-USB to USB-A cable then enumerated the RK3036 directly on rear port `1-6` as device 48 at 11:02:36. No rigid adapter, no USB-C cable, no hub. Same Mask ROM identity, high-speed.
+
+The same single DDR-init control write timed out at 5.00 seconds. A descriptor read afterward timed out too, so the control pipe is stuck again. No port reset was sent.
+
+Three different wires have now failed the same write and succeeded at enumeration:
+
+| Path | Enumerates `2207:301a` | 3806-byte `0x471` write |
+| :--- | :--- | :--- |
+| Rigid adapter + USB-C-to-USB-A, rear USB-A | yes | timeout, pipe sticks |
+| Same adapter and cable, through VIA + Realtek hubs | yes | timeout, pipe sticks |
+| Straight Micro-USB to USB-A, rear port `1-6` | yes | timeout, pipe sticks |
+
+The cable, the adapter, and the hub are not the cause. The BootROM answers the short setup packets used to enumerate, and it does not complete this control write on this Intel xHCI controller. The next attempt changes the transfer, not the wire: skip `SET_CONFIGURATION` (the kernel already did that), and send the image as a series of small control writes instead of one 3806-byte write. The first small write that times out ends the attempt.
+
+## Device 49 (2026-10-23 11:04)
+
+The cable/transfer theory in the section above was later shown wrong. The payload was plaintext (see the 11:20 review).
+
+Device 49 came up at 11:04:48 on the same direct cable and rear port `1-6`. The DDR-init write was sent again with no `SET_CONFIGURATION` and no port reset. It timed out at 5.00 seconds. The kernel logged no disconnect, and the control pipe then stopped answering. Splitting that write into smaller pieces would not be the same transfer: the BootROM treats a control write shorter than 4096 bytes as the end of the image, and this image is already 3806 bytes, so it is already a single ending write.
+
+## Step 0 result, device 50 (2026-10-23 11:12)
+
+Same plaintext `rk3036_ddr_300MHz_v1.11.bin`, checksum `0xfb07`, 3806 bytes on the wire. One asynchronous vendor write, no `SET_CONFIGURATION`, no port reset.
+
+| Field | Value |
+| :--- | :--- |
+| Host status | `LIBUSB_TRANSFER_TIMED_OUT` (2) |
+| `length` | 3814 (8-byte setup + 3806 data) |
+| `actual_length` | 3806 |
+
+The chip accepted every data byte. The five seconds were the status stage, which never completed. The kernel logged no disconnect, and the device stayed at address 50. No second transfer was sent. This boot is spent.
+
+The image was taken. What did not finish is the handshake after it, which the BootROM sends only after the downloaded code returns.
+
+## Review, 2026-10-23 11:20
+
+Before the next boot, the earlier work was checked against Rockchip's source. Findings (the plan file from that time, MASKROM_PLAN.md, was later replaced by RUNBOOK.md):
+
+* Rockchip's packer (`rkdeveloptool` `writeFile`, `fix = false`) pads each USB stage to 2048 bytes and RC4-encrypts it. `DownloadBoot` sends those bytes as stored. Our plaintext downloads were not what this BootROM runs, which explains step 0: every byte accepted, then no return.
+* `rkbin/RKBOOT/RK3036MINIALL.ini` uses `rk3036_ddr_396MHz_v1.11.bin` with a 1 ms sleep, then `rk303x_usbplug_v2.57.bin`.
+* Our CRC and short-write framing match `RKU_DeviceRequest` and xrock.
+* The padded, RC4'd 396 MHz payload built in Python is byte-identical to Rockchip's own `P_RC4` and `CRC_CCITT`, compiled unmodified: 4098 bytes on the wire, CRC `0x704e`, decrypting back to the `RK30` header.
+* For the USB plug, Rockchip's `P_RC4` truncates its length to 16 bits and only encrypts the first 38,912 bytes. xrock encrypts all 103,388. xrock goes first.
+* The cable, adapter, and hub changes did not affect any result. The bulk `EPROTO` at the start was expected behavior before a loader runs.
+
+Device 51 (11:13:24) is untouched and is Boot A in the plan.
+
+## Boot A, device 51 → 52 (2026-10-23 11:18): the loader runs
+
+The same straight cable on rear port `1-6`. No `SET_CONFIGURATION` and no reset. Sent with `rksend` (asynchronous, 10 s per chunk).
+
+| Stage | Wire | Chunks | Result |
+| :--- | :--- | :--- | :--- |
+| `0x471` `rk3036_ddr_396MHz_v1.11.bin`, padded + RC4 | 4098 B, CRC `0x704e` | 4096 + 2 | both completed, status stage returned |
+| `0x472` `rk303x_usbplug_v2.57.bin`, xrock RC4 | 103390 B, CRC `0x219b` | 25 × 4096 + 990 | all completed |
+
+About a second after the last chunk, the kernel logged a disconnect of device 51. Device 52 then enumerated on `1-6` as the same `2207:301a` and `bcdUSB 2.00`, but with strings `RockChip` / `USB-MSC` / `rockchip`. The interface is still `0xFF/6/5` with bulk `0x81`/`0x02`, and no kernel driver binds to it. That is Rockchip's USB plug. RC4 was the missing piece, and 396 MHz trains.
+
+Read-only bulk commands to the plug:
+
+| Command | Reply | Reading |
+| :--- | :--- | :--- |
+| test-unit-ready `0x00` | status 0 | |
+| chip info `0x1B` | `41333033` + `0xFF`… | `A303` reversed = `RK303A`, the chip name in Rockchip's RK3036 loader config |
+| flash ID `0x01` | `454d4d4320` | ASCII `EMMC ` |
+| flash info `0x1A` | `00000000 0004 04 00 28 00 00` | size **0 sectors**, block 1024, page 4, chip-select mask 0 |
+| capability `0xAA` | `07` | direct LBA, vendor storage, first-4M access |
+| read storage `0x2B` | no data, CSW status 1 | not supported by this plug. The first attempt with a 4-byte buffer overflowed on the 13-byte CSW. One drain read plus test-unit-ready resynced the pipe. |
+| read LBA `0x14` at 0, 1, 64, 0x2000 | status 0, data returned | every sector mostly `0xFF` with scattered cleared bits; the four 512-byte blocks at 0x2000 all differ, and the sectors at 0, 1, and 64 share one pattern. No MBR, GPT, IDB, or `PARM`. |
+
+Reading: the standard plug runs in eMMC mode (its flash-ID string) and finds no eMMC (size 0, CS mask 0). The "sectors" are the unfilled DMA buffer, which explains why they look like `0xFF` RAM noise. This board most likely uses SLC NAND or SPI flash. Rockchip ships `rk303x_usbplug_slc_v2.65.bin` for that case. Its release notes add SPI NOR in 2.64 and wrong-ID filtering in 2.65, and `RK3036MINIALL_SLC.ini` pairs it with the same 396 MHz DDR blob. That plug is Boot D in the plan. It needs a cold plug, because the BootROM is no longer on the bus once a plug runs.
+
+UART remains the other window, and only for a normal (**ON**) boot: 3.3V TX/RX/GND pads inside the shield, 115200 or 1.5 Mbaud, VCC left unconnected. That shows kernel messages. It does not, by itself, show the game-list file.
+
+## Session 3, devices 53–56 (2026-10-23 11:23–11:40): the flash is read
+
+All runs used `tools/rk.py`, and its log is in `logs/rk_log.jsonl`. Same cable and port (`1-6`). Every DDR stage was `ddr396`, and every stage completed in full (every chunk `actual == len`, status 0).
+
+| Device | Plug | Outcome |
+| :--- | :--- | :--- |
+| 53 (cold plug 11:23:12) | `plug_slc` (`rk303x_usbplug_slc_v2.65`) | Plug accepted (23 chunks). The chip disconnected and re-enumerated 0.27 s later as **device 54, a fresh Mask ROM** (no strings). The plug started and then the chip reset. |
+| 54 (warm reset) | `plug_slc264` (`rk303x_usbplug_slc_v2.64`) | Same as above. Device 55 is a fresh Mask ROM. The 2.65 flash-ID filter isn't the cause. |
+| 55 (warm reset) | `plug_3032` (`rk3032_usbplug_v2.61`) | **Loader up as device 56** (`RockChip`/`USB-MSC`/`rockchip`). |
+
+What device 56 reported:
+
+* Chip info `32333033…` = `3032`. Flash ID `ef aa 21 53 7b`, and on a second read `ef aa 21 53 df`, so only the first three bytes are meaningful. `EF AA 21` is the Winbond W25N01GV, a 1 Gbit SPI NAND. Flash info: 220672 sectors (107.75 MiB), block 256 sectors, page 4 sectors, CS mask 1. Capability `0x27`.
+* The probe shows every header LBA stable across two reads. LBA 0 is a protective MBR, LBA 1 is `EFI PART`, LBA 0x40 is the Rockchip boot block (`3b8cdcfc`, which decrypts to `55aaf00f`), LBA 0x400 is `LOADER  `, and LBA 0x800 is `ANDROID!`.
+* GPT: `IDBlock`, `uboot`, `boot`, `rootfs`, `data` (see `captures/partitions.json`).
+* Full dump of 220672 sectors with `--verify` took 22 s. A second pass without verify gave the identical sha256 `4841f3a6…`.
+
+The 32 MiB wall: every sector from LBA `0x10000` up came back as `0xCC` with CSW status 0, including the whole `data` partition and the rootfs past its first 27.8 MB. The SquashFS table pointers read `0xcccccccc`. Tests on the same boot:
+
+* A read *starting* at `0x10000` or above gives `0xCC`, with subcode 0 or 1 (`RWMETHOD_IMAGE`/`RWMETHOD_LBA`).
+* A 128-sector read starting at `0xffc0` returned non-`0xCC` bytes for its last 64 sectors. A 0x2000-sector read starting at `0xF000` returned `0xCC` for all 4096 sectors past `0x10000`, and the two disagree. Conclusion: those non-`0xCC` bytes were stale buffer contents. Nothing above `0x10000` has been read for real.
+* Reads below `0x10000` are consistent between overlapping large and small reads.
+
+Offline (`~/partycade-dumps/extracted/`):
+
+* The factory boot block is plaintext past its header. DDR `V1.09 20171120`, Boot1 built Dec 23 2020, `SFTL version: 5.0.55 20200925`, `sfc_nand` and `sfc nor` drivers.
+* SFTL versions of the candidate plugs: `rk3032_usbplug_v2.61` 5.0.53 (the one that works but stops at 32 MiB); `rk3032_usbplug_slc_v2.63`, `rk303x_usbplug_slc_v2.64`, and `v2.65` all 5.0.58. `rk303x_usbplug_v2.57` has no SFTL, which explains why it only tried eMMC.
+* `boot`: Android boot image v0, zImage, which decompresses to Linux 4.4.194, built 2023-05-11. No ramdisk. The second-stage blob is a Rockchip RSCE resource containing `rk-kernel.dtb` ("Rockchip RK3032 Dongle") and `logo.bmp`.
+* Device tree highlights: 128 MiB RAM, OTG `dr_mode = "host"`, `uart-keys` input mapping, uart0 the only UART enabled, every MMC controller disabled, `sfc` okay. Decoded text is in `captures/device-tree.txt`.
+* `uboot`: U-Boot 2017.09-g97b7efa-dirty (2023-05-11), `bootdelay=0`. The env checks an SD card first. It has rockusb and download-key support. Its embedded tree has only uart2, `sfc`, and `dwmmc@1021c000`.
+* `rkimgtest` (Rockchip U-Boot source) sets `sdfwupdate` when the word at sector 65 + 104 is 0, and the factory boot block has 0 there.
+
+Next is `plug_3032slc` on a cold plug, which is RUNBOOK Phase 1, Step 1.1. Device 56 was left running `plug_3032`.
+
+Tool hardening the same session: a test dump of LBA `0xFFF0`+32 showed no fill warning, because the crossing read returned stale bytes. `read_lba` now splits at every `0x10000` boundary, and the same dump now reports 16 real sectors and 16 fill sectors. The full backup above was unaffected: its 128-sector reads ended exactly at `0x10000`.

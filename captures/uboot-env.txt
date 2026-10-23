@@ -1,0 +1,45 @@
+# Default environment strings found in the factory U-Boot (uboot partition, U-Boot 2017.09-g97b7efa-dirty, May 11 2023).
+# Extracted with strings; a few format-string fragments were removed. This is the compiled-in default, not a saved env.
+arch=arm
+baudrate=115200
+board=evb_rk3036
+board_name=evb_rk3036
+boot_a_script=load ${devtype} ${devnum}:${distro_bootpart} ${scriptaddr} ${prefix}${script}; source ${scriptaddr}
+bootcmd=boot_android ${devtype} ${devnum};bootrkp;run distro_bootcmd;
+bootcmd_dhcp=if dhcp ${scriptaddr} ${boot_script_dhcp}; then source ${scriptaddr}; fi;
+bootcmd_mmc0=setenv devnum 0; run mmc_boot
+bootcmd_mmc1=setenv devnum 1; run mmc_boot
+bootcmd_pxe=dhcp; if pxe get; then pxe boot; fi
+bootcmd_rknand0=setenv devnum 0; run rknand_boot
+bootdelay=0
+boot_extlinux=sysboot ${devtype} ${devnum}:${distro_bootpart} any ${scriptaddr} ${prefix}extlinux/extlinux.conf
+boot_prefixes=/ /boot/
+boot_script_dhcp=boot.scr.uimg
+boot_scripts=boot.scr.uimg boot.scr
+boot_targets=mmc1 mmc0 rknand0 pxe dhcp 
+cpu=armv7
+distro_bootcmd=for target in ${boot_targets}; do run bootcmd_${target}; done
+fdt_addr1_r=0x61f00000
+fdt_addr_r=0x68300000
+initrd=
+kernel_addr1_r=0x62000000
+kernel_addr_r=0x62000000
+mmc_boot=if mmc dev ${devnum}; then setenv devtype mmc; run scan_dev_for_boot_part; fi
+partitions=uuid_disk=${uuid_gpt_disk};name=loader1,start=32K,size=4000K,uuid=${uuid_gpt_loader1};name=loader2,start=8MB,size=4MB,uuid=${uuid_gpt_loader2};name=trust,size=4M,uuid=${uuid_gpt_atf};name=boot,size=112M,bootable,uuid=${uuid_gpt_boot};name=rootfs,size=-,uuid=69DAD710-2CE4-4E3C-B16C-21A1D49ABED3;
+preboot=
+pxefile_addr1_r=0x60100000
+pxefile_addr_r=0x60100000
+ramdisk_addr1_r=0x64000000
+ramdisk_addr_r=0x6a200000
+rkimg_bootdev=if mmc dev 1 && rkimgtest mmc 1; then setenv devtype mmc; setenv devnum 1; echo Boot from SDcard;elif mmc dev 0; then setenv devtype mmc; setenv devnum 0;elif mtd_blk dev 0; then setenv devtype mtd; setenv devnum 0;elif mtd_blk dev 1; then setenv devtype mtd; setenv devnum 1;elif mtd_blk dev 2; then setenv devtype mtd; setenv devnum 2;elif rknand dev 0; then setenv devtype rknand; setenv devnum 0;elif rksfc dev 0; then setenv devtype spinand; setenv devnum 0;elif rksfc dev 1; then setenv devtype spinor; setenv devnum 1;fi; 
+scan_dev_for_boot=echo Scanning ${devtype} ${devnum}:${distro_bootpart}...; for prefix in ${boot_prefixes}; do run scan_dev_for_extlinux; run scan_dev_for_scripts; done;
+scan_dev_for_boot_part=part list ${devtype} ${devnum} -bootable devplist; env exists devplist || setenv devplist 1; for distro_bootpart in ${devplist}; do if fstype ${devtype} ${devnum}:${distro_bootpart} bootfstype; then run scan_dev_for_boot; fi; done
+scan_dev_for_extlinux=if test -e ${devtype} ${devnum}:${distro_bootpart} ${prefix}extlinux/extlinux.conf; then echo Found ${prefix}extlinux/extlinux.conf; run boot_extlinux; echo SCRIPT FAILED: continuing...; fi
+scan_dev_for_scripts=for script in ${boot_scripts}; do if test -e ${devtype} ${devnum}:${distro_bootpart} ${prefix}${script}; then echo Found U-Boot script ${prefix}${script}; run boot_a_script; echo SCRIPT FAILED: continuing...; fi; done
+scriptaddr=0x60000000
+scriptaddr1=0x60000000
+soc=rockchip
+storagemedia=%s androidboot.storagemedia=%s
+storagemedia=%s androidboot.storagemedia=%s androidboot.mode=normal 
+uuid_disk=
+vendor=rockchip

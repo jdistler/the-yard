@@ -1,0 +1,36 @@
+{
+ "table": "gpt",
+ "last_usable_lba": 203775,
+ "partitions": [
+  {
+   "name": "IDBlock",
+   "offset": 64,
+   "sectors": 896,
+   "type_guid": "4ee450b73f83304ac38cb117241d84d4"
+  },
+  {
+   "name": "uboot",
+   "offset": 1024,
+   "sectors": 1024,
+   "type_guid": "2216c8a14177ad47b846c6972488d396"
+  },
+  {
+   "name": "boot",
+   "offset": 2048,
+   "sectors": 9216,
+   "type_guid": "324a78433da0de4a92c6ede64ff9b794"
+  },
+  {
+   "name": "rootfs",
+   "offset": 11264,
+   "sectors": 131072,
+   "type_guid": "39f11561474faf4b8d23b6957eaee4b3"
+  },
+  {
+   "name": "data",
+   "offset": 142336,
+   "sectors": 61440,
+   "type_guid": "16ba3fa854d3c5458b443ec50832d363"
+  }
+ ]
+}
