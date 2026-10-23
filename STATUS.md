@@ -1,4 +1,4 @@
-# Status: what is known, as of 2026-10-23 12:50
+# Status: what is known, as of 2026-10-23 13:05
 
 This is the single source of truth for the current state. If another doc disagrees with this one, this one wins. Update it at the end of every session.
 
@@ -8,7 +8,7 @@ This is the single source of truth for the current state. If another doc disagre
 * **The game list is understood.** The menu program `/usr/bin/game` (rootfs, MiniGUI) has 12 entries compiled in. For a pick it runs `/data/start.sh <index> <smoothing> <speed>`, and that shell script maps the index to an emulator binary in `/data/Games/`. Details are in [FIRMWARE_ANALYSIS.md](FIRMWARE_ANALYSIS.md).
 * **A recovery plan exists:** [RECOVERY.md](RECOVERY.md). **USB raw restore (path A) does not work with `plug_3032slc`:** its erase command reports success but erases nothing above block 8 (test ladder 2026-10-23, confirmed by disassembly; RECOVERY.md path A). The flash content is unchanged (full `diff`: none).
 * No byte of the cabinet's flash has changed. Erase/program commands were sent for blocks 8 and 91 only; both were no-ops.
-* **Custom games:** toolchain and probe are built (`games/`, GAMEDEV.md section 6). A UART adapter is not required. The SD slot and a USB stick are not consulted by stock U-Boot or Linux (kernel MMC nodes are `disabled`; U-Boot has no `sdmmc` node; udev mounts only `mmcblk` and nothing runs from a USB disk). The next test, still needing approval, is a patched `plug_3032slc` whose erase is not limited to blocks 0–8, tried on stale block 91 only (RECOVERY.md path A).
+* **Erase patch, 2026-10-23 13:02.** `plug_3032slc_erase` came up (device 60). Full diff before any write: only blocks 972 and 973 differed (four formerly blank SFTL-sys pages; leave them). Block 91 then erased and read back as 0xFF, so the patched erase hits the block it is given. The following `WRITE_SECTOR` timed out and the USB pipe stuck. No retry, no clear-halt. Block 91 is the stale pair and is not fully restored. Next session is a cold plug, the same patched loader, a diff, and a restore of block 91 only if it does not match the backup. Do not switch ON until that read-back is done.
 
 ## Hardware state right now
 
