@@ -68,7 +68,7 @@ All outside the repo in `~/partycade-dumps/`. Its `README.txt` says what each fi
 
 ## Open questions, in priority order
 
-1. **How do custom games get on?** This is a user decision: SD card boot, an in-place edit of `start.sh`, or a board swap. See [RUNBOOK.md](RUNBOOK.md) Phase 3.
+1. **Custom games (the user's goal: original games as entries 13+, on the stock board).** The plan is in [GAMEDEV.md](GAMEDEV.md): toolchain → recovery test ladder → probe program behind one tile → own launcher. How the control deck's buttons map to SDL joystick numbers is still to be probed on the cabinet.
 2. Does the restore write path work on this plug? It's the [RECOVERY.md](RECOVERY.md) test ladder, T1 → T3, each rung approved by the user.
 3. **ADB lead:** does the stock system give a root ADB shell if OTG is switched to peripheral in the device tree? The cheapest test is an SD card whose `boot` carries the stock kernel plus that one DTB change, with the rootfs still from NAND. That needs question 4 answered. Also unknown: whether the back switch moves the Micro-USB port between the SoC's OTG and something else.
 4. Can the stock U-Boot see the microSD slot? Its device tree has only `dwmmc@1021c000`, and stock Linux disables every MMC controller. That decides the SD card path.

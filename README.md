@@ -7,6 +7,7 @@ Documentation and tooling for the **Arcade1Up Pac-Man Partycade (12-in-1)**, Cos
 * **[STATUS.md](STATUS.md)**: what is verified right now, the backups, and the open questions. Read this first.
 * **[RUNBOOK.md](RUNBOOK.md)**: hard rules, how to operate the cabinet over USB, and the phased plan with decision tables.
 * **[RECOVERY.md](RECOVERY.md)**: how to bring a bricked cabinet back to its factory state, and the test ladder that proves it.
+* **[GAMEDEV.md](GAMEDEV.md)**: how the stock games work (controls, SDL2, ABI) and the plan for adding our own games.
 * **[AGENTS.md](AGENTS.md)**: short rules for AI agents working in this repo.
 * **[tools/README.md](tools/README.md)**: the USB, rebuild, patch, and restore tools.
 
