@@ -29,15 +29,15 @@ The control deck talks to the SoC over a serial line. A kernel driver, `uart-key
 
 Measured on the cabinet 2026-10-23 (probe log from `~/partycade-dumps/2026-10-23_probe_played/probe.log`). One joystick, name `uart-keys`, guid `19000000010000000100000000010000`: **0 axes, 21 buttons, 0 hats**. There is no second joystick. SDL 2.0.7 numbers the buttons like this: `BTN_*` `0x130`–`0x13e` are buttons 0–14 (`button = code - 0x130`), then the `KEY_*` codes in ascending order are buttons 15–20.
 
-| What arrived | evdev code | SDL joystick button | Also a key event |
-| :--- | :--- | :--- | :--- |
-| A | `0x130` | 0 | no |
-| B | `0x131` | 1 | no |
-| X | `0x133` | 3 | no |
-| L | `0x136` | 6 | no |
-| R | `0x137` | 7 | no |
-| Up / Left / Right / Down | `0x67` / `0x69` / `0x6a` / `0x6c` | 15 / 16 / 17 / 18 | yes (`Up` `Down` `Left` `Right`) |
-| Volume down / up | `0x72` / `0x73` | 19 / 20 | yes |
+| On the panel | evdev code | SDL joystick button | Name in `cab` | Also a key event |
+| :--- | :--- | :--- | :--- | :--- |
+| 1-player (left of the stick, top) | `0x136` | 6 | L | no |
+| 2-player (left of the stick, bottom) | `0x137` | 7 | R | no |
+| Right of the stick, top-left | `0x131` | 1 | B | no |
+| Right of the stick, top-right | `0x133` | 3 | X | no |
+| Right of the stick, lower, shifted left | `0x130` | 0 | A | no |
+| Up / Left / Right / Down | `0x67` / `0x69` / `0x6a` / `0x6c` | 15 / 16 / 17 / 18 | UP LEFT RIGHT DOWN | yes |
+| Volume down / up | `0x72` / `0x73` | 19 / 20 | — | yes |
 
 Directions are joystick buttons plus keyboard events, not axes. Holding a control makes evdev repeat (`value 2`); the SDL joystick and the keyboard path do not.
 
@@ -49,14 +49,14 @@ The physical deck, from the user after that session, is the whole control set:
 * Volume + and volume −.
 * The power switch. It is not a key. It was the last thing tested, which is why `probe.log` stops at 25.3 s in the middle of an L press and has no exit line.
 
-Those five play buttons are the five codes in the table (A, B, X, L, R). Which label is which code is not known yet. The driver still advertises C, Y, Z, L2, R2, select, start, mode, bl, and br (joystick buttons 2, 4, 5, 8–14). None of them are on this deck, and none of them appear in the log.
+The user read those five numbers off the probe (2026-10-23) and they are the only five play-button codes in `probe.log`. The `cab` names are the Linux button names, not the labels printed on the cabinet. The driver still advertises C, Y, Z, L2, R2, select, start, mode, bl, and br (joystick buttons 2, 4, 5, 8–14). None of them are on this deck, and none of them appear in the log.
 
 The probe's picture was rotated **90° clockwise** on the cabinet. The framebuffer itself is landscape: KMSDRM, opengles2, flags `0xe`, output and display **1024×768 @ 60**. A game draws upright by rotating the presented frame 90° counter-clockwise. Audio came up as ALSA.
 
 **Rules for our games, so they behave like stock ones:**
 
 * Accept input from **both** joystick events and keyboard events, through one mapping table in the code. That keeps the PC and the cabinet the same code.
-* **Always have a way to quit back to the menu.** This deck has no select or start button, so a select+start combo never fires. Use two real buttons held together (the 1-player and 2-player buttons, once their codes are known). The menu is stuck until the game exits. Cutting power does not return to the menu, and it drops the last second of the log.
+* **Always have a way to quit back to the menu.** This deck has no select or start button. Quit on 1-player and 2-player held together (joystick buttons 6 and 7). `cab.c` still treats that combo as select+start, which this deck cannot press, so a cabinet build has to map buttons 6 and 7 onto that quit, or check those two buttons itself. The menu is stuck until the game exits. Cutting power does not return to the menu, and it drops the last second of the log.
 * Don't touch the volume. Optionally show the `/data/spk_volume` overlay like stock games do.
 
 ## 3. What a game binary must be
@@ -95,7 +95,7 @@ Who does what: **PC** = the agent on this PC, no hardware. **User** = something 
 | 2 | **Game skeleton** (done): `games/common/cab.{h,c}` plus `games/probe/`; builds for PC and cabinet, smoke-tested under `qemu-arm-static` with the rootfs libraries | PC | No |
 | 3 | **Prove the restore path** (done): block 91 erased, programmed, and read back with `plug_3032slc_erase`. Counts of 32 or more sectors hang the loader; the tool writes one page at a time | User + Approval | Yes (block 91, restored) |
 | 4 | **Probe on tile 10 (Dig Dug II)** (flashed 2026-10-23): `/data/Games/probe`, and that tile's `start.sh` line runs it. Blocks 828, 829, 872, 873, 884, 885, 892, 893. Diff against the patched image was none | Done | Yes (`data`) |
-| 5 | Probe played and the log read back (`2026-10-23_probe_played`). The deck is the stick, 1-player, 2-player, three buttons on the right, and volume. Codes are in § 2. Which of A/B/X/L/R is which physical button is still open | Done | No |
+| 5 | Probe played, log read back, and the user labeled each button from the screen. The map is in § 2 | Done | No |
 | 6 | **First real game** behind the same tile, or a tiny "more games" menu there. Same flash path | PC + User + Approval | Yes (`data`) |
 | 7 | **Our launcher (option B):** build it, measure the rootfs change offline (`S50ui` hook, rebuilt SquashFS, `sftl_patch.py --part rootfs`), check the stock menu fallback, then flash once | PC + User + Approval | Yes (`rootfs`, once) |
 | 8 | From then on, each new game is a folder in `/data/games/<name>/` plus a line in the launcher's list: a `data`-only change. Optionally set up ADB first to skip the switch flips | Repeat | `data` only |
