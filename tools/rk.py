@@ -62,11 +62,17 @@ STAGES = {
     # Same blob, two Thumb edits so opcode 0x06 erases the block it is given. Stock returns
     # success and erases nothing above block 8 (cmp r4,#8 / bhi, then rsb r6,r4,#8). The inner
     # call is SPI NAND block-erase 0xD8 of page block*64, so one request is one block.
+    # Erase clip at 0xbec6, and the same clip in the raw writer 0xbf3c (ops+0x14).
+    # 0xbf3c also forces spare word 0 to 0xff before programming; that would replace
+    # the real metadata (block 91 page 0 is bf450000, not ff000000). Nop that store.
+    # The following store at 0xbff0 hits a spare slot the page program never writes.
     "plug_3032slc_erase": dict(src="rk3032_usbplug_slc_v2.63.bin", kind="plug",
-                               sha="bd6cd1df7022bb9004d3e77a92507168ed7e89112aab915d2d6145032e91b195",
+                               sha="53574f36b7637f55701f6a0e9aae7aec991fc3c2d326e9e9899956cd4ee8df91",
                                patch=((0xbee2, bytes.fromhex("02d8"), bytes.fromhex("00bf")),
-                                      (0xbef4, bytes.fromhex("01d9"), bytes.fromhex("01e0"))),
-                               note="patched erase: nop the block>8 return, branch over the count clip"),
+                                      (0xbef4, bytes.fromhex("01d9"), bytes.fromhex("01e0")),
+                                      (0xbf62, bytes.fromhex("01d2"), bytes.fromhex("00bf")),
+                                      (0xbfee, bytes.fromhex("0860"), bytes.fromhex("00bf"))),
+                               note="erase and write past block 8; keep the caller's spare metadata"),
 }
 
 FILL = b"\xcc" * SECTOR  # what plug_3032 returns for sectors it does not serve
@@ -244,22 +250,16 @@ class Loader:
                     return b"", status
             csw = bytes(self.dev.read(EP_IN, 13, timeout=3000))
         except self.usb.core.USBError as e:
-            self.resync()
-            raise SystemExit(f"USB error on opcode {op:#x}: {e}. Pipe resynced; stop and record it.")
+            # Do not resync. After a timeout the loader still owns the bulk pipe
+            # (the 2026-10-23 block 91 program). Another CBW wedges it harder.
+            raise SystemExit(
+                f"USB error on opcode {op:#x}: {e}. Nothing else was sent. "
+                "This enumeration is stuck: cold plug, and do not send another command on it."
+            )
         sig, ctag, res, status = struct.unpack("<IIIB", csw)
         if sig != 0x53425355 or ctag != tag:
             raise SystemExit(f"CSW mismatch on opcode {op:#x}; stop, this boot is suspect.")
         return data, status
-
-    def resync(self):
-        try:
-            self.dev.read(EP_IN, 512, timeout=500)
-        except self.usb.core.USBError:
-            pass
-        tag = random.getrandbits(32)
-        cbw = struct.pack("<IIIBBB", 0x43425355, tag, 0, 0, 0, 6) + bytes(16)
-        self.dev.write(EP_OUT, cbw, timeout=2000)
-        self.dev.read(EP_IN, 13, timeout=2000)
 
     def read_raw(self, sector, count):
         """Physical NAND read (bypasses SFTL). Returns count*528 bytes."""
@@ -391,7 +391,8 @@ def cmd_boot(a):
         if devs and devs[0]["mode"] == "loader" and devs[0]["devnum"] != d["devnum"]:
             n = devs[0]
             print(f"Loader up: device {n['devnum']} ({n['manufacturer']}/{n['product']}/{n['serial']})")
-            log("loader_up", devnum=n["devnum"], from_devnum=d["devnum"], plug=a.plug)
+            log("loader_up", devnum=n["devnum"], from_devnum=d["devnum"], plug=a.plug,
+                sha=STAGES[a.plug]["sha"])
             return
     devs = sysfs_devices()
     if devs and devs[0]["mode"] == "maskrom" and devs[0]["devnum"] != d["devnum"]:

@@ -85,27 +85,34 @@ Always start the same way: cold plug with the switch **OFF**, then `rk.py state`
 >
 > Path A therefore can't restore `data`/`rootfs` blocks with this plug as shipped. Reads (`rawdump`, `diff`) are unaffected. The same clip (`cmp`/`bhi` against 8, then a count clipped with `rsb r6, r4, #8`) is in `rk3032_usbplug_slc_v2.63`, `rk303x_usbplug_slc_v2.64`, `rk303x_usbplug_slc_v2.65`, and `rk3032_usbplug_v2.61`. `rk303x_usbplug_v2.57` does not have that clip, and it also cannot read this chip.
 >
-> The clip is in the loader we send to RAM. It is not in the cabinet's flash. Nopping the early return and the count clip in a private copy of `plug_3032slc`, then repeating T2 on stale block 91, is the no-new-hardware test. Do not send that copy until the user approves that one block. A full `diff` must follow.
+> The clip is in the loader we send to RAM. It is not in the cabinet's flash. `plug_3032slc_erase` nops the early return (`0xbee2`) and skips the count clip (`0xbef4`). On 2026-10-23 13:02 that loader erased block 91, and the block read back `0xFF`.
+>
+> The following `WRITE_SECTOR` of 32 sectors never returned a status packet. That was a counting bug, not a NAND busy wait. At `0xeef4` the loader adds `bytes >> 9` to its progress count. The payload is 528 bytes per sector, so 32 × 528 = 16896 and 16896 >> 9 = 33, which is not the 32 the command asked for. The loader therefore never sends the CSW, waits for more data, and treats the next CBW as payload. Any count below 32 divides evenly (`4 × 528 >> 9 = 4`). The write function itself had already returned: ops+0x14 is `0xbf3c`, which returns success and programs nothing for sector ≥ 2048. The read-back (block 91 still `0xFF`) matches that. Do not send a count of 32 or more.
+>
+> Read-back on the next cold plug (device 62): block 91's data and its 8-byte spare metadata are 0xFF. Every other block matches the backup except SFTL-sys pages 39–46 in blocks 972 and 973. Spare bytes outside those 8 are leftover buffer contents, the same pattern on every page. Compare data and the 8 metadata bytes only.
+>
+> A 4-sector write on the old loader returned status 0 and left the page erased, which is the `0xbf3c` clip. `plug_3032slc_erase` now also nops that clip (`0xbf62`) and the `str` at `0xbfee` that would force spare word 0 to `0xff`. On device 64 (2026-10-23 14:10) that wire erased block 91 and programmed page 0. The read-back matches, metadata `bf450000 3f300300`. Pages 1–63 are still erased. Continue one page at a time on this same loader. If a later page does not match, erase the block before a retry. `0xbf3c` returns 0 either way, so only the read-back counts. Leave 972 and 973. Do not switch ON while the rest of block 91 is erased.
 
 This puts back the exact physical pages, including SFTL's own metadata. The factory SFTL (5.0.55) then finds exactly the state it left. That's why it's the primary path: it doesn't depend on how the plug's SFTL version (5.0.53/5.0.58) would lay data out, and it isn't limited to 32 MiB the way `READ_LBA`/`WRITE_LBA` are.
 
 Wire format, from `reference/rkdeveloptool/RKComm.cpp`:
 
 * `ERASE_NORMAL 0x06`: CBW with no data. `dwAddress` = **block index** (rkdeveloptool computes `offset / usBlockSize`), `usLength` = block count. CSW status 1 means a bad block.
-* `WRITE_SECTOR 0x05`: `dwAddress` = physical sector, `usLength` ≤ 32. The data phase carries `count × 528` bytes in exactly the layout `READ_SECTOR` returns and `nand_raw.bin` stores.
+* `WRITE_SECTOR 0x05`: `dwAddress` = physical sector. The data phase carries `count × 528` bytes in exactly the layout `READ_SECTOR` returns and `nand_raw.bin` stores. On this loader the count must be **below 32**. A count of 32 makes progress `bytes >> 9` equal 33, and the status packet is never sent.
 
 Procedure (needs the user's written approval for the exact block list):
 
 ```bash
 tools/rk.py state                                   # fresh maskrom after a cold plug, switch OFF
-tools/rk.py boot --plug plug_3032slc                # the plug the backup was taken with
+tools/rk.py boot --ddr ddr396 --plug plug_3032slc_erase
 tools/rk.py info                                    # must show EF AA 21, block_sectors 256, page_sectors 4
 I=~/partycade-dumps/2026-10-23_raw_plug3032slc/nand_raw.bin
 tools/rk_restore.py diff $I                         # read-only; lists the differing blocks (~35 s)
-# show the list to the user, get approval in writing, then:
-PARTYCADE_ALLOW_NAND_WRITE=yes tools/rk_restore.py restore $I --blocks <list from diff> \
-    --approval "<user's words, date>"               # asks you to type WRITE; erase, verify FF, program, verify
-tools/rk_restore.py diff $I                         # must say "none"
+# show the list to the user, get approval in writing, then. First live write is one page:
+PARTYCADE_ALLOW_NAND_WRITE=yes tools/rk_restore.py restore $I --blocks 91 --pages 1 \
+    --approval "<user's words, date>"               # type WRITE; erase, verify FF, program page 0, read it back
+# only if page 0 matched, repeat without --pages for the blocks diff listed, excluding 972 and 973
+tools/rk_restore.py diff $I
 ```
 
 Then the user does a cold plug with the switch **ON**. Success is the normal logo and menu.

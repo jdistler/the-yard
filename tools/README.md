@@ -33,7 +33,7 @@
 | `plan IMAGE` | nothing | Checks IMAGE against its `.sha256` and classifies every block (boot-block, sftl-data, sftl-special, sftl-sys, erased). |
 | `native IMAGE OUT` | nothing | Writes the 2048 + 64 OOB per page format for an external SPI NAND programmer. |
 | `diff IMAGE [--blocks 0-1023]` | loader, reads | Reads blocks from the cabinet and lists those that differ from IMAGE. The full chip takes about 35 s. |
-| `restore IMAGE --blocks LIST --approval TEXT [--include-boot-blocks]` | loader, **writes** | Refuses unless `PARTYCADE_ALLOW_NAND_WRITE=yes` is set, `--approval` quotes the user, and you type `WRITE`. It checks the loader's geometry, then for each block erases, verifies FF, programs, and verifies against IMAGE, stopping at the first problem. It never writes block 1023, and blocks 0–7 need `--include-boot-blocks`. **Never run yet.** |
+| `restore IMAGE --blocks LIST --approval TEXT [--pages N] [--include-boot-blocks]` | loader, **writes** | Refuses unless `PARTYCADE_ALLOW_NAND_WRITE=yes` is set, `--approval` quotes the user, you type `WRITE`, and this USB device was booted with the current `plug_3032slc_erase` wire. It checks geometry, then for each block erases, verifies FF, programs **one 4-sector page per USB command**, and verifies data plus the 8 metadata bytes before the next page. `--pages 1` stops after page 0. It refuses a count of 32 or more (the loader's `bytes>>9` progress then never matches, so it sends no status). It never writes block 1023, and blocks 0–7 need `--include-boot-blocks`. |
 
 ## Safety design
 
@@ -41,7 +41,7 @@
 * `rk_restore.py`'s `Writer.write_command()` accepts only `WRITE_SECTOR 0x05` and `ERASE_NORMAL 0x06`. LBA writes, force erase, system-disk erase, reset, storage change, and eFuse are not reachable from any tool. See RECOVERY.md § 7 for why.
 * `boot` uses the log, keyed by the PC's `boot_id` and the USB device number, to refuse a second download on the same Mask ROM enumeration.
 * `read_lba` splits reads so no single command crosses a `0x10000`-sector boundary. With `plug_3032`, a crossing read returns stale buffer bytes past the boundary instead of `0xCC`.
-* No USB reset anywhere. After a bulk error on a loader, `rk.py` does one drain read plus test-unit-ready to resync, then stops.
+* No USB reset anywhere. After a bulk error, `rk.py` sends nothing else. The old resync (a drain read plus a test-unit-ready CBW) wedged the pipe further on 2026-10-23 and must not be used after a timeout. Cold plug.
 * Every tool refuses to write large files inside the repo. Images go to `~/partycade-dumps/`.
 
 ## Adding a plug or DDR blob to try

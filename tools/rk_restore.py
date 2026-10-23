@@ -28,7 +28,9 @@ ERASED = b"\xff" * BLOCK_BYTES
 SKIP_BLOCKS = {1023}                   # page 0 all 0x00 (data+spare), rest erased: likely a bad-block mark
 
 WRITE_SECTOR, ERASE_NORMAL = 0x05, 0x06
-WRITE_CHUNK = 32                       # rkdeveloptool RKU_WriteSector limit
+WRITE_CHUNK = 4                        # one NAND page, and below the loader's count bug
+CSW_TIMEOUT_MS = 120000                # a real page program returns in milliseconds; this only
+                                           # covers a slow busy poll. The 32-sector hang was not that.
 APPROVAL_ENV = "PARTYCADE_ALLOW_NAND_WRITE"
 
 
@@ -59,6 +61,27 @@ def parse_blocks(spec):
     if bad:
         raise SystemExit(f"block numbers out of range: {bad}")
     return out
+
+
+def page_meaningful(page):
+    """Bytes that are flash content: the 2048 data bytes plus the 8-byte Rockchip spare.
+
+    The other 8 bytes of sector 0's spare, and all 16 spare bytes of the other three
+    sectors, come back as the same bit pattern on every page of every block, including
+    blocks that were never written. The backup stored 0xFF there. That pattern is not
+    flash content and must not be compared or treated as a failed erase.
+    """
+    out = bytearray()
+    for i in range(4):
+        base = i * UNIT
+        out += page[base:base + 512]
+        if i == 0:
+            out += page[base + 512:base + 520]
+    return bytes(out)
+
+
+def block_meaningful(buf):
+    return b"".join(page_meaningful(buf[p * 4 * UNIT:(p + 1) * 4 * UNIT]) for p in range(64))
 
 
 def first_spare(blk_bytes):
@@ -127,10 +150,12 @@ def cmd_diff(a):
     try:
         for i, b in enumerate(blocks):
             live = L.read_raw(b * BLOCK_SECTORS, BLOCK_SECTORS)
-            if live != block(raw, b):
+            want = block(raw, b)
+            if block_meaningful(live) != block_meaningful(want):
                 differ.append(b)
-                pages = sorted({j // (4 * UNIT) for j in range(0, BLOCK_BYTES, UNIT)
-                                if live[j:j + UNIT] != block(raw, b)[j:j + UNIT]})
+                pages = sorted({p for p in range(64)
+                                if page_meaningful(live[p * 4 * UNIT:(p + 1) * 4 * UNIT])
+                                != page_meaningful(want[p * 4 * UNIT:(p + 1) * 4 * UNIT])})
                 print(f"\nblock {b}: differs ({describe(raw, b)} in backup, {describe(raw, b, live)} live), "
                       f"pages {pages[:12]}{'...' if len(pages) > 12 else ''}")
             print(f"\r{i + 1}/{len(blocks)} blocks, {len(differ)} differ, {time.time() - t0:.0f}s", end="", flush=True)
@@ -147,13 +172,24 @@ class Writer(rk.Loader):
     def write_command(self, op, lba, count, payload=b""):
         if op not in (WRITE_SECTOR, ERASE_NORMAL):
             raise SystemExit(f"opcode {op:#x} not allowed")
+        if op == WRITE_SECTOR and not 1 <= count < 32:
+            raise SystemExit(
+                f"WRITE_SECTOR count {count} refused. At 32 sectors the loader's progress "
+                "(payload bytes >> 9) becomes 33, so it never sends status and swallows the next command."
+            )
         tag = int.from_bytes(os.urandom(4), "little")
         cdb = struct.pack(">BBIBH7x", op, 0, lba, 0, count)
         cbw = struct.pack("<IIIBBB", 0x43425355, tag, len(payload), 0x00, 0, 10) + cdb
-        self.dev.write(rk.EP_OUT, cbw, timeout=3000)
-        if payload:
-            self.dev.write(rk.EP_OUT, payload, timeout=10000)
-        csw = bytes(self.dev.read(rk.EP_IN, 13, timeout=10000))
+        try:
+            self.dev.write(rk.EP_OUT, cbw, timeout=3000)
+            if payload:
+                self.dev.write(rk.EP_OUT, payload, timeout=10000)
+            csw = bytes(self.dev.read(rk.EP_IN, 13, timeout=CSW_TIMEOUT_MS))
+        except self.usb.core.USBError as e:
+            raise SystemExit(
+                f"USB error on opcode {op:#x} lba {lba:#x} count {count}: {e}. "
+                "No retry and no resync. Cold plug before any further command."
+            )
         sig, ctag, _, status = struct.unpack("<IIIB", csw)
         if sig != 0x53425355 or ctag != tag:
             raise SystemExit(f"CSW mismatch on opcode {op:#x}; STOP and record everything.")
@@ -162,14 +198,21 @@ class Writer(rk.Loader):
     def erase_block(self, b):
         return self.write_command(ERASE_NORMAL, b, 1)
 
-    def program_block(self, b, data):
-        for s in range(0, BLOCK_SECTORS, WRITE_CHUNK):
+    def program_block(self, b, data, pages=None):
+        limit = BLOCK_SECTORS if pages is None else pages * WRITE_CHUNK
+        for s in range(0, limit, WRITE_CHUNK):
             chunk = data[s * UNIT:(s + WRITE_CHUNK) * UNIT]
             if chunk == b"\xff" * len(chunk):
                 continue
             st = self.write_command(WRITE_SECTOR, b * BLOCK_SECTORS + s, WRITE_CHUNK, chunk)
             if st:
                 return st
+            live = self.read_raw(b * BLOCK_SECTORS + s, WRITE_CHUNK)
+            if page_meaningful(live) != page_meaningful(chunk):
+                raise SystemExit(
+                    f"block {b} sector {s}: page read-back mismatch. STOP. No further page was sent."
+                )
+            print(f"  block {b} page {s // WRITE_CHUNK}: verified")
         return 0
 
 
@@ -178,6 +221,8 @@ def cmd_restore(a):
         raise SystemExit(f"Locked. Writing needs {APPROVAL_ENV}=yes, --approval, and a block list. Read RECOVERY.md.")
     if not a.approval or len(a.approval) < 20:
         raise SystemExit("--approval must quote the user's written go-ahead (who, when, which blocks).")
+    if a.pages is not None and not 1 <= a.pages <= 64:
+        raise SystemExit("--pages must be from 1 to 64")
     raw, h = load_image(a.image)
     blocks = parse_blocks(a.blocks)
     if SKIP_BLOCKS & set(blocks):
@@ -189,7 +234,16 @@ def cmd_restore(a):
     if info["block_sectors"] != BLOCK_SECTORS or info["page_sectors"] != 4:
         W.close()
         raise SystemExit(f"Loader reports geometry {info}; this tool assumes 256-sector blocks of 4-sector pages.")
-    print(f"About to ERASE and PROGRAM {len(blocks)} block(s) {a.blocks} from {a.image} (sha256 {h}).")
+    plug = [e for e in rk.log_entries() if e["action"] == "loader_up" and e.get("devnum") == W.devnum]
+    want_sha = rk.STAGES["plug_3032slc_erase"]["sha"]
+    if not plug or plug[-1].get("plug") != "plug_3032slc_erase" or plug[-1].get("sha") != want_sha:
+        W.close()
+        raise SystemExit(
+            "Refusing to write. This USB device was not booted with the current plug_3032slc_erase wire. "
+            "Cold plug, then `rk.py boot --ddr ddr396 --plug plug_3032slc_erase`."
+        )
+    page_note = f", first {a.pages} page(s) only" if a.pages else ""
+    print(f"About to ERASE and PROGRAM {len(blocks)} block(s) {a.blocks}{page_note} from {a.image} (sha256 {h}).")
     if input("Type WRITE to continue: ") != "WRITE":
         W.close()
         raise SystemExit("Not confirmed; nothing written.")
@@ -200,13 +254,25 @@ def cmd_restore(a):
             st = W.erase_block(b)
             if st:
                 raise SystemExit(f"block {b}: erase status {st} (bad block?). STOP.")
-            if W.read_raw(b * BLOCK_SECTORS, BLOCK_SECTORS) != ERASED:
-                raise SystemExit(f"block {b}: not 0xFF after erase. STOP.")
+            blank = W.read_raw(b * BLOCK_SECTORS, BLOCK_SECTORS)
+            if block_meaningful(blank) != b"\xff" * len(block_meaningful(blank)):
+                raise SystemExit(f"block {b}: data or spare metadata not 0xFF after erase. STOP.")
             if want != ERASED:
-                st = W.program_block(b, want)
+                st = W.program_block(b, want, a.pages)
                 if st:
                     raise SystemExit(f"block {b}: program status {st}. STOP.")
-            if W.read_raw(b * BLOCK_SECTORS, BLOCK_SECTORS) != want:
+            got = W.read_raw(b * BLOCK_SECTORS, BLOCK_SECTORS)
+            if a.pages:
+                for p in range(a.pages):
+                    sl = slice(p * 4 * UNIT, (p + 1) * 4 * UNIT)
+                    if page_meaningful(got[sl]) != page_meaningful(want[sl]):
+                        raise SystemExit(
+                            f"block {b} page {p}: read-back differs from backup. STOP; erase before any retry."
+                        )
+                rk.log("restore_pages", devnum=W.devnum, block=b, pages=a.pages, ok=True)
+                print(f"block {b}: first {a.pages} page(s) verified. The rest of the block is still erased.")
+                continue
+            if block_meaningful(got) != block_meaningful(want):
                 raise SystemExit(f"block {b}: read-back differs from backup. STOP; do not power off, record it.")
             rk.log("restore_block", devnum=W.devnum, block=b, ok=True)
             print(f"block {b}: restored and verified")
@@ -225,6 +291,7 @@ def main():
     s.set_defaults(f=cmd_diff)
     s = sub.add_parser("restore"); s.add_argument("image")
     s.add_argument("--blocks", required=True); s.add_argument("--approval")
+    s.add_argument("--pages", type=int, help="program only the first N pages of each block, then stop")
     s.add_argument("--include-boot-blocks", action="store_true")
     s.set_defaults(f=cmd_restore)
     a = p.parse_args()
