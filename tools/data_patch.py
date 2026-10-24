@@ -39,11 +39,23 @@ def debugfs(img, req, write=False):
     return "\n".join(lines)
 
 
-def fsck(img, label):
-    r = subprocess.run([E2FSCK, "-fn", img], capture_output=True, text=True)
-    if r.returncode:
-        raise SystemExit(f"e2fsck on {label} reports problems (exit {r.returncode}):\n{r.stdout}{r.stderr}")
-    print(f"  e2fsck {label}: clean")
+def fsck(img, label, repair=False):
+    if not repair:
+        r = subprocess.run([E2FSCK, "-fn", img], capture_output=True, text=True)
+        if r.returncode:
+            raise SystemExit(
+                f"e2fsck on {label} reports problems (exit {r.returncode}).\n"
+                "A power cut leaves data dirty. Re-run with --repair to fix this copy before editing.\n"
+                "Do not point --repair at a dump you have not just read from the cabinet.\n"
+                f"{r.stdout}{r.stderr}")
+        print(f"  e2fsck {label}: clean")
+        return
+    r = subprocess.run([E2FSCK, "-fy", img], capture_output=True, text=True)
+    # 0 clean, 1 errors fixed. Anything else is a failed repair.
+    if r.returncode not in (0, 1):
+        raise SystemExit(f"e2fsck -fy on {label} failed (exit {r.returncode}):\n{r.stdout}{r.stderr}")
+    print(f"  e2fsck -fy {label}: repaired" if r.returncode else f"  e2fsck -fy {label}: already clean")
+    fsck(img, label, repair=False)
 
 
 def stat(img, path):
@@ -76,6 +88,8 @@ def main():
     ap.add_argument("--put", action="append", default=[], metavar="SRC:DEST[:MODE]")
     ap.add_argument("--replace", action="append", default=[], metavar="DEST:OLD:NEW")
     ap.add_argument("--rm", action="append", default=[], metavar="DEST")
+    ap.add_argument("--repair", action="store_true",
+                    help="e2fsck -fy the data copy before editing (power-cut dumps). The restore then includes that repair")
     a = ap.parse_args()
     if not (a.put or a.replace or a.rm):
         raise SystemExit("Nothing to do: give --put, --replace or --rm.")
@@ -92,7 +106,7 @@ def main():
     run([sys.executable, os.path.join(TOOLS, "sftl_rebuild.py"), a.raw, J("old.img")])
     old = open(J("old.img"), "rb").read()
     open(J("data_old.img"), "wb").write(old[off:off + size])
-    fsck(J("data_old.img"), "data (before)")
+    fsck(J("data_old.img"), "data (before)", repair=a.repair)
     shutil.copy(J("data_old.img"), J("data_new.img"))
     img = J("data_new.img")
 

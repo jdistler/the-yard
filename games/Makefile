@@ -1,6 +1,6 @@
 # make TARGET=pc   native build for playing/testing on this PC (windowed, keyboard)
 # make TARGET=cab  armhf build for the cabinet; run through ./build.sh cab (Docker toolchain)
-GAMES := probe
+GAMES := probe keep lamp yard orb
 TARGET ?= pc
 OUT := out/$(TARGET)
 
@@ -20,7 +20,7 @@ endif
 
 all: $(GAMES:%=$(OUT)/%)
 
-$(OUT)/%: %/*.c common/cab.c common/cab.h | $(OUT)
+$(OUT)/%: %/*.c common/cab.c common/cab_gl.c common/cab.h | $(OUT)
 	$(CC) $(CFLAGS) -o $@ $(filter %.c,$^) $(LDLIBS)
 
 $(OUT):
@@ -29,4 +29,7 @@ $(OUT):
 clean:
 	rm -rf out
 
-.PHONY: all clean
+stress:
+	./stress.sh
+
+.PHONY: all clean stress

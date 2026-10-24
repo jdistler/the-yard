@@ -6,7 +6,7 @@
 | `rk_restore.py` | `diff` reads; `restore` **writes** (locked) | Recovery: `plan`, `native`, `diff`, `restore`. See [RECOVERY.md](../RECOVERY.md). The only erase and program code in the project. |
 | `sftl_rebuild.py` | No (offline) | Raw NAND image → logical disk image, and `--where` (which physical blocks hold a partition). |
 | `sftl_patch.py` | No (offline) | Modified logical image → patched copy of the raw image, plus the list of blocks that changed. Feeds `rk_restore.py restore`. |
-| `data_patch.py` | No (offline) | RAW + `--put SRC:DEST[:MODE]` / `--replace DEST:OLD:NEW` / `--rm DEST` on the `data` partition → patched raw image, block list, restore command. Runs e2fsck before and after, reads every edit back, and requires an exact rebuild round trip. |
+| `data_patch.py` | No (offline) | RAW + `--put SRC:DEST[:MODE]` / `--replace DEST:OLD:NEW` / `--rm DEST` on the `data` partition → patched raw image, block list, restore command. Runs e2fsck before and after, reads every edit back, and requires an exact rebuild round trip. `--repair` fixes a power-cut filesystem in the copy before editing. |
 | `rksend.c` | Mask ROM download | C sender for the Mask ROM download stages, called by `rk.py boot`. It uses asynchronous libusb control transfers so every 4096-byte chunk reports `actual_length` and status, and it stops at the first short or failed chunk. |
 | `Makefile` | | `make -C tools` builds `rksend`. The header is in `inc/libusb.h` (libusb 1.0.27), so no `-dev` package is needed. |
 | `fetch_references.sh` | | Shallow, sparse clones of rkbin, Rockchip U-Boot, rkdeveloptool, xrock, and rkflashtool, plus the Rockchip kernel's `drivers/rkflash` files, into `reference/` (gitignored). |

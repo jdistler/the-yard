@@ -166,7 +166,7 @@ static void draw(void)
     SDL_SetRenderDrawColor(cab_renderer, 60, 60, 120, 255);
     SDL_RenderDrawRect(cab_renderer, &(SDL_Rect){0, 0, W, H});
 
-    cab_text(4, y, 1, YELLOW, "PARTYCADE PROBE   SELECT+START=quit");
+    cab_text(4, y, 1, YELLOW, "PARTYCADE PROBE   1P+2P=quit");
     cab_text(4, y += 10, 1, GREY, "%s %dx%d  joys %d  evdev %d", SDL_GetCurrentVideoDriver(), ow, oh,
              SDL_NumJoysticks(), evcount);
     for (int i = 0; i < 2; i++) {
