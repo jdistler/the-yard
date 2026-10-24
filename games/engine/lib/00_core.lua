@@ -14,6 +14,13 @@ function step_to(v, target, step)
   if v < target then return min(v + step, target) end
   return max(v - step, target)
 end
+-- Integer division. Carts are written in the Lua both runtimes speak (5.1, as LuaJIT runs it, plus goto),
+-- which has no // operator.
+function idiv(a, b) return floor(a / b) end
+-- The angle of (x, y), from -pi to pi. Lua 5.1 spells it math.atan2(y, x); 5.4 spells it math.atan(y, x).
+atan2 = rawget(math, "atan2") or function(y, x) return math.atan(y, x) end
+-- Spread a list into values: unpack in 5.1, table.unpack in 5.4.
+unpack = rawget(_G, "unpack") or table.unpack
 function sign(v) return v > 0 and 1 or (v < 0 and -1 or 0) end
 function round(v) return floor(v + 0.5) end
 function dist(x1, y1, x2, y2) local dx, dy = x2 - x1, y2 - y1 return sqrt(dx * dx + dy * dy) end
@@ -25,7 +32,7 @@ end
 -- True for on frames out of every period: blinking prompts.
 function blink(period, on)
   period = period or 60
-  return game.frame % period < (on or period // 2)
+  return game.frame % period < (on or idiv(period, 2))
 end
 function choose(t) return t[rndi(1, #t)] end
 function shuffle(t)

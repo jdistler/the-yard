@@ -70,7 +70,7 @@ local function catch(f)
   local pts = f.type == "gold" and 5 or f.type == "pear" and 2 or 1
   local c = f.type == "gold" and GOLD or f.type == "pear" and 0xc8e05a or 0xff5a4a
   combo, catches = combo + 1, catches + 1
-  mult = min(5, 1 + combo // 6)
+  mult = min(5, 1 + idiv(combo, 6))
   score = score + pts * mult
   if arcade.score(score) then
     sfx.arp("square", {72, 76, 79, 84}, 0.07, 0.25)
@@ -279,7 +279,7 @@ local function draw_pip()
   local sq = squash * 0.25
   local bw, bh = BASKET_W * (1 + sq), 18 * (1 - sq * 0.8)
   local look = facing * 1.5
-  if hurt_t > 0 and (hurt_t // 4) % 2 == 1 then return end
+  if hurt_t > 0 and idiv(hurt_t, 4) % 2 == 1 then return end
   if dash_t > 0 then
     for k = 1, 3 do gfx.rrect(x - bw / 2 - vx * k * 2, y - bh, bw, bh, 5, alpha(0xffffff, 60 - k * 15)) end
   end

@@ -78,13 +78,13 @@ The menu loads exactly 12 tiles (`for i in 0..11`), with artwork in the read-onl
 | :--- | :--- | :--- | :--- |
 | **A. "More games" behind an existing tile** | `data` only: `start.sh` plus our files. A few blocks. | Smallest change. The stock menu and system are untouched | The tile still shows the stock game's art and name. That stock game moves into our menu, or opens only when a button is *not* held, which is hidden and not obvious |
 | **B. Our own main menu** | `rootfs` once: `S50ui` becomes "run `/data/launcher` if present, else the stock menu". After that, `data` only | Real entries 13, 14, … with our own art. The 12 stock games are still launched exactly as before (`/data/start.sh N …`, stock artwork reused). Falls back to the stock menu if our launcher is missing or crashes | One larger write (a rebuilt SquashFS, size to be measured offline). The menu UI is ours to build |
-| C. SD card or USB stick | One device-tree edit in the `boot` partition, then nothing else | The card or stick can be gigabytes. Linux already has the drivers | The controllers are **off** in the stock device tree, so a card or stick plugged in today is invisible. Turning them on is a boot-partition write, not done. It does not make the card boot the machine. Details in § 9 |
+| C. SD card or USB stick | One device-tree edit in the `boot` partition, then nothing else | The card or stick can be gigabytes. Linux already has the drivers | The controllers are **off** in the stock device tree, so a card or stick plugged in today is invisible. Turning them on is a boot-partition write, not done. It is not expected to make the card boot the machine. Details in § 9 |
 
 All flash changes go through the same reversible path. Edit a copy offline, `tools/sftl_patch.py` lists the physical blocks that changed, and `tools/rk_restore.py restore` writes just those. The original backup undoes any of it ([RECOVERY.md](RECOVERY.md)).
 
 **Recommendation:** **A** is what tile 10 does now (The Yard). **B** is the real 13th tile, later. **C** is extra room for pictures and music once a boot device-tree change is worth a flash of its own. Games that ship on the cabinet have to fit in the 24.40 MiB with nothing plugged in.
 
-**Optional development accelerator:** the stock system already ships `adbd`, and it only lacks USB device mode. One small device-tree change in the `boot` partition should give a root shell over the Micro-USB cable with the switch ON. Then a new game build is `adb push`, with no switch flips. It's untested and needs one more flash change, so it's worth it only once we iterate a lot.
+**Optional development accelerator:** the stock system already ships `adbd`, and it only lacks USB device mode. One small device-tree change in the `boot` partition (`enable_storage.py --which adb`: the OTG port's `dr_mode` from `host` to `otg`) should give a root shell over the Micro-USB cable with the switch ON. Then a new game build is `adb push`, with no switch flips. It's untested. It can ride in the same `boot` write as the SD slot (§ 11).
 
 ## 5. Step-by-step plan
 
@@ -238,6 +238,31 @@ Turning a port on is one property in the kernel device tree inside the `boot` pa
 
 Games already have the call. `cab_ext_root()` returns `CAB_EXT` when that directory exists (the simulator; it does not have to be a mount), otherwise `/mnt/sdcard` if that path is a mount, otherwise `/tmp/stick` if that path is a mount. On a cabinet build only, the first call tries `mount` of `/dev/mmcblk0p1`, `/dev/mmcblk0`, then `/dev/sda1` onto `/tmp/stick`, as vfat, then ext2, then exfat. A PC build never mounts. `cab_ext_read` and `cab_ext_write` take one file name, the same character rules as a score file, and writes are temp, fsync, rename. The Yard reads `label` and writes `visited`. Orb copies `label` to `orb-card`. A game that must run with nothing plugged in still fits in the 24.40 MiB on `data`. The card is extra.
 
+### The storage plan (audit, 2026-10-24)
+
+The microSD slot is the storage, and USB-A stays free for a network adapter later.
+
+* **Turn on only the slot.** That is one `boot` write: `enable_storage.py --which sd` (§ 11). Add `adb` to the same write for a shell over the Micro-USB cable if the user wants it.
+* **Use two partitions on the card.** FAT32 for carts, pictures, sound, and saves; udev mounts it at `/mnt/sdcard` with no exec, which a cart doesn't need. A small ext2 partition holds programs that must run from the card, such as LÖVE and its libraries (§ 12), since FAT can't run them. Format both on the PC. The kernel has no ext4.
+* **Speed.** The slot's limit is 37.5 MHz on four bits, about 18 MB/s at best. Loading a scene is fine; streaming video is not.
+* **Keep the NAND copy.** Everything that must run with nothing plugged in stays there: the menu, the carts that ship today, saves. The card adds; it never replaces. The runtime already reads carts from `<card>/yard/carts` (CARTS.md § 11).
+* **Not known until a card is in a powered cabinet:**
+  * whether the slot is fitted and wired as the kernel's tree says;
+  * whether card detect (GPIO1 pin 17) works, or the `broken-cd` polling is what finds the card;
+  * which mount udev really makes.
+
+  FIELD_TASKS.md has the steps.
+
+### Wi-Fi on USB-A, later: what it needs
+
+Turning on `usb@101c0000` is the easy part. A USB Wi-Fi adapter then needs three more things, and the stock system has none of them:
+
+* **A driver in the kernel.** The kernel has no loadable modules, so the adapter's driver (an `rtl8xxxu`, `rt2800usb`, or `mt7601u` class driver, plus `cfg80211` and `mac80211`) must be built in. Nobody has listed what this kernel contains. `FIELD_TASKS.md` task 1 extracts its config if it carries one, and its driver strings either way. If the drivers are missing, Wi-Fi means building a new kernel from Rockchip's 4.4 tree for this board, a bigger `boot` change.
+* **Firmware files.** Most adapters load a firmware blob. The rootfs has no `/lib/firmware`, so it would go on the card or in `data`, and the kernel must be told where to look.
+* **Userland.** The rootfs has `udhcpc`, `ifup`, and `dropbear` (an SSH server, already with an init script), but no `wpa_supplicant` and no `iw`. Those can be cross-built and kept on the card's ext2 partition.
+
+A route that needs no kernel work: the ADB edit above, plus a small Wi-Fi computer inside the cabinet (a Raspberry Pi Zero 2 W, for example) cabled to the Micro-USB port as the ADB host. It reaches the cabinet's shell over the network, and USB-A stays free. That is a hardware idea, not tested.
+
 ## 10. How far this hardware can be pushed
 
 Measured from the device tree, the kernel image, and the libraries in the rootfs. The scanout was measured on the cabinet (1024×768 @ 60). Free RAM while Linux is up has not been measured.
@@ -259,7 +284,7 @@ Smooth on this machine means one update per vsync, drawing at 384×512 or 768×1
 
 There is a path. It is offline until a fresh dump and a written approval. `tools/enable_storage.py` never talks to the cabinet.
 
-Linux checks `status` with `strcmp`. The stock value is the 9-byte string `disabled`. Overwriting those 9 bytes with `okay` and five extra NULs turns the node on and moves no other byte in the tree. The boot image stays the same size. The tool does that for `usb@101c0000` (USB-A) and `dwmmc@10214000` (the 4-bit SD slot). It leaves three nodes alone:
+Linux checks `status` with `strcmp`. The stock value is the 9-byte string `disabled`. Overwriting those 9 bytes with `okay` and five extra NULs turns the node on and moves no other byte in the tree. The boot image stays the same size. The tool does that for `dwmmc@10214000` (the 4-bit SD slot, the default `--which sd`) and, when asked, `usb@101c0000` (USB-A, `--which usb`). `--which adb` also rewrites the Micro-USB OTG port's `dr_mode` from `host` to `otg` in place, for the ADB shell (§ 4). Otherwise it leaves three nodes alone:
 
 | Node | Why it stays |
 | :--- | :--- |
@@ -269,7 +294,7 @@ Linux checks `status` with `strcmp`. The stock value is the 9-byte string `disab
 
 ```
 python3 tools/enable_storage.py report ~/partycade-dumps/extracted/bootimg/rk-kernel.dtb
-python3 tools/enable_storage.py patch ~/partycade-dumps/extracted/boot.img -o /tmp/boot-storage.img
+python3 tools/enable_storage.py patch ~/partycade-dumps/extracted/boot.img -o /tmp/boot-storage.img --which sd   # add ,adb for the shell; ,usb only when USB-A is wanted
 python3 tools/enable_storage.py report /tmp/boot-storage.img
 ```
 
@@ -281,7 +306,7 @@ When the time comes to flash, the sequence is the same shape as every other rest
 # Cold plug. RAW is a rawdump from this session.
 python3 tools/sftl_rebuild.py RAW logical.img
 dd if=logical.img of=boot.img bs=512 skip=2048 count=9216
-python3 tools/enable_storage.py patch boot.img -o boot-storage.img
+python3 tools/enable_storage.py patch boot.img -o boot-storage.img --which sd
 python3 tools/enable_storage.py report boot-storage.img
 cp logical.img logical-storage.img
 dd if=boot-storage.img of=logical-storage.img bs=512 seek=2048 conv=notrunc
@@ -296,7 +321,7 @@ After a successful boot with the new tree, format the card on the PC. FAT is for
 
 ## 12. The engine and the games
 
-Two steps on 2026-10-24, both on the PC only; the chip still has the 2026-10-23 22:00 build (STATUS.md).
+Three steps on 2026-10-24, all on the PC only; the chip still has the 2026-10-23 22:00 build (STATUS.md).
 
 **First, the redraw.** The first builds drew with `SDL_RenderFillRect` and the 8×8 font, and each game had one sine beep. Every game was rebuilt on a small software renderer (`gfx`) and synth (`sfx`):
 
@@ -327,6 +352,8 @@ What each game is:
 * **Lamp.** The meadow is dark except for the lantern's light, drawn with the runtime's light map. A sleeping star breathes a faint glow so it can be found. Waking one sends it up into the sky band, where it takes its place and a line joins it to the last one. A full set is a constellation (the Kite, the Teacup, the Cat, the Key, the Fish, the Crown, the Whale, the Teapot, the Dragon); then the next night has more stars. The lamp burns oil: fireflies refill it, moths from night 3 nibble it. Run dry and the light shrinks to an ember for two and a half seconds, then relights with the stars already woken still awake.
 * **Orb.** The title is a lit orb over a grid, turning; the stick yaws it. The well is a tube of panels whose seams glow in a color that shifts with depth. The first four gates teach the four sides; after that they are random per run, with a pillar and a ring (only the middle open) from the tenth. Wisps are points, and catching several in a row is a chain. Speed rises with distance. It stays a C program (`native/orb`) because it draws with OpenGL ES 2.
 * **Tea and Chest** are version 2 of their specs ([games/carts/tea/DESIGN.md](games/carts/tea/DESIGN.md), [games/carts/chest/DESIGN.md](games/carts/chest/DESIGN.md)), worked out by playing them with `playtest.py` (§ 13). Tea: treats to catch on the flight that then decorate the party, three different asks per cat (its wish, a cupcake, a hug), a song after the cheer, and a photo on the castle wall that stays between visits. Chest: the sword aims itself in the fight, Ned hops back from the chest, Zam (drawn after Alakazam) learns a teleport, a shield, and a three-bubble fan as the pile grows, and each win adds a different treasure to a mound.
+
+**Third, the GPU runtime (2026-10-24, PC only).** The same carts also run on LÖVE 11.5, built from source with `zig cc` for the cabinet's glibc 2.29 (`games/love/build.sh`). It draws with OpenGL ES 2 on the Mali instead of the CPU, and its sound is OpenAL. With the same seed, each cart's bot writes the same log and the same save on both runtimes (`test.py love`). The bundle is 8.9 MB, so it belongs on the microSD card's ext2 partition once the slot is on; the first test puts it in `data` as one 4.1 MB `love.tar.gz` that the cabinet unpacks itself. Nothing about it is verified on the cabinet. [games/love/README.md](games/love/README.md) has the recipe and the open questions; [FIELD_TASKS.md](FIELD_TASKS.md) has the first run.
 
 ## 13. Playing a game yourself, as the cabinet runs it: `playtest.py`
 

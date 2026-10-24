@@ -219,7 +219,7 @@ local function care(who)
   if who ~= NIB then st.last_friend = who end
   if st.song_mode then
     play_song_note(who)
-    st.care_wait = CARE_GAP // 2
+    st.care_wait = idiv(CARE_GAP, 2)
     return
   end
   if (kind == "cup" or kind == "yarn" or kind == "flower") and GIFT_FOR[who] then st.gift[who] = GIFT_FOR[who] end
@@ -238,7 +238,7 @@ local function care(who)
   if kind == "cake" then particles.burst(seat_x(who), head_y(who) + 14, 8, 1.5, 24, 2, 0xffe0a0, "square") end
   if all_full() and not st.cheered then
     st.cheered, st.cheer_left = true, CHEER_FRAMES
-    react("The whole table glows.", CHEER_FRAMES // 2)
+    react("The whole table glows.", idiv(CHEER_FRAMES, 2))
     notes({72, 76, 79, 84}, 0.14, 0.32)
     fx.confetti(40)
     st.photo_t = 1
@@ -315,7 +315,7 @@ local function sky_step(held, button)
   st.tilt = approach(st.tilt, (st.lane * LANE_X - st.uni_lx) * 0.02, 0.2)
   st.uni_x = W / 2 + st.uni_lx
   local step = held and HURRY_STEP or SKY_STEP
-  if game.fast then step = step * 8 // 5 end
+  if game.fast then step = idiv(step * 8, 5) end
   st.fly = min(FLY_DONE, st.fly + step)
   local speed = held and 0.012 or 0.007
   music.tempo(held and 1.4 or 1)
@@ -336,7 +336,7 @@ local function sky_step(held, button)
   end
   -- Treats along the rainbow. The sparkle reaches the next lane too.
   st.next_treat = st.next_treat - 1
-  if st.next_treat <= 0 and st.fly < FLY_DONE * 92 // 100 then
+  if st.next_treat <= 0 and st.fly < idiv(FLY_DONE * 92, 100) then
     spawn_treat()
     st.next_treat = held and 34 or 52
   end
@@ -363,7 +363,7 @@ function bot()
   if st.phase == "sky" then
     local t = next_coming()
     if t and t.lane ~= st.lane and game.frame % 6 == 0 then input.bot(t.lane < st.lane and "left" or "right") end
-    if (game.frame // 50) % 3 == 1 then input.bot("low") end
+    if idiv(game.frame, 50) % 3 == 1 then input.bot("low") end
   elseif st.phase == "party" then
     if game.frame % 24 == 0 then input.bot((st.hearts[st.focus] < 3 or st.song_mode) and "low" or "right") end
   end
@@ -446,7 +446,7 @@ function update()
       particles.burst(W / 2 + 40, 340, 8, 2, 26, 3, C.GOLD, "star")
     end
     st.door_t = st.door_t + 1
-    if st.door_t >= (game.fast and DOOR_FRAMES * 5 // 8 or DOOR_FRAMES) then
+    if st.door_t >= (game.fast and idiv(DOOR_FRAMES * 5, 8) or DOOR_FRAMES) then
       st.phase = "party"
       music.play(party_bed)
       music.tempo(1)

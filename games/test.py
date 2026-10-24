@@ -5,6 +5,8 @@
     python3 test.py play     one session of every game, saves and pictures (play.sh)
     python3 test.py stress   the edges: quit, held buttons, broken saves, records, demos (stress.sh)
     python3 test.py system   the sandbox, the cart pack, the deploy tools, the templates
+    python3 test.py love     the GPU runtime (LÖVE) plays each cart as the C runtime does (needs
+                             games/love/build.sh x86; `all` skips it when that build is missing)
     python3 test.py all
 
 Every run happens in a fresh temporary directory, which stands in for /data/Games.
@@ -499,6 +501,60 @@ def system():
     shutil.rmtree(shelf, ignore_errors=True)
 
 
+# ---------------------------------------------------------------------------- love
+
+LOVE_RUN = os.path.join(HERE, "out", "love-x86", "run.sh")
+LOVE_CARTS = {"chest": "Chest", "keep": "Keep", "lamp": "Lamp", "tea": "Tea"}
+
+
+def cart_lines(text, cid):
+    return [l for l in text.splitlines() if l.startswith(cid + " ")]
+
+
+def love():
+    say("== love: the GPU runtime against the C runtime")
+    if not os.path.exists(LOVE_RUN):
+        say("  skip: no out/love-x86 (games/love/build.sh x86)")
+        return
+    d = tmpdir()
+    yl = os.path.join(d, "yard.love")
+    subprocess.run([os.path.join(HERE, "cart"), "love-pack", "--out", yl], check=True, capture_output=True)
+    base = {"YARD_CARTS": os.path.join(HERE, "carts"), "SDL_AUDIODRIVER": "dummy"}
+    # OpenAL ignores SDL_AUDIODRIVER; its null driver keeps ALSA from looking for a sound card.
+    lenv = dict(base, YARD_HEADLESS="1", SDL_VIDEODRIVER="offscreen", ALSOFT_DRIVERS="null")
+    # 1. The same seed and the same bot: every log line matches, so the game logic is the same.
+    for cid, title in LOVE_CARTS.items():
+        c_dir, l_dir = tmpdir(), tmpdir()
+        sc = script(title, "1200 quit")
+        _, c_err = run("yard", c_dir, sc, dict(base, CAB_AUTOPLAY="1"), args=(cid,), timeout=300)
+        _, l_err = run("love", l_dir, sc, dict(lenv, CAB_AUTOPLAY="1"), args=(yl, cid), timeout=600, binary=LOVE_RUN)
+        a, b = cart_lines(c_err, cid), cart_lines(l_err, cid)
+        check(a and a == b, f"{cid}: the bot's game logs the same {len(a)} lines on both runtimes")
+        check(read(c_dir, f"{cid}.sav") == read(l_dir, f"{cid}.sav"), f"{cid}: the same save file on both runtimes")
+    # 2. The menu launches a cart in the same process and comes back to a drawn menu.
+    m_dir = tmpdir()
+    back, inlamp = os.path.join(m_dir, "back.png"), os.path.join(m_dir, "inlamp.png")
+    sc = (f"title=The Yard\n10 down DOWN\n11 up DOWN\n30 down LOW\n31 up LOW\n150 shot {back}\n160 quit\n"
+          f"title=Lamp\n10 shot {inlamp}\n20 down 1P\n20 down 2P\n")
+    code, err = run("love", m_dir, sc, dict(lenv, CAB_MAX_FRAMES="400"), args=(yl,), timeout=300, binary=LOVE_RUN)
+    check(code == 0, f"the menu runs, launches Lamp, and quits cleanly (exit {code})")
+
+    def colors(path):
+        try:
+            from PIL import Image
+        except ImportError:
+            return 99 if os.path.exists(path) else 0
+        try:
+            im = Image.open(path).convert("RGB").resize((30, 40))
+        except OSError:
+            return 0
+        px = im.tobytes()
+        return len({(px[i] >> 4, px[i + 1] >> 4, px[i + 2] >> 4) for i in range(0, len(px), 3)})
+    check(colors(inlamp) > 8, "Lamp draws a picture when the menu starts it")
+    check(colors(back) > 8, "the menu draws again after Lamp quits")
+    check("error" not in err.lower(), "no error on the way")
+
+
 def main():
     which = sys.argv[1] if len(sys.argv) > 1 else "all"
     subprocess.run(["make", "-s", "TARGET=pc"], cwd=HERE, check=True)
@@ -510,6 +566,8 @@ def main():
         stress()
     if which in ("system", "all"):
         system()
+    if which in ("love", "all"):
+        love()
     say(f"== {passes} passed, {len(failures)} failed ==")
     for f in failures:
         say(f"  FAIL {f}")

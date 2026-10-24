@@ -272,3 +272,28 @@ No cabinet, no USB command, nothing staged or written. Cloud container again: no
   * `stage_game.py` is gone.
 
 Conclusion: the cart build is ready for a cabinet build (`build.sh cab` with the rootfs), a qemu smoke test, and a `cart deploy --first` from a fresh dump. Approval is needed for whatever blocks that prints. Open: the frame time on the A7, and whether the first install lands entirely on pages SFTL has written.
+
+
+## 2026-10-24 (night): the SD audit, a LÖVE build for the cabinet, and field tasks, no hardware
+
+No cabinet, no USB command, nothing staged or written. Cloud container: no `~/partycade-dumps/`, no rootfs. No plug was tried, so `rk.py` `STAGES` notes are unchanged. No device numbers.
+
+* **SD and USB audit (from `captures/device-tree.txt`, `captures/uboot-env.txt`, and the rootfs listing).**
+  * The kernel's tree has the card slot at `dwmmc@10214000` (alias `sdmmc`, 4-bit, card detect on GPIO1 pin 17, `vmmc` on the always-on `vcc_io`), `disabled`.
+  * U-Boot's embedded tree has only `dwmmc@1021c000`. Expected: `rkimgtest mmc 1` never sees the slot, so a card does not boot the machine, and the RUNBOOK's SD-boot options A and A2 are expected not to work. RUNBOOK § 7 and § 8 (now "Phase 4: the SD slot as storage, and an ADB shell"), GAMEDEV § 9 and § 11, FIRMWARE_ANALYSIS, and STATUS were corrected.
+  * Storage plan: FAT at `/mnt/sdcard` is `noexec`; ext2 is exec; no ext4.
+  * Wi-Fi on USB-A needs a built-in driver with cfg80211/mac80211, firmware (`/lib/firmware` is absent), and `wpa_supplicant` or `iw` (absent). `udhcpc`, `dropbear`, and `adbd` are present.
+  * `tools/enable_storage.py` gained `--which adb`: `dr_mode` `host` → `otg` on `usb@10180000`, in place (tested on a synthetic tree: 20 bytes, same size). The default is now `sd` alone.
+* **`tools/device_facts.py`** (new) turns a rootfs and a `boot.img` into committable text: library ABIs, the kernel config (IKCFG) and a driver list, the GL and SDL strings. Tested on a fake rootfs only.
+* **LÖVE 11.5 for the cabinet** (`games/love/build.sh arm`).
+  * `zig cc` 0.13.0 targeting `arm-linux-gnueabihf.2.28 -mcpu=cortex_a7`, with SDL 2.30.9 (KMSDRM, GLES2, ALSA loaded at run time), LuaJIT v2.1, OpenAL Soft 1.23.1, ogg, vorbis, theora 1.1.1, modplug, freetype 2.13.2, zlib 1.3.1. Headers for DRM, GBM, EGL, GLES, ALSA, and udev are vendored in `games/love/include/`.
+  * Problems found and fixed: libtool linked `liblove` with `-nostdlib` and no libc++ (sed on libtool); LuaJIT on ARM left `__floatdidf` and three others undefined (`rtshim.c`) and wanted libgcc's unwinder (`LUAJIT_NO_UNWIND`); the x86 `luajit` binary needed `-lunwind`; zig `objcopy` in place empties files (strip to a new file); a game folder failed to mount under qemu (`std::length_error`), so games ship as `.love`.
+  * `check_abi.py`: every ELF is ARM hard-float, glibc ≤ 2.29, GLIBCXX ≤ 3.4.22, and every needed library is in the bundle or in `captures/rootfs-listing.txt`. Result: the bundle will load. Expected, not verified.
+  * `smoke.sh` under `qemu-arm -L /usr/arm-linux-gnueabihf` (Ubuntu's libraries, not the cabinet's): LÖVE 11.5.0, LuaJIT arm, C++ exceptions come back as Lua errors, images, PNG, sound data, freetype, zlib: `smoke ok`. 3M `math.sin` in 2000 ms under qemu.
+  * Bundle 8.9 MB; as `love.tar.gz` with the probe and `yard.love`, 4.1 MB.
+* **The GPU runtime** (`games/love/yard/`): the cart API on `love.graphics` at 768×1024, the synth rendered into cached buffers, the deck with SDL 2.0.7's button numbers (overridable by `/data/Games/yard-deck.txt`), the same sandbox and pack reader. With the same seed and bot, Chest, Keep, Lamp, and Tea write identical log lines (105, 8, 21, 60 over 1200 frames) and identical saves on both runtimes. Carts now use `idiv`, `atan2`, and `unpack` so they parse as Lua 5.1; `cart check` lints for it and parses with LuaJIT.
+* **The probe** (`games/love/probe/`) ran headless on x86 with Mesa llvmpipe; its cabinet numbers are FIELD_TASKS.md task 5.
+* **A test bug.** `cart check yard` timed out at 5 minutes in its random-mash pass, also on the previous commit: a cart the menu launched was a separate process with no frame limit. The checker now sets `CAB_MAX_FRAMES` as well. No engine change.
+* `test.py`: 90 checks, all pass (12 new in `love`). `cart check`: all carts pass.
+
+Conclusion: everything that can be done without the cabinet is done. The next facts come from [FIELD_TASKS.md](FIELD_TASKS.md): the device facts, a cabinet build with `check_binary.sh`, a qemu run against the real rootfs, one staged deploy that needs written approval of its blocks, a play test, and the probe's report.

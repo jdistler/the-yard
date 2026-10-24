@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Show or prepare the boot-image change that turns on USB-A and the microSD slot.
+"""Show or prepare the boot-image change that turns on the microSD slot, USB-A, and an ADB port.
 
 Offline only. This never talks to the cabinet and never calls restore.
 
@@ -10,7 +10,11 @@ without moving any other byte in the tree. The boot image stays the same size.
 
   tools/enable_storage.py report BOOT.img
   tools/enable_storage.py report rk-kernel.dtb
-  tools/enable_storage.py patch BOOT.img -o /tmp/boot-storage.img
+  tools/enable_storage.py patch BOOT.img -o /tmp/boot-storage.img               # the SD slot only
+  tools/enable_storage.py patch BOOT.img -o /tmp/boot.img --which sd,usb,adb   # all three
+
+adb sets the Micro-USB OTG controller's dr_mode from "host" to "otg", so the stock adbd
+gets a UDC: a root shell over the cable (untested on this board).
 
 patch writes a new boot image. It does not write NAND. Flashing it is a separate
 step, from a fresh rawdump, with a block list computed that session. See
@@ -36,6 +40,9 @@ TARGETS = {
     "usb@101c0000": "usb",
     "dwmmc@10214000": "sd",
 }
+# The Micro-USB OTG port: dr_mode "host" -> "otg" turns on a UDC, so the stock adbd
+# starts (FIRMWARE_ANALYSIS.md). "otg" fits in place of "host"; "peripheral" would not.
+ADB_NODE = "usb@10180000"
 
 
 def align(n):
@@ -115,6 +122,13 @@ def statuses(dtb):
     return found
 
 
+def dr_mode(dtb):
+    for path, prop, off, length in walk(dtb):
+        if prop == "dr_mode" and path.split("/")[-1] == ADB_NODE:
+            return bytes(dtb[off:off + length]).split(b"\0", 1)[0].decode(), off, length, path
+    return None
+
+
 def report(dtb, label):
     found = statuses(dtb)
     print(f"{label}: {len(dtb)} bytes")
@@ -130,12 +144,26 @@ def report(dtb, label):
         if prop == "status" and node in ("usb@10180000", "dwmmc@10218000", "dwmmc@1021c000"):
             text = bytes(dtb[off:off + length]).split(b"\0", 1)[0].decode()
             print(f"  leave {path}: status={text!r}")
+    m = dr_mode(dtb)
+    print(f"  adb  {m[3]}: dr_mode={m[0]!r} ({m[2]} bytes at {m[1]:#x})" if m else f"  adb  {ADB_NODE}: DR_MODE MISSING")
     return found
 
 
 def patch(dtb, which):
     found = statuses(dtb)
     changed = []
+    if "adb" in which:
+        m = dr_mode(dtb)
+        if not m:
+            raise SystemExit(f"no dr_mode on {ADB_NODE}")
+        text, off, length, path = m
+        if text == "otg":
+            print(f"{path} is already otg")
+        elif text != "host" or length != 5:
+            raise SystemExit(f"{path} dr_mode is {text!r}, {length} bytes; refusing to guess")
+        else:
+            dtb[off:off + 5] = b"otg\0\0"
+            changed.append(path + " dr_mode")
     for node, key in TARGETS.items():
         if key not in which:
             continue
@@ -162,7 +190,7 @@ def main():
     ap.add_argument("command", choices=("report", "patch"))
     ap.add_argument("image", help="boot.img or a bare rk-kernel.dtb")
     ap.add_argument("-o", "--out", help="patch: where to write the new boot image or dtb")
-    ap.add_argument("--which", default="usb,sd", help="patch: usb, sd, or usb,sd (default both)")
+    ap.add_argument("--which", default="sd", help="patch: any of sd, usb, adb, comma-separated (default sd)")
     a = ap.parse_args()
     blob = open(a.image, "rb").read()
     try:
@@ -174,9 +202,9 @@ def main():
         else:
             raise
     which = {w.strip() for w in a.which.split(",") if w.strip()}
-    unknown = which - set(TARGETS.values())
+    unknown = which - set(TARGETS.values()) - {"adb"}
     if unknown:
-        raise SystemExit(f"unknown --which {unknown}; use usb and sd")
+        raise SystemExit(f"unknown --which {unknown}; use sd, usb, adb")
     if a.command == "report":
         report(dtb, a.image)
         if whole:

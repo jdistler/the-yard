@@ -190,7 +190,7 @@ local function spawn_bubbles()
   local n = S.spray and 3 or 1
   for k = 0, n - 1 do
     local bx, by = S.zx + (k - (n - 1) / 2) * 30, S.zy - 30
-    local a = math.atan(S.ny - by, S.nx - bx) + (k - (n - 1) / 2) * 0.38
+    local a = atan2(S.ny - by, S.nx - bx) + (k - (n - 1) / 2) * 0.38
     S.bubbles[#S.bubbles + 1] = {x = bx, y = by, vx = cos(a) * 2.3, vy = sin(a) * 2.3}
   end
   sfx.slide("sine", 500, 300, 0.2, 0.2)
@@ -235,7 +235,7 @@ local function fight_step()
   local c = S.fight_t % len
   if S.tele_t > 0 then
     S.tele_t = S.tele_t - 1
-    if S.tele_t == TELE_FRAMES // 2 then
+    if S.tele_t == idiv(TELE_FRAMES, 2) then
       S.spot = S.tele_to
       S.zx = SPOTS[S.spot]
       particles.burst(S.zx, S.zy, 16, 2, 26, 2.5, 0xc8a8ff, "star")
@@ -258,7 +258,7 @@ local function fight_step()
     if S.telegraph == 0 then spawn_bubbles() end
   elseif S.wrap == 0 and not S.fairy and S.tele_t == 0 and c == 40 then
     S.telegraph = 30
-    S.spray = S.level >= 3 and (S.fight_t // len) % 2 == 1
+    S.spray = S.level >= 3 and idiv(S.fight_t, len) % 2 == 1
     tone(S.spray and 587 or 659, 0.12, 0.2)
     if S.spray then react_to("Three bubbles! Step away.") end
   end

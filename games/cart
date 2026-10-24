@@ -10,6 +10,9 @@
   ./cart perf ID [--frames N]                     instructions per frame (callgrind), against the budget
   ./cart pack [--out FILE]                        build yard.pak: every cart, padded to its fixed slot
   ./cart deploy --raw RAW --out DIR [--first]     stage yard, orb, and yard.pak onto a copy of a raw dump
+                [--with-love-probe]               ... plus LÖVE, its probe, and a "GPU yard" row (FIELD_TASKS.md)
+  ./cart love [ID]                                play on LÖVE, the GPU runtime (games/love/build.sh x86 first)
+  ./cart love-pack [--out FILE]                   build yard.love: the LÖVE runtime, library, and font
 
 A cart is a folder in carts/: info.lua (the label: title, blurb, icon, stat) and main.lua (the game),
 plus any other .lua it imports, .png pictures, and .txt data. CARTS.md is the API. GAMEDEV.md the rules.
@@ -154,8 +157,30 @@ def lint(cid):
                     code = line.split("--")[0]
                     if re.search(r"\b(os|io|debug|package)\.", code) or re.search(r"\b(require|loadstring|dofile)\s*\(", code):
                         problems.append(f"{rel}:{n}: carts cannot reach os, io, debug, package, require: {line.strip()[:60]}")
+                    bare = re.sub(r'"(\\.|[^"\\])*"|\'(\\.|[^\'\\])*\'', '""', code)
+                    m = re.search(r"//|<<|>>|[^~=<>]~[^=]|\s[&|]\s|\butf8\.|\bmath\.(type|tointeger|ult)\b|\btable\.move\b|\bstring\.(pack|unpack)\b", bare)
+                    if m:
+                        problems.append(f"{rel}:{n}: '{m.group(0).strip()}' is Lua 5.3+; carts use the Lua both runtimes speak "
+                                        f"(5.1 with goto; idiv(a, b) for //): {line.strip()[:60]}")
+                    m = re.search(r"\bmath\.atan\s*\([^()]*,|\bmath\.atan2\b|\btable\.unpack\b|\btable\.pack\b|\bmath\.pow\b|"
+                                  r"\bmath\.log\s*\([^()]*,|\bloadstring\b|\bsetfenv\b|\bmath\.maxinteger\b", bare)
+                    if m:
+                        problems.append(f"{rel}:{n}: '{m.group(0).strip()}' differs between Lua 5.1 (LÖVE) and 5.4; use the "
+                                        f"library's atan2(y, x), unpack(t), x ^ y, or math.log(x) / math.log(b): {line.strip()[:60]}")
                     if "\t" in line[: len(line) - len(line.lstrip())]:
                         problems.append(f"{rel}:{n}: indent with spaces")
+    luajit = shutil.which("luajit") or next((p for p in (os.path.join(HERE, "out", "love-x86", "luajit"),) if os.path.exists(p)), None)
+    if luajit:
+        # Parse every file the way LuaJIT (LÖVE) will.
+        for dirpath, _, files in os.walk(d):
+            for f in files:
+                if f.endswith(".lua"):
+                    # -b compiles to bytecode without running anything.
+                    r = subprocess.run([luajit, "-b", os.path.join(dirpath, f), os.devnull],
+                                       capture_output=True, text=True)
+                    if r.returncode:
+                        problems.append(f"{os.path.relpath(os.path.join(dirpath, f), d)}: LuaJIT cannot parse it: "
+                                        f"{(r.stderr.strip().splitlines() or ['?'])[0][:120]}")
     if total > 2 * 1024 * 1024:
         problems.append(f"the cart is {total // 1024} KB; keep a cart under 2 MB")
     return problems
@@ -164,7 +189,9 @@ def lint(cid):
 def run_check(cid, frames, script=None, extra=None):
     """Run the cart headless through the runtime's --check. Returns (ok, stdout+log)."""
     d = tempfile.mkdtemp(prefix="cart-check-")
-    e = env({"YARD_CHECK_FRAMES": str(frames)})
+    # CAB_MAX_FRAMES also stops a cart the menu launches mid-check (a separate process, not in check mode),
+    # which would otherwise run on forever once the script ran out.
+    e = env({"YARD_CHECK_FRAMES": str(frames), "CAB_MAX_FRAMES": str(frames + 1)})
     e.update(extra or {})
     if script is not None:
         path = os.path.join(d, "deck.cab")
@@ -311,15 +338,17 @@ def cmd_perf(a):
 
 # ---------------------------------------------------------------------------- pack
 
-def pack_bytes():
+def pack_bytes(extra=()):
+    """extra: more cart folders to include, by path (cart deploy --with-love-probe adds its label)."""
     entries = []
-    for cid in carts():
-        for dirpath, _, files in sorted(os.walk(os.path.join(CARTS, cid))):
+    folders = [(cid, os.path.join(CARTS, cid)) for cid in carts()] + [(os.path.basename(e), e) for e in extra]
+    for cid, folder in folders:
+        for dirpath, _, files in sorted(os.walk(folder)):
             for f in sorted(files):
                 if not f.endswith(ALLOWED) or f.endswith(".md"):
                     continue
                 p = os.path.join(dirpath, f)
-                name = os.path.relpath(p, CARTS).replace(os.sep, "/")
+                name = cid + "/" + os.path.relpath(p, folder).replace(os.sep, "/")
                 entries.append((name, open(p, "rb").read()))
     body = b""
     for name, data in entries:
@@ -333,7 +362,7 @@ def cmd_pack(a):
     problems = [p for c in carts() for p in lint(c)]
     if problems:
         die("lint first:\n  " + "\n  ".join(problems))
-    data, entries = pack_bytes()
+    data, entries = pack_bytes(getattr(a, "extra", ()))
     slot = SLOTS["yard.pak"]
     if len(data) > slot:
         die(f"the carts need {len(data)} bytes; the yard.pak slot is {slot}")
@@ -349,6 +378,46 @@ def cmd_pack(a):
                        capture_output=True, text=True)
     print("  the runtime reads: " + ", ".join(l.split()[0] for l in r.stdout.splitlines() if "pak:" in l))
     return out
+
+
+# ---------------------------------------------------------------------------- LÖVE
+
+LOVE_X86 = os.path.join(HERE, "out", "love-x86", "run.sh")
+
+
+def love_pack(out=None):
+    """games/love/yard + the shared library + the round font -> a .love (a zip LÖVE runs)."""
+    import zipfile
+    out = out or os.path.join(HERE, "out", "yard.love")
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        src = os.path.join(HERE, "love", "yard")
+        for f in sorted(os.listdir(src)):
+            if f.endswith(".lua"):
+                z.write(os.path.join(src, f), f)
+        lib = os.path.join(HERE, "engine", "lib")
+        for f in sorted(os.listdir(lib)):
+            if f.endswith(".lua"):
+                z.write(os.path.join(lib, f), "lib/" + f)
+        z.write(os.path.join(HERE, "engine", "fonts", "Fredoka-SemiBold.ttf"), "fonts/Fredoka-SemiBold.ttf")
+    return out
+
+
+def cmd_love_pack(a):
+    print(love_pack(a.out))
+
+
+def cmd_love(a):
+    if not os.path.exists(LOVE_X86):
+        die("build LÖVE for this PC first: games/love/build.sh x86")
+    yl = love_pack()
+    e = dict(os.environ)
+    e.setdefault("YARD_CARTS", CARTS)
+    e["YARD_WINDOWED"] = "1"
+    e.setdefault("SDL_VIDEODRIVER", "x11")
+    d = tempfile.mkdtemp(prefix="cart-love-")
+    print(f"saves go to {d}. Keys: arrows, Z X C, 1+2 held to quit, Esc.")
+    subprocess.run([LOVE_X86, yl] + ([a.id] if a.id else []), cwd=d, env=e)
 
 
 # ---------------------------------------------------------------------------- deploy
@@ -371,7 +440,8 @@ def cmd_deploy(a):
     print("1. Building for the cabinet (./build.sh cab)")
     subprocess.check_call(["./build.sh", "cab"], cwd=HERE)
     print("2. Packing the carts")
-    pak = cmd_pack(argparse.Namespace(out=os.path.join(stage, "yard.pak")))
+    extra = [os.path.join(HERE, "love", "label", n) for n in ("loveprobe", "loveyard")] if a.with_love_probe else []
+    pak = cmd_pack(argparse.Namespace(out=os.path.join(stage, "yard.pak"), extra=extra))
     pad(os.path.join(HERE, "out", "cab", "yard"), os.path.join(stage, "yard"), SLOTS["yard"])
     pad(os.path.join(HERE, "out", "cab", "orb"), os.path.join(stage, "orb"), SLOTS["orb"])
     cmd = [sys.executable, os.path.join(ROOT, "tools", "data_patch.py"), os.path.abspath(a.raw), out]
@@ -390,6 +460,28 @@ def cmd_deploy(a):
         # Every later time: same-size files, written into the blocks they already own.
         for n in names:
             cmd += ["--overwrite", f"{os.path.join(stage, n)}:Games/{n}"]
+    if a.with_love_probe:
+        # Two new files only: the bundle as one compressed tar, and its launcher. The cabinet unpacks the
+        # tar itself on the first run (games/love/loveprobe.sh), an ordinary write by Linux.
+        bundle = os.path.join(HERE, "out", "love-arm")
+        if not os.path.exists(os.path.join(bundle, "love.bin")):
+            print("   building LOVE for the cabinet (games/love/build.sh arm)")
+            subprocess.check_call([os.path.join(HERE, "love", "build.sh"), "arm"])
+        subprocess.check_call([sys.executable, os.path.join(HERE, "love", "check_abi.py"), bundle])
+        tgz = os.path.join(stage, "love.tar.gz")
+        tree = os.path.join(stage, "love-tree")
+        shutil.rmtree(tree, ignore_errors=True)
+        shutil.copytree(bundle, tree, symlinks=True)
+        # Games ship as .love files (a zip). Under qemu a game folder failed to mount; a .love never has.
+        subprocess.check_call(["zip", "-q", "-r", "-X", os.path.join(tree, "probe.love"), "."],
+                              cwd=os.path.join(HERE, "love", "probe"))
+        love_pack(os.path.join(tree, "yard.love"))
+        subprocess.check_call(["tar", "-czf", tgz, "--owner=0", "--group=0", "-C", tree, "."])
+        launcher = os.path.join(HERE, "love", "loveprobe.sh")
+        cmd += ["--put", f"{tgz}:Games/love.tar.gz:644",
+                "--put", f"{launcher}:Games/loveprobe:755",
+                "--put", f"{launcher}:Games/loveyard:755"]
+        names = names + ("love.tar.gz", "loveprobe", "loveyard")
     print("3. Patching a copy of the raw dump (offline)\n   " + " ".join(cmd))
     r = subprocess.run(cmd, capture_output=True, text=True)
     print(r.stdout + r.stderr)
@@ -397,14 +489,15 @@ def cmd_deploy(a):
         if "no physical copy" in r.stdout + r.stderr:
             print("The new files landed on disk pages that have never been written, which the in-place patch")
             print("cannot reach. Try --first with --remove of the old C game binaries so their blocks are reused,")
-            print("or use the card path (RUNBOOK.md, 'SD card').")
+            print("or put the files on the microSD card once the slot is on (GAMEDEV.md § 9).")
         die("staging stopped; nothing was written to the cabinet")
     blocks = open(os.path.join(out, "BLOCKS.txt")).read().strip()
     plan = os.path.join(out, "PLAN.md")
     with open(plan, "w") as f:
         f.write(f"# Deploy plan\n\nRaw dump: `{os.path.abspath(a.raw)}`\n\nFiles:\n\n")
         for n in names:
-            f.write(f"* `/data/Games/{n}` ({'new' if a.first else 'in place'})\n")
+            new = a.first or n in ("love.tar.gz", "loveprobe", "loveyard")
+            f.write(f"* `/data/Games/{n}` ({'new' if new else 'in place'})\n")
         f.write(f"\nBlocks to write: `{blocks}`\n\nBefore: `rk_restore.py diff` of the raw dump in the same Mask ROM "
                 "session must report none. Then, only with the user's written approval of exactly these blocks:\n\n"
                 f"```\nPARTYCADE_ALLOW_NAND_WRITE=yes python3 tools/rk_restore.py restore {out}/nand_raw_patched.bin "
@@ -436,17 +529,23 @@ def main():
     p.add_argument("--frames", type=int, default=600)
     p = sub.add_parser("pack")
     p.add_argument("--out")
+    p = sub.add_parser("love-pack")
+    p.add_argument("--out")
+    p = sub.add_parser("love")
+    p.add_argument("id", nargs="?")
     p = sub.add_parser("deploy")
     p.add_argument("--raw", required=True, help="a fresh rk.py rawdump from this Mask ROM session")
     p.add_argument("--out", required=True, help="a new folder under ~/partycade-dumps/")
     p.add_argument("--first", action="store_true", help="install yard, orb and yard.pak as new files")
     p.add_argument("--remove", nargs="*", default=["keep", "lamp", "tea", "chest"],
                    help="with --first: old binaries to take out (default: the C games)")
+    p.add_argument("--with-love-probe", action="store_true",
+                   help="also stage the LOVE bundle and probe, with a 'LOVE probe' menu row (FIELD_TASKS.md)")
     p.add_argument("--start-from", default=None,
                    help="with --first: the GAME_NAME=... text in start.sh to point at yard, if not already")
     a = ap.parse_args()
     {"new": cmd_new, "list": cmd_list, "run": cmd_run, "check": cmd_check, "shots": cmd_shots, "perf": cmd_perf,
-     "pack": cmd_pack, "deploy": cmd_deploy}[a.cmd](a)
+     "pack": cmd_pack, "deploy": cmd_deploy, "love-pack": cmd_love_pack, "love": cmd_love}[a.cmd](a)
 
 
 if __name__ == "__main__":

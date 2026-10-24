@@ -93,6 +93,8 @@ function quit() end      -- optional: the player is leaving; save if you must
 
 Declare your state with `local` at the top of `main.lua`. After `init()` the runtime is strict: a new global is an error, and so is a name nobody set (§ 6).
 
+Write Lua 5.1 plus the library. The C runtime is Lua 5.4, but the GPU runtime ([games/love/README.md](games/love/README.md)) is LuaJIT, and a cart runs on both. So use `idiv(a, b)` for `a // b`, `atan2(y, x)` for `math.atan(y, x)`, and `unpack(t)` for `table.unpack(t)`, and no bit operators (`<<`, `&`, `~`...), `utf8`, `math.type`, `table.move`, or `string.pack`. `./cart check` flags each of these.
+
 ### The `game` table
 
 | Field | Meaning |
@@ -281,6 +283,7 @@ These are written in Lua, in `games/engine/lib/`, and built into the runtime. Th
 ### Helpers
 
 * `clamp(v, lo, hi)`, `lerp(a, b, t)`, `sign(v)`, `round(v)`, `dist(x1, y1, x2, y2)`.
+* `idiv(a, b)` is `floor(a / b)`. `atan2(y, x)` is the angle to a point. `unpack(t)` spreads a list. All three work on Lua 5.1 and 5.4 alike.
 * `approach(v, target, rate)` moves a fraction of the way each frame: smooth, and it never overshoots. `step_to(v, target, step)` moves by at most `step`.
 * `wave(period, lo, hi)` swings with the frame. `blink(period, on)` is true part of the time, for prompts.
 * `choose(list)`, `shuffle(list)`, `copy(t)`.
@@ -413,7 +416,8 @@ title=Bubbles
 301 quit
 ```
 
-* **`./cart check`** runs your bot for 30 seconds, then a random child mashing every button for 30 seconds, then takes pictures and measures the cost.
+* **`./cart check`** lints (including the Lua 5.1 rules in § 3), runs your bot for 30 seconds, then a random child mashing every button for 30 seconds, then takes pictures and measures the cost. A cart the menu opens during a check stops after the same number of frames.
+* **On the GPU runtime.** `./cart love ID` plays it on LÖVE, and `python3 test.py love` checks that the bot's game logs the same lines and writes the same save on both runtimes. Add a new cart to `LOVE_CARTS` in `test.py`.
 
 ## 10. Shipping
 
@@ -427,13 +431,14 @@ title=Bubbles
 * **Updates only rewrite blocks the files already own.** Because each file has a fixed size, an update is `data_patch.py --overwrite`: the new bytes go into the disk blocks the file already has. No block is allocated, so only flash pages that have been written before change. That is the case SFTL's in-place patch handles.
 * **`--first` installs the three files.** It removes the old C game binaries first, so the new files can reuse their freed blocks, which have been written before. If a page still lands where SFTL never wrote, the patch refuses and nothing is staged.
 * **Deploy never writes the cabinet.** It builds for the cabinet, packs, pads, patches a copy of the raw dump, and checks the round trip. Then it writes `PLAN.md` with the block list and the restore command. The write itself follows [RUNBOOK.md](RUNBOOK.md): a `diff` that says none in the same session, then the user's written approval of exactly those blocks.
+* **`--with-love-probe`** also stages the GPU runtime as `love.tar.gz` with its two launchers and menu rows ("LOVE probe", "GPU yard"). [FIELD_TASKS.md](FIELD_TASKS.md) task 4 is the first time.
 * **The pack is safe to read.** The runtime checks every file's crc32 when it opens the pack. A damaged cart is left out of the menu and the others still load.
 
 ## 11. How the pieces fit
 
 ```
 games/
-  cart                 the CLI: new, list, run, check, shots, perf, pack, deploy
+  cart                 the CLI: new, list, run, check, shots, perf, pack, deploy, love, love-pack
   carts/<id>/          the games, one folder each (yard is the menu, orb is a label for the native game)
   templates/           blank, arcade, story
   engine/
@@ -447,6 +452,7 @@ games/
     vendor/            stb_image.h, stb_truetype.h (public domain)
     fonts/             Fredoka SemiBold (SIL OFL 1.1)
   native/orb, native/probe   the two C programs that are not carts
+  love/                the GPU runtime: LÖVE 11.5 built from source, the same carts on OpenGL ES (love/README.md)
   test.py, playtest.py, feel.py   checks, the frame-at-a-time player, the reel
 ```
 

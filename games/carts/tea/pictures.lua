@@ -197,7 +197,7 @@ function P.unicorn_at(x, y, s, flying, flap, pose)
   local hop = pose == 3 and -abs(sin(fr() * 0.25)) * 16 * s or 0
   local head_t = pose == 2 and 8 * s or 0
   local cw, ch = floor(170 * s), floor(170 * s)
-  local ox, oy = cw // 2, floor(90 * s)
+  local ox, oy = idiv(cw, 2), floor(90 * s)
   local p = pose == 3 and 0 or pose
   if flying then gfx.ellipse(x, y + 70 * s, 34 * s, 7 * s, alpha(0x5a7ab0, 60)) end
   stamp(fmt("uni:%s:%d:%d:%.2f", flying and "f" or "s", p, step, s), cw, ch, ox, oy, x, y + hop, function()
@@ -447,7 +447,7 @@ end
 
 -- Two columns each side of the middle tower, three high.
 local function photo_slot(i)
-  local side, row, col = i % 2, (i // 2) % 3, (i // 6) % 2
+  local side, row, col = i % 2, idiv(i, 2) % 3, idiv(i, 6) % 2
   return side == 1 and 246 + col * 30 or 110 - col * 30, 96 + row * 26
 end
 

@@ -112,12 +112,12 @@ Present these to the user. Don't pick on their behalf. All of them need a custom
 
 | Option | What it is | Touches the NAND? | Needs |
 | :--- | :--- | :--- | :--- |
-| A. SD card | Factory U-Boot boots a Rockchip-format microSD first. Put stock `boot` (optionally with a device tree that enables ADB, see A2) and a copy of `rootfs`/`data` plus our games on a card | **No**, if the card is built right (Phase 4 caution) | Proof that U-Boot sees the slot (Phase 4 step 1). The user inserts cards |
-| A2. ADB shell via SD | Same card, but the device tree's OTG `dr_mode` set to `peripheral`. The stock rootfs already starts `adbd` | No | Same as A. Then a root shell over the Micro-USB cable, from which everything else is easy and reversible |
+| ~~A. SD card boot~~ | **Expected not to work (audit 2026-10-24).** The kernel's tree puts the card slot on `dwmmc@10214000`, and U-Boot's own tree has only `dwmmc@1021c000`, so stock U-Boot should never see a card in the slot (Phase 4). Not tried | — | — |
+| ~~A2. ADB shell via SD~~ | Ruled out with A. ADB itself is still a good idea, but it needs the same kind of `boot` edit on the NAND as the SD slot does (Phase 4) | — | — |
 | B. In-place edit of `data` | Modify a copy of `data.img` offline (e.g. `start.sh` entry 11 → our program in `/data/Games/`), turn that into a patched raw image with `sftl_patch.py`, then `rk_restore.py restore` only the few blocks it lists. Proven offline: adding a file and editing `start.sh` changed 6 blocks, and the rebuild reproduced the modified image exactly | **Yes**, a few blocks, fully reversible from the backup | The RECOVERY.md test ladder T1–T3 done first, a fresh `rawdump` right before, and the user's approval for the exact blocks |
 | C. Replace the board | LVDS controller + USB encoder + SBC ([DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) §3) | No | Hardware purchase |
 
-Recommendation to give: A2 first if the SD slot works, because a shell makes everything else easy and touches nothing. B is the fallback that needs no SD slot and no cover removal.
+B is what we use. Booting from an SD card is not expected to work (Phase 4). The SD slot and an ADB shell are still worth turning on, as storage and a remote shell, through one edit to the `boot` partition on the NAND (Phase 4).
 
 Option B, step by step (only after T1–T3 pass and the user approves):
 
@@ -145,23 +145,28 @@ tools/rk_restore.py diff $D/patched_raw.bin         # must say "none"
 
 `start.sh` must stay executable. Stock is mode `0744`, owner `1006:1001`, and the cabinet runs everything as root. debugfs `write` copies the host file's mode and owner, so follow each `write` with `set_inode_field <path> mode 0100744` (or `0100755` for binaries). This was tested 2026-10-23, and `e2fsck` stays clean. To undo: `rk_restore.py restore $D/nand_raw.bin --blocks <same list>`.
 
-## 8. Phase 4: SD card boot
+## 8. Phase 4: the SD slot as storage, and an ADB shell
 
-Read [FIRMWARE_ANALYSIS.md](FIRMWARE_ANALYSIS.md) § U-Boot first. The factory U-Boot's own device tree only has `dwmmc@1021c000`. A card is seen by U-Boot only if the slot is wired to that controller, in which case it is `mmc 0` and is chosen *before* the SPI NAND. The cheapest first test is to have U-Boot report what it sees, rather than to build a bootable card:
+**Audit, 2026-10-24.** The earlier plan here was to boot the cabinet from a card. That cannot work with the stock U-Boot:
 
-* With UART (cover off): Ctrl+C at power-on, then `mmc list`, `mmc dev 0`, and `mmc info` with a card in the slot. That's read-only.
-* Without UART: a card that holds only a GPT with a `boot` partition containing a copy of the stock `boot.img` with a changed logo. If the logo changes, U-Boot booted the card. If the cabinet boots stock, U-Boot didn't see it. Pull the card to recover. The kernel on that card still mounts the stock rootfs from the SPI NAND by PARTUUID, which is fine for the test.
+* The card slot is the 4-bit controller `dwmmc@10214000`. The kernel's device tree says so: it is aliased `sdmmc` and `mshc1`, has `bus-width = 4`, `supports-sd`, `cd-gpios` on GPIO1 pin 17, and `vmmc-supply` on the always-on `vcc_io` (captures/device-tree.txt). That is expected from the device tree; nobody has looked at the board's traces.
+* U-Boot's own embedded tree has only `dwmmc@1021c000`, the 8-bit eMMC controller (FIRMWARE_ANALYSIS.md, U-Boot). It has no driver instance for the slot, so its `mmc` commands and `rkimgtest` never see a card there, and the boot order falls through to the SPI NAND.
+* So a card is not expected to boot the machine, or to carry a changed `boot` for an ADB test. This is the device trees' evidence, not a test. The caution below still holds: if the slot were on `dwmmc@1021c000` after all, U-Boot's `elif mmc dev 0` branch would boot a card without even `rkimgtest`. So a card made from the stock boot block stays out of the slot without the user's OK.
 
-1. What `rkimgtest` accepts, from `reference/u-boot/cmd/rkimgtest.c`: it reads card sectors 64–65. It passes if the first 32-bit word is `0xFCDC8C3B`, the raw (still RC4'd) Rockchip boot-block magic, which the factory flash has. It also passes for the new-style tags `0x534e4b52` / `0x534e5252`.
-2. > [!CAUTION]
-   > When that check passes, U-Boot looks at the 32-bit word at **sector 65, byte offset 104**. If it is **zero**, U-Boot adds `sdfwupdate` to the kernel command line. That is Rockchip's *SD firmware-update* mode. **The factory boot block has zero there** (checked 2026-10-23). The stock rootfs and data contain nothing that reads `sdfwupdate`, `fwupdate`, or `update.img` (grep, 2026-10-23), so the stock system should ignore the flag. Still, before any SD card goes into the cabinet:
-   > * Make the word at sector 65 + 104 non-zero on the card. Rockchip's SD tool does this for "boot" cards versus "upgrade" cards. Find out what value it writes, rather than guessing.
-   > * Take a fresh `rawdump` first, so RECOVERY.md applies.
-   > * Get the user's explicit OK, and explain the risk.
-3. First card: copy the stock layout onto it from `logical_rebuilt.img` at the same LBAs (IDBlock with the tag fixed as above, uboot, boot, rootfs, data). This writes to the **SD card on the PC**, not to the cabinet. Change one visible thing (for example `logo.bmp` inside `boot`'s resource image) so it's obvious the card booted.
-4. The user inserts the card with the switch **ON** and powers on. Success means the changed logo or behavior shows up. Pull the card and the stock system boots unchanged.
-5. For A2 (ADB): the device tree lives in `boot`'s second-stage resource image (`rk-kernel.dtb`; see FIRMWARE_ANALYSIS.md). Change `usb@10180000` `dr_mode` from `host` to `peripheral`, repack, and boot. Then, with the switch ON and the Micro-USB cable to the PC, `adb devices` should list `rk3xxx`. Whether the back switch routes the Micro-USB port to the SoC when ON is unknown; if `lsusb` shows nothing, try the other switch position only after asking the user.
-6. Then iterate on the SD rootfs: add our launcher or game.
+What does work, from the NAND, with one change to the `boot` partition's kernel device tree:
+
+| Edit (all in `rk-kernel.dtb` inside `boot`) | Gives | Tool |
+| :--- | :--- | :--- |
+| `dwmmc@10214000` `status` `disabled` → `okay` | The microSD slot as storage. udev mounts a card at `/mnt/sdcard` (FAT: no exec; ext2: exec) | `tools/enable_storage.py patch --which sd` |
+| `usb@101c0000` `status` `disabled` → `okay` | The USB-A port as a host: a stick, or later a Wi-Fi adapter (which needs more than this; GAMEDEV.md § 9) | `tools/enable_storage.py patch --which usb` |
+| `usb@10180000` `dr_mode` `host` → `peripheral` | A UDC, so the stock `S50usbdevice` starts `adbd`: a root shell over the Micro-USB cable, switch ON (FIRMWARE_ANALYSIS.md). Untested. Whether the switch routes that port to the SoC when ON is unknown | `tools/enable_storage.py patch --which adb`. `peripheral` (11 bytes) won't fit in place of `host` (5), so it writes `otg`, which fits. In OTG mode dwc2 should register a UDC and pick device mode while nothing powers the ID pin as a host: expected from the driver, not tested on this board |
+
+Doing these is a write to `boot`, the riskiest write so far: a broken tree means Linux does not come up. Recovery is still Mask ROM plus `rk_restore.py restore` of the same blocks from the dump taken before, which does not depend on `boot` (RECOVERY.md). The sequence is GAMEDEV.md § 11, from a fresh dump, with the user's written approval of the exact blocks. Do the SD edit first and alone. Add USB and ADB in the same write only if the user wants all three at once.
+
+The old SD-boot caution, kept in case a later U-Boot can see the slot:
+
+> [!CAUTION]
+> `rkimgtest` passes a card whose sector 64 starts with `0xFCDC8C3B` (or `0x534e4b52` / `0x534e5252`). Then, if the 32-bit word at **sector 65, byte offset 104** is **zero**, U-Boot adds `sdfwupdate` to the kernel command line (Rockchip's SD firmware-update mode). The factory boot block has zero there. Nothing in the stock rootfs or data reads that flag. Never put a card made from the stock boot block into the slot without the user's explicit OK.
 
 ## 9. Troubleshooting
 

@@ -165,7 +165,7 @@ local function draw_zam(cx, cy, flash, bow)
   local bend = clamp(S.bend_t / 40, 0, 1)
   if S.tele_t > 0 then
     -- Teleport: he narrows to a line and back.
-    local half = S.TELE_FRAMES // 2
+    local half = idiv(S.TELE_FRAMES, 2)
     local k = S.tele_t > half and (S.TELE_FRAMES - S.tele_t) / half or S.tele_t / half
     sq = 1 - clamp(k, 0, 1)
     if sq < 0.08 then
@@ -286,7 +286,7 @@ local function draw_ned()
   local step = S.moving and sin(S.walk_t * 0.35) or 0
   local x, y = S.nx, S.ny
   local fx, fy = S.face_x, (S.face_x == 0 and S.face_y == 0) and -1 or S.face_y
-  if S.hurt_cool > 0 and (S.hurt_cool // 4) % 2 == 1 then return end
+  if S.hurt_cool > 0 and idiv(S.hurt_cool, 4) % 2 == 1 then return end
   if sword and not S.moving then fx, fy = 0, -1 end
   gfx.ellipse(x, y + 34, 16, 5, alpha(0x2a5a2a, 110))
   toon(function()
