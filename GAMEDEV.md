@@ -126,6 +126,7 @@ games/
   play.sh                python3 test.py play; pictures in out/play/
   stress.sh              python3 test.py all; pictures in out/stress/
   feel.py                a reel of each game and a hand-response measure; pictures in out/feel/
+  playtest.py            play a game a few frames at a time through the cabinet path, and look (§ 13)
   stage_game.py          build (if needed) and patch a raw dump. Does not flash
   Makefile               TARGET=pc or TARGET=cab; GAMES := probe keep lamp yard orb tea chest
   build.sh pc|cab|all    cab builds in Docker against the extracted rootfs, then runs check_binary.sh
@@ -213,11 +214,11 @@ title=Keep
 
 The Yard's script keeps counting across the game it launches, because `cab_init` loads the file once per process and does not reset the frame counter. The child game is a new process and only sees its own `title=` section. That is how one file can move the lantern, open Lamp, quit Lamp, and land back on the menu.
 
-What the three passes check (49 checks, all passing on 2026-10-24):
+What the three passes check (57 checks, all passing on 2026-10-24):
 
 * **quick:** the probe self-test; Keep's and Lamp's self-tests catch, wake, and save; the Yard's self-test and `YARD_ONCE=keep`; the 2D rotation (the top of the game lands on the left of the 1024×768 framebuffer) and the GL path drawing on the rotated framebuffer.
 * **play:** every game played to its payoff and its save read back: Keep scores, Lamp completes a constellation, Tea reaches the cheer with the three gifts saved, Chest goes key, chest, sword and wins a gem, Orb crashes into the first gate (it closes the right side) and saves, and The Yard opens Lamp and comes back on Lamp's row. The pictures are in `games/out/play/`.
-* **stress:** 1P+2P quits all six; Keep never lowers a record, loads an impossible record as none, starts its attract demo when idle and stops it on a press, never saves from the demo, repeats a round from the same seed, and runs `-fast`; Lamp runs `-fast` and has its demo; Tea's held button hurries the flight and pours nothing, TL and TR and LOW each fill a heart, the stick moves the ring, a gift is saved when given and the cat who kept it runs to the door next visit, a broken save is a first visit, Nib arrives on the third; Chest waits for a new press when a button is held from the launch, TL and TR shoot, a broken save opens with no gems, and the pile keeps every win; Orb copies the card label, plays an idle demo that never saves, and its pilot dives; The Yard wraps from the top row to Chest, leaves a note when a game binary is missing, and draws with the other games' saves present.
+* **stress:** Chest's self-aiming sword, its first fight without tricks, Zam's teleport and shield after two gems and three bubbles after three; Tea's song after the cheer; a live `playtest.py` session; 1P+2P quits all six; Keep never lowers a record, loads an impossible record as none, starts its attract demo when idle and stops it on a press, never saves from the demo, repeats a round from the same seed, and runs `-fast`; Lamp runs `-fast` and has its demo; Tea's held button hurries the flight and pours nothing, TL and TR and LOW each fill a heart, the stick moves the ring, a gift is saved when given and the cat who kept it runs to the door next visit, a broken save is a first visit, Nib arrives on the third; Chest waits for a new press when a button is held from the launch, TL and TR shoot, a broken save opens with no gems, and the pile keeps every win; Orb copies the card label, plays an idle demo that never saves, and its pilot dives; The Yard wraps from the top row to Chest, leaves a note when a game binary is missing, and draws with the other games' saves present.
 
 `python3 games/feel.py` plays a reel of each game with the built-in player and writes `games/out/feel/<game>/strip.png`, two stills, and `report.txt`, plus `sheet.png` with every game side by side. It also presses each game's verb on a known frame and compares the change in the picture on that frame with the change between two quiet frames. On 2026-10-24 every game answered on the press frame (for example Chest 216 pixels against 1, Keep 464 against 137). `games/test.py` is the correctness check; `feel.py` is for looking.
 
@@ -328,4 +329,35 @@ What each game is now:
 * **Keep.** A sunset orchard. Fruit shakes on the branch before it drops, and its shadow on the grass sharpens as it falls, so the landing spot is a picture. Apples are 1, pears 2, gold star fruit 5. Six catches in a row raise the multiplier, up to ×5. A miss splats and costs one of three hearts. After 10 points bees come down in a zigzag; catching one costs a heart. Speed and the number of fruit in the air rise with the score. `-fast` starts harder.
 * **Lamp.** The meadow is dark except for the lantern's light. A sleeping star breathes a faint glow so it can be found. Waking one sends it up into the sky band, where it takes its place and a line joins it to the last one. A full set is a constellation (the Kite, the Teacup, the Cat, the Key, the Fish, the Crown, the Whale, the Teapot, the Dragon); then the next night has more stars. The lamp burns oil: fireflies refill it, moths from night 3 nibble it. Run dry and the light shrinks to an ember for two and a half seconds, then relights with the stars already woken still awake.
 * **Orb.** The title is a lit orb over a grid, turning; the stick yaws it. The well is a tube of panels whose seams glow in a color that shifts with depth. The first four gates teach the four sides; after that they are random per run, with a pillar and a ring (only the middle open) from the tenth. Wisps are points, and catching several in a row is a chain. Speed rises with distance. The HUD is drawn with gfx at 192×256 and laid over the 3D frame as one texture.
-* **Tea and Chest** follow their specs (`games/tea/DESIGN.md`, `games/chest/DESIGN.md`), lines included. Their rules and timings were kept; the pictures, the motion, and the sound are new.
+* **Tea and Chest** are version 2 of their specs (`games/tea/DESIGN.md`, `games/chest/DESIGN.md`), worked out by playing them with `playtest.py` (§ 13). Tea: treats to catch on the flight that then decorate the party, three different asks per cat (its wish, a cupcake, a hug), a song after the cheer, and a photo on the castle wall that stays between visits. Chest: the sword aims itself in the fight, Ned hops back from the chest, Zam (drawn after Alakazam) learns a teleport, a shield, and a three-bubble fan as the pile grows, and each win adds a different treasure to a mound.
+
+## 13. Playing a game yourself, as the cabinet runs it: `playtest.py`
+
+`test.py` checks rules and `feel.py` films a reel. Neither lets an agent (or a person without a keyboard) play: press something, look at the result, decide the next move. `games/playtest.py` does that. It keeps one game running between commands, stopped on a frame, and runs it only when told.
+
+```
+python3 games/playtest.py start tea                   # a fresh session: its own saves, seed 1
+python3 games/playtest.py do "wait 90; look; tap LEFT; film 60 every 10; tap LOW; look"
+python3 games/playtest.py listen                      # the notes so far, and a spectrogram
+python3 games/playtest.py stop
+python3 games/playtest.py perf chest                  # instructions per frame, and a Cortex-A7 guess
+```
+
+What makes it the cabinet rather than a PC window:
+
+| | How |
+| :--- | :--- |
+| Picture | The game draws through the cabinet path: the 1024×768 framebuffer, turned −90° (`CAB_RAW_FB=1`). Every picture is that framebuffer turned back upright and cropped, so the scale and the letterbox are the panel's |
+| Deck | One joystick, player 0, the panel's names. The stick is strict four-way (`CAB_FOURWAY=1`): of two directions held, the newer wins, because nobody has measured whether this stick reports a diagonal. `--eight` lifts it |
+| Time | Frames at 60 Hz, deterministic. Nothing moves between commands. `CAB_SEED` fixes the randomness |
+| Sound | No device. The game's own synth is pulled 735 samples a frame into `audio-<Title>.wav` (`CAB_AUDIO_WAV`), so a sound lines up with the frame that started it. The real panel adds its ALSA buffer, about 23 ms |
+| Saves | Real files in the session's `data/`, the stand-in for `/data/Games`. `--save "keep.sav=best 9"` seeds one |
+| Quit | 1P+2P held for 60 frames, as on the cabinet. A session started on The Yard follows it into each game and back, because the games are child processes that inherit the control pipe |
+
+Under it is a control mode in `cab.c` (`CAB_CONTROL=1`): each frame, before reading the deck, the game reads commands on stdin (`down X`, `up X`, `release`, `step N`, `shot PATH`, `every N DIR`, `sync`, `quit`) and answers `ready <frame> <title>| <held>` on stdout. `playtest.py` runs a small server per session that owns that pipe.
+
+Each `do` prints the frames it kept as one sheet (the panel picture, the deck with the held buttons lit, and the loudness on that frame), the game's new log lines, the sound onsets with note names (`253:G5`), the frame and game, and the saves. `replay.cab` in the session folder is the same presses as a `CAB_SCRIPT`, so a session can become a test.
+
+This is how Tea and Chest version 2 were found and checked (2026-10-24). Playing them showed things no check had: Tea's flight gave the hand nothing to do, Chest's laser followed the last step and missed, Ned started the fight on Zam's feet, a held button beat a level-three Zam in two seconds, the cats' mouths read as frowns, and a quick double tap on the Yard was one long press.
+
+`perf` builds a profiling copy, plays it with the built-in player under callgrind, and prints the game's own instructions per frame with a range for the cabinet's 1.008 GHz Cortex-A7 (0.5 to 0.8 instructions a cycle). On 2026-10-24: Tea 5.1 M (6 to 10 ms of 16.7), Chest 3.9 M (5 to 8 ms). A guess, not a measurement on the cabinet.

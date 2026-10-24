@@ -235,3 +235,12 @@ No cabinet was attached and no USB command was sent. This session ran in a cloud
 
 Conclusion: the new games are ready for a cabinet build and play test. The next flash needs a fresh dump, `build.sh cab`, `stage_game.py --bundle keep,lamp,orb,tea,chest`, and written approval for the printed blocks.
 
+## 2026-10-24 (later): a way to play the games, and Tea and Chest version 2, no hardware
+
+No cabinet, no USB command, nothing staged or written.
+
+* `cab.c` gained a control mode (`CAB_CONTROL=1`: commands on stdin, one `ready` line per step on stdout), frame-locked audio capture to WAV (`CAB_AUDIO_WAV`, 735 samples a frame, no audio device opened), and a strict four-way stick (`CAB_FOURWAY=1`). None of them is on unless its variable is set; a cabinet launch from `start.sh` sets none.
+* `games/playtest.py` drives that: sessions, macro presses, sheets of the panel picture with the deck drawn under each frame, sound onsets with note names, a callgrind frame-cost estimate.
+* Playing Tea and Chest that way found the problems listed in each spec's "What changed in version 2." Both games were reworked and their specs rewritten. Zam is now drawn after Alakazam at the user's request; the README and the Chest spec say that likeness is not covered by the MIT license.
+* `test.py`: 57 checks, all pass. Frame cost by `playtest.py perf`: Tea 5.1 M instructions of its own work a frame, Chest 3.9 M. Estimated 5 to 10 ms on the Cortex-A7; not measured there.
+

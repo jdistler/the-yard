@@ -25,12 +25,12 @@ Arrows move. `Z` is the lower button. `X` and `C` are the two buttons beside it.
 | Keep | everyone | Catch the falling fruit in Pip's basket at sunset. The stick walks, `Z` dashes. Combos, three hearts, bees later. |
 | Lamp | everyone | Carry a lantern through a dark meadow and wake the fallen stars into constellations, night after night. `Z` lifts the lamp. |
 | Orb | 8 and up | Dive a glowing well in OpenGL ES 2. The stick steers, `Z` dives, and holding it boosts for double points. |
-| Tea | 4 and up | A unicorn flies to a castle and looks after the cats. Any direction picks a cat. Any right-hand button does the care. [Design](games/tea/DESIGN.md). |
-| Chest | 5 and up | Walk to a key, open the chest, and duel Zam. The stick walks. `Z`, `X`, and `C` shoot. [Design](games/chest/DESIGN.md). |
+| Tea | 4 and up | A unicorn flies to a castle, catching treats that decorate the party, then looks after the cats: tea, cupcakes, hugs, and a song. A photo of each party stays on the wall. [Design](games/tea/DESIGN.md). |
+| Chest | 5 and up | Walk to a key, open the chest, and duel Zam, a gold psychic with two spoons who learns a new trick with every gem on the pile. The stick walks; the sword aims itself. [Design](games/chest/DESIGN.md). |
 
 Leave a title alone for ten seconds and Keep, Lamp, and Orb play themselves until someone presses a button.
 
-`./stress.sh` runs every headless check (`test.py`). `python3 feel.py` plays a reel of each game and writes pictures under `games/out/feel/` (it needs Pillow). Orb needs Mesa's EGL and GLES libraries to run on a PC. All of it is headless.
+`./stress.sh` runs every headless check (`test.py`). `python3 playtest.py start chest` and then `python3 playtest.py do "wait 60; tap LOW; look"` plays a game a few frames at a time through the cabinet's own picture path and four-way stick, and shows what happened ([GAMEDEV.md](GAMEDEV.md) § 13). `python3 feel.py` plays a reel of each game and writes pictures under `games/out/feel/` (it needs Pillow). Orb needs Mesa's EGL and GLES libraries to run on a PC. All of it is headless.
 
 Building for the cabinet needs the stock rootfs and the Docker image in `games/toolchain/`. `./build.sh cab` does that. Putting a build on the cabinet writes NAND, and that stays a deliberate step. See [STATUS.md](STATUS.md).
 
@@ -70,4 +70,4 @@ On the cabinet, Dig Dug II opens The Yard. That write landed on 2026-10-23. The 
 
 ## License
 
-Original code and notes in this repository are [MIT](LICENSE). `tools/inc/libusb.h` is the upstream libusb header and stays LGPL-2.1. `games/common/font8x8_basic.h` is public domain. Arcade1Up, the stock games, and the Rockchip boot blobs are not included and are not licensed here.
+Original code and notes in this repository are [MIT](LICENSE). `tools/inc/libusb.h` is the upstream libusb header and stays LGPL-2.1. `games/common/font8x8_basic.h` is public domain. Arcade1Up, the stock games, and the Rockchip boot blobs are not included and are not licensed here. Chest's boss, Zam, is drawn as a fan tribute to Alakazam, which belongs to Nintendo, Creatures, and Game Freak; that likeness is not covered by the MIT license.

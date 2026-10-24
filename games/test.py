@@ -194,6 +194,8 @@ def play():
     check(rc == 0 and "visits 1" in sav, "tea: she arrives and the visit is saved")
     check("tea cheer" in err and "pip teacup" in sav and "moth ribbon" in sav and "pearl flower" in sav,
           "tea: nine cares reach the cheer, and the gifts are saved")
+    check("tea treat" in err, "tea: she catches treats on the way to the party")
+    check("photos 1" in sav and "tea photo 1" in err, "tea: the cheer hangs a photo on the wall and saves it")
 
     rc, err = run("chest", d, script=shots("Chest", [20, 300, 1500], 1600), env={"CAB_AUTOPLAY": "1"})
     check(rc == 0 and (best(d, "chest.sav", "gems") or 0) >= 1, f"chest: Zam bows and a gem is saved ({read(d, 'chest.sav')!r})")
@@ -306,6 +308,46 @@ def stress():
     g = best(d, "chest.sav", "gems") or 0
     check(g >= 2, f"chest: the pile keeps every win ({g} gems)")
     shutil.rmtree(d, ignore_errors=True)
+
+    # Chest: the walk to the key and the chest, then a zap from the side still hits (the sword aims itself).
+    walk = ["0 down LEFT", "36 up LEFT", "36 down UP", "72 up UP", "72 down RIGHT", "104 up RIGHT", "104 down UP", "175 up UP"]
+    d = tmpdir()
+    rc, err = run("chest", d, script=script("Chest", *walk, "230 down LEFT", "260 up LEFT", "262 down LOW", "263 up LOW",
+                                           "300 quit"))
+    check("chest sword" in err and "chest mark 1" in err, "chest: in the fight the sword aims itself; a zap from the side hits")
+    check("chest level 0" in err and "chest teleport" not in err, "chest: the first fight has no tricks")
+    with open(os.path.join(d, "chest.sav"), "w") as f:
+        f.write("gems 2\n")
+    held = [f"{230 + 6 * i} down LOW" for i in range(200)] + [f"{232 + 6 * i} up LOW" for i in range(200)]
+    rc, err = run("chest", d, script=script("Chest", *walk, *held, f"{230 + 6 * 200} quit"))
+    check("chest level 2" in err and "chest teleport" in err and "chest shield" in err and "chest blocked" in err,
+          "chest: after two gems Zam teleports and raises a shield that stops zaps")
+    with open(os.path.join(d, "chest.sav"), "w") as f:
+        f.write("gems 3\n")
+    rc, err = run("chest", d, script=script("Chest", *walk, "1400 quit"))
+    check("Three bubbles" in err, "chest: after three gems he throws three bubbles at once")
+    shutil.rmtree(d, ignore_errors=True)
+
+    # Tea: the song after the cheer, sixteen notes.
+    d = tmpdir()
+    presses = [f"{1000 + 34 * i} down LOW" for i in range(60)] + [f"{1002 + 34 * i} up LOW" for i in range(60)]
+    moves = [f"{1000 + 34 * 3 * k + 20} down RIGHT" for k in range(1, 4)] + [f"{1000 + 34 * 3 * k + 24} up RIGHT" for k in range(1, 4)]
+    rc, err = run("tea", d, script=script("Tea", *presses, *moves, f"{1000 + 34 * 60} quit"))
+    check("tea cheer" in err and "tea song" in err, "tea: after the cheer every press plays the next note of a song")
+    shutil.rmtree(d, ignore_errors=True)
+
+    # The playtest tool: a live session, a few frames, a picture, a stop.
+    try:
+        subprocess.run([sys.executable, os.path.join(HERE, "playtest.py"), "start", "keep", "--name", "selftest"],
+                       check=True, capture_output=True, timeout=60)
+        r = subprocess.run([sys.executable, os.path.join(HERE, "playtest.py"), "do", "--name", "selftest",
+                            "wait 5; tap LOW; look; hold RIGHT 10"], capture_output=True, text=True, timeout=60)
+        subprocess.run([sys.executable, os.path.join(HERE, "playtest.py"), "stop", "--name", "selftest"],
+                       capture_output=True, timeout=60)
+        check("sheet:" in r.stdout and "now: frame 22 in Keep" in r.stdout,
+              "playtest: a live session steps frames, presses the deck, and keeps a picture")
+    except (subprocess.SubprocessError, OSError) as ex:
+        check(False, f"playtest: a live session ({ex})")
 
     # Orb: the card file, the idle demo, and a clean title.
     d = tmpdir()

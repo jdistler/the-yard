@@ -1,303 +1,211 @@
 # Chest: the key, the sword, and Zam
 
-Built on the PC and flashed to tile 10 on 2026-10-23. Rebuilt on 2026-10-24 with new pictures and sound and the same rules and lines; that build is on the PC only. `games/test.py` (run by `stress.sh`) plays the checklist at the bottom.
+Built in `games/chest/chest.c`. The Yard lists it under Tea, blurb "the key, the chest, Zam," band 5+. `games/test.py` (run by `stress.sh`) plays the checks at the bottom.
 
-Audience is a five-year-old who can already steer in Mario Kart, on the Partycade, in a short turn, with a grown-up beside him reading the line and ready to hold the button. He said: you are a person walking to a treasure chest, first you need the key, the key unlocks it, a gold boss pops out and gives you a sword because he is the boss, you shoot lasers at him, a laser that hits you puts a bubble around you, good fairies bubble him, some fairies bubble you and that means start over, some good fairies bubble you and then it pops and you collect it and it goes around him, and bad fairies bubble you and that is how you get hurt.
+Where it runs: the first build is on the cabinet, flashed to tile 10 on 2026-10-23. This note is version 2 (2026-10-24), played on the PC with `games/playtest.py` through the cabinet's framebuffer path and not flashed.
+
+Audience is a five-year-old who can already steer in Mario Kart, in a short turn, with a grown-up beside him reading the line and ready to hold the button. He said: you are a person walking to a treasure chest, first you need the key, the key unlocks it, a gold boss pops out and gives you a sword because he is the boss, you shoot lasers at him, a laser that hits you puts a bubble around you, good fairies bubble him, some fairies bubble you and that means start over, some good fairies bubble you and then it pops and you collect it and it goes around him, and bad fairies bubble you and that is how you get hurt.
+
+He loves Alakazam. Zam is drawn after him: a tall gold psychic with long pointed ears, a fox's face, a long drooping mustache, brown armor on his shoulders, chest, elbows, and knees, and a spoon in each hand. Zam's name, the rest of the game, and every line are ours. Alakazam and Pokémon belong to Nintendo, Creatures, and Game Freak. This drawing is a fan tribute for one family's cabinet. It is not licensed by them, and it is not covered by this repository's MIT license.
 
 This is the walk-up band in [CONTROLS.md](../../CONTROLS.md). The stick walks. The lower button shoots. He can win with the stick alone. The button is how the win becomes his.
 
+## What changed in version 2, and why
+
+Version 1 followed the first draft. Played through the cabinet path a frame at a time, it had four problems a five-year-old would hit:
+
+* **He missed for a reason he could not see.** The laser went the way he last walked. Step left to dodge a bubble, press, and the laser flew off to the left. The line said "Aim up," which he cannot read.
+* **He was jammed against Zam.** The chest opened where he stood, so the fight began with Ned touching Zam's feet.
+* **Zam stood still.** After the first fight there was nothing new to see. The pile was the only reason to play again.
+* **Holding the button won.** Once aiming was fixed, a held button beat Zam in two seconds.
+
+Version 2:
+
+1. **The sword points at Zam by itself.** In the fight every shot flies at him, wherever Ned stands. The stick is for dodging bubbles, stepping out of purple rings, and walking onto stars. Before the sword, the short spark still goes the way he faces.
+2. **Ned hops back** to the fighting line while Zam unfolds, and cannot walk closer than that line during the fight.
+3. **Zam learns a trick for each gem**, up to three: a teleport, a shield (his Reflect), and three bubbles at once. Each is slow, shown before it happens, and named in the line. The first fight has none.
+4. **A rhythm, so the button needs timing.** From the second fight: the spoons glow and the bubbles come (he is open), then the shield goes up (zaps bounce off in cyan and the line says to wait), then he teleports. Zam takes 9 zaps on the first fight and 3 more for each trick he knows. A tap fires at once, up to five a second. A held button repeats twice a second, so tapping at the right moment beats leaning on it.
+5. **A different treasure for each win:** pink gem, blue gem, gold coin, green gem, purple gem, ring, crown, golden spoon, then around again. It arcs from Zam into a mound that grows at the top left, and the key hides somewhere new for the next round.
+
 ## The story, in one loop
 
-One room. A person, a glowing key, a chest. He walks to the key and it jumps into his hand. He walks to the chest and the lock opens. A tall gold creature pops out, mustache wide, a spoon in each hand, and throws him a sword. The sword shoots a laser the way he is facing. Fairies drift in. Gold and blue ones wrap Zam so the laser counts. Purple ones, and Zam's own shots, wrap the person, and that is the hurt. Three hurts and the fight starts again, sword still in his hand. Pop Zam enough times and treasure spills onto a pile that stays.
-
-Then the key is glowing again, the chest is shut, and he can walk it again. The pile remembers.
-
-## What a turn feels like
-
-He walks up. The person is already on the path, facing the chest, key shining off to one side. If he holds the stick toward the key, he gets it. The chest is in front of him the whole time, so the plan is a picture, not a maze.
-
-At the chest the lid flies up. Zam unfolds out of it, mustache first, both spoons tapping the lid, and the sword arcs into the person's hand on that same moment.
-
-Now Zam is the boss, and he is smiling. He flicks slow purple bubbles off the spoons. Fairies cross the room one at a time. The person walks out of the purple ones and walks over the blue stars. Whenever someone presses the lower button, a laser leaves the sword. If Zam is wrapped in a bubble, the pop is the big hit. If he is bare, the laser still flashes on the spoons, so the button always answers.
-
-When Zam has had enough, he bows, treasure jumps onto the pile, and the room sets itself back. Losing a fight bows him too, refills the person's bubbles, and starts the duel again. The key does not go back into the grass in the middle of a fight.
-
-You quit the way every game on this cabinet quits: hold 1-player and 2-player.
+One meadow. A person, a glowing key, a chest. He walks to the key and it jumps into his hand. He walks to the chest and the lock opens. Zam rises out of it, spoons raised, and throws him a sword, and Ned hops back. The sword's laser flies at Zam. Fairies drift in: gold ones wrap Zam so the next zap is a big pop, blue ones leave a star that wraps him, purple ones are the hurt. Three hurts restart the fight with the sword still in hand. Fill Zam's lights and he bows, bends his spoons for show, and treasure arcs onto the pile. The key is back, somewhere else.
 
 ## The promise
 
-* The first success is the key, and it comes from walking, which he already knows.
-* The sword arrives by itself when the chest opens. He does not hunt for a second item.
-* A press always shows a laser on that frame, from the sword, the way he faces.
-* His own laser never wraps him.
-* Purple is the only hurt. He can see it coming, and stepping away breaks a fairy's bubble before it closes.
-* Three hurts restart the fight. The sword stays. The gem pile stays. The walk is not repeated as a punishment.
-* A turn with no button still ends. Gold fairies wrap Zam, and a wrap that pops on its own still counts. Shooting is faster and louder.
-* Nothing sad happens while the cabinet is off. There is no clock, no hunger, and no pile that shrinks.
-* He never has to read. The cream band is the sentence you say, and it is also the guide: it names the color of the bubble. The picture works if you say nothing.
+* The first success is the key, and it comes from walking.
+* The sword arrives by itself when the chest opens.
+* A press always shows a laser on that frame. In the fight it always flies at Zam.
+* His own laser never wraps him, never bounces onto him, and never hurts him.
+* Purple is the only hurt. He can see it coming: the spoons glow purple and a faint ring marks where he stands before a bubble leaves.
+* Three hurts restart the fight. The sword stays. The pile stays.
+* A turn with no button still ends: gold fairies wrap Zam and a wrap that pops on its own counts.
+* Nothing sad happens while the cabinet is off.
+* He never has to read. The cream band is the sentence you say. It names colors and moments, never buttons.
 
 ## Who is in the room
 
-They are known by shape and color. Names are in the line.
-
 | | Looks like | Does |
 | :--- | :--- | :--- |
-| **Ned** | A small person, round helmet, blue cape, simple face. Gold sword once the chest has opened | Walks. Faces the way he last moved. Starts facing up, toward the chest |
-| **The key** | A gold key taller than his helmet, glowing | Sits in the open, left of the path. Walking into it puts it in his hand |
-| **The chest** | Wood and gold, keyhole pulsing at the top of the room | With the key, walking into it opens it. Without the key, it wobbles |
-| **Zam** | Tall and thin, gold fur, a long brown mustache that sticks out past his shoulders and curls at the ends, brown plates on his chest and shoulders, narrow eyes, a silver spoon in each hand | Pops out of the chest and tosses the sword. The boss. Bubbles leave the spoons. Bows when he loses and when Ned does |
-| **Gold fairy** | Round, gold, two wings | Flies to Zam and wraps him. He stops shooting while the wrap holds |
-| **Blue fairy** | Round, blue, a star already showing in her hands | Wraps Ned in a blue bubble that pops into a star. Walking over the star sends a wrap to Zam |
-| **Purple fairy** | Round, purple, empty hands | Wraps Ned. The ring grows. Walking out breaks it. If it closes, that is a hurt |
-
-Drawn in flat shapes, big enough to read from a step away. The mustache is the widest thing on him. The two spoons are as tall as his arms. The brown plates sit on the gold chest like a vest. He stands on the chest, feet apart, spoons held out.
-
-Ned is a working name so the lines have someone to talk about. Easy to change before any code.
+| **Ned** | A small person, round silver helmet with a red plume, blue cape, simple face | Walks. Faces the way he walked; in the fight, his sword points at Zam |
+| **The key** | A gold key taller than his helmet, bobbing and sparkling | Sits somewhere in the meadow (a new spot each round). Walking into it puts it in his hand |
+| **The chest** | Wood and gold, keyhole pulsing until he has the key | With the key, walking into it opens it. Without, it hops |
+| **Zam** | See above: gold, long ears, fox face, long mustache, brown armor, two spoons. He hovers | The boss. Bubbles from the spoons. Teleports, shields, sprays as he learns. Bows when he loses and when Ned does |
+| **Gold fairy** | Round, gold, two wings | Flies to Zam and wraps him. While wrapped he cannot shield or shoot |
+| **Blue fairy** | Round, blue, holding a star | Wraps Ned in a safe blue bubble that pops into a star. Walking over the star wraps Zam |
+| **Purple fairy** | Round, purple, empty hands | Wraps Ned in a ring that grows. Walking out breaks it. If it closes, that is a hurt |
 
 ## Controls
 
-One sentence: the stick walks, and `LOW` shoots a bolt the way he faces.
-
-Walk-up band. `TL` and `TR` shoot the same bolt. A mash of the right-hand cluster still plays. Those buttons never do a second, secret thing.
+One sentence: the stick walks, and `LOW` shoots.
 
 | Input | On the path | In the fight |
 | :--- | :--- | :--- |
-| Stick | Walks. Up toward the chest, down toward the bottom, left and right across. He faces the last direction he held. Opposing directions cancel. A diagonal, if the stick ever reports one, walks both ways at once, and the game is finishable without that | Same walk. Stepping out of a growing purple ring breaks it. Stepping onto a star collects it |
-| `LOW` | A short gold spark from his hand, the way he faces. It can also pick up the key or tap the lock. Walking onto them does the same thing, so the spark is a flourish | A laser from the sword. Bare Zam: both spoons flash and one mark. Gold wrap: the wrap pops and three marks |
-| Hold `LOW` | The spark repeats, about three a second, only after a press that happened in this game | The laser repeats the same way. The repeat is visible |
-| `TL`, `TR` | The spark | The laser |
-| `1P` + `2P` held | Quit | Quit. A grown-up's chord |
-| Volume, power | The cabinet's | The cabinet's |
+| Stick | Walks. He faces the way he last walked. Opposing directions cancel. The game is finishable with pure up, down, left, right | Walks between the fighting line and the bottom. For dodging, stars, and leaving purple rings |
+| `LOW` press | A short gold spark the way he faces; it can also tap the key or the lock | A laser at Zam. Up to five a second |
+| `LOW` held | Repeats twice a second, after a press made in this game | Same |
+| `TL`, `TR` | The same as `LOW` | The same as `LOW` |
+| `1P` + `2P` held | Quit | Quit |
 
-A button held down from the Yard does not fire a stream on the first frames. The first shot waits for a new press after he is in the room.
+A button held from the Yard does not fire until it is released and pressed again.
 
-You can split the hands. He keeps the stick, which is the skill he already has from the kart. You hold `LOW` and shoot when the line says Zam is wrapped. When he wants the button, it is the same button you were pressing. The panel is already divided that way.
-
-The button means shoot for the whole session. Before the sword the shot is short. After the sword it crosses the room. The picture changed because the sword is in his hand.
-
-He starts facing up. A press with the stick at rest still shoots toward Zam.
-
-## The room
-
-One screen, upright, 384×512, drawn with the SDL renderer the way Tea is. Flat shapes, thick outlines. The whole plan is visible at once.
-
-```
-gems along the top
-chest, and later Zam, at the top
-fairies in the middle
-Ned near the bottom
-cream band under his feet
-```
-
-The key starts in the open, between Ned and the chest, so the first walk is a few seconds of holding up and a little left. Nothing scrolls. He cannot walk off the screen. Reaching the edge stops him.
-
-Ned moves at about two pixels a frame, so he can change his mind. A boss bubble is slow enough to step around. A purple fairy's ring takes about three quarters of a second to close, and the ring is on screen the whole time.
+You can split the hands: he keeps the stick, you hold `LOW`. With the sword aiming itself, the person on the button only chooses when.
 
 ## The four beats
 
 ### The path
 
-The key and the chest are both on screen when the picture appears. The stick is already playing. There is no title pose that hides him.
-
-Walking onto the key picks it up the same frame. The key chimes and sits in his hand. Walking onto the chest without it makes the chest hop and the line ask for the key. Walking onto it with the key opens it.
-
-The spark can do those touches too. It is never required.
+The key and the chest are on screen from the first frame. The first round's key is a few steps up and left; later rounds put it at one of four other spots around the meadow. Walking onto the chest without the key makes it hop.
 
 ### The pop
 
-Under a second. The lid rises, Zam unfolds, both spoons out, the sword flies into Ned's hand, and the line is the toss. A press during this beat still shoots a spark and does not break the pop. When the sword lands, the next shot is a laser.
+One second. The lid flies up, Zam rises with a psychic glow, the sword arcs into Ned's hand, and Ned hops back to the fighting line. A press during the pop still shoots.
 
 ### The fight
 
-Zam stands on the chest. Both spoons flash for about half a second, then a purple bubble drifts from where Ned was standing when the flash began. It does not chase harder than that. Touching it is a hurt.
+Zam hovers over the chest, or at a spot to its left or right after a teleport. Nine little lights under him (more on later fights) are his marks.
 
-Fairies enter one at a time, so the room has one new idea:
+* **First fight:** every two and a half seconds the spoons glow purple for half a second, then one slow bubble drifts toward where Ned stood when the glow began.
+* **After one gem:** every five seconds, a bubble, then a teleport: he narrows to a line, sparkles, and reappears at another spot. A laser fired while he is gone flies past.
+* **After two gems:** the same, plus his shield (Reflect): cyan panels in front of him for a second and a half. Zaps stop at the panels and splash cyan. The line says "His shield is up. Wait."
+* **After three gems:** every other bubble is a fan of three.
 
-* Gold flies to Zam, wraps him, and he stops shooting. The wrap holds for about two seconds. A laser during the wrap pops it for three marks. If nobody shoots, it pops itself for one mark.
-* Blue flies to Ned and wraps him in blue, star visible inside. That ring is safe. It pops into a star at his feet. The star waits a few seconds. Walking over it sends a gold wrap to Zam. He does not have to press anything to collect.
-* Purple flies to Ned and grows an empty ring. Leaving the ring breaks it. If it closes, that is a hurt.
-
-A bare laser that reaches Zam lights one mark and plays the small hit. It never wraps Ned, never bounces, and never hurts him. A laser that hits a wall splashes there, so a shot fired the wrong way is still visible.
-
-Nine marks and Zam bows. Three big pops do it. A mix of bare shots and fairy wraps does it too. Steer-only, with gold fairies popping themselves, still gets there.
-
-The first purple fairy waits until Ned has shot once, or until about eight seconds of the fight, whichever comes first. The key, the sword, and a flash on Zam's spoons all happen before the first hurt.
-
-### The bow
-
-Win: Zam bows, gems hop onto the pile, the line names the treasure. About two seconds. Then the key is back in the grass, the chest is shut, Ned still has his place on the path, and the sword is gone until the next pop. The new gem stays.
-
-Hurt: Ned has three empty bubble pips beside him. A closed purple ring or a boss bubble fills one and pops immediately. He is free on that same moment, knocked a short step, still holding the sword. Control does not stay stuck inside a bubble.
-
-Three pips filled: the fight bows. Zam taps his spoons together, the pips empty, the marks reset, fairies clear, the sword stays, the chest stays open. About a second. The line says the sword stayed. Gems do not decrease.
-
-## Marks, pips, gems
+The fairies keep their first-draft schedule: gold at about 1 and 8 seconds, blue at about 4, purple after his first shot or at about 9. A gold wrap breaks the shield and stops bubbles while it holds.
 
 | Event | Result |
 | :--- | :--- |
-| Laser touches bare Zam | 1 mark. Both spoons flash |
-| Laser pops a gold wrap | 3 marks. The big pop |
-| Gold wrap expires with no shot | 1 mark. The fairy still helped |
-| Blue star collected | A gold wrap on Zam. Marks come from that wrap, not from the star itself |
-| Purple ring closes, or a boss bubble touches Ned | 1 pip. At 3 pips the fight restarts |
-| Nine marks | Win. Gems increase by one |
+| Laser on bare Zam | 1 mark. He flinches white and wobbles |
+| Laser on a gold wrap | 3 marks. The big pop: stars, a shake, dizzy stars over his head |
+| Gold wrap runs out with no shot | 1 mark |
+| Laser on the shield, or while he is teleporting | No mark. A splash where it stopped |
+| Blue star collected | A gold wrap on Zam |
+| Purple ring closes, or a bubble touches Ned | 1 pip, a short knockback. Three pips restart the fight |
+| All of Zam's lights | Win |
 
-The pile draws up to eight gems. Past eight it sparkles instead of crowding the sky. The save remembers the real count.
+Lights to fill: 9 on the first fight, then 12, 15, and 18.
 
-`chest.sav` is one line, `gems N`. Written when a win adds a gem, the same temp, flush, fsync, rename, and directory fsync as the other games. `N` below 0 or nonsense opens as 0. `N` above 100000 stays at 100000. The name `chest` is not a stock save name. A lost fight does not write. Quitting on the path writes nothing new.
+### The bow
 
-There is no clock read.
+Win: Zam bows, bends both spoons, and the treasure arcs onto the pile. About two and a half seconds. Then the chest is shut, the key is somewhere new, and the line says "The key is back. Go on."
+
+Hurt three times: Zam bows, the pips empty, the lights reset, and after a second the fight goes on with the sword still in hand.
+
+## The pile
+
+`chest.sav` is one line, `gems N`, written when a win adds one. Below 0 or nonsense opens as 0; above 100000 stays at 100000. A lost fight writes nothing. Quitting writes nothing new.
+
+The pile draws up to fifteen treasures in a mound (five, four, three, two, one), each win's item in order: pink gem, blue gem, gold coin, green gem, purple gem, ring, crown, golden spoon. Past fifteen a star sparkles over it and the number beside it keeps counting. `N` also sets Zam's tricks (0 to 3).
 
 ## Pictures
 
-Big flat shapes in code. A missing picture file must not be required, because there is no picture file.
+384×512, drawn in code with `games/common/gfx.c`, every figure in outlined toon shapes. The meadow, bushes, and path are painted once and copied each frame.
 
 | | Hex |
 | :--- | :--- |
-| Path and band cream | `#fff6ea` |
-| Grass | `#7dce7a` |
+| Cream band, path | `#fff6ea` |
 | Ink outlines | `#3a2a44` |
 | Ned's cape | `#3a6ea5` |
-| Helmet and skin | `#f4c7a1` |
-| Key, sword, laser core, gold fairy | `#f2c14e` |
-| Chest wood | `#c4844a` |
-| Zam's body | `#f2c14e` |
-| Zam's mustache and plates | `#a0673a` |
-| Zam's spoons | `#babec8` |
-| Blue fairy and her bubble | `#6eb5ff` |
-| Purple fairy, her ring, boss bubbles | `#7a5af5` |
-| Hurt pip | `#e86b9a` |
-| Gem | `#e86b9a` with a gold glint |
-
-The cream band is the bottom 32 pixels, ink on `#fff6ea`, the 8×8 font at ×2. One line, 24 characters, the same fit as Tea. Ned's feet stop above it.
-
-As built (2026-10-24), drawn in code with `games/common/gfx.c`, every figure in outlined toon shapes:
-
-* The meadow has flowers, stones, and bushes down both sides; a cream path leads up to the chest. The gem pile sits in a gold dish at the top left, with the count beside it.
-* Ned has a round silver helmet with a red plume, a blue cape that trails the way he walks, legs that step, and eyes that look the way he faces; facing the chest, you see the back of his head. The sword is gold with a brown guard and a glow at the tip. His three pips float over his head.
-* The key bobs and sparkles. The chest has gold bands and a keyhole that pulses until the key is in his hand. Open, it glows.
-* Zam has no ears: a tuft of gold fur on top, narrow eyes under brown brows, a mustache that is the widest thing on screen and curls at both ends, a brown vest of plates, and a silver spoon in each raised hand. The spoons tap and flash before a shot. Nine little lights over his head are the marks; they fill gold.
-* Fairies have wings and leave a trail; the blue one carries her star. Bubbles have a shine and wobble. A laser stays on screen for a few frames, with a white core and a glow where it lands.
-* A win throws gems and stars; the pile hops. A hurt flashes Ned and rings out purple.
-
-The sound is the same table, played by `games/common/sfx.c` and capped at 3000 (`sfx_limit`), with a quiet walking tune on the path and a quicker one in the fight. The laser is a short falling note.
+| Skin | `#f4c7a1` |
+| Zam's fur, key, sword, gold fairy | `#f2c14e` |
+| Zam's armor and mustache | `#8a5a32` |
+| Spoons | `#babec8` |
+| Shield | `#7fe8ff` |
+| Blue fairy | `#6eb5ff` |
+| Purple fairy, rings, bubbles | `#7a5af5` |
+| Pips, pink gem | `#e86b9a` |
 
 ## Sounds
 
-Synth only, two voices, the bed and one effect. Amplitude stays under 3000, in the same quiet range as Tea. A third note waits.
+Synth only, capped at 3000 of 32767 (`sfx_limit`). A quiet walking tune on the path, a quicker one in the fight.
 
 | Moment | Sound |
 | :--- | :--- |
-| Path, under everything | A quiet C5 E5, slow |
-| Key in hand | A bright C6 |
+| Key | C6 |
 | Chest opens | C5 E5 G5 C6 |
-| Laser | A short G5 |
-| Gold wrap | A bell, E6 |
+| Spark | A short high blip |
+| Laser | A short falling square |
+| Mark | A quick drop |
+| Big pop | G5 C6 |
+| Shield | Two bells, E6 and B6 |
+| Laser on the shield | A high ding |
+| Teleport | A rising sweep |
+| Spoons glow | E5 (or D5 before three bubbles) |
+| Gold wrap | E6 |
 | Blue pop into a star | E5 G5 |
 | Purple ring growing | A soft rising hum |
-| Hurt | A low pop |
-| Big pop on Zam | G5 C6 |
-| Win | C5 E5 G5 C6 |
+| Hurt | A low slide |
+| Win | C5 E5 G5 C6 E6 |
+| The treasure lands | A high chime |
 | Fight restarts | G5 then E5 |
 | Quit | A falling G5, E5 |
 
-Holding the button retriggers no faster than about three times a second.
-
 ## The line you read
-
-Same band as Tea. Here the line is also the guide, because a bubble has a color and you are telling him what the color means. It still never names a button. When the moment changes, the line changes on the same frame.
-
-It rests on the current moment. A hit, a hurt, or a fairy borrows the band for about two seconds, then the resting line comes back. Idle blinks do not change it.
 
 | Moment | The line |
 | :--- | :--- |
 | Path, no key | `The key is glowing.` |
-| Path, walking | `He walks to the chest.` |
-| Key in hand | `The key is his.` |
+| Path, walking | `He walks to the key.` |
+| Key in hand | `The key is his.`, then `Now walk to the chest.` |
 | Chest, no key | `The lock wants the key.` |
 | The pop | `Pop! He threw the sword.` |
-| Fight, facing Zam | `Gold one. He's the boss.` |
-| Fight, facing away | `Aim up. He's the boss.` |
-| Spoon flash | `A laser is coming.` |
+| Fight, before his first shot | `The sword can zap him.` |
+| Fight, otherwise | `Gold one. He's the boss.` |
+| Spoons glow | `A bubble is coming.` |
+| Spoons glow, three | `Three bubbles! Step away.` |
+| Teleport | `Zam jumped! Find him.` |
+| Shield | `His shield is up. Wait.` |
 | Gold wrap | `Gold fairy has him.` |
 | Blue bubble on Ned | `A blue bubble. Catch it.` |
 | Star on the ground | `Walk over the star.` |
 | Star collected | `The star wrapped him.` |
-| Purple ring growing | `Purple. Step out of it.` |
+| Purple ring | `Purple. Step out of it.` |
 | Hurt | `That bubble got him.` |
 | Fight restarts | `Pop. The sword stayed.` |
-| Bare hit | `The sword nicked him.` |
+| Bare hit | `The sword zapped him.` |
 | Big pop | `The big bubble popped.` |
 | Win | `Treasure for the pile.` |
 | Path again | `The key is back. Go on.` |
 | Goodbye | `The gems will stay.` |
 
-Every one of those fits in 24 characters.
-
-## Reactions, listed
-
-* Stick on the path: he walks, the cape trails, the key stays put until he touches it.
-* Touch the key: it hops into his hand the same frame.
-* Touch the chest with the key: the pop starts the same frame.
-* Touch the chest without the key: the chest hops. The key is still glowing.
-* Button: a bolt leaves him the same frame, the way he faces.
-* Bolt on a wall: a splash on the wall.
-* Bolt on bare Zam: both spoons flash, one mark, the small line.
-* Bolt on a gold wrap: the wrap pops, three marks, the big line.
-* Gold fairy arrives: Zam stops shooting, the wrap is obvious.
-* Blue fairy arrives: a safe bubble, then a star.
-* Walk over the star: it flies to Zam and wraps him.
-* Purple ring: grows, and leaving it breaks it with a small pop.
-* Boss bubble or a closed purple ring: one pip, a short knockback, he can move again immediately.
-* Third pip: bow, sword still there, fight ready again.
-* Ninth mark: bow, gem joins the pile, key returns.
-* Quit: the falling notes, gems already saved if he had won any, process exits.
-
 ## What this game will not do
 
-* No second verb. The sword is the laser. There is no separate swing on another button.
-* No mode. Shoot is shoot before the chest and after it. The bolt gets longer because he is holding the sword.
-* His own laser never wraps him and never bounces onto him.
-* A bad fairy never wraps Zam into a heal, and a purple bubble is never a shield.
-* No maze, no second room, no scrolling path, no locked door past this chest.
-* No lying down, no scream, no boss who dies. He bows and comes back.
-* A lost fight does not take the key away and does not take a gem away.
-* No 3D, no video, no recorded music file.
-* No second stick. Two people play by splitting the hands that are already on this panel.
+* No second verb. No mode: the button shoots before and after the chest.
+* His own laser never wraps him and never bounces onto him. The shield stops a laser; it never returns it.
+* A bad fairy never wraps Zam into a heal.
+* No maze, no scrolling, no second room.
+* No boss who dies. He bows and comes back.
+* A lost fight does not take the key or a gem away.
+* No 3D, no video, no recorded music.
 
-## How we will know it works
+## How we know it works
 
-`games/test.py` plays a headless pass of these:
+`games/test.py` (`stress.sh`):
 
-* The path shows Ned and the key with no button.
-* The stick moves him and the chest stays.
-* Walking onto the key puts it in his hand the same frame.
-* Walking onto the chest with the key starts the pop, and the sword is in his hand when the pop ends.
-* `LOW` draws a laser the same frame, toward the way he faces.
-* A laser on Zam lights a mark.
-* A gold wrap, then a laser, counts as the big pop.
-* A blue star collected wraps Zam.
-* Three purple hurts restart the fight, leave the sword in his hand, and leave the gem count alone.
-* Nine marks add a gem, and the next path has the key back.
-* `TL` and `TR` also shoot.
-* 1-player and 2-player quit.
-* A button held from the launch does not fire a stream before a new press.
-* A broken `chest.sav` opens with no gems.
+* Autoplay goes key, chest, sword, and wins gems; the pile keeps every win.
+* A held button waits for a new press; `TL` and `TR` shoot.
+* A broken save opens with no gems.
+* Walking to the key and chest by hand, then stepping sideways and pressing, still marks Zam: the sword aims itself.
+* The first fight has no tricks. With two gems he teleports and raises a shield that stops zaps. With three, three bubbles at once.
+* 1P and 2P quit.
 
-The Yard gains a row only when we build it, under Tea. The blurb is "key and the spoons." Keep and Lamp stay where they are.
-
-## For your review
-
-His words are the toy. These are the choices around them:
-
-1. **One room.** The key, the chest, and the fight are the same picture. The walk is a few seconds, then the duel.
-2. **The stick walks. `LOW` shoots. `TL` and `TR` shoot too.** Before the sword the bolt is short. After it, the bolt crosses the room. Walking onto the key and the chest works even if nobody presses.
-3. **Zam tosses him the sword as the chest opens.** He is the boss and the gift-giver in the same pop. Tall gold body, a long brown mustache past his shoulders, brown plates on his chest, a silver spoon in each hand.
-4. **A laser always does something.** On a bare Zam it flashes the spoons. On a gold wrap it is the big pop. His own laser never bubbles him.
-5. **Three fairies.** Gold wraps Zam. Blue wraps Ned, pops into a star, and the star wraps Zam. Purple wraps Ned, and that is the hurt. Zam's shots are the same purple, already flying.
-6. **Three hurts restart the fight.** The sword stays, the chest stays open, the gems stay. The walk is not the thing he has to do over.
-7. **A win adds one gem and sets the key back out.** He can walk it again. The pile is the save.
-8. **You read the band, and you can hold the button while he holds the stick.** The lines name colors. They do not name buttons.
-9. **The person is called Ned** until you want a different name in the lines.
-
-If those match the game you want to stand next to, the next step is to build it.
+And by hand with `games/playtest.py`: the first fight, a level-one teleport, a level-three fight start to finish with the bow, the treasure's arc, and the key's new spot.

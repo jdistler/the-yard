@@ -24,6 +24,17 @@ void (*cab_event_hook)(const SDL_Event *e);
 
 static Uint8 held[CAB_PLAYERS][CAB_NUM_BUTTONS], prev[CAB_PLAYERS][CAB_NUM_BUTTONS];
 static Uint8 bot[CAB_NUM_BUTTONS], human[CAB_NUM_BUTTONS];
+/* Live control (CAB_CONTROL=1, games/playtest.py): the deck is driven a few frames at a time. */
+static int ctl_on = -1, ctl_run, ctl_frame, ctl_every;
+static Uint8 ctl_held[CAB_NUM_BUTTONS];
+static char ctl_dir[256];
+/* A strict four-way stick (CAB_FOURWAY=1): of two held directions, the newer one wins. */
+static Uint8 dir_prev[4];
+static unsigned dir_seq[4], dir_clock;
+/* Frame-locked audio capture (CAB_AUDIO_WAV=<prefix>): 735 stereo samples per frame. */
+static FILE *wav_file;
+static Uint32 wav_bytes;
+static void *wav_ud;
 static float quit_progress;
 static Uint8 axis_dir[CAB_PLAYERS][4], hat_dir[CAB_PLAYERS][4], key_dir[4];
 static int joy_map[32];
@@ -209,8 +220,41 @@ int cab_init(const char *title, int logical_w, int logical_h)
     return cab_video_init(title, logical_w, logical_h, 0);
 }
 
+static void wav_header(void)
+{
+    Uint8 h[44];
+    Uint32 v;
+    long here;
+    if (!wav_file)
+        return;
+    memcpy(h, "RIFF", 4);
+    v = 36 + wav_bytes;
+    memcpy(h + 4, &v, 4);
+    memcpy(h + 8, "WAVEfmt ", 8);
+    v = 16;
+    memcpy(h + 16, &v, 4);
+    h[20] = 1, h[21] = 0, h[22] = 2, h[23] = 0;
+    v = 44100;
+    memcpy(h + 24, &v, 4);
+    v = 44100 * 4;
+    memcpy(h + 28, &v, 4);
+    h[32] = 4, h[33] = 0, h[34] = 16, h[35] = 0;
+    memcpy(h + 36, "data", 4);
+    memcpy(h + 40, &wav_bytes, 4);
+    here = ftell(wav_file);
+    fseek(wav_file, 0, SEEK_SET);
+    fwrite(h, 1, 44, wav_file);
+    fseek(wav_file, here, SEEK_SET);
+    fflush(wav_file);
+}
+
 void cab_shutdown(void)
 {
+    if (wav_file) {
+        wav_header();
+        fclose(wav_file);
+        wav_file = NULL;
+    }
     cab_gl_shutdown();
     SDL_CloseAudio();
     for (int i = 0; i < CAB_PLAYERS; i++)
@@ -428,11 +472,127 @@ static int key_button(SDL_Scancode sc)
     }
 }
 
+static void (*audio_fill_ptr(void))(void *, Sint16 *, int);
+
+static int ctl_enabled(void)
+{
+    if (ctl_on < 0) {
+        const char *c = getenv("CAB_CONTROL");
+        ctl_on = c && c[0] && strcmp(c, "0");
+    }
+    return ctl_on;
+}
+
+/* Read commands until one of them lets frames run. One "ready <frame> <title> <held>" line
+ * answers each step or sync, so a client can wait for exactly that many. */
+static void ctl_wait(int *quit)
+{
+    char line[400];
+    int announce = 1;
+    if (!ctl_enabled())
+        return;
+    while (ctl_run <= 0) {
+        if (announce) {
+            printf("ready %d %s|", ctl_frame, sc_title);
+            for (int b = 0; b < CAB_NUM_BUTTONS; b++)
+                if (ctl_held[b])
+                    printf(" %s", names[b]);
+            printf("\n");
+            fflush(stdout);
+            announce = 0;
+        }
+        if (!fgets(line, sizeof line, stdin)) {
+            *quit = 1;
+            ctl_run = 1;
+            break;
+        }
+        {
+            char cmd[32] = "", arg[256] = "";
+            int n = sscanf(line, "%31s %255s", cmd, arg), b;
+            if (n < 1)
+                continue;
+            if (!strcmp(cmd, "down") || !strcmp(cmd, "up")) {
+                if ((b = sc_button(arg)) >= 0)
+                    ctl_held[b] = cmd[0] == 'd';
+                else {
+                    printf("err no button %s\n", arg);
+                    fflush(stdout);
+                }
+            } else if (!strcmp(cmd, "release")) {
+                memset(ctl_held, 0, sizeof ctl_held);
+            } else if (!strcmp(cmd, "step")) {
+                ctl_run = n > 1 ? atoi(arg) : 1;
+                if (ctl_run < 1)
+                    ctl_run = 1;
+            } else if (!strcmp(cmd, "shot")) {
+                snprintf(sc_shot, sizeof sc_shot, "%s", arg);
+            } else if (!strcmp(cmd, "every")) {
+                int every = 0;
+                char dir[256] = "";
+                if (sscanf(line, "%*s %d %255s", &every, dir) >= 1) {
+                    ctl_every = every;
+                    snprintf(ctl_dir, sizeof ctl_dir, "%s", dir);
+                }
+            } else if (!strcmp(cmd, "sync")) {
+                announce = 1;
+            } else if (!strcmp(cmd, "quit")) {
+                *quit = 1;
+                ctl_run = 1;
+            } else {
+                printf("err unknown %s\n", cmd);
+                fflush(stdout);
+            }
+        }
+    }
+    ctl_run--;
+}
+
+static void ctl_after_present(void)
+{
+    if (ctl_every > 0 && ctl_dir[0] && ctl_frame % ctl_every == 0) {
+        char path[320];
+        snprintf(path, sizeof path, "%s/f%06d.bmp", ctl_dir, ctl_frame);
+        cab_screenshot(path);
+    }
+}
+
+static void wav_frame(void)
+{
+    Sint16 buf[735 * 2];
+    if (!wav_file || !audio_fill_ptr())
+        return;
+    audio_fill_ptr()(wav_ud, buf, 735);
+    fwrite(buf, sizeof buf, 1, wav_file);
+    wav_bytes += sizeof buf;
+    if ((wav_bytes / sizeof buf) % 60 == 0)
+        wav_header();
+}
+
+static void four_way(void)
+{
+    int newest = -1;
+    unsigned best = 0;
+    for (int d = CAB_UP; d <= CAB_RIGHT; d++) {
+        if (held[0][d] && !dir_prev[d])
+            dir_seq[d] = ++dir_clock;
+        dir_prev[d] = held[0][d];
+        if (held[0][d] && dir_seq[d] >= best) {
+            best = dir_seq[d];
+            newest = d;
+        }
+    }
+    for (int d = CAB_UP; d <= CAB_RIGHT; d++)
+        if (d != newest)
+            held[0][d] = 0;
+}
+
 int cab_poll(void)
 {
     SDL_Event e;
     int quit = 0;
 
+    ctl_wait(&quit);
+    wav_frame();
     memcpy(prev, held, sizeof held);
     /* held[0] carried last frame's bot buttons. Events and the script work on
      * the deck's own state; the bot is laid on top again below. */
@@ -491,13 +651,20 @@ int cab_poll(void)
      * the script presses it. A script runs faster than the panel, so the hold
      * is 60 frames (one second at 60 Hz) instead of one second of wall clock. */
     script_apply(&quit);
+    if (ctl_enabled()) {
+        for (int b = 0; b < CAB_NUM_BUTTONS; b++)
+            held[0][b] = ctl_held[b];
+        ctl_frame++;
+    }
+    if (getenv("CAB_FOURWAY"))
+        four_way();
     memcpy(human, held[0], sizeof human);
     for (int b = 0; b < CAB_NUM_BUTTONS; b++)
         if (bot[b])
             held[0][b] = 1;
     quit_progress = 0;
     if ((human[CAB_SELECT] && human[CAB_START]) || (human[CAB_1P] && human[CAB_2P])) {
-        if (getenv("CAB_SCRIPT")) {
+        if (getenv("CAB_SCRIPT") || ctl_enabled()) {
             if (++combo_frames >= QUIT_HOLD_FRAMES)
                 quit = 1;
             quit_progress = (float)combo_frames / QUIT_HOLD_FRAMES;
@@ -552,10 +719,12 @@ int cab_human_any(void)
             return 1;
     return 0;
 }
-int cab_scripted(void) { return sc_n > 0 || (getenv("CAB_SCRIPT") && getenv("CAB_SCRIPT")[0]); }
+int cab_scripted(void) { return sc_n > 0 || (getenv("CAB_SCRIPT") && getenv("CAB_SCRIPT")[0]) || ctl_enabled(); }
 int cab_pressed(int player, int button) { return held[player][button] && !prev[player][button]; }
 
 static void (*audio_fill)(void *, Sint16 *, int);
+
+static void (*audio_fill_ptr(void))(void *, Sint16 *, int) { return audio_fill; }
 
 static void audio_cb(void *ud, Uint8 *stream, int len)
 {
@@ -573,6 +742,24 @@ int cab_audio_open(void (*fill)(void *ud, Sint16 *out, int frames), void *ud)
     want.callback = audio_cb;
     want.userdata = ud;
     audio_fill = fill;
+    if (getenv("CAB_AUDIO_WAV") && getenv("CAB_AUDIO_WAV")[0]) {
+        /* No device: the game's own synth is pulled once a frame and written down. */
+        char path[512], t[64];
+        int k = 0;
+        for (const char *c = sc_title; *c && k < 63; c++)
+            if ((*c >= 'A' && *c <= 'Z') || (*c >= 'a' && *c <= 'z') || (*c >= '0' && *c <= '9'))
+                t[k++] = *c;
+        t[k] = 0;
+        snprintf(path, sizeof path, "%s-%s.wav", getenv("CAB_AUDIO_WAV"), k ? t : "game");
+        if (wav_file)
+            fclose(wav_file);
+        wav_file = fopen(path, "wb");
+        wav_bytes = 0;
+        wav_ud = ud;
+        if (wav_file)
+            wav_header();
+        return wav_file ? 0 : -1;
+    }
     if (SDL_OpenAudio(&want, NULL) != 0) {
         cab_log("SDL_OpenAudio: %s", SDL_GetError());
         return -1;
@@ -617,6 +804,7 @@ int cab_screenshot(const char *path)
 
 void cab_shot_if_due(void)
 {
+    ctl_after_present();
     static int frame;
     const char *shot = getenv("CAB_SCREENSHOT");
     const char *at = getenv("CAB_SCREENSHOT_FRAME");

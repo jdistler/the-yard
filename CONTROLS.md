@@ -71,6 +71,8 @@ A four-year-old is a further loosening, the little band. Any stick direction doe
 
 A five-year-old who can already steer is still the walk-up band. The stick moves a body, `LOW` is the one bolt, and the other right-hand buttons fire it too. A soft restart is allowed when he asked to start over, and it restarts the round he lost, with the toy still in his hands. That game is the chest, specified in [games/chest/DESIGN.md](games/chest/DESIGN.md).
 
+When a walk-up game would ask one hand to move and also aim, the game aims. Chest's first build sent the laser the way Ned last walked; stepping aside to dodge and then pressing sent it away from the boss, and the reason was invisible to the player. In version 2 the sword points at the boss by itself, and the stick is for where to stand. Timing is still his: the boss has moments when a shot bounces off.
+
 Age never changes these:
 
 * The stick is move or aim for the whole game.
@@ -115,6 +117,8 @@ A new game is checked against this list before it grows past a toy in an empty r
 13. For the two-verb band, `LOW` alone still does something. The chord is extra.
 14. End a turn in a state the next person can start from: a title, a score of one number, the stick at rest.
 15. Prove it in `games/test.py` (run by `stress.sh`): the verb fires from stick and `LOW`, a button held across the launch does not fire twice, and `feel.py` shows the press frame changing more than an idle frame.
+16. Play it with `games/playtest.py` before calling it done: a strict four-way stick, the cabinet's picture, a frame at a time. Watch for what the hand cannot see the reason for.
+17. In the walk-up band, do not make one hand both move and aim. Aim for the player, and keep the timing for them.
 
 ## Shapes that fit the panel
 
