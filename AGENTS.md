@@ -8,7 +8,7 @@ Read these, in this order, before doing anything:
 2. [RUNBOOK.md](RUNBOOK.md): hard rules, the session loop, and the phase you're in.
 3. [RECOVERY.md](RECOVERY.md): how to get the cabinet back if anything goes wrong. Read it before any step that could change the cabinet.
 4. [tools/README.md](tools/README.md): what each tool does.
-5. [GAMEDEV.md](GAMEDEV.md), when the task is a game. Dig Dug II opens The Yard (Keep, Lamp, Orb, Tea, Chest). STATUS.md "Pickup" is the live hardware state. The picture pass in this tree is newer than the build on the cabinet.
+5. [CARTS.md](CARTS.md), when the task is a game. Then [CONTROLS.md](CONTROLS.md) and [GAMEDEV.md](GAMEDEV.md). Dig Dug II opens The Yard (Keep, Lamp, Orb, Tea, Chest). STATUS.md "Pickup" is the live hardware state. The cart build in this tree is newer than the build on the cabinet.
 
 ## Non-negotiable
 
@@ -18,6 +18,15 @@ Read these, in this order, before doing anything:
 * Never commit flash dumps, firmware binaries, or ROMs. They go to `~/partycade-dumps/`.
 * Anything physical (cold plug, cover, UART, SD card) is the user's job. Give them exact steps.
 * Anything that could change the cabinet (writing flash, inserting an SD card built from the stock boot block) needs the user's explicit approval, after you explain the risk.
+
+## Games
+
+* A game is a cart in `games/carts/<id>/`. Start one with `./cart new`. Don't write a new C game. Don't change `games/engine/` to suit one cart: if the API lacks something, use the library or a layer, and write down what was missing.
+* Look before you claim. `./cart shots ID ... --auto` writes PNGs; open them. `playtest.py` plays a game frame by frame on the cabinet's picture path.
+* `./cart check` must say `all carts pass`, and `./stress.sh` must pass, before a game is called done. Add the new cart's checks to `games/test.py`.
+* Keep every log line and save key a test or a save file depends on. Changing them silently breaks the tests or the saves on the cabinet.
+* A change to the engine (`games/engine/`) needs a reason, a binding in `api.c`, a line in CARTS.md, a check in `test.py`, and `./stress.sh` passing. Run `python3 tools/bin2c.py` after editing `engine/lib/`.
+* Shipping is `./cart pack`, then `./cart deploy`, which only stages. The write follows the rules above.
 
 ## Keeping the docs true
 

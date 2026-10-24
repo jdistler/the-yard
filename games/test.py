@@ -4,6 +4,7 @@
     python3 test.py quick    the self-tests and the panel rotation (check.sh)
     python3 test.py play     one session of every game, saves and pictures (play.sh)
     python3 test.py stress   the edges: quit, held buttons, broken saves, records, demos (stress.sh)
+    python3 test.py system   the sandbox, the cart pack, the deploy tools, the templates
     python3 test.py all
 
 Every run happens in a fresh temporary directory, which stands in for /data/Games.
@@ -138,8 +139,13 @@ def quick():
     check(rc == 0 and (best(d, "lamp.sav") or 0) >= 1, f"lamp self-test wakes a night and saves ({read(d, 'lamp.sav')!r})")
     rc, _ = run("yard", d, env={"YARD_SELFTEST": "1"})
     check(rc == 0 and best(d, "yard.sav") is not None, "yard self-test saves the row")
-    rc, _ = run("yard", d, env={"YARD_ONCE": "keep", "KEEP_SELFTEST": "1"})
-    check(rc == 0, "yard launches keep and keep comes back clean")
+    rc, _ = run("yard", d, args=("keep",), env={"KEEP_SELFTEST": "1"})
+    check(rc == 0, "yard runs a cart by name (yard keep)")
+    for cart in ("yard", "keep", "lamp", "tea", "chest"):
+        r = subprocess.run([os.path.join(BIN, "yard"), "--check", cart], cwd=d, capture_output=True, text=True,
+                           env={**os.environ, "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy",
+                                "CAB_SCRIPT": "/dev/null", "YARD_CHECK_FRAMES": "120"}, timeout=120)
+        check(r.returncode == 0 and r.stdout.startswith("ok:"), f"cart {cart} boots and runs 120 frames ({r.stdout.strip()})")
     # The panel is mounted 90 degrees clockwise: the top of the game lands on the left of the framebuffer.
     shot = os.path.join(d, "fb.bmp")
     rc, _ = run("keep", d, script="", frames=6,
@@ -368,18 +374,129 @@ def stress():
                    "title=Chest", "10 down 1P", "10 down 2P"]) + "\n"
     rc, err = run("yard", d, script=s, frames=600)
     check(best(d, "yard.sav") == 4 and "yard open chest" in err, "yard: up from the top row wraps to Chest")
+    # A cart that falls over, and a native game whose program is missing: the menu stays.
     lone = os.path.join(d, "bin")
     os.makedirs(lone)
     shutil.copy(os.path.join(BIN, "yard"), lone)
-    rc, err = run("yard", d, script=script("The Yard", "10 down LOW", "11 up LOW", f"60 shot {out}/yard-missing.bmp",
-                                           "80 quit"), binary=os.path.join(lone, "yard"))
-    check(rc == 0 and "could not open" in err, "yard: a missing game leaves a note and the menu stays")
+    shelf = os.path.join(d, "carts")
+    shutil.copytree(os.path.join(HERE, "carts"), shelf)
+    with open(os.path.join(shelf, "keep", "main.lua"), "a") as f:
+        f.write("\nfunction update() local t = nil; t.boom = 1 end\n")
+    e = tmpdir()
+    rc, err = run("yard", e, script=script("The Yard", "10 down LOW", "11 up LOW", f"100 shot {out}/yard-stumbled.bmp",
+                                           "120 quit"), binary=os.path.join(lone, "yard"), env={"YARD_CARTS": shelf},
+                  frames=900)
+    check(rc == 0 and "keep error" in err and "keep stumbled" in err, "yard: a cart that errors shows its gentle screen and the menu comes back")
+    e = tmpdir()
+    rc, err = run("yard", e, script=script("The Yard", "10 down UP", "11 up UP", "12 down UP", "13 up UP", "14 down UP",
+                                           "15 up UP", "40 down LOW", "41 up LOW", f"80 shot {out}/yard-missing.bmp", "100 quit"),
+                  binary=os.path.join(lone, "yard"), env={"YARD_CARTS": shelf}, frames=600)
+    check(rc == 0 and "could not open orb" in err, "yard: a missing game leaves a note and the menu stays")
     with open(os.path.join(d, "keep.sav"), "w") as f:
         f.write("best 42\n")
     rc, err = run("yard", d, script=script("The Yard", f"20 shot {out}/yard-stats.bmp", "21 quit"))
     check(rc == 0 and busy(f"{out}/yard-stats.bmp") > 20, "yard: draws with saves from other games present")
     shutil.rmtree(d, ignore_errors=True)
     say(f"  pictures in {out}")
+
+
+# ---------------------------------------------------------------------------- system
+
+def system():
+    say("== system: the sandbox, the pack, the deploy tools, the templates ==")
+    yard = os.path.join(BIN, "yard")
+    shelf = tmpdir()
+
+    def cart(cid, main):
+        os.makedirs(os.path.join(shelf, cid))
+        with open(os.path.join(shelf, cid, "info.lua"), "w") as f:
+            f.write(f"return {{title = '{cid}', save = '{cid}'}}\n")
+        with open(os.path.join(shelf, cid, "main.lua"), "w") as f:
+            f.write(main)
+
+    cart("loop", "function update() while true do end end\n")
+    cart("hog", "local t = {}\nfunction update() for i = 1, 100000 do t[#t + 1] = string.rep('x', 1000) .. i end end\n")
+    cart("leak", "function update() for i = 1, 40 do gfx.layer(1024, 1024) end end\n")
+    cart("typo", "local score = 0\nfunction update() score = scroe + 1 end\n")
+    cart("leaky", "function update() count = 1 end\n")
+    cart("escape", "function init() local g = _G\n"
+                   "  log('reach', rawget(g, 'io'), rawget(g, 'os'), rawget(g, 'require'), rawget(g, 'load'), rawget(g, 'dofile'),\n"
+                   "      rawget(g, 'debug'), rawget(g, 'package'), string.dump)\n"
+                   "  log('paths', pcall(gfx.image, '../../x.png'), pcall(import, '../x'), pcall(readtext, '/etc/passwd'))\n"
+                   "  game.quit() end\n")
+
+    def check_cart(cid, frames=300):
+        r = subprocess.run([yard, "--check", cid], cwd=shelf, capture_output=True, text=True, timeout=300,
+                           env={**os.environ, "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy",
+                                "CAB_SCRIPT": "/dev/null", "YARD_CARTS": shelf, "YARD_CHECK_FRAMES": str(frames)})
+        return r.stdout + r.stderr
+
+    check("never ends" in check_cart("loop"), "sandbox: a loop that never ends is stopped with a plain message")
+    check("memory" in check_cart("hog"), "sandbox: a cart that eats memory is stopped at its cap")
+    check(check_cart("leak", 120).startswith("ok:"), "sandbox: layers made every frame are collected under the cap")
+    check("unknown name 'scroe'" in check_cart("typo"), "sandbox: a misspelled name is an error, not a quiet nil")
+    check("new global 'count'" in check_cart("leaky"), "sandbox: a forgotten 'local' inside update() is an error")
+    out = check_cart("escape")
+    check("reach nil nil nil nil nil nil nil nil" in out and "paths false" in out and out.count("false") >= 3,
+          "sandbox: no io, os, require, load, debug, bytecode, or paths out of the cart")
+
+    # The pack: built by ./cart pack, read back by the runtime, and a flipped bit drops just that cart.
+    pak = os.path.join(shelf, "yard.pak")
+    r = subprocess.run([sys.executable, os.path.join(HERE, "cart"), "pack", "--out", pak], capture_output=True, text=True)
+    check(r.returncode == 0 and os.path.getsize(pak) == 4 << 20, "pack: ./cart pack makes a full-size yard.pak")
+    empty = tmpdir()
+    env = {**os.environ, "YARD_PAK": pak, "YARD_CARTS": empty}
+    r = subprocess.run([yard, "--list"], cwd=empty, capture_output=True, text=True, env=env)
+    listed = [l.split()[0] for l in r.stdout.splitlines() if "pak:" in l]
+    check(set(listed) >= {"yard", "keep", "lamp", "orb", "tea", "chest"}, f"pack: the runtime reads every cart from it ({listed})")
+    data = bytearray(open(pak, "rb").read())
+    data[data.find(b"keep catch")] ^= 1
+    bad = os.path.join(shelf, "bad.pak")
+    open(bad, "wb").write(data)
+    r = subprocess.run([yard, "--list"], cwd=empty, capture_output=True, text=True, env={**env, "YARD_PAK": bad})
+    listed = [l.split()[0] for l in r.stdout.splitlines() if "pak:" in l]
+    check("keep" not in listed and "tea" in listed and "checksum" in r.stderr, "pack: a damaged cart is skipped, the rest still load")
+
+    # data_patch --overwrite: same-size file into its own blocks, nothing else moves.
+    if shutil.which("mke2fs") and shutil.which("debugfs"):
+        sys.path.insert(0, os.path.join(os.path.dirname(HERE), "tools"))
+        import data_patch
+        for bs in (1024, 4096):
+            img = os.path.join(shelf, f"fs{bs}.img")
+            with open(img, "wb") as f:
+                f.truncate(16 << 20)
+            subprocess.run(["mke2fs", "-q", "-t", "ext2", "-b", str(bs), img], check=True)
+            a, b = os.path.join(shelf, "a.bin"), os.path.join(shelf, "b.bin")
+            open(a, "wb").write(os.urandom(700000))
+            open(b, "wb").write(os.urandom(700000))
+            subprocess.run(["debugfs", "-w", "-R", f"write {a} pak", img], capture_output=True, check=True)
+            before = subprocess.run(["debugfs", "-R", "blocks /pak", img], capture_output=True, text=True).stdout
+            data_patch.overwrite(img, b, "pak")
+            after = subprocess.run(["debugfs", "-R", "blocks /pak", img], capture_output=True, text=True).stdout
+            dump = os.path.join(shelf, "dump.bin")
+            subprocess.run(["debugfs", "-R", f"dump /pak {dump}", img], capture_output=True)
+            fsck = subprocess.run(["e2fsck", "-fn", img], capture_output=True)
+            check(before == after and open(dump, "rb").read() == open(b, "rb").read() and fsck.returncode == 0,
+                  f"deploy: --overwrite rewrites a file in its own blocks (ext2, {bs}-byte blocks), fsck clean")
+    else:
+        say("  skip data_patch --overwrite (no e2fsprogs)")
+
+    # Every template makes a cart that passes the gate.
+    for t in sorted(os.listdir(os.path.join(HERE, "templates"))):
+        tshelf = tmpdir()
+        cid = f"t{t}"
+        shutil.copytree(os.path.join(HERE, "templates", t), os.path.join(tshelf, cid))
+        for name in os.listdir(os.path.join(tshelf, cid)):
+            p = os.path.join(tshelf, cid, name)
+            text = open(p).read().replace("{{ID}}", cid).replace("{{TITLE}}", t.title()).replace("{{SIZE}}", "small")
+            open(p, "w").write(text)
+        r = subprocess.run([yard, "--check", cid], cwd=tshelf, capture_output=True, text=True, timeout=300,
+                           env={**os.environ, "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy", "CAB_AUTOPLAY": "1",
+                                "CAB_SCRIPT": "/dev/null", "YARD_CARTS": tshelf, "YARD_CHECK_FRAMES": "900"})
+        check(r.stdout.startswith("ok:"), f"template {t}: a new cart runs 15 seconds on its bot ({r.stdout.strip()[:60]})")
+    r = subprocess.run([sys.executable, os.path.join(HERE, "tools", "bin2c.py"), "--check"], capture_output=True, text=True)
+    check(r.returncode == 0, "the embedded font and library are fresh (tools/bin2c.py --check)")
+    shutil.rmtree(shelf, ignore_errors=True)
 
 
 def main():
@@ -391,6 +508,8 @@ def main():
         play()
     if which in ("stress", "all"):
         stress()
+    if which in ("system", "all"):
+        system()
     say(f"== {passes} passed, {len(failures)} failed ==")
     for f in failures:
         say(f"  FAIL {f}")

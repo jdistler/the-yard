@@ -67,9 +67,9 @@ Bilateral coordination of the arms is still improving at 8, and it keeps improvi
 
 Toddlers are below this panel. A joystick study of children 17 to 35 months found they shove forward first, whatever the target, and that the youngest take many seconds to connect direction to result. This deck is a bartop with small buttons. The young floor for a walk-up game is about school age.
 
-A four-year-old is a further loosening, the little band. Any stick direction does the one useful thing, every right-hand button does the verb, and a turn has no fail state. The first game in that band is the tea party, specified in [games/tea/DESIGN.md](games/tea/DESIGN.md). The button places stay the same.
+A four-year-old is a further loosening, the little band. Any stick direction does the one useful thing, every right-hand button does the verb, and a turn has no fail state. The first game in that band is the tea party, specified in [games/carts/tea/DESIGN.md](games/carts/tea/DESIGN.md). The button places stay the same.
 
-A five-year-old who can already steer is still the walk-up band. The stick moves a body, `LOW` is the one bolt, and the other right-hand buttons fire it too. A soft restart is allowed when he asked to start over, and it restarts the round he lost, with the toy still in his hands. That game is the chest, specified in [games/chest/DESIGN.md](games/chest/DESIGN.md).
+A five-year-old who can already steer is still the walk-up band. The stick moves a body, `LOW` is the one bolt, and the other right-hand buttons fire it too. A soft restart is allowed when he asked to start over, and it restarts the round he lost, with the toy still in his hands. That game is the chest, specified in [games/carts/chest/DESIGN.md](games/carts/chest/DESIGN.md).
 
 When a walk-up game would ask one hand to move and also aim, the game aims. Chest's first build sent the laser the way Ned last walked; stepping aside to dodge and then pressing sent it away from the boss, and the reason was invisible to the player. In version 2 the sword points at the boss by itself, and the stick is for where to stand. Timing is still his: the boss has moments when a shot bounces off.
 

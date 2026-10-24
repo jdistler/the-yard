@@ -244,3 +244,31 @@ No cabinet, no USB command, nothing staged or written.
 * Playing Tea and Chest that way found the problems listed in each spec's "What changed in version 2." Both games were reworked and their specs rewritten. Zam is now drawn after Alakazam at the user's request; the README and the Chest spec say that likeness is not covered by the MIT license.
 * `test.py`: 57 checks, all pass. Frame cost by `playtest.py perf`: Tea 5.1 M instructions of its own work a frame, Chest 3.9 M. Estimated 5 to 10 ms on the Cortex-A7; not measured there.
 
+
+## 2026-10-24 (evening): the cart runtime and the deploy audit, no hardware
+
+No cabinet, no USB command, nothing staged or written. Cloud container again: no `~/partycade-dumps/`, no rootfs. No plug was tried, so `rk.py` `STAGES` notes are unchanged.
+
+* **Runtime.** `games/engine/runtime.c` and `api.c` embed Lua 5.4.7 (from the `v5.4.7` tag on GitHub; lua.org returned 403) in the existing renderer and synth.
+  * The sandbox has no io, os, package, debug, load, dofile, or `string.dump`.
+  * One allocator caps Lua plus pictures at 32 MB.
+  * A count hook stops a callback after 150 M VM steps (400 M in `init`).
+  * After `init()`, reading an unset global or making a new one is an error.
+  * Additions to the engine: TrueType text with stb_truetype and Fredoka SemiBold (OFL; a static instance cut with fontTools), PNG with stb_image, a light map (`gfx_light.inc`, Lamp's darkness pass made general), and an iris wipe.
+  * The menu launches each cart as `yard <id>` in a child process, so test scripts keep per-title sections and a cart crash can't take the menu with it.
+* **Ports.** The menu, Keep, Lamp, Tea, and Chest are Lua carts in `games/carts/`. The C sources are deleted (git history keeps them).
+  * With the same seed and the built-in player, Chest's log has the key at frame 24, the sword at 136, the win at 234, and the second key at 860 in both the C and the Lua build.
+  * Callgrind over 1200 frames (x86 instructions per frame, whole process): Tea 7.1 M (C 6.3 M), Chest 5.8 (5.2), Lamp 4.8 (3.9), Keep 1.2 (1.0).
+* **Tools.**
+  * `games/cart` (new, list, run, check, shots, perf, pack, deploy) and three templates.
+  * `test.py` has a new `system` pass. 78 checks, all pass.
+  * `playtest.py` reads its title list from the runtime and profiles through it.
+* **ARM.** The runtime cross-compiles with this container's `arm-linux-gnueabihf-gcc` to 419532 bytes, linked with unresolved SDL symbols only to measure size. That compiler is newer than the cabinet's glibc (GLIBC_2.38 symbols), so it is not a candidate binary. The Docker toolchain image did not build: `apt-get` to archive.debian.org failed in this sandbox. Not run under qemu.
+* **Deploy audit.**
+  * `data_patch.py` → `sftl_patch.py` → round trip → `diff` → approved `restore` is sound. Its one weak point is a new file on pages SFTL never wrote: `sftl_patch.py` refuses those, but only late.
+  * `data_patch.py` gained `--overwrite SRC:DEST`, which writes a same-size file into the blocks it already owns.
+  * The first version used debugfs `blocks`. On a test image that wrote file data over the indirect blocks, and e2fsck aborted. It now maps each logical block with `bmap`. The block map is unchanged, the content matches, and e2fsck is clean on ext2 with 1 KiB and 4 KiB blocks (in `test.py system`).
+  * The cabinet layout becomes three fixed-size files: `yard` 2 MiB, `orb` 1 MiB, and `yard.pak` 4 MiB (crc32 per file; the carts use 120 KB). `games/cart deploy` stages either the first install (`--rm` the old C binaries, `--put` the three) or an in-place update (`--overwrite`), and writes `PLAN.md`.
+  * `stage_game.py` is gone.
+
+Conclusion: the cart build is ready for a cabinet build (`build.sh cab` with the rootfs), a qemu smoke test, and a `cart deploy --first` from a fresh dump. Approval is needed for whatever blocks that prints. Open: the frame time on the A7, and whether the first install lands entirely on pages SFTL has written.

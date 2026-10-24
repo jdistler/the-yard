@@ -94,60 +94,53 @@ Who does what: **PC** = the agent on this PC, no hardware. **User** = something 
 | :--- | :--- | :--- | :--- |
 | 0 | Back up `~/partycade-dumps/` off this PC | User | No |
 | 1 | **Toolchain** (done): `games/toolchain/Dockerfile`, see section 6 | PC | No |
-| 2 | **Game skeleton** (done): `games/common/cab.{h,c}` plus `games/probe/`; builds for PC and cabinet, smoke-tested under `qemu-arm-static` with the rootfs libraries | PC | No |
+| 2 | **Game skeleton** (done): the platform layer, now `games/engine/cab.{h,c}`, plus the probe, now `games/native/probe/`; builds for PC and cabinet, smoke-tested under `qemu-arm-static` with the rootfs libraries | PC | No |
 | 3 | **Prove the restore path** (done): block 91 erased, programmed, and read back with `plug_3032slc_erase`. Counts of 32 or more sectors hang the loader; the tool writes one page at a time | User + Approval | Yes (block 91, restored) |
 | 4 | **Probe on tile 10 (Dig Dug II)** (flashed 2026-10-23): `/data/Games/probe`, and that tile's `start.sh` line runs it. Blocks 828, 829, 872, 873, 884, 885, 892, 893. Diff against the patched image was none | Done | Yes (`data`) |
 | 5 | Probe played, log read back, and the user labeled each button from the screen. The map is in § 2 | Done | No |
 | 6 | **The Yard** on tile 10 (flashed 2026-10-23): `yard` plus `keep` and `lamp`. Blocks 404, 405, 860, 861, 866, 867, 878, 879, 884, 885. The power-cut filesystem was repaired in that same write | Done | Yes (`data`) |
 | 7 | **Our launcher (option B):** build it, measure the rootfs change offline (`S50ui` hook, rebuilt SquashFS, `sftl_patch.py --part rootfs`), check the stock menu fallback, then flash once | PC + User + Approval | Yes (`rootfs`, once) |
-| 8 | From then on, each new game is a folder in `/data/games/<name>/` plus a line in the launcher's list: a `data`-only change. Optionally set up ADB first to skip the switch flips | Repeat | `data` only |
+| 8 | From then on, each new game is a cart in `yard.pak`: `./cart deploy` rewrites the pack in place, a `data`-only change of a few blocks (CARTS.md § 10). Optionally set up ADB first to skip the switch flips | Repeat | `data` only |
 
 Each flash step follows RUNBOOK.md Phase 3, option B: a fresh `rawdump` → edit a copy → `sftl_patch.py` → rebuild check → `diff` says "none" → `restore` the listed blocks → `diff` against the patched image says "none" → switch ON and play. `tools/data_patch.py` does the middle part (edit, patch, rebuild check) in one checked command.
 
 ## 6. Building and installing (`games/`)
 
+The layout, the cart API, and the work loop for a new game are in [CARTS.md](CARTS.md). In short:
+
 ```
 games/
+  cart                   the CLI: new, list, run, check, shots, perf, pack, deploy
+  carts/<id>/            one folder per game: info.lua (the label) and main.lua (the game). yard is the menu
+  templates/             blank, arcade, story
+  engine/                the runtime (runtime.c, api.c, lib/*.lua) on cab.c, cab_gl.c, gfx.c, sfx.c, plus Lua 5.4.7
+  native/orb/orb.c       Orb, OpenGL ES 2, its own program. carts/orb/info.lua is its menu label
+  native/probe/probe.c   the controls, screen, and audio probe
   toolchain/Dockerfile   Debian 10 armhf cross GCC 8.3 (glibc 2.28) + SDL 2.0.7 headers; image "partycade-armhf"
-  common/cab.{h,c}       platform layer: upright view, cabinet rotation, input map, quit, score, audio, text, log, button scripts, card files, the autopilot input
-  common/cab_gl.c        OpenGL ES 2: upright framebuffer, then the same rotation as cab_present
-  common/gfx.{h,c}       software 2D renderer: anti-aliased shapes, gradients, glow, outlined toon figures, text, sprites, particles, background caches (§ 12)
-  common/sfx.{h,c}       synth: 16 voices, five waves, envelopes, slides, drums, and a looping step sequencer (§ 12)
-  common/font8x8_basic.h public-domain 8x8 font, set proportionally by gfx
-  probe/probe.c          the controls/screen/audio probe
-  keep/keep.c            Keep: catch the fruit in Pip's basket. Dash, combos, three hearts, bees later. keep.sav
-  lamp/lamp.c            Lamp: a lantern in a dark meadow, fallen stars that climb back into constellations, night after night. lamp.sav
-  orb/orb.c              Orb: OpenGL ES 2. A lit orb on the title, then a neon well with gates, wisps, and a boost. orb.sav. Reads a card file named label
-  tea/tea.c              Tea: a unicorn, a castle, and the cats. tea.sav is visits and gifts. Spec: tea/DESIGN.md
-  chest/chest.c          Chest: a person, a key, a chest, and Zam. chest.sav is gems. Spec: chest/DESIGN.md
-  yard/yard.c            The Yard: the menu behind Dig Dug II. Launches keep, lamp, orb, tea, or chest. Shows each game's band and what it remembers. yard.sav is the highlighted row
-  test.py                every headless check: quick (self-tests, rotation), play (a session of each game), stress (the edges)
-  check.sh               python3 test.py quick
-  play.sh                python3 test.py play; pictures in out/play/
-  stress.sh              python3 test.py all; pictures in out/stress/
-  feel.py                a reel of each game and a hand-response measure; pictures in out/feel/
-  playtest.py            play a game a few frames at a time through the cabinet path, and look (§ 13)
-  stage_game.py          build (if needed) and patch a raw dump. Does not flash
-  Makefile               TARGET=pc or TARGET=cab; GAMES := probe keep lamp yard orb tea chest
+  Makefile               TARGET=pc or TARGET=cab: out/<target>/yard, orb, probe
   build.sh pc|cab|all    cab builds in Docker against the extracted rootfs, then runs check_binary.sh
   check_binary.sh        armhf, every NEEDED lib in the rootfs, GLIBC <= 2.29, GLIBCXX <= 3.4.22
+  test.py                every headless check: quick, play, stress, system (§ 8)
+  check.sh play.sh stress.sh   test.py quick, play, all
+  playtest.py            play a game a few frames at a time through the cabinet path, and look (§ 13)
+  feel.py                a reel of each game and a hand-response measure; pictures in out/feel/
 ```
 
-* Build: `cd games && ./build.sh pc` for the simulator, `./build.sh cab` for the cabinet. Outputs are `out/pc/<game>` and `out/cab/<game>` (gitignored). `ROOTFS=` overrides the rootfs path (default `~/partycade-dumps/2026-10-23_raw_plug3032slc/rootfs`).
-* Play on the PC: `games/out/pc/yard`. The window is the upright picture. Keys: arrows move; Z X C are the three buttons right of the stick (lower, top-left, top-right); 1 and 2 are 1-player and 2-player. Hold 1 and 2 for a second, or press Escape, to quit. A meter in the middle of the screen fills while 1 and 2 are held, so a grown-up can see the quit coming. `CAB_RAW_FB=1` shows the sideways framebuffer the panel scans. `./check.sh` is the short self-test. `./play.sh` plays a session of every game with no keyboard and checks the saves and pictures. `./stress.sh` plays the edges and then both of those (§ 8).
-* Draw in upright pixels. `gfx_init` (or `cab_init`) takes the upright size: 240×320 for The Yard, Keep, and Lamp, 384×512 for Tea, Chest, and Orb. The cabinet build rotates it in `cab_present`. Do not rotate again inside the game.
-* Smoke-test the ARM build without the cabinet (`qemu-arm-static` is in `~/.local/bin`):
-  `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PROBE_SELFTEST=1 CAB_SCREENSHOT=/tmp/s.bmp qemu-arm-static -L $ROOTFS out/cab/probe` must exit 0 within a few seconds (the self-test presses the lower button, then holds select+start).
-* Tile 10 on the cabinet is The Yard (`GAME_NAME=yard`) with Keep, Lamp, Orb, Tea, and Chest, flashed 2026-10-23 22:00. Blocks 372, 373, 404, 405, 860, 861, 878, 879, 884, 885. Undo of that write is a restore of those blocks from `~/partycade-dumps/2026-10-23_yard5/nand_raw.bin`. The old probe binary is still sitting in `/data/Games/probe` and is not what the tile launches.
-* To stage the next game, from a **fresh** `rawdump` taken in the session you will write in:
+* **Build.** `cd games && make` for the simulator, `./build.sh cab` for the cabinet. The outputs are `out/pc/` and `out/cab/` (gitignored). `ROOTFS=` overrides the rootfs path (default `~/partycade-dumps/2026-10-23_raw_plug3032slc/rootfs`). The PC build also links `out/pc/keep`, `lamp`, `tea`, and `chest` to `yard`, so the old names still start those carts.
+* **Play on the PC** with `games/out/pc/yard`. The window shows the upright picture. Arrows move; Z X C are the three buttons right of the stick (lower, top left, top right); 1 and 2 are 1-player and 2-player. Hold 1 and 2 for a second, or press Escape, to quit. While 1 and 2 are held, a meter fills in the middle of the screen, so a grown-up can see the quit coming. `CAB_RAW_FB=1` shows the sideways framebuffer the panel scans.
+* **Draw upright.** A cart's label picks 240×320 or 384×512. The runtime rotates the picture for the panel. Don't rotate it again.
+* **Smoke-test the ARM build without the cabinet.** `qemu-arm-static` is in `~/.local/bin`. `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy YARD_PAK=out/yard.pak qemu-arm-static -L $ROOTFS out/cab/yard --check keep` should print `ok:`.
+* **On the cabinet**, tile 10 runs `/data/Games/yard`. The 2026-10-23 build there is the old five C binaries (`yard` the menu, plus `keep`, `lamp`, `orb`, `tea`, `chest`). The cart build replaces them with three fixed-size files: `yard` (the runtime, padded to 2 MiB), `orb` (padded to 1 MiB), and `yard.pak` (every cart, padded to 4 MiB).
+* **Stage a build** from a **fresh** `rawdump` taken in the session you will write in:
 
 ```
-games/stage_game.py --raw RAW --out ~/partycade-dumps/<date>_yard --game yard --bundle keep,lamp,orb,tea,chest
+games/cart deploy --raw RAW --out ~/partycade-dumps/<date>_carts --first   # the first time
+games/cart deploy --raw RAW --out ~/partycade-dumps/<date>_carts           # every later time
 ```
 
-  That builds the cabinet binaries if needed and replaces tile 10's `GAME_NAME=yard` with `GAME_NAME=` the `--game` name. `--from` overrides that when the dump's `start.sh` still says something else (the probe-era dumps say `GAME_NAME=probe`). It prints the blocks and the restore command. It does not flash. Diff RAW in that same session; it must say none. Then restore only with written approval for those blocks. A dump taken after cutting power fails `e2fsck`; staging from it needs `--repair`. A clean quit does not.
+  It builds for the cabinet, packs the carts, pads the files, and runs `tools/data_patch.py` on a copy of RAW. `--first` uses `--rm` for the old C games and `--put` for the three new files. Later deploys use `--overwrite`, which writes each file into the disk blocks it already owns, so only flash pages that have been written before change: the case `sftl_patch.py` handles. Deploy then writes `PLAN.md` with the block list and the restore command. It does not flash. Diff RAW in that same session; it must say none. Then restore only with written approval for those blocks. A dump taken after cutting power fails `e2fsck`; pass the same `--repair` through `data_patch.py` by hand.
 
-The command that installed the probe, kept here as the pattern:
+The command that installed the probe, kept here as the pattern for a one-off file:
 
 ```
 python3 tools/data_patch.py RAW ~/partycade-dumps/<date>_probe_tile10 \
@@ -155,7 +148,7 @@ python3 tools/data_patch.py RAW ~/partycade-dumps/<date>_probe_tile10 \
   --replace 'start.sh:GAME_NAME="Mappy d":GAME_NAME=probe'
 ```
 
-  It prints the blocks and the `rk_restore.py restore` command. To read a log back: `rawdump`, `sftl_rebuild.py`, extract the `data` partition (offset `0x22c00`, `0xf000` sectors), then `debugfs -R 'dump /Games/probe.log probe.log' data.img`. The log is written about once a second and on a clean exit. Cutting power drops the tail.
+To read a log back: `rawdump`, `sftl_rebuild.py`, extract the `data` partition (offset `0x22c00`, `0xf000` sectors), then `debugfs -R 'dump /Games/probe.log probe.log' data.img`. The log is written about once a second and on a clean exit. Cutting power drops the tail.
 
 ## 7. What fits, and how a game remembers
 
@@ -170,7 +163,7 @@ Measured from the fresh dump `~/partycade-dumps/2026-10-23_yard/nand_raw.bin` (s
 | One small file | at least 1 block and 1 inode, even when the text is 8 bytes. A high-score file costs 1024 bytes, not 8 |
 | Name length | 255 bytes |
 
-The cabinet binaries were about 22 KB each (22 blocks) before the 2026-10-24 overhaul: `yard` 22432, `keep` 22504, `lamp` 22116. Each game now links the 2D renderer and the synth as well; the armhf objects say about 50 to 60 KB of code per game, still with no picture or sound files. The three of them plus three score files are under 70 KB. The same size of game, with no big assets, fits about a thousand times in the free space. A game that brings 1 MiB of pictures uses about 1024 blocks, so the free space holds about two dozen of those before it is full. RAM is 128 MiB for the whole machine, Linux included. These programs are tiny next to that. The limit that matters is the 24.40 MiB free on `data`, and that rootfs is a read-only squashfs, so everything we add goes in `data`.
+The cabinet binaries were about 22 KB each (22 blocks) in the first build: `yard` 22432, `keep` 22504, `lamp` 22116. The cart runtime (renderer, synth, Lua, the library, and the round font) cross-compiles to about 420 KB of armhf code (measured 2026-10-24 with this PC's cross compiler, not the Docker toolchain). The five Lua carts pack into 120 KB. The fixed slots (2 + 1 + 4 MiB) take 7 MiB of the 24.40. The same size of game, with no big assets, fits about a thousand times in the free space. A game that brings 1 MiB of pictures uses about 1024 blocks, so the free space holds about two dozen of those before it is full. RAM is 128 MiB for the whole machine, Linux included. These programs are tiny next to that. The limit that matters is the 24.40 MiB free on `data`, and that rootfs is a read-only squashfs, so everything we add goes in `data`.
 
 There is no network, no SDL_ttf, and no second player. Draw upright. 240×320 scales by 3.2 onto the 768×1024 panel. Sound is 44100 Hz, stereo, signed 16-bit. Quit by holding 1-player and 2-player, or the stock menu never returns.
 
@@ -183,7 +176,7 @@ Stock titles do not share a high-score format. Each emulator writes two private 
 | `Smoothing.cfg`, `Speed.cfg` | 12 bytes each, one per menu tile, read by `/usr/bin/game`. The menu passes them as `start.sh`'s smoothing and speed arguments. A game sees smoothing as `SDL_RENDER_SCALE_QUALITY` and speed as the argv `-fast` (`cab_fast`) |
 | `/data/spk_volume` | ASCII digit plus a newline (the dump has `3\n`). The volume keys are handled by the kernel. Stock games read this and show `Games/<0-15>.png`. Do not write it |
 
-The strings `.sav`, `.cfg`, and `/data/spk_volume` are in the Pac-Man binary. Our games must not use a stock title's name. `cab_score_load("keep")` / `cab_score_save("keep", n)` use a text file `keep.sav` containing one line, `best N`, fsync'd, in the current directory. `lamp.sav` is the same for Lamp. `yard.sav` stores the last highlighted row of the menu, in that same one-line form. The function refuses `PacMan`, `DigDug`, `probe`, and the other stock names. A new score file appears the first time a game saves, and it occupies one 1024-byte block.
+The strings `.sav`, `.cfg`, and `/data/spk_volume` are in the Pac-Man binary. Our games must not use a stock title's name. A cart's save is `<name>.sav` in the current directory, lines of `key value` (`best 12`, `pip teacup`), written whole through a temp file, fsync, and rename (CARTS.md § 4, `save`). `keep.sav` and `lamp.sav` are one line, `best N`; `yard.sav` is the menu's last row in the same form. The runtime refuses `PacMan`, `DigDug`, `probe`, and the other stock names. A new save appears the first time a game saves, and it occupies one 1024-byte block.
 
 A longer save is the same idea: one file per game, a temp file, `fflush`, `fsync`, `rename`, then an `fsync` of the directory. ext2 has no journal, so the directory sync is what makes the new name survive a power cut. A record below 0 or above 1000000 loads as a missing file: a value that does not fit in a signed int comes back negative, and either one would freeze the record. There is no shared save slot and no battery-backed RAM. The ext2 free space above is the whole budget for saves, binaries, and pictures together. A save can be as large as that free space; a one-line score is the right size for a high score. The cabinet clock is not set, so file timestamps stay at the epoch. Cutting power can drop the last second and dirty the filesystem, which is why the rename is fsync'd first and why a dump after a power cut needs `--repair`.
 
@@ -214,11 +207,14 @@ title=Keep
 
 The Yard's script keeps counting across the game it launches, because `cab_init` loads the file once per process and does not reset the frame counter. The child game is a new process and only sees its own `title=` section. That is how one file can move the lantern, open Lamp, quit Lamp, and land back on the menu.
 
-What the three passes check (57 checks, all passing on 2026-10-24):
+The script's `title=` is the window title, which is the cart's `title`. The menu opens each cart as a child process (`yard <id>`), so a child only sees its own `title=` section, and the menu's frame count carries on when it comes back.
 
-* **quick:** the probe self-test; Keep's and Lamp's self-tests catch, wake, and save; the Yard's self-test and `YARD_ONCE=keep`; the 2D rotation (the top of the game lands on the left of the 1024×768 framebuffer) and the GL path drawing on the rotated framebuffer.
+What the four passes check (78 checks, all passing on 2026-10-24 after the move to carts):
+
+* **quick:** the probe self-test; Keep's and Lamp's self-tests catch, wake, and save; the menu's self-test; `yard keep` runs a cart by name; every cart boots and runs 120 frames; the 2D rotation (the top of the game lands on the left of the 1024×768 framebuffer) and the GL path drawing on the rotated framebuffer.
 * **play:** every game played to its payoff and its save read back: Keep scores, Lamp completes a constellation, Tea reaches the cheer with the three gifts saved, Chest goes key, chest, sword and wins a gem, Orb crashes into the first gate (it closes the right side) and saves, and The Yard opens Lamp and comes back on Lamp's row. The pictures are in `games/out/play/`.
-* **stress:** Chest's self-aiming sword, its first fight without tricks, Zam's teleport and shield after two gems and three bubbles after three; Tea's song after the cheer; a live `playtest.py` session; 1P+2P quits all six; Keep never lowers a record, loads an impossible record as none, starts its attract demo when idle and stops it on a press, never saves from the demo, repeats a round from the same seed, and runs `-fast`; Lamp runs `-fast` and has its demo; Tea's held button hurries the flight and pours nothing, TL and TR and LOW each fill a heart, the stick moves the ring, a gift is saved when given and the cat who kept it runs to the door next visit, a broken save is a first visit, Nib arrives on the third; Chest waits for a new press when a button is held from the launch, TL and TR shoot, a broken save opens with no gems, and the pile keeps every win; Orb copies the card label, plays an idle demo that never saves, and its pilot dives; The Yard wraps from the top row to Chest, leaves a note when a game binary is missing, and draws with the other games' saves present.
+* **stress:** Chest's self-aiming sword, its first fight without tricks, Zam's teleport and shield after two gems and three bubbles after three; Tea's song after the cheer; a live `playtest.py` session; 1P+2P quits all six; Keep never lowers a record, loads an impossible record as none, starts its attract demo when idle and stops it on a press, never saves from the demo, repeats a round from the same seed, and runs `-fast`; Lamp runs `-fast` and has its demo; Tea's held button hurries the flight and pours nothing, TL and TR and LOW each fill a heart, the stick moves the ring, a gift is saved when given and the cat who kept it runs to the door next visit, a broken save is a first visit, Nib arrives on the third; Chest waits for a new press when a button is held from the launch, TL and TR shoot, a broken save opens with no gems, and the pile keeps every win; Orb copies the card label, plays an idle demo that never saves, and its pilot dives; The Yard wraps from the top row to Chest, shows the Oops screen and comes back when a cart errors, leaves a note when a native program is missing, and draws with the other games' saves present.
+* **system:** the sandbox stops a loop that never ends, a memory hog, a misspelled name, and a forgotten `local`, collects layers made every frame, and reaches no `io`, `os`, `require`, `load`, `debug`, bytecode, or path outside the cart; `./cart pack` builds a full-size `yard.pak` that the runtime reads, and a flipped bit drops only that cart; `data_patch.py --overwrite` rewrites a file in its own blocks on ext2 with 1 KiB and 4 KiB blocks and leaves `e2fsck` clean; each template makes a cart that runs 15 seconds on its bot; the embedded font and library match their sources.
 
 `python3 games/feel.py` plays a reel of each game with the built-in player and writes `games/out/feel/<game>/strip.png`, two stills, and `report.txt`, plus `sheet.png` with every game side by side. It also presses each game's verb on a known frame and compares the change in the picture on that frame with the change between two quiet frames. On 2026-10-24 every game answered on the press frame (for example Chest 216 pixels against 1, Keep 464 against 137). `games/test.py` is the correctness check; `feel.py` is for looking.
 
@@ -298,38 +294,39 @@ cmp logical-storage.img check.img
 
 After a successful boot with the new tree, format the card on the PC. FAT is for pictures and saves: udev mounts an SD card at `/mnt/sdcard` with `fmask=133`, so those files are not executable. ext2 is for a binary, because that mount has `exec`. ext4 is not in this kernel, so an ext4 card will not mount. A USB stick is not auto-mounted; the cabinet build of `cab_ext_root` mounts `/dev/sda1` itself. The simulator side is already live: `CAB_EXT=/path/to/dir ./play.sh` is the card, and The Yard and Orb use it.
 
-## 12. The engine and the games, after the 2026-10-24 overhaul
+## 12. The engine and the games
 
-The first builds drew with `SDL_RenderFillRect` and the 8×8 font, and each game had one sine beep. Every game was rebuilt on two small libraries in `games/common/`. Nothing here is on the cabinet yet: the chip still has the 2026-10-23 22:00 build (STATUS.md).
+Two steps on 2026-10-24, both on the PC only; the chip still has the 2026-10-23 22:00 build (STATUS.md).
 
-**gfx** draws into one 32-bit frame in RAM at the game's upright size, then `gfx_present` uploads it to one streaming texture, the way the stock emulators draw (§ 1), and `cab_present` rotates it. It needs nothing newer than SDL 2.0.7, no SDL_ttf, and no picture files.
+**First, the redraw.** The first builds drew with `SDL_RenderFillRect` and the 8×8 font, and each game had one sine beep. Every game was rebuilt on a small software renderer (`gfx`) and synth (`sfx`):
 
-* Shapes: rectangles, rounded rectangles, circles, ellipses, rings, triangles, polygons, thick lines, stars, and hearts, all with anti-aliased edges. Dithered vertical gradients. Additive glow.
-* Toon figures: a figure's parts are drawn twice (`toon_pass` 0 then 1), first in ink grown by a few pixels, then filled, so one outline wraps the whole body. Tea's unicorn and cats, Chest's Ned and Zam, and the key and chest are drawn this way.
-* Text: the public-domain 8×8 font, set proportionally, with an outline or a shadow.
-* Particles (sparks, stars, hearts, rings, floating labels), screen shake, a full-screen flash, easing curves, and a seeded RNG.
-* Speed: backgrounds that never move are painted once into a surface and copied each frame (`gfx_blit`); figures that animate on a short cycle are cached per step (`gfx_blit_key`; Tea's unicorn and the far castle). Measured with callgrind on this PC, a frame costs about 1 to 5 million instructions of the game's own work (Keep about 1, Tea about 4), plus SDL's copy. That is the estimate for the 1.008 GHz Cortex-A7, not a measurement on it.
-* The quit meter: while 1P+2P is held, every game shows a bar filling toward "leaving...". `cab_quit_progress` gives the fraction.
+* **gfx** draws into one 32-bit frame in RAM at the game's upright size, then uploads it to one streaming texture, the way the stock emulators draw (§ 1), and `cab_present` rotates it. It has anti-aliased shapes, dithered gradients, additive glow, and outlined toon figures (every part painted once grown in ink, then filled). It also has particles, shake, flash, easing, and a seeded RNG. Backgrounds that never move are painted once and copied.
+* **sfx** is a 16-voice synth in the audio callback, with five waves, envelopes, slides, vibrato, pan, and a text step sequencer.
+* **The built-in player** is each game's own bot, pressing through the deck's input path. It is the attract demo, the tests' player, and the reel.
 
-**sfx** is a 16-voice synth in the audio callback: sine, triangle, square, saw, and noise, an attack and release, a pitch slide, vibrato, and pan. A step sequencer plays looping songs written as text, one string per track (`"C5 . E5 G5 - ."`, with `K`, `S`, `H`, `C` for kick, snare, hat, clap). Each game sets its own mix with `sfx_master`; Tea and Chest stay quiet, as their specs ask.
+**Then, the cart runtime.** The games moved from five C programs to Lua carts on one runtime, `yard`. The aim is that a new game, or a change to an old one, is a small, safe edit in a high-level language. That edit gets checked by tools that a less experienced agent can't skip, and it can't harm the cabinet. [CARTS.md](CARTS.md) is the reference. What changed underneath:
 
-**The built-in player.** Keep, Lamp, Orb, Tea, and Chest each carry a small player that presses buttons through `cab_bot`. On Keep, Lamp, and Orb it is the attract demo: after ten idle seconds on the title the game plays itself with "demo" on screen, and any real press hands it back. The demo never writes a save. `CAB_AUTOPLAY=1` runs the same player from the first frame for the tests and the reel.
+* **The runtime.** It is Lua 5.4.7, sandboxed: no io, os, require, load, debug, or bytecode, a 32 MB cap that counts pictures, a step watchdog, and strict globals. The API in `api.c` covers the renderer, toon figures, a light map, layers, PNG images and pixel art, round TrueType text (Fredoka, stb_truetype), the synth and sequencer, particles, saves, and the card. A Lua library (`engine/lib`) adds timers, tweens, tasks, the house palette, sound presets, faces, the caption band, and the arcade shell.
+* **The menu is a cart too** (`carts/yard`). It lists whatever carts it finds, and runs each one as a child process. A cart that errors shows "Oops" and returns; a missing native program leaves a note.
+* **The ports are faithful.** Each port is a line-for-line translation of the C rules. The same seed plays the same game: Chest's key, sword, and wins land on the same frames as the C build. Every log line and save format the tests read is unchanged. The visible change is the round font in place of the 8×8 one.
+* **Cost.** Measured with callgrind on this PC over 1200 autoplayed frames, Lua adds 10 to 25 percent to a frame: Tea 7.1 M instructions a frame against 6.3 M in C, Chest 5.8 against 5.2, Lamp 4.8 against 3.9, Keep 1.2 against 1.0. Drawing is still the bulk, and it stays in C. This is a PC measurement; the cabinet's frame time is still unmeasured.
+* **Shipping.** Three fixed-size files and an in-place update path (§ 6, CARTS.md § 10).
 
-What each game is now:
+What each game is:
 
 | Game | Band | The stick | `LOW` (and `TL`, `TR`) | What it remembers |
 | :--- | :--- | :--- | :--- | :--- |
-| The Yard | menu | Up and down (left and right too) pick a row; held, it repeats | Opens the row | `yard.sav`, the row. Each row shows its band (ALL, 4+, 5+, 8+) and the other games' saves |
+| The Yard | menu | Up and down (left and right too) pick a row; held, it repeats | Opens the row | `yard.sav`, the row. Each row shows its band (ALL, 4+, 5+, 8+) and what the game's save says |
 | Keep | walk-up | Pip walks the basket along the orchard floor | Starts, then dashes the way Pip leans | `keep.sav`, the best score |
 | Lamp | walk-up | Wren walks the meadow; walking into a star wakes it | Lifts the lamp: a wide flare that costs oil and scares moths | `lamp.sav`, the most nights woken |
 | Orb | two-verb | Steers the orb | Dives; held (`LOW` or `TL`) while diving, boosts for double points | `orb.sav`, the best score |
-| Tea | little | Any direction moves the ring to the next cat | The care in the picture over that cat | `tea.sav`, visits and gifts |
+| Tea | little | Any direction moves the ring to the next cat | The care in the picture over that cat | `tea.sav`, visits, gifts, photos |
 | Chest | walk-up | Ned walks | A bolt the way he faces; with the sword, a laser | `chest.sav`, gems |
 
 * **Keep.** A sunset orchard. Fruit shakes on the branch before it drops, and its shadow on the grass sharpens as it falls, so the landing spot is a picture. Apples are 1, pears 2, gold star fruit 5. Six catches in a row raise the multiplier, up to ×5. A miss splats and costs one of three hearts. After 10 points bees come down in a zigzag; catching one costs a heart. Speed and the number of fruit in the air rise with the score. `-fast` starts harder.
-* **Lamp.** The meadow is dark except for the lantern's light. A sleeping star breathes a faint glow so it can be found. Waking one sends it up into the sky band, where it takes its place and a line joins it to the last one. A full set is a constellation (the Kite, the Teacup, the Cat, the Key, the Fish, the Crown, the Whale, the Teapot, the Dragon); then the next night has more stars. The lamp burns oil: fireflies refill it, moths from night 3 nibble it. Run dry and the light shrinks to an ember for two and a half seconds, then relights with the stars already woken still awake.
-* **Orb.** The title is a lit orb over a grid, turning; the stick yaws it. The well is a tube of panels whose seams glow in a color that shifts with depth. The first four gates teach the four sides; after that they are random per run, with a pillar and a ring (only the middle open) from the tenth. Wisps are points, and catching several in a row is a chain. Speed rises with distance. The HUD is drawn with gfx at 192×256 and laid over the 3D frame as one texture.
-* **Tea and Chest** are version 2 of their specs (`games/tea/DESIGN.md`, `games/chest/DESIGN.md`), worked out by playing them with `playtest.py` (§ 13). Tea: treats to catch on the flight that then decorate the party, three different asks per cat (its wish, a cupcake, a hug), a song after the cheer, and a photo on the castle wall that stays between visits. Chest: the sword aims itself in the fight, Ned hops back from the chest, Zam (drawn after Alakazam) learns a teleport, a shield, and a three-bubble fan as the pile grows, and each win adds a different treasure to a mound.
+* **Lamp.** The meadow is dark except for the lantern's light, drawn with the runtime's light map. A sleeping star breathes a faint glow so it can be found. Waking one sends it up into the sky band, where it takes its place and a line joins it to the last one. A full set is a constellation (the Kite, the Teacup, the Cat, the Key, the Fish, the Crown, the Whale, the Teapot, the Dragon); then the next night has more stars. The lamp burns oil: fireflies refill it, moths from night 3 nibble it. Run dry and the light shrinks to an ember for two and a half seconds, then relights with the stars already woken still awake.
+* **Orb.** The title is a lit orb over a grid, turning; the stick yaws it. The well is a tube of panels whose seams glow in a color that shifts with depth. The first four gates teach the four sides; after that they are random per run, with a pillar and a ring (only the middle open) from the tenth. Wisps are points, and catching several in a row is a chain. Speed rises with distance. It stays a C program (`native/orb`) because it draws with OpenGL ES 2.
+* **Tea and Chest** are version 2 of their specs ([games/carts/tea/DESIGN.md](games/carts/tea/DESIGN.md), [games/carts/chest/DESIGN.md](games/carts/chest/DESIGN.md)), worked out by playing them with `playtest.py` (§ 13). Tea: treats to catch on the flight that then decorate the party, three different asks per cat (its wish, a cupcake, a hug), a song after the cheer, and a photo on the castle wall that stays between visits. Chest: the sword aims itself in the fight, Ned hops back from the chest, Zam (drawn after Alakazam) learns a teleport, a shield, and a three-bubble fan as the pile grows, and each win adds a different treasure to a mound.
 
 ## 13. Playing a game yourself, as the cabinet runs it: `playtest.py`
 
@@ -360,4 +357,4 @@ Each `do` prints the frames it kept as one sheet (the panel picture, the deck wi
 
 This is how Tea and Chest version 2 were found and checked (2026-10-24). Playing them showed things no check had: Tea's flight gave the hand nothing to do, Chest's laser followed the last step and missed, Ned started the fight on Zam's feet, a held button beat a level-three Zam in two seconds, the cats' mouths read as frowns, and a quick double tap on the Yard was one long press.
 
-`perf` builds a profiling copy, plays it with the built-in player under callgrind, and prints the game's own instructions per frame with a range for the cabinet's 1.008 GHz Cortex-A7 (0.5 to 0.8 instructions a cycle). On 2026-10-24: Tea 5.1 M (6 to 10 ms of 16.7), Chest 3.9 M (5 to 8 ms). A guess, not a measurement on the cabinet.
+`perf` plays the cart with its built-in player inside the runtime under callgrind. It prints the instructions per frame left after SDL's PC-side copy, with a range for the cabinet's 1.008 GHz Cortex-A7 (0.5 to 0.8 instructions a cycle). `./cart perf` gives the whole-run number that `./cart check` holds against its budget. These are guesses, not measurements on the cabinet.

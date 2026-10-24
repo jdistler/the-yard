@@ -1,0 +1,453 @@
+#!/usr/bin/env python3
+"""cart: make, check, and ship Yard carts. Everything here runs on the PC; nothing touches the cabinet.
+
+  ./cart new ID [--from blank|arcade|story] [--title T] [--large]   start a cart from a template
+  ./cart list                                     every cart the runtime can see
+  ./cart run ID [--fast]                          play it in a window; edits reload live (YARD_DEV)
+  ./cart check [ID ...]                           the gate: lint, a played session, a mashed session,
+                                                  pictures to look at, the frame cost (default: all)
+  ./cart shots ID [FRAME ...] [--auto]            PNG pictures of chosen frames, in out/shots/ID/
+  ./cart perf ID [--frames N]                     instructions per frame (callgrind), against the budget
+  ./cart pack [--out FILE]                        build yard.pak: every cart, padded to its fixed slot
+  ./cart deploy --raw RAW --out DIR [--first]     stage yard, orb, and yard.pak onto a copy of a raw dump
+
+A cart is a folder in carts/: info.lua (the label: title, blurb, icon, stat) and main.lua (the game),
+plus any other .lua it imports, .png pictures, and .txt data. CARTS.md is the API. GAMEDEV.md the rules.
+"""
+import argparse
+import json
+import os
+import random
+import re
+import shutil
+import struct
+import subprocess
+import sys
+import tempfile
+import zlib
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+CARTS = os.path.join(HERE, "carts")
+TEMPLATES = os.path.join(HERE, "templates")
+YARD = os.path.join(HERE, "out", "pc", "yard")
+ALLOWED = (".lua", ".png", ".txt", ".ttf", ".md")
+MAX_FILE = 512 * 1024
+# Slots on the cabinet: each file is padded to this size so an update rewrites the blocks it
+# already has (data_patch.py --overwrite) instead of asking the disk for new ones.
+SLOTS = {"yard": 2 << 20, "orb": 1 << 20, "yard.pak": 4 << 20}
+# Frame budget, in PC (x86) instructions per frame measured by callgrind. Tea, the busiest
+# cart, runs at about 7.1M; the Cortex-A7 at 1 GHz holds 60 frames a second up to roughly
+# 9M by this yardstick (an estimate from the C builds that ran on the cabinet; see STATUS.md).
+BUDGET = 9_000_000
+GOOD = "\033[32m" if sys.stdout.isatty() else ""
+BAD = "\033[31m" if sys.stdout.isatty() else ""
+END = "\033[0m" if sys.stdout.isatty() else ""
+
+
+def die(msg):
+    print(f"{BAD}{msg}{END}")
+    sys.exit(1)
+
+
+def build():
+    r = subprocess.run(["make", "-s", "TARGET=pc"], cwd=HERE, capture_output=True, text=True)
+    if r.returncode:
+        die("build failed:\n" + r.stdout + r.stderr)
+
+
+def carts():
+    out = []
+    for name in sorted(os.listdir(CARTS)):
+        if os.path.isfile(os.path.join(CARTS, name, "info.lua")):
+            out.append(name)
+    return out
+
+
+def env(extra=None):
+    e = dict(os.environ)
+    e.update({"SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy", "CAB_SCALE": "1"})
+    e.update(extra or {})
+    return e
+
+
+def native(cid):
+    text = open(os.path.join(CARTS, cid, "info.lua")).read()
+    m = re.search(r'native\s*=\s*"([a-z0-9_-]+)"', text)
+    return m.group(1) if m else None
+
+
+def bmp_to_png(src, dst):
+    try:
+        from PIL import Image
+        Image.open(src).save(dst)
+        os.remove(src)
+        return dst
+    except Exception:
+        return src
+
+
+# ---------------------------------------------------------------------------- new
+
+def cmd_new(a):
+    cid = a.id
+    if not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", cid):
+        die("an id is lower-case letters, digits, _ or -, starting with a letter, up to 32 long")
+    if cid in ("yard", "orb", "probe"):
+        die(f"{cid} is taken")
+    dst = os.path.join(CARTS, cid)
+    if os.path.exists(dst):
+        die(f"carts/{cid} already exists")
+    src = os.path.join(TEMPLATES, a.template)
+    if not os.path.isdir(src):
+        die(f"no template {a.template}; there are: {', '.join(sorted(os.listdir(TEMPLATES)))}")
+    os.makedirs(dst)
+    title = a.title or cid.replace("_", " ").replace("-", " ").title()
+    for name in os.listdir(src):
+        text = open(os.path.join(src, name)).read()
+        text = text.replace("{{ID}}", cid).replace("{{TITLE}}", title).replace("{{SIZE}}", "large" if a.large else "small")
+        open(os.path.join(dst, name), "w").write(text)
+    print(f"made carts/{cid} from the {a.template} template")
+    print(f"  ./cart run {cid}      play it (edits reload while it runs)")
+    print(f"  ./cart check {cid}    the gate before anything ships")
+
+
+# ---------------------------------------------------------------------------- list / run
+
+def cmd_list(a):
+    build()
+    subprocess.run([YARD, "--list"], cwd=HERE)
+
+
+def cmd_run(a):
+    build()
+    e = dict(os.environ)
+    e["YARD_DEV"] = "1"
+    args = [YARD, a.id] + (["-fast"] if a.fast else [])
+    d = tempfile.mkdtemp(prefix="cart-run-")
+    print(f"saves go to {d}. Keys: arrows, Z X C (the three buttons), 1+2 held to quit, Esc.")
+    subprocess.run(args, cwd=d, env=e)
+
+
+# ---------------------------------------------------------------------------- check
+
+def lint(cid):
+    """Problems that do not need the game to run."""
+    problems, d, total = [], os.path.join(CARTS, cid), 0
+    if not os.path.isfile(os.path.join(d, "main.lua")) and not native(cid):
+        problems.append("no main.lua")
+    for dirpath, _, files in os.walk(d):
+        for f in files:
+            p = os.path.join(dirpath, f)
+            rel = os.path.relpath(p, d)
+            size = os.path.getsize(p)
+            total += size
+            if not f.endswith(ALLOWED):
+                problems.append(f"{rel}: only {' '.join(ALLOWED)} files ship in a cart")
+            if not re.fullmatch(r"[A-Za-z0-9_./-]+", rel):
+                problems.append(f"{rel}: file names are letters, digits, _ - . only")
+            if size > MAX_FILE:
+                problems.append(f"{rel}: {size // 1024} KB; keep files under {MAX_FILE // 1024} KB")
+            if f.endswith(".lua"):
+                text = open(p, errors="replace").read()
+                for n, line in enumerate(text.splitlines(), 1):
+                    code = line.split("--")[0]
+                    if re.search(r"\b(os|io|debug|package)\.", code) or re.search(r"\b(require|loadstring|dofile)\s*\(", code):
+                        problems.append(f"{rel}:{n}: carts cannot reach os, io, debug, package, require: {line.strip()[:60]}")
+                    if "\t" in line[: len(line) - len(line.lstrip())]:
+                        problems.append(f"{rel}:{n}: indent with spaces")
+    if total > 2 * 1024 * 1024:
+        problems.append(f"the cart is {total // 1024} KB; keep a cart under 2 MB")
+    return problems
+
+
+def run_check(cid, frames, script=None, extra=None):
+    """Run the cart headless through the runtime's --check. Returns (ok, stdout+log)."""
+    d = tempfile.mkdtemp(prefix="cart-check-")
+    e = env({"YARD_CHECK_FRAMES": str(frames)})
+    e.update(extra or {})
+    if script is not None:
+        path = os.path.join(d, "deck.cab")
+        open(path, "w").write(script)
+        e["CAB_SCRIPT"] = path
+    try:
+        r = subprocess.run([YARD, "--check", cid], cwd=d, env=e, capture_output=True, text=True, timeout=300)
+    except subprocess.TimeoutExpired:
+        return False, "timed out (more than 5 minutes for the session)", d
+    out = r.stdout + r.stderr
+    return r.returncode == 0 and "\nerror:" not in "\n" + r.stdout, out, d
+
+
+def mash(seed, frames):
+    """A small child at the deck: random presses, holds, and releases on every button."""
+    rng = random.Random(seed)
+    names = ["UP", "DOWN", "LEFT", "RIGHT", "LOW", "TL", "TR"]
+    lines, held = [], set()
+    f = 0
+    while f < frames:
+        f += rng.randint(1, 12)
+        b = rng.choice(names)
+        if b in held:
+            lines.append(f"{f} up {b}")
+            held.discard(b)
+        else:
+            lines.append(f"{f} down {b}")
+            held.add(b)
+    return "\n".join(lines) + "\n"
+
+
+def shots(cid, frames, autoplay=True, folder=None):
+    folder = folder or os.path.join(HERE, "out", "shots", cid)
+    shutil.rmtree(folder, ignore_errors=True)
+    os.makedirs(folder)
+    script = "".join(f"{f} shot {folder}/{cid}-{f}.bmp\n" for f in frames)
+    ok, out, _ = run_check(cid, max(frames) + 1, script, {"CAB_AUTOPLAY": "1"} if autoplay else None)
+    made = []
+    for f in frames:
+        p = os.path.join(folder, f"{cid}-{f}.bmp")
+        if os.path.exists(p):
+            made.append(bmp_to_png(p, p[:-4] + ".png"))
+    return ok, out, made
+
+
+def sheet(paths, dst):
+    """One picture of several frames side by side, to look at in one go."""
+    try:
+        from PIL import Image
+    except ImportError:
+        return None
+    ims = [Image.open(p) for p in paths]
+    if not ims:
+        return None
+    w, h = ims[0].size
+    out = Image.new("RGB", (len(ims) * (w + 6) - 6, h), (40, 40, 40))
+    for i, im in enumerate(ims):
+        out.paste(im, (i * (w + 6), 0))
+    out.save(dst)
+    return dst
+
+
+def perf(cid, frames=600):
+    """x86 instructions per frame over an autoplayed session, by callgrind. None if no valgrind."""
+    if not shutil.which("valgrind"):
+        return None
+    d = tempfile.mkdtemp(prefix="cart-perf-")
+    out = os.path.join(d, "cg.out")
+    e = env({"CAB_AUTOPLAY": "1", "YARD_CHECK_FRAMES": str(frames), "CAB_SCRIPT": "/dev/null"})
+    subprocess.run(["valgrind", "--tool=callgrind", f"--callgrind-out-file={out}", YARD, "--check", cid], cwd=d,
+                   env=e, capture_output=True, timeout=1800)
+    try:
+        total = int(re.search(r"^summary:\s*(\d+)", open(out).read(), re.M).group(1))
+    except (OSError, AttributeError):
+        return None
+    return total // frames
+
+
+def verdict(out):
+    for line in out.splitlines():
+        if line.startswith(("ok:", "error:")):
+            return line
+    return out.strip().splitlines()[-1] if out.strip() else "no output"
+
+
+def cmd_check(a):
+    build()
+    ids = a.ids or [c for c in carts() if not native(c)]
+    failed = []
+    for cid in ids:
+        if not os.path.isdir(os.path.join(CARTS, cid)):
+            die(f"no carts/{cid}")
+        print(f"== {cid}")
+        problems = lint(cid)
+        for p in problems:
+            print(f"  {BAD}lint{END} {p}")
+        if native(cid):
+            print("  native program: only the label is checked here")
+            if problems:
+                failed.append(cid)
+            continue
+        ok1, out1, _ = run_check(cid, 1800, "", {"CAB_AUTOPLAY": "1"})
+        print(f"  {'ok  ' if ok1 else BAD + 'FAIL' + END} played by its bot() for 30 seconds: {verdict(out1)}")
+        ok2, out2, _ = run_check(cid, 1800, mash(cid, 1800))
+        print(f"  {'ok  ' if ok2 else BAD + 'FAIL' + END} mashed at random for 30 seconds: {verdict(out2)}")
+        for ok, out in ((ok1, out1), (ok2, out2)):
+            if not ok:
+                print("    " + "\n    ".join(out.strip().splitlines()[-12:]))
+        ok3, _, pics = shots(cid, [10, 300, 900])
+        s = sheet(pics, os.path.join(HERE, "out", "shots", cid, "sheet.png"))
+        print(f"  look at {os.path.relpath(s, HERE) if s else 'out/shots/' + cid}")
+        cost = None if a.quick else perf(cid)
+        if cost is not None:
+            flag = cost <= BUDGET
+            print(f"  {'ok  ' if flag else BAD + 'SLOW' + END} {cost / 1e6:.1f}M instructions a frame (budget {BUDGET / 1e6:.0f}M)")
+        else:
+            flag = True
+        if problems or not (ok1 and ok2 and flag):
+            failed.append(cid)
+    print()
+    if failed:
+        die(f"not ready: {' '.join(failed)}")
+    print(f"{GOOD}all carts pass{END}")
+
+
+def cmd_shots(a):
+    build()
+    frames = [int(f) for f in a.frames] or [10, 120, 300, 600]
+    ok, out, made = shots(a.id, frames, autoplay=a.auto)
+    for m in made:
+        print(os.path.relpath(m, HERE))
+    if not ok:
+        print(out)
+
+
+def cmd_perf(a):
+    build()
+    cost = perf(a.id, a.frames)
+    if cost is None:
+        die("needs valgrind (apt install valgrind)")
+    print(f"{a.id}: {cost / 1e6:.2f}M x86 instructions a frame; budget {BUDGET / 1e6:.0f}M "
+          f"({'ok' if cost <= BUDGET else 'too slow for the cabinet'})")
+
+
+# ---------------------------------------------------------------------------- pack
+
+def pack_bytes():
+    entries = []
+    for cid in carts():
+        for dirpath, _, files in sorted(os.walk(os.path.join(CARTS, cid))):
+            for f in sorted(files):
+                if not f.endswith(ALLOWED) or f.endswith(".md"):
+                    continue
+                p = os.path.join(dirpath, f)
+                name = os.path.relpath(p, CARTS).replace(os.sep, "/")
+                entries.append((name, open(p, "rb").read()))
+    body = b""
+    for name, data in entries:
+        n = name.encode()
+        body += struct.pack("<H", len(n)) + n + struct.pack("<II", len(data), zlib.crc32(data) & 0xffffffff) + data
+    head = b"YARDPAK1" + struct.pack("<II", len(entries), 16 + len(body))
+    return head + body, entries
+
+
+def cmd_pack(a):
+    problems = [p for c in carts() for p in lint(c)]
+    if problems:
+        die("lint first:\n  " + "\n  ".join(problems))
+    data, entries = pack_bytes()
+    slot = SLOTS["yard.pak"]
+    if len(data) > slot:
+        die(f"the carts need {len(data)} bytes; the yard.pak slot is {slot}")
+    out = a.out or os.path.join(HERE, "out", "yard.pak")
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    with open(out, "wb") as f:
+        f.write(data + b"\0" * (slot - len(data)))
+    print(f"{out}: {len(entries)} files, {len(data) // 1024} KB used of the {slot >> 20} MB slot")
+    # Read it back through the runtime, exactly as the cabinet will.
+    build()
+    d = tempfile.mkdtemp(prefix="cart-pak-")
+    r = subprocess.run([YARD, "--list"], cwd=d, env=env({"YARD_PAK": os.path.abspath(out), "YARD_CARTS": d}),
+                       capture_output=True, text=True)
+    print("  the runtime reads: " + ", ".join(l.split()[0] for l in r.stdout.splitlines() if "pak:" in l))
+    return out
+
+
+# ---------------------------------------------------------------------------- deploy
+
+def pad(src, dst, slot):
+    data = open(src, "rb").read()
+    if len(data) > slot:
+        die(f"{src} is {len(data)} bytes, over its {slot}-byte slot")
+    open(dst, "wb").write(data + b"\0" * (slot - len(data)))
+
+
+def cmd_deploy(a):
+    """Offline staging only. Prints the plan; the restore needs the user's written approval."""
+    out = os.path.abspath(a.out)
+    if out.startswith(ROOT + os.sep):
+        die("--out must be outside the repo (under ~/partycade-dumps/)")
+    os.makedirs(out, exist_ok=True)
+    stage = os.path.join(out, "stage")
+    os.makedirs(stage, exist_ok=True)
+    print("1. Building for the cabinet (./build.sh cab)")
+    subprocess.check_call(["./build.sh", "cab"], cwd=HERE)
+    print("2. Packing the carts")
+    pak = cmd_pack(argparse.Namespace(out=os.path.join(stage, "yard.pak")))
+    pad(os.path.join(HERE, "out", "cab", "yard"), os.path.join(stage, "yard"), SLOTS["yard"])
+    pad(os.path.join(HERE, "out", "cab", "orb"), os.path.join(stage, "orb"), SLOTS["orb"])
+    cmd = [sys.executable, os.path.join(ROOT, "tools", "data_patch.py"), os.path.abspath(a.raw), out]
+    names = ("yard", "orb", "yard.pak")
+    if a.first:
+        # The first time: the new runtime and pack go in as new files, the old C games come out
+        # (their blocks were written before, so the new files can land on known pages), and
+        # tile 10 points at yard.
+        for old in a.remove:
+            cmd += ["--rm", f"Games/{old}"]
+        for n in names:
+            cmd += ["--put", f"{os.path.join(stage, n)}:Games/{n}:{'644' if n.endswith('.pak') else '755'}"]
+        if a.start_from:
+            cmd += ["--replace", f"start.sh:{a.start_from}:GAME_NAME=yard"]
+    else:
+        # Every later time: same-size files, written into the blocks they already own.
+        for n in names:
+            cmd += ["--overwrite", f"{os.path.join(stage, n)}:Games/{n}"]
+    print("3. Patching a copy of the raw dump (offline)\n   " + " ".join(cmd))
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    print(r.stdout + r.stderr)
+    if r.returncode:
+        if "no physical copy" in r.stdout + r.stderr:
+            print("The new files landed on disk pages that have never been written, which the in-place patch")
+            print("cannot reach. Try --first with --remove of the old C game binaries so their blocks are reused,")
+            print("or use the card path (RUNBOOK.md, 'SD card').")
+        die("staging stopped; nothing was written to the cabinet")
+    blocks = open(os.path.join(out, "BLOCKS.txt")).read().strip()
+    plan = os.path.join(out, "PLAN.md")
+    with open(plan, "w") as f:
+        f.write(f"# Deploy plan\n\nRaw dump: `{os.path.abspath(a.raw)}`\n\nFiles:\n\n")
+        for n in names:
+            f.write(f"* `/data/Games/{n}` ({'new' if a.first else 'in place'})\n")
+        f.write(f"\nBlocks to write: `{blocks}`\n\nBefore: `rk_restore.py diff` of the raw dump in the same Mask ROM "
+                "session must report none. Then, only with the user's written approval of exactly these blocks:\n\n"
+                f"```\nPARTYCADE_ALLOW_NAND_WRITE=yes python3 tools/rk_restore.py restore {out}/nand_raw_patched.bin "
+                f"--blocks {blocks} --approval '<the user's approval text>'\n```\n")
+    print(f"Plan: {plan}\nNothing was written to the cabinet.")
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    p = sub.add_parser("new")
+    p.add_argument("id")
+    p.add_argument("--from", dest="template", default="blank")
+    p.add_argument("--title")
+    p.add_argument("--large", action="store_true", help="384x512 instead of 240x320")
+    sub.add_parser("list")
+    p = sub.add_parser("run")
+    p.add_argument("id")
+    p.add_argument("--fast", action="store_true")
+    p = sub.add_parser("check")
+    p.add_argument("ids", nargs="*")
+    p.add_argument("--quick", action="store_true", help="skip the callgrind frame cost")
+    p = sub.add_parser("shots")
+    p.add_argument("id")
+    p.add_argument("frames", nargs="*")
+    p.add_argument("--auto", action="store_true", help="let the cart's bot() play")
+    p = sub.add_parser("perf")
+    p.add_argument("id")
+    p.add_argument("--frames", type=int, default=600)
+    p = sub.add_parser("pack")
+    p.add_argument("--out")
+    p = sub.add_parser("deploy")
+    p.add_argument("--raw", required=True, help="a fresh rk.py rawdump from this Mask ROM session")
+    p.add_argument("--out", required=True, help="a new folder under ~/partycade-dumps/")
+    p.add_argument("--first", action="store_true", help="install yard, orb and yard.pak as new files")
+    p.add_argument("--remove", nargs="*", default=["keep", "lamp", "tea", "chest"],
+                   help="with --first: old binaries to take out (default: the C games)")
+    p.add_argument("--start-from", default=None,
+                   help="with --first: the GAME_NAME=... text in start.sh to point at yard, if not already")
+    a = ap.parse_args()
+    {"new": cmd_new, "list": cmd_list, "run": cmd_run, "check": cmd_check, "shots": cmd_shots, "perf": cmd_perf,
+     "pack": cmd_pack, "deploy": cmd_deploy}[a.cmd](a)
+
+
+if __name__ == "__main__":
+    main()

@@ -54,7 +54,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 BIN = ROOT / "out" / "pc"
 SESSIONS = ROOT / "out" / "playtest"
-TITLES = {"yard": "The Yard", "keep": "Keep", "lamp": "Lamp", "orb": "Orb", "tea": "Tea", "chest": "Chest"}
+def _titles():
+    """Every cart the runtime can see, id -> window title (yard --list)."""
+    try:
+        out = subprocess.run([str(BIN / "yard"), "--list"], capture_output=True, text=True, timeout=30).stdout
+    except OSError:
+        out = ""
+    t = {}
+    for line in out.splitlines():
+        m = re.match(r"(\S+)\s+(.+?)\s{2,}", line)
+        if m:
+            t[m.group(1)] = m.group(2).strip()
+    return t or {"yard": "The Yard"}
+
+
+TITLES = _titles()
 BUTTONS = {"UP", "DOWN", "LEFT", "RIGHT", "LOW", "TL", "TR", "1P", "2P"}
 
 
@@ -546,13 +560,13 @@ def perf(argv):
     tmp = SESSIONS / f"perf-{game}"
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir(parents=True)
-    exe = tmp / game
-    subprocess.check_call(["cc", "-std=gnu99", "-O2", "-g", f"-I{ROOT}/common", f"-I{ROOT}/../build/sdl2-2.0.7-include",
-                           "-o", str(exe), str(ROOT / game / f"{game}.c"), *map(str, (ROOT / "common").glob("*.c")),
-                           "/lib/x86_64-linux-gnu/libSDL2-2.0.so.0", "-lm"])
+    subprocess.check_call(["make", "-s", "TARGET=pc"], cwd=ROOT)
+    # Carts run inside the runtime; Orb is its own program.
+    cmd = [str(BIN / "orb")] if game == "orb" else [str(BIN / "yard"), "--check", game]
     env = dict(os.environ, SDL_VIDEODRIVER="offscreen" if game == "orb" else "dummy", SDL_AUDIODRIVER="dummy",
-               CAB_SCALE="1", CAB_SCRIPT="/dev/null", CAB_AUTOPLAY="1", CAB_MAX_FRAMES=str(frames))
-    subprocess.run(["valgrind", "--tool=callgrind", f"--callgrind-out-file={tmp}/cg.out", str(exe)], cwd=tmp, env=env,
+               CAB_SCALE="1", CAB_SCRIPT="/dev/null", CAB_AUTOPLAY="1", CAB_MAX_FRAMES=str(frames),
+               YARD_CHECK_FRAMES=str(frames))
+    subprocess.run(["valgrind", "--tool=callgrind", f"--callgrind-out-file={tmp}/cg.out", *cmd], cwd=tmp, env=env,
                    capture_output=True)
     ann = subprocess.run(["callgrind_annotate", f"{tmp}/cg.out"], capture_output=True, text=True).stdout
     total = sdl = 0

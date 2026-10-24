@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Build a patched raw NAND image with files added/changed in the `data` partition. Offline only.
 
-  tools/data_patch.py RAW OUTDIR [--put SRC:DEST[:MODE]] [--replace DEST:OLD:NEW] [--rm DEST] ...
+  tools/data_patch.py RAW OUTDIR [--put SRC:DEST[:MODE]] [--overwrite SRC:DEST] [--replace DEST:OLD:NEW] [--rm DEST] ...
 
 RAW must be a fresh `rk.py rawdump` of the cabinet (taken in the same Mask ROM session you will restore in).
 DEST paths are relative to /data, e.g. Games/probe or start.sh. MODE is octal (default 755); --put files get
 uid/gid 0. --replace edits a text file in place; OLD must occur exactly once; mode/uid/gid are kept.
+--overwrite writes SRC into the data blocks DEST already owns. SRC must be exactly DEST's size. No block is
+allocated or freed and the inode is untouched, so only disk pages that have been written before change: the
+safe way to update a fixed-size file such as yard.pak (tools/yard pads it to its slot).
 
 Steps, each checked: rebuild RAW -> old.img, copy the data partition, e2fsck it, apply the edits with debugfs,
 read every edit back, e2fsck again, sftl_patch.py --part data, rebuild the patched raw and require it to equal
@@ -81,6 +84,35 @@ def put(img, data_path, dest, mode, uid, gid):
         debugfs(img, f'set_inode_field "/{dest}" {field} {val}', write=True)
 
 
+def overwrite(img, src, dest):
+    """Write src into dest's own data blocks. Returns the list of fs blocks written."""
+    data = open(src, "rb").read()
+    st = stat(img, dest)
+    if not st or st["type"] != "regular":
+        raise SystemExit(f"--overwrite {dest}: not a regular file on the cabinet. Install it once with --put.")
+    size = int(re.search(r"Size:\s+(\d+)", debugfs(img, f'stat "/{dest}"')).group(1))
+    if size != len(data):
+        raise SystemExit(f"--overwrite {dest}: {src} is {len(data)} bytes, the file is {size}. Sizes must match.")
+    bs = int(re.search(r"Block size:\s+(\d+)", debugfs(img, "stats")).group(1))
+    # bmap maps each logical block of the file to its disk block. ("blocks" would also list
+    # the indirect blocks, which are metadata and must never be written over.)
+    n = (size + bs - 1) // bs
+    cmds = os.path.join(os.path.dirname(img), "bmap.cmds")
+    with open(cmds, "w") as f:
+        for i in range(n):
+            f.write(f'bmap "/{dest}" {i}\n')
+    out = run([DEBUGFS, "-f", cmds, img])
+    os.remove(cmds)
+    blocks = [int(x) for x in re.findall(r"^(\d+)$", out, re.M)]
+    if len(blocks) != n or 0 in blocks:
+        raise SystemExit(f"--overwrite {dest}: the file has holes ({len(blocks)} of {n} blocks mapped); use --put")
+    with open(img, "r+b") as f:
+        for i, b in enumerate(blocks):
+            f.seek(b * bs)
+            f.write(data[i * bs:(i + 1) * bs])
+    return blocks
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("raw")
@@ -88,11 +120,12 @@ def main():
     ap.add_argument("--put", action="append", default=[], metavar="SRC:DEST[:MODE]")
     ap.add_argument("--replace", action="append", default=[], metavar="DEST:OLD:NEW")
     ap.add_argument("--rm", action="append", default=[], metavar="DEST")
+    ap.add_argument("--overwrite", action="append", default=[], metavar="SRC:DEST")
     ap.add_argument("--repair", action="store_true",
                     help="e2fsck -fy the data copy before editing (power-cut dumps). The restore then includes that repair")
     a = ap.parse_args()
-    if not (a.put or a.replace or a.rm):
-        raise SystemExit("Nothing to do: give --put, --replace or --rm.")
+    if not (a.put or a.replace or a.rm or a.overwrite):
+        raise SystemExit("Nothing to do: give --put, --overwrite, --replace or --rm.")
     out = os.path.abspath(a.outdir)
     if out.startswith(REPO + os.sep):
         raise SystemExit("OUTDIR must be under ~/partycade-dumps/, not inside the repo.")
@@ -119,6 +152,15 @@ def main():
         debugfs(img, f'rm "/{dest}"', write=True)
         expect.append((dest, None, None))
         print(f"  rm {dest}")
+    for spec in a.overwrite:
+        f = spec.split(":")
+        if len(f) != 2:
+            raise SystemExit(f"--overwrite {spec}: want SRC:DEST")
+        src, dest = f[0], f[1].strip("/")
+        st = stat(img, dest)
+        n = len(overwrite(img, os.path.abspath(src), dest))
+        expect.append((dest, open(src, "rb").read(), (st["mode"] & 0o7777, st["uid"], st["gid"])))
+        print(f"  overwrite {src} -> /data/{dest} in place ({n} blocks it already had)")
     for spec in a.put:
         f = spec.split(":")
         if len(f) not in (2, 3):
