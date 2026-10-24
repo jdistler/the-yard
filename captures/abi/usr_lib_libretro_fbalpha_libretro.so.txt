@@ -1,0 +1,52 @@
+path /usr/lib/libretro/fbalpha_libretro.so
+soname -
+needed libstdc++.so.6
+needed libm.so.6
+needed libgcc_s.so.1
+needed libc.so.6
+sym FUNC GLOBAL 1004 retro_run
+sym FUNC GLOBAL 1008 retro_set_controller_port_device
+sym FUNC GLOBAL 116 retro_vfs_file_close_impl
+sym FUNC GLOBAL 12 retro_vfs_dirent_get_name_impl
+sym FUNC GLOBAL 1204 retro_load_game_special
+sym FUNC GLOBAL 124 retro_vfs_opendir_impl
+sym FUNC GLOBAL 160 retro_vfs_dirent_is_dir_impl
+sym FUNC GLOBAL 168 retro_init
+sym FUNC GLOBAL 168 retro_unload_game
+sym FUNC GLOBAL 192 retro_serialize_size
+sym FUNC GLOBAL 20 retro_set_audio_sample_batch
+sym FUNC GLOBAL 20 retro_set_input_poll
+sym FUNC GLOBAL 20 retro_set_input_state
+sym FUNC GLOBAL 20 retro_set_video_refresh
+sym FUNC GLOBAL 24 retro_vfs_file_get_path_impl
+sym FUNC GLOBAL 28 retro_vfs_file_size_impl
+sym FUNC GLOBAL 288 retro_serialize
+sym FUNC GLOBAL 292 retro_unserialize
+sym FUNC GLOBAL 296 retro_get_system_av_info
+sym FUNC GLOBAL 32 retro_vfs_readdir_impl
+sym FUNC GLOBAL 36 retro_vfs_file_seek_impl
+sym FUNC GLOBAL 388 retro_vfs_file_open_impl
+sym FUNC GLOBAL 4 retro_cheat_reset
+sym FUNC GLOBAL 4 retro_cheat_set
+sym FUNC GLOBAL 4 retro_deinit
+sym FUNC GLOBAL 4 retro_set_audio_sample
+sym FUNC GLOBAL 44 retro_vfs_file_flush_impl
+sym FUNC GLOBAL 48 retro_get_memory_data
+sym FUNC GLOBAL 48 retro_get_memory_size
+sym FUNC GLOBAL 52 retro_vfs_file_remove_impl
+sym FUNC GLOBAL 52 retro_vfs_mkdir_impl
+sym FUNC GLOBAL 56 retro_get_system_info
+sym FUNC GLOBAL 608 retro_reset
+sym FUNC GLOBAL 64 retro_set_environment
+sym FUNC GLOBAL 64 retro_vfs_file_truncate_impl
+sym FUNC GLOBAL 68 retro_vfs_closedir_impl
+sym FUNC GLOBAL 68 retro_vfs_file_rename_impl
+sym FUNC GLOBAL 76 retro_vfs_file_write_impl
+sym FUNC GLOBAL 8 retro_api_version
+sym FUNC GLOBAL 8 retro_get_region
+sym FUNC GLOBAL 8 retro_vfs_file_error_impl
+sym FUNC GLOBAL 84 retro_vfs_file_read_impl
+sym FUNC GLOBAL 840 retro_load_game
+sym FUNC GLOBAL 92 retro_vfs_file_tell_impl
+sym FUNC GLOBAL 92 retro_vfs_stat_impl
+sym FUNC GLOBAL 96 retro_vfs_file_seek_internal

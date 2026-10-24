@@ -1,0 +1,82 @@
+path /usr/lib/libavfilter.so.7.40.101
+soname libavfilter.so.7
+needed libswscale.so.5
+needed libavformat.so.58
+needed libavcodec.so.58
+needed libswresample.so.3
+needed libavutil.so.56
+needed libm.so.6
+needed libfreetype.so.6
+needed libpthread.so.0
+needed libc.so.6
+sym FUNC GLOBAL 100 avfilter_graph_create_filter@@LIBAVFILTER_7
+sym FUNC GLOBAL 1020 avfilter_init_str@@LIBAVFILTER_7
+sym FUNC GLOBAL 1088 avfilter_config_links@@LIBAVFILTER_7
+sym FUNC GLOBAL 112 av_buffersink_get_channel_layout@@LIBAVFILTER_7
+sym FUNC GLOBAL 112 av_buffersink_get_channels@@LIBAVFILTER_7
+sym FUNC GLOBAL 112 av_buffersink_get_format@@LIBAVFILTER_7
+sym FUNC GLOBAL 112 av_buffersink_get_h@@LIBAVFILTER_7
+sym FUNC GLOBAL 112 av_buffersink_get_hw_frames_ctx@@LIBAVFILTER_7
+sym FUNC GLOBAL 112 av_buffersink_get_sample_rate@@LIBAVFILTER_7
+sym FUNC GLOBAL 112 av_buffersink_get_type@@LIBAVFILTER_7
+sym FUNC GLOBAL 112 av_buffersink_get_w@@LIBAVFILTER_7
+sym FUNC GLOBAL 112 avfilter_mul_matrix@@LIBAVFILTER_7
+sym FUNC GLOBAL 12 av_buffersrc_get_nb_failed_requests@@LIBAVFILTER_7
+sym FUNC GLOBAL 12 avfilter_version@@LIBAVFILTER_7
+sym FUNC GLOBAL 120 avfilter_graph_dump@@LIBAVFILTER_7
+sym FUNC GLOBAL 128 av_buffersink_get_frame_rate@@LIBAVFILTER_7
+sym FUNC GLOBAL 128 av_buffersink_get_sample_aspect_ratio@@LIBAVFILTER_7
+sym FUNC GLOBAL 128 av_buffersink_get_time_base@@LIBAVFILTER_7
+sym FUNC GLOBAL 128 avfilter_get_matrix@@LIBAVFILTER_7
+sym FUNC GLOBAL 132 avfilter_graph_alloc@@LIBAVFILTER_7
+sym FUNC GLOBAL 148 avfilter_add_matrix@@LIBAVFILTER_7
+sym FUNC GLOBAL 148 avfilter_sub_matrix@@LIBAVFILTER_7
+sym FUNC GLOBAL 152 avfilter_graph_free@@LIBAVFILTER_7
+sym FUNC GLOBAL 16 avfilter_configuration@@LIBAVFILTER_7
+sym FUNC GLOBAL 16 avfilter_pad_get_name@@LIBAVFILTER_7
+sym FUNC GLOBAL 16 avfilter_pad_get_type@@LIBAVFILTER_7
+sym FUNC GLOBAL 20 avfilter_get_class@@LIBAVFILTER_7
+sym FUNC GLOBAL 20 avfilter_license@@LIBAVFILTER_7
+sym FUNC GLOBAL 212 av_buffersrc_add_frame_flags@@LIBAVFILTER_7
+sym FUNC GLOBAL 236 avfilter_make_format64_list@@LIBAVFILTER_7
+sym FUNC GLOBAL 24 av_buffersink_set_frame_size@@LIBAVFILTER_7
+sym FUNC GLOBAL 252 avfilter_graph_alloc_filter@@LIBAVFILTER_7
+sym FUNC GLOBAL 28 av_buffersrc_parameters_alloc@@LIBAVFILTER_7
+sym FUNC GLOBAL 28 avfilter_register_all@@LIBAVFILTER_7
+sym FUNC GLOBAL 288 avfilter_init_dict@@LIBAVFILTER_7
+sym FUNC GLOBAL 300 av_buffersrc_parameters_set@@LIBAVFILTER_7
+sym FUNC GLOBAL 300 avfilter_insert_filter@@LIBAVFILTER_7
+sym FUNC GLOBAL 308 avfilter_free@@LIBAVFILTER_7
+sym FUNC GLOBAL 32 avfilter_link_set_closed@@LIBAVFILTER_7
+sym FUNC GLOBAL 336 avfilter_graph_send_command@@LIBAVFILTER_7
+sym FUNC GLOBAL 336 avfilter_process_command@@LIBAVFILTER_7
+sym FUNC GLOBAL 356 avfilter_graph_queue_command@@LIBAVFILTER_7
+sym FUNC GLOBAL 360 av_buffersink_get_samples@@LIBAVFILTER_7
+sym FUNC GLOBAL 40 av_buffersink_params_alloc@@LIBAVFILTER_7
+sym FUNC GLOBAL 40 av_filter_iterate@@LIBAVFILTER_7
+sym FUNC GLOBAL 40 avfilter_register@@LIBAVFILTER_7
+sym FUNC GLOBAL 416 avfilter_graph_request_oldest@@LIBAVFILTER_7
+sym FUNC GLOBAL 52 avfilter_inout_free@@LIBAVFILTER_7
+sym FUNC GLOBAL 552 av_buffersink_get_frame_flags@@LIBAVFILTER_7
+sym FUNC GLOBAL 56 avfilter_pad_count@@LIBAVFILTER_7
+sym FUNC GLOBAL 5868 avfilter_graph_config@@LIBAVFILTER_7
+sym FUNC GLOBAL 600 avfilter_link@@LIBAVFILTER_7
+sym FUNC GLOBAL 64 avfilter_link_free@@LIBAVFILTER_7
+sym FUNC GLOBAL 744 avfilter_transform@@LIBAVFILTER_7
+sym FUNC GLOBAL 752 avfilter_graph_parse@@LIBAVFILTER_7
+sym FUNC GLOBAL 8 av_abuffersink_params_alloc@@LIBAVFILTER_7
+sym FUNC GLOBAL 8 av_buffersink_get_frame@@LIBAVFILTER_7
+sym FUNC GLOBAL 8 av_buffersrc_add_frame@@LIBAVFILTER_7
+sym FUNC GLOBAL 8 av_buffersrc_write_frame@@LIBAVFILTER_7
+sym FUNC GLOBAL 8 avfilter_graph_set_auto_convert@@LIBAVFILTER_7
+sym FUNC GLOBAL 8 avfilter_inout_alloc@@LIBAVFILTER_7
+sym FUNC GLOBAL 8 avfilter_link_get_channels@@LIBAVFILTER_7
+sym FUNC GLOBAL 80 avfilter_next@@LIBAVFILTER_7
+sym FUNC GLOBAL 828 avfilter_graph_parse2@@LIBAVFILTER_7
+sym FUNC GLOBAL 84 avfilter_get_by_name@@LIBAVFILTER_7
+sym FUNC GLOBAL 916 avfilter_graph_parse_ptr@@LIBAVFILTER_7
+sym FUNC GLOBAL 96 av_buffersrc_close@@LIBAVFILTER_7
+sym FUNC GLOBAL 96 avfilter_graph_get_filter@@LIBAVFILTER_7
+sym OBJECT GLOBAL 0 LIBAVFILTER_7
+sym OBJECT GLOBAL 21 av_filter_ffversion@@LIBAVFILTER_7
+sym OBJECT GLOBAL 552 avfilter_all_channel_layouts@@LIBAVFILTER_7

@@ -1,0 +1,47 @@
+path /lib/librt-2.29.so
+soname librt.so.1
+needed libpthread.so.0
+needed libc.so.6
+needed ld-linux-armhf.so.3
+sym FUNC GLOBAL 1028 lio_listio@@GLIBC_2.4
+sym FUNC GLOBAL 1032 lio_listio64@@GLIBC_2.4
+sym FUNC GLOBAL 116 mq_unlink@@GLIBC_2.4
+sym FUNC GLOBAL 12 mq_getattr@@GLIBC_2.4
+sym FUNC GLOBAL 148 aio_fsync@@GLIBC_2.4
+sym FUNC GLOBAL 156 mq_open@@GLIBC_2.4
+sym FUNC GLOBAL 216 timer_delete@@GLIBC_2.4
+sym FUNC GLOBAL 28 aio_read64@@GLIBC_2.4
+sym FUNC GLOBAL 28 aio_read@@GLIBC_2.4
+sym FUNC GLOBAL 28 aio_write64@@GLIBC_2.4
+sym FUNC GLOBAL 28 aio_write@@GLIBC_2.4
+sym FUNC GLOBAL 28 mq_receive@@GLIBC_2.4
+sym FUNC GLOBAL 28 mq_send@@GLIBC_2.4
+sym FUNC GLOBAL 308 shm_unlink@@GLIBC_2.4
+sym FUNC GLOBAL 32 __mq_open_2@@GLIBC_2.7
+sym FUNC GLOBAL 360 shm_open@@GLIBC_2.4
+sym FUNC GLOBAL 404 mq_notify@@GLIBC_2.4
+sym FUNC GLOBAL 48 aio_error@@GLIBC_2.4
+sym FUNC GLOBAL 540 aio_cancel@@GLIBC_2.4
+sym FUNC GLOBAL 60 mq_setattr@@GLIBC_2.4
+sym FUNC GLOBAL 64 mq_close@@GLIBC_2.4
+sym FUNC GLOBAL 640 timer_create@@GLIBC_2.4
+sym FUNC GLOBAL 68 timer_getoverrun@@GLIBC_2.4
+sym FUNC GLOBAL 68 timer_gettime@@GLIBC_2.4
+sym FUNC GLOBAL 68 timer_settime@@GLIBC_2.4
+sym FUNC GLOBAL 8 aio_return@@GLIBC_2.4
+sym FUNC GLOBAL 808 aio_suspend@@GLIBC_2.4
+sym FUNC WEAK 148 aio_fsync64@@GLIBC_2.4
+sym FUNC WEAK 148 aio_init@@GLIBC_2.4
+sym FUNC WEAK 164 mq_timedreceive@@GLIBC_2.4
+sym FUNC WEAK 164 mq_timedsend@@GLIBC_2.4
+sym FUNC WEAK 48 aio_error64@@GLIBC_2.4
+sym FUNC WEAK 540 aio_cancel64@@GLIBC_2.4
+sym FUNC WEAK 8 aio_return64@@GLIBC_2.4
+sym FUNC WEAK 808 aio_suspend64@@GLIBC_2.4
+sym IFUNC GLOBAL 28 clock_getcpuclockid@@GLIBC_2.4
+sym IFUNC GLOBAL 28 clock_getres@@GLIBC_2.4
+sym IFUNC GLOBAL 28 clock_gettime@@GLIBC_2.4
+sym IFUNC GLOBAL 28 clock_nanosleep@@GLIBC_2.4
+sym IFUNC GLOBAL 28 clock_settime@@GLIBC_2.4
+sym OBJECT GLOBAL 0 GLIBC_2.4
+sym OBJECT GLOBAL 0 GLIBC_2.7

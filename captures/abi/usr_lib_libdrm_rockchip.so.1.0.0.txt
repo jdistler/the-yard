@@ -1,0 +1,21 @@
+path /usr/lib/libdrm_rockchip.so.1.0.0
+soname libdrm_rockchip.so.1
+needed libdrm.so.2
+needed libm.so.6
+needed libc.so.6
+sym FUNC GLOBAL 104 rockchip_bo_destroy
+sym FUNC GLOBAL 104 rockchip_device_create
+sym FUNC GLOBAL 168 rockchip_bo_get_name
+sym FUNC GLOBAL 172 rockchip_bo_from_handle
+sym FUNC GLOBAL 240 rockchip_bo_from_name
+sym FUNC GLOBAL 256 rockchip_bo_map
+sym FUNC GLOBAL 296 rockchip_bo_create
+sym FUNC GLOBAL 4 rockchip_device_destroy
+sym FUNC GLOBAL 8 rockchip_bo_handle
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end

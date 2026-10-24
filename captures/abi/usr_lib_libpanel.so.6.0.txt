@@ -1,0 +1,29 @@
+path /usr/lib/libpanel.so.6.0
+soname libpanel.so.6
+needed libc.so.6
+needed libncurses.so.6
+sym FUNC GLOBAL 12 panel_userptr
+sym FUNC GLOBAL 12 panel_window
+sym FUNC GLOBAL 168 new_panel
+sym FUNC GLOBAL 20 set_panel_userptr
+sym FUNC GLOBAL 32 update_panels
+sym FUNC GLOBAL 4 top_panel
+sym FUNC GLOBAL 400 update_panels_sp
+sym FUNC GLOBAL 444 replace_panel
+sym FUNC GLOBAL 472 move_panel
+sym FUNC GLOBAL 48 panel_above
+sym FUNC GLOBAL 528 hide_panel
+sym FUNC GLOBAL 536 del_panel
+sym FUNC GLOBAL 588 show_panel
+sym FUNC GLOBAL 600 bottom_panel
+sym FUNC GLOBAL 80 ground_panel
+sym FUNC GLOBAL 80 panel_hidden
+sym FUNC GLOBAL 88 ceiling_panel
+sym FUNC GLOBAL 92 panel_below
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end

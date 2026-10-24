@@ -1,0 +1,1 @@
+# The image carries no config (no IKCFG_ST). drivers.txt is the string search instead.

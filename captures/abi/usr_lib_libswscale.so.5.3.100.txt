@@ -1,0 +1,41 @@
+path /usr/lib/libswscale.so.5.3.100
+soname libswscale.so.5
+needed libavutil.so.56
+needed libm.so.6
+needed libpthread.so.0
+needed libc.so.6
+sym FUNC GLOBAL 104 sws_alloc_set_opts@@LIBSWSCALE_5
+sym FUNC GLOBAL 104 sws_getColorspaceDetails@@LIBSWSCALE_5
+sym FUNC GLOBAL 1136 sws_getDefaultFilter@@LIBSWSCALE_5
+sym FUNC GLOBAL 12 sws_getIdentityVec@@LIBSWSCALE_5
+sym FUNC GLOBAL 12 swscale_version@@LIBSWSCALE_5
+sym FUNC GLOBAL 136 sws_allocVec@@LIBSWSCALE_5
+sym FUNC GLOBAL 16 swscale_configuration@@LIBSWSCALE_5
+sym FUNC GLOBAL 20 swscale_license@@LIBSWSCALE_5
+sym FUNC GLOBAL 216 sws_shiftVec@@LIBSWSCALE_5
+sym FUNC GLOBAL 224 sws_getGaussianVec@@LIBSWSCALE_5
+sym FUNC GLOBAL 240 sws_convVec@@LIBSWSCALE_5
+sym FUNC GLOBAL 260 sws_freeContext@@LIBSWSCALE_5
+sym FUNC GLOBAL 28 sws_get_class@@LIBSWSCALE_5
+sym FUNC GLOBAL 296 sws_addVec@@LIBSWSCALE_5
+sym FUNC GLOBAL 296 sws_subVec@@LIBSWSCALE_5
+sym FUNC GLOBAL 308 sws_printVec2@@LIBSWSCALE_5
+sym FUNC GLOBAL 3520 sws_setColorspaceDetails@@LIBSWSCALE_5
+sym FUNC GLOBAL 36 sws_freeVec@@LIBSWSCALE_5
+sym FUNC GLOBAL 40 sws_convertPalette8ToPacked32@@LIBSWSCALE_5
+sym FUNC GLOBAL 44 sws_isSupportedEndiannessConversion@@LIBSWSCALE_5
+sym FUNC GLOBAL 44 sws_isSupportedInput@@LIBSWSCALE_5
+sym FUNC GLOBAL 44 sws_isSupportedOutput@@LIBSWSCALE_5
+sym FUNC GLOBAL 44 sws_scaleVec@@LIBSWSCALE_5
+sym FUNC GLOBAL 4792 sws_scale@@LIBSWSCALE_5
+sym FUNC GLOBAL 48 sws_cloneVec@@LIBSWSCALE_5
+sym FUNC GLOBAL 56 sws_freeFilter@@LIBSWSCALE_5
+sym FUNC GLOBAL 596 sws_getCachedContext@@LIBSWSCALE_5
+sym FUNC GLOBAL 60 sws_alloc_context@@LIBSWSCALE_5
+sym FUNC GLOBAL 64 sws_getCoefficients@@LIBSWSCALE_5
+sym FUNC GLOBAL 64 sws_getConstVec@@LIBSWSCALE_5
+sym FUNC GLOBAL 6612 sws_init_context@@LIBSWSCALE_5
+sym FUNC GLOBAL 68 sws_normalizeVec@@LIBSWSCALE_5
+sym FUNC GLOBAL 96 sws_convertPalette8ToPacked24@@LIBSWSCALE_5
+sym FUNC GLOBAL 96 sws_getContext@@LIBSWSCALE_5
+sym OBJECT GLOBAL 0 LIBSWSCALE_5

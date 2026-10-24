@@ -1,0 +1,22 @@
+path /usr/lib/libdeck.so
+soname -
+needed libSDL2-2.0.so.0
+needed libGLESv2.so
+needed libasound.so.2
+needed libpthread.so.0
+needed libstdc++.so.6
+needed libm.so.6
+needed libgcc_s.so.1
+needed libc.so.6
+sym FUNC GLOBAL 104 ControlDeckReadStart
+sym FUNC GLOBAL 20 ControlDeckSetDevice
+sym FUNC GLOBAL 240 set_interface_attribs
+sym FUNC GLOBAL 44 ControlDeckReadStop
+sym FUNC GLOBAL 464 ControlDeckRead
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end

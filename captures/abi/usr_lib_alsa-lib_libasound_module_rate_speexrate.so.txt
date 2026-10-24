@@ -1,0 +1,38 @@
+path /usr/lib/alsa-lib/libasound_module_rate_speexrate.so
+soname libasound_module_rate_speexrate.so
+needed libasound.so.2
+needed libm.so.6
+needed libdl.so.2
+needed libpthread.so.0
+needed librt.so.1
+needed libc.so.6
+sym FUNC GLOBAL 12 alsa_lib_resampler_get_input_stride
+sym FUNC GLOBAL 12 alsa_lib_resampler_get_output_stride
+sym FUNC GLOBAL 12 alsa_lib_resampler_get_quality
+sym FUNC GLOBAL 128 alsa_lib_resampler_strerror
+sym FUNC GLOBAL 144 alsa_lib_resampler_process_interleaved_float
+sym FUNC GLOBAL 144 alsa_lib_resampler_process_interleaved_int
+sym FUNC GLOBAL 20 alsa_lib_resampler_get_rate
+sym FUNC GLOBAL 20 alsa_lib_resampler_get_ratio
+sym FUNC GLOBAL 24 alsa_lib_resampler_set_rate
+sym FUNC GLOBAL 248 alsa_lib_resampler_set_rate_frac
+sym FUNC GLOBAL 28 alsa_lib_resampler_init
+sym FUNC GLOBAL 308 alsa_lib_resampler_process_int
+sym FUNC GLOBAL 336 alsa_lib_resampler_init_frac
+sym FUNC GLOBAL 4 alsa_lib_resampler_process_float
+sym FUNC GLOBAL 48 alsa_lib_resampler_skip_zeros
+sym FUNC GLOBAL 60 alsa_lib_resampler_destroy
+sym FUNC GLOBAL 60 alsa_lib_resampler_reset_mem
+sym FUNC GLOBAL 68 alsa_lib_resampler_set_quality
+sym FUNC GLOBAL 8 _snd_pcm_rate_speexrate_best_open
+sym FUNC GLOBAL 8 _snd_pcm_rate_speexrate_medium_open
+sym FUNC GLOBAL 8 _snd_pcm_rate_speexrate_open
+sym FUNC GLOBAL 8 alsa_lib_resampler_set_input_stride
+sym FUNC GLOBAL 8 alsa_lib_resampler_set_output_stride
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end

@@ -1,0 +1,34 @@
+path /lib/ld-2.29.so
+soname ld-linux-armhf.so.3
+sym FUNC GLOBAL 112 _dl_make_stack_executable@@GLIBC_PRIVATE
+sym FUNC GLOBAL 1156 _dl_mcount@@GLIBC_2.4
+sym FUNC GLOBAL 116 _dl_deallocate_tls@@GLIBC_PRIVATE
+sym FUNC GLOBAL 172 _dl_catch_exception@@GLIBC_PRIVATE
+sym FUNC GLOBAL 200 _dl_exception_create@@GLIBC_PRIVATE
+sym FUNC GLOBAL 224 _dl_find_dso_for_object@@GLIBC_PRIVATE
+sym FUNC GLOBAL 252 __tunable_get_val@@GLIBC_PRIVATE
+sym FUNC GLOBAL 32 _dl_get_tls_static_info@@GLIBC_PRIVATE
+sym FUNC GLOBAL 36 _dl_allocate_tls@@GLIBC_PRIVATE
+sym FUNC GLOBAL 36 _dl_exception_free@@GLIBC_PRIVATE
+sym FUNC GLOBAL 4 _dl_debug_state@@GLIBC_PRIVATE
+sym FUNC GLOBAL 476 _dl_rtld_di_serinfo@@GLIBC_PRIVATE
+sym FUNC GLOBAL 696 _dl_allocate_tls_init@@GLIBC_PRIVATE
+sym FUNC GLOBAL 72 _dl_catch_error@@GLIBC_PRIVATE
+sym FUNC GLOBAL 72 _dl_signal_exception@@GLIBC_PRIVATE
+sym FUNC GLOBAL 76 __tls_get_addr@@GLIBC_2.4
+sym FUNC GLOBAL 944 _dl_exception_create_format@@GLIBC_PRIVATE
+sym FUNC GLOBAL 96 _dl_signal_error@@GLIBC_PRIVATE
+sym FUNC WEAK 132 realloc@@GLIBC_2.4
+sym FUNC WEAK 332 malloc@@GLIBC_2.4
+sym FUNC WEAK 52 free@@GLIBC_2.4
+sym FUNC WEAK 64 calloc@@GLIBC_2.4
+sym OBJECT GLOBAL 0 GLIBC_2.4
+sym OBJECT GLOBAL 0 GLIBC_PRIVATE
+sym OBJECT GLOBAL 20 _r_debug@@GLIBC_2.4
+sym OBJECT GLOBAL 2104 _rtld_global@@GLIBC_PRIVATE
+sym OBJECT GLOBAL 4 __libc_enable_secure@@GLIBC_PRIVATE
+sym OBJECT GLOBAL 4 __libc_stack_end@@GLIBC_2.4
+sym OBJECT GLOBAL 4 __pointer_chk_guard@@GLIBC_PRIVATE
+sym OBJECT GLOBAL 4 __stack_chk_guard@@GLIBC_2.4
+sym OBJECT GLOBAL 4 _dl_argv@@GLIBC_PRIVATE
+sym OBJECT GLOBAL 440 _rtld_global_ro@@GLIBC_PRIVATE

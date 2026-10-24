@@ -1,0 +1,34 @@
+path /usr/lib/libretro/mame2000_libretro.so
+soname -
+needed libm.so.6
+needed libc.so.6
+needed ld-linux-armhf.so.3
+sym FUNC GLOBAL 12 retro_set_audio_sample_batch
+sym FUNC GLOBAL 12 retro_set_input_poll
+sym FUNC GLOBAL 12 retro_set_input_state
+sym FUNC GLOBAL 12 retro_set_video_refresh
+sym FUNC GLOBAL 120 retro_get_system_av_info
+sym FUNC GLOBAL 2 retro_cheat_reset
+sym FUNC GLOBAL 2 retro_cheat_set
+sym FUNC GLOBAL 2 retro_set_audio_sample
+sym FUNC GLOBAL 2 retro_set_controller_port_device
+sym FUNC GLOBAL 2352 retro_run
+sym FUNC GLOBAL 24 retro_set_environment
+sym FUNC GLOBAL 2468 retro_load_game
+sym FUNC GLOBAL 4 retro_api_version
+sym FUNC GLOBAL 4 retro_get_memory_data
+sym FUNC GLOBAL 4 retro_get_memory_size
+sym FUNC GLOBAL 4 retro_get_region
+sym FUNC GLOBAL 4 retro_load_game_special
+sym FUNC GLOBAL 4 retro_reset
+sym FUNC GLOBAL 4 retro_serialize
+sym FUNC GLOBAL 4 retro_serialize_size
+sym FUNC GLOBAL 4 retro_unserialize
+sym FUNC GLOBAL 44 retro_get_system_info
+sym FUNC GLOBAL 68 retro_deinit
+sym FUNC GLOBAL 68 retro_init
+sym FUNC GLOBAL 84 retro_unload_game
+sym OBJECT GLOBAL 4 retro_content_directory
+sym OBJECT GLOBAL 4 retro_hook_quit
+sym OBJECT GLOBAL 4 retro_save_directory
+sym OBJECT GLOBAL 4 retro_system_directory

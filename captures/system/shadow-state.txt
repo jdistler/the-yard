@@ -1,0 +1,9 @@
+root: set
+daemon: locked
+bin: locked
+sys: locked
+sync: locked
+mail: locked
+www-data: locked
+operator: locked
+nobody: locked

@@ -1,0 +1,30 @@
+path /usr/lib/libglapi.so.0.0.0
+soname libglapi.so.0
+needed libpthread.so.0
+needed libc.so.6
+sym FUNC GLOBAL 100 _glapi_get_proc_address
+sym FUNC GLOBAL 100 _glapi_get_proc_offset
+sym FUNC GLOBAL 24 _glapi_get_context
+sym FUNC GLOBAL 24 _glapi_get_dispatch
+sym FUNC GLOBAL 24 _glapi_get_proc_name
+sym FUNC GLOBAL 292 _glapi_add_dispatch
+sym FUNC GLOBAL 4 _glapi_check_multithread
+sym FUNC GLOBAL 4 _glapi_noop_enable_warnings
+sym FUNC GLOBAL 4 _glapi_set_context
+sym FUNC GLOBAL 4 _glapi_set_dispatch
+sym FUNC GLOBAL 4 _glapi_set_nop_handler
+sym FUNC GLOBAL 4 _glapi_set_warning_func
+sym FUNC GLOBAL 8 _glapi_get_dispatch_table_size
+sym FUNC GLOBAL 8 _glthread_GetID
+sym FUNC GLOBAL 88 _glapi_new_nop_table
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end
+sym OBJECT GLOBAL 4 _glapi_Context
+sym OBJECT GLOBAL 4 _glapi_Dispatch
+sym TLS GLOBAL 4 _glapi_tls_Context
+sym TLS GLOBAL 4 _glapi_tls_Dispatch

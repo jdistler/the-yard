@@ -1,0 +1,14 @@
+path /usr/lib/python2.7/lib-dynload/_functools.so
+soname -
+needed libpython2.7.so.1.0
+needed libc.so.6
+sym FUNC GLOBAL 176 init_functools
+sym FUNC GLOBAL 692 partial_setstate
+sym FUNC GLOBAL 96 partial_reduce
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end

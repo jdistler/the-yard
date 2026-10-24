@@ -1,0 +1,46 @@
+path /usr/lib/libss.so.2.0
+soname libss.so.2
+needed libcom_err.so.2
+needed libdl.so.2
+needed libc.so.6
+sym FUNC GLOBAL 100 ss_delete_request_table
+sym FUNC GLOBAL 100 ss_pager_create
+sym FUNC GLOBAL 108 ss_safe_getenv
+sym FUNC GLOBAL 12 ss_quit
+sym FUNC GLOBAL 120 ss_delete_info_dir
+sym FUNC GLOBAL 132 ss_delete_invocation
+sym FUNC GLOBAL 136 ss_execute_command
+sym FUNC GLOBAL 144 initialize_ss_error_table_r
+sym FUNC GLOBAL 176 ss_add_request_table
+sym FUNC GLOBAL 192 ss_execute_line
+sym FUNC GLOBAL 20 ss_perror
+sym FUNC GLOBAL 212 ss_add_info_dir
+sym FUNC GLOBAL 216 ss_name
+sym FUNC GLOBAL 28 ss_unimplemented
+sym FUNC GLOBAL 292 ss_page_stdin
+sym FUNC GLOBAL 388 ss_create_invocation
+sym FUNC GLOBAL 40 ss_get_prompt
+sym FUNC GLOBAL 40 ss_set_prompt
+sym FUNC GLOBAL 40 ss_subsystem_name
+sym FUNC GLOBAL 40 ss_subsystem_version
+sym FUNC GLOBAL 436 ss_get_readline
+sym FUNC GLOBAL 44 initialize_ss_error_table
+sym FUNC GLOBAL 468 ss_list_requests
+sym FUNC GLOBAL 48 ss_abort_subsystem
+sym FUNC GLOBAL 480 ss_parse
+sym FUNC GLOBAL 52 ss_self_identify
+sym FUNC GLOBAL 584 ss_help
+sym FUNC GLOBAL 60 ss_rl_completion
+sym FUNC GLOBAL 68 ss_error
+sym FUNC GLOBAL 748 ss_listen
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end
+sym OBJECT GLOBAL 12 et_ss_error_table
+sym OBJECT GLOBAL 4 _ss_pager_name
+sym OBJECT GLOBAL 4 _ss_table
+sym OBJECT GLOBAL 8 ss_std_requests

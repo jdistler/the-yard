@@ -1,0 +1,20 @@
+path /lib/libhq2x.so
+soname -
+needed libc.so.6
+sym FUNC GLOBAL 0 _fini
+sym FUNC GLOBAL 0 _init
+sym FUNC GLOBAL 276 hq2x_threaded
+sym FUNC GLOBAL 52 hq2x_16_convert_yuv_16
+sym FUNC GLOBAL 68 hq2x_calculate_pattern
+sym FUNC GLOBAL 692 hq2x_16_16
+sym FUNC GLOBAL 740 calculate_pattern
+sym FUNC GLOBAL 84 hq2x_16_fill_dst
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end
+sym NOTYPE GLOBAL 0 convert_yuv_16
+sym NOTYPE GLOBAL 0 convert_yuv_8_rgb_16

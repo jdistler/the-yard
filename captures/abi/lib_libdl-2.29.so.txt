@@ -1,0 +1,17 @@
+path /lib/libdl-2.29.so
+soname libdl.so.2
+needed libc.so.6
+needed ld-linux-armhf.so.3
+sym FUNC GLOBAL 100 dlclose@@GLIBC_2.4
+sym FUNC GLOBAL 120 dladdr1@@GLIBC_2.4
+sym FUNC GLOBAL 140 dlopen@@GLIBC_2.4
+sym FUNC GLOBAL 144 dlinfo@@GLIBC_2.4
+sym FUNC GLOBAL 144 dlmopen@@GLIBC_2.4
+sym FUNC GLOBAL 188 dlsym@@GLIBC_2.4
+sym FUNC GLOBAL 4 __libdl_freeres@@GLIBC_PRIVATE
+sym FUNC GLOBAL 72 dladdr@@GLIBC_2.4
+sym FUNC GLOBAL 740 dlerror@@GLIBC_2.4
+sym FUNC WEAK 196 dlvsym@@GLIBC_2.4
+sym OBJECT GLOBAL 0 GLIBC_2.4
+sym OBJECT GLOBAL 0 GLIBC_PRIVATE
+sym OBJECT GLOBAL 4 _dlfcn_hook@@GLIBC_PRIVATE

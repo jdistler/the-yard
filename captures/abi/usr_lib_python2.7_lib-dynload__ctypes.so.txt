@@ -1,0 +1,68 @@
+path /usr/lib/python2.7/lib-dynload/_ctypes.so
+soname -
+needed libffi.so.6
+needed libdl.so.2
+needed libpython2.7.so.1.0
+needed libc.so.6
+sym FUNC GLOBAL 104 PyDict_GetItemProxy
+sym FUNC GLOBAL 1080 PyCField_FromDesc
+sym FUNC GLOBAL 124 _ctypes_alloc_format_string
+sym FUNC GLOBAL 136 PyCData_get
+sym FUNC GLOBAL 140 PyCData_AtAddress
+sym FUNC GLOBAL 1532 init_ctypes
+sym FUNC GLOBAL 160 _ctypes_get_fielddesc
+sym FUNC GLOBAL 1616 PyCData_set
+sym FUNC GLOBAL 1756 _ctypes_callproc
+sym FUNC GLOBAL 216 PyDict_SetItemProxy
+sym FUNC GLOBAL 268 _ctypes_add_traceback
+sym FUNC GLOBAL 272 _ctypes_alloc_format_string_with_shape
+sym FUNC GLOBAL 2884 PyCStructUnionType_update_stgdict
+sym FUNC GLOBAL 312 PyCData_FromBaseObj
+sym FUNC GLOBAL 424 _ctypes_get_errobj
+sym FUNC GLOBAL 488 _ctypes_extend_error
+sym FUNC GLOBAL 596 PyCArrayType_from_ctype
+sym FUNC GLOBAL 60 _ctypes_get_ffi_type
+sym FUNC GLOBAL 616 PyCStgDict_clone
+sym FUNC GLOBAL 68 PyCArgObject_new
+sym FUNC GLOBAL 748 _ctypes_alloc_callback
+sym FUNC GLOBAL 80 PyObject_stgdict
+sym FUNC GLOBAL 88 _ctypes_simple_instance
+sym FUNC GLOBAL 92 PyType_stgdict
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end
+sym OBJECT GLOBAL 12 ffi_type_double
+sym OBJECT GLOBAL 12 ffi_type_float
+sym OBJECT GLOBAL 12 ffi_type_longdouble
+sym OBJECT GLOBAL 12 ffi_type_pointer
+sym OBJECT GLOBAL 12 ffi_type_sint16
+sym OBJECT GLOBAL 12 ffi_type_sint32
+sym OBJECT GLOBAL 12 ffi_type_sint64
+sym OBJECT GLOBAL 12 ffi_type_sint8
+sym OBJECT GLOBAL 12 ffi_type_uint16
+sym OBJECT GLOBAL 12 ffi_type_uint32
+sym OBJECT GLOBAL 12 ffi_type_uint64
+sym OBJECT GLOBAL 12 ffi_type_uint8
+sym OBJECT GLOBAL 12 ffi_type_void
+sym OBJECT GLOBAL 196 PyCArg_Type
+sym OBJECT GLOBAL 196 PyCArrayType_Type
+sym OBJECT GLOBAL 196 PyCArray_Type
+sym OBJECT GLOBAL 196 PyCData_Type
+sym OBJECT GLOBAL 196 PyCField_Type
+sym OBJECT GLOBAL 196 PyCFuncPtrType_Type
+sym OBJECT GLOBAL 196 PyCFuncPtr_Type
+sym OBJECT GLOBAL 196 PyCPointerType_Type
+sym OBJECT GLOBAL 196 PyCPointer_Type
+sym OBJECT GLOBAL 196 PyCSimpleType_Type
+sym OBJECT GLOBAL 196 PyCStgDict_Type
+sym OBJECT GLOBAL 196 PyCStructType_Type
+sym OBJECT GLOBAL 196 PyCThunk_Type
+sym OBJECT GLOBAL 336 _ctypes_module_methods
+sym OBJECT GLOBAL 4 PyExc_ArgError
+sym OBJECT GLOBAL 4 _ctypes_conversion_encoding
+sym OBJECT GLOBAL 4 _ctypes_conversion_errors
+sym OBJECT GLOBAL 4 _ctypes_ptrtype_cache

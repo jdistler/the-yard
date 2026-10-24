@@ -1,0 +1,1 @@
+Linux version 4.4.194 (tyc@dell) (gcc version 6.3.1 20170404 (Linaro GCC 6.3-2017.05) ) #485 SMP Thu May 11 19:05:37 CST 2023

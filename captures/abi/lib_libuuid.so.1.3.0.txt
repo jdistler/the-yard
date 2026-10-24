@@ -1,0 +1,28 @@
+path /lib/libuuid.so.1.3.0
+soname libuuid.so.1
+needed libc.so.6
+needed ld-linux-armhf.so.3
+sym FUNC GLOBAL 12 uuid_clear@@UUID_1.0
+sym FUNC GLOBAL 1248 __uuid_generate_time@@UUIDD_PRIVATE
+sym FUNC GLOBAL 132 uuid_compare@@UUID_1.0
+sym FUNC GLOBAL 152 __uuid_generate_random@@UUIDD_PRIVATE
+sym FUNC GLOBAL 16 uuid_unparse@@UUID_1.0
+sym FUNC GLOBAL 16 uuid_unparse_upper@@UUID_1.0
+sym FUNC GLOBAL 164 uuid_generate_md5@@UUID_2.31
+sym FUNC GLOBAL 168 uuid_generate_sha1@@UUID_2.31
+sym FUNC GLOBAL 180 uuid_time@@UUID_1.0
+sym FUNC GLOBAL 260 uuid_get_template@@UUID_2.31
+sym FUNC GLOBAL 28 uuid_copy@@UUID_1.0
+sym FUNC GLOBAL 28 uuid_generate_random@@UUID_1.0
+sym FUNC GLOBAL 28 uuid_type@@UUID_1.0
+sym FUNC GLOBAL 324 uuid_parse@@UUID_1.0
+sym FUNC GLOBAL 4 uuid_generate_time@@UUID_1.0
+sym FUNC GLOBAL 4 uuid_generate_time_safe@@UUID_2.20
+sym FUNC GLOBAL 4 uuid_unparse_lower@@UUID_1.0
+sym FUNC GLOBAL 40 uuid_is_null@@UUID_1.0
+sym FUNC GLOBAL 60 uuid_variant@@UUID_1.0
+sym FUNC GLOBAL 88 uuid_generate@@UUID_1.0
+sym OBJECT GLOBAL 0 UUIDD_PRIVATE
+sym OBJECT GLOBAL 0 UUID_1.0
+sym OBJECT GLOBAL 0 UUID_2.20
+sym OBJECT GLOBAL 0 UUID_2.31

@@ -1,0 +1,21 @@
+path /usr/lib/libwayland-cursor.so.0.0.0
+soname libwayland-cursor.so.0
+needed libwayland-client.so.0
+needed libffi.so.6
+needed librt.so.1
+needed libm.so.6
+needed libpthread.so.0
+needed libc.so.6
+sym FUNC GLOBAL 128 wl_cursor_frame_and_duration
+sym FUNC GLOBAL 128 wl_cursor_image_get_buffer
+sym FUNC GLOBAL 220 wl_cursor_theme_destroy
+sym FUNC GLOBAL 756 wl_cursor_theme_load
+sym FUNC GLOBAL 76 wl_cursor_theme_get_cursor
+sym FUNC GLOBAL 8 wl_cursor_frame
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end

@@ -1,0 +1,30 @@
+path /usr/lib/libswresample.so.3.3.100
+soname libswresample.so.3
+needed libavutil.so.56
+needed libm.so.6
+needed libpthread.so.0
+needed libc.so.6
+sym FUNC GLOBAL 12 swresample_version@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 120 swr_get_delay@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 16 swr_get_class@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 16 swresample_configuration@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 160 swr_set_compensation@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 196 swr_get_out_samples@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 20 swr_is_initialized@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 20 swresample_license@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 2040 swr_convert@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 268 swr_set_matrix@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 2712 swr_init@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 3196 swr_build_matrix@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 328 swr_config_frame@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 328 swr_inject_silence@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 4 swr_close@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 40 swr_set_channel_mapping@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 496 swr_alloc_set_opts@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 52 swr_alloc@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 576 swr_convert_frame@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 664 swr_next_pts@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 72 swr_free@@LIBSWRESAMPLE_3
+sym FUNC GLOBAL 96 swr_drop_output@@LIBSWRESAMPLE_3
+sym OBJECT GLOBAL 0 LIBSWRESAMPLE_3
+sym OBJECT GLOBAL 21 swr_ffversion@@LIBSWRESAMPLE_3

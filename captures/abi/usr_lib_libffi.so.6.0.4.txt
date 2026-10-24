@@ -1,0 +1,51 @@
+path /usr/lib/libffi.so.6.0.4
+soname libffi.so.6
+needed libgcc_s.so.1
+needed libc.so.6
+sym FUNC GLOBAL 0 ffi_arm_trampoline
+sym FUNC GLOBAL 100 ffi_call_SYSV
+sym FUNC GLOBAL 104 ffi_prep_args_SYSV
+sym FUNC GLOBAL 116 ffi_raw_to_ptrarray
+sym FUNC GLOBAL 144 ffi_closure_VFP
+sym FUNC GLOBAL 148 ffi_java_raw_size
+sym FUNC GLOBAL 168 ffi_call_VFP
+sym FUNC GLOBAL 180 ffi_prep_closure_loc
+sym FUNC GLOBAL 20 ffi_prep_cif_machdep_var
+sym FUNC GLOBAL 20 ffi_prep_closure
+sym FUNC GLOBAL 20 ffi_prep_java_raw_closure
+sym FUNC GLOBAL 20 ffi_prep_raw_closure
+sym FUNC GLOBAL 244 ffi_ptrarray_to_raw
+sym FUNC GLOBAL 260 ffi_java_ptrarray_to_raw
+sym FUNC GLOBAL 276 ffi_call
+sym FUNC GLOBAL 2976 ffi_closure_free
+sym FUNC GLOBAL 32 ffi_prep_cif
+sym FUNC GLOBAL 40 ffi_prep_cif_var
+sym FUNC GLOBAL 400 ffi_prep_args_VFP
+sym FUNC GLOBAL 456 ffi_prep_cif_machdep
+sym FUNC GLOBAL 5224 ffi_closure_alloc
+sym FUNC GLOBAL 60 ffi_prep_java_raw_closure_loc
+sym FUNC GLOBAL 60 ffi_prep_raw_closure_loc
+sym FUNC GLOBAL 64 ffi_java_raw_to_ptrarray
+sym FUNC GLOBAL 76 ffi_raw_size
+sym FUNC GLOBAL 80 ffi_java_raw_call
+sym FUNC GLOBAL 80 ffi_raw_call
+sym FUNC GLOBAL 96 ffi_closure_SYSV
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end
+sym OBJECT GLOBAL 12 ffi_type_double
+sym OBJECT GLOBAL 12 ffi_type_float
+sym OBJECT GLOBAL 12 ffi_type_pointer
+sym OBJECT GLOBAL 12 ffi_type_sint16
+sym OBJECT GLOBAL 12 ffi_type_sint32
+sym OBJECT GLOBAL 12 ffi_type_sint64
+sym OBJECT GLOBAL 12 ffi_type_sint8
+sym OBJECT GLOBAL 12 ffi_type_uint16
+sym OBJECT GLOBAL 12 ffi_type_uint32
+sym OBJECT GLOBAL 12 ffi_type_uint64
+sym OBJECT GLOBAL 12 ffi_type_uint8
+sym OBJECT GLOBAL 12 ffi_type_void

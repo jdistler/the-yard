@@ -1,0 +1,23 @@
+path /usr/lib/alsa-lib/libasound_module_rate_lavcrate.so
+soname libasound_module_rate_lavcrate.so
+needed libavcodec.so.58
+needed libavutil.so.56
+needed libasound.so.2
+needed libm.so.6
+needed libdl.so.2
+needed libpthread.so.0
+needed librt.so.1
+needed libc.so.6
+sym FUNC GLOBAL 184 pcm_src_open
+sym FUNC GLOBAL 24 _snd_pcm_rate_lavcrate_fast_open
+sym FUNC GLOBAL 24 _snd_pcm_rate_lavcrate_faster_open
+sym FUNC GLOBAL 24 _snd_pcm_rate_lavcrate_high_open
+sym FUNC GLOBAL 24 _snd_pcm_rate_lavcrate_higher_open
+sym FUNC GLOBAL 4 _snd_pcm_rate_lavcrate_open
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end

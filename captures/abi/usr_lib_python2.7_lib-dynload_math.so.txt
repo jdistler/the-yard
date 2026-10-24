@@ -1,0 +1,18 @@
+path /usr/lib/python2.7/lib-dynload/math.so
+soname -
+needed libm.so.6
+needed libpython2.7.so.1.0
+needed libc.so.6
+sym FUNC GLOBAL 120 _Py_expm1
+sym FUNC GLOBAL 16 _Py_log1p
+sym FUNC GLOBAL 164 initmath
+sym FUNC GLOBAL 184 _Py_atanh
+sym FUNC GLOBAL 312 _Py_asinh
+sym FUNC GLOBAL 344 _Py_acosh
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end

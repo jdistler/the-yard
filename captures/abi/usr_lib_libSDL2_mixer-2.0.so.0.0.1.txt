@@ -1,0 +1,88 @@
+path /usr/lib/libSDL2_mixer-2.0.so.0.0.1
+soname libSDL2_mixer-2.0.so.0
+needed libSDL2-2.0.so.0
+needed libdl.so.2
+needed libpthread.so.0
+needed librt.so.1
+needed libm.so.6
+needed libc.so.6
+sym FUNC GLOBAL 100 Mix_FadeOutGroup
+sym FUNC GLOBAL 108 Mix_GroupNewer
+sym FUNC GLOBAL 108 Mix_QuickLoad_RAW
+sym FUNC GLOBAL 112 Mix_GroupOldest
+sym FUNC GLOBAL 116 Mix_GroupAvailable
+sym FUNC GLOBAL 12 Mix_LoadMUS_RW
+sym FUNC GLOBAL 120 Mix_SetMusicCMD
+sym FUNC GLOBAL 120 Mix_SetSoundFonts
+sym FUNC GLOBAL 124 Mix_FreeChunk
+sym FUNC GLOBAL 124 Mix_HookMusic
+sym FUNC GLOBAL 132 Mix_Pause
+sym FUNC GLOBAL 148 Mix_Paused
+sym FUNC GLOBAL 152 Mix_Volume
+sym FUNC GLOBAL 156 Mix_CloseAudio
+sym FUNC GLOBAL 16 Mix_FadeInMusic
+sym FUNC GLOBAL 160 Mix_Init
+sym FUNC GLOBAL 160 Mix_SetReverseStereo
+sym FUNC GLOBAL 164 Mix_ExpireChannel
+sym FUNC GLOBAL 168 Mix_Playing
+sym FUNC GLOBAL 1832 Mix_SetPosition
+sym FUNC GLOBAL 192 Mix_QuickLoad_WAV
+sym FUNC GLOBAL 196 Mix_EachSoundFont
+sym FUNC GLOBAL 20 Mix_GetMusicHookData
+sym FUNC GLOBAL 20 Mix_GetNumChunkDecoders
+sym FUNC GLOBAL 20 Mix_GetNumMusicDecoders
+sym FUNC GLOBAL 20 Mix_RewindMusic
+sym FUNC GLOBAL 200 Mix_FreeMusic
+sym FUNC GLOBAL 208 Mix_HaltChannel
+sym FUNC GLOBAL 208 Mix_Resume
+sym FUNC GLOBAL 228 Mix_FadeOutChannel
+sym FUNC GLOBAL 236 Mix_FadeOutMusic
+sym FUNC GLOBAL 24 Mix_PauseMusic
+sym FUNC GLOBAL 24 Mix_PlayMusic
+sym FUNC GLOBAL 24 Mix_ResumeMusic
+sym FUNC GLOBAL 256 Mix_SetDistance
+sym FUNC GLOBAL 260 Mix_FadeInMusicPos
+sym FUNC GLOBAL 264 Mix_AllocateChannels
+sym FUNC GLOBAL 28 Mix_PausedMusic
+sym FUNC GLOBAL 32 Mix_ReserveChannels
+sym FUNC GLOBAL 32 Mix_VolumeChunk
+sym FUNC GLOBAL 352 Mix_PlayChannelTimed
+sym FUNC GLOBAL 356 Mix_FadeInChannelTimed
+sym FUNC GLOBAL 36 Mix_ChannelFinished
+sym FUNC GLOBAL 36 Mix_HookMusicFinished
+sym FUNC GLOBAL 36 Mix_UnregisterAllEffects
+sym FUNC GLOBAL 360 Mix_SetPanning
+sym FUNC GLOBAL 428 Mix_OpenAudio
+sym FUNC GLOBAL 44 Mix_Linked_Version
+sym FUNC GLOBAL 44 Mix_SetPostMix
+sym FUNC GLOBAL 44 Mix_UnregisterEffect
+sym FUNC GLOBAL 460 Mix_LoadMUSType_RW
+sym FUNC GLOBAL 48 Mix_FadingMusic
+sym FUNC GLOBAL 52 Mix_GetChunkDecoder
+sym FUNC GLOBAL 52 Mix_GetMusicDecoder
+sym FUNC GLOBAL 56 Mix_Quit
+sym FUNC GLOBAL 584 Mix_LoadMUS
+sym FUNC GLOBAL 60 Mix_FadingChannel
+sym FUNC GLOBAL 60 Mix_GetChunk
+sym FUNC GLOBAL 60 Mix_GetMusicType
+sym FUNC GLOBAL 60 Mix_GroupChannels
+sym FUNC GLOBAL 60 Mix_RegisterEffect
+sym FUNC GLOBAL 64 Mix_HaltMusic
+sym FUNC GLOBAL 692 Mix_LoadWAV_RW
+sym FUNC GLOBAL 72 Mix_PlayingMusic
+sym FUNC GLOBAL 8 Mix_GetSynchroValue
+sym FUNC GLOBAL 8 Mix_SetSynchroValue
+sym FUNC GLOBAL 80 Mix_GroupChannel
+sym FUNC GLOBAL 80 Mix_GroupCount
+sym FUNC GLOBAL 80 Mix_SetMusicPosition
+sym FUNC GLOBAL 84 Mix_HaltGroup
+sym FUNC GLOBAL 88 Mix_VolumeMusic
+sym FUNC GLOBAL 92 Mix_GetSoundFonts
+sym FUNC GLOBAL 92 Mix_QuerySpec
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end

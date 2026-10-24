@@ -1,0 +1,12 @@
+path /usr/lib/python2.7/lib-dynload/_random.so
+soname -
+needed libpython2.7.so.1.0
+needed libc.so.6
+sym FUNC GLOBAL 136 init_random
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end

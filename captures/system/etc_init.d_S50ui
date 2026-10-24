@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# Start ui
+#
+
+MINIGUI=1  # minigui
+
+case "$1" in
+  start)
+    printf "Starting ui: "
+    export XDG_CONFIG_HOME=/userdata/
+    #start ui
+    export MG_CFG_PATH=/etc
+    /usr/bin/spk-init.sh &
+    if [ `cat /sys/devices/platform/uart-keys/test_mode` == 1 ]; then
+	/usr/bin/aplay -q /usr/local/share/minigui/res/music/select_ding_low.wav
+	/usr/bin/PCBA_TEST &
+    else
+    	/usr/bin/game &
+    fi
+    ;;
+  stop)
+    #killall ui
+    killall game &
+    printf "ui stop finished"
+    ;;
+  *)
+    echo "Usage: $0 {start|stop}"
+    exit 1
+    ;;
+esac

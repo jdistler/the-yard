@@ -1,0 +1,24 @@
+path /usr/lib/alsa-lib/libasound_module_ctl_arcam_av.so
+soname libasound_module_ctl_arcam_av.so
+needed libasound.so.2
+needed libm.so.6
+needed libdl.so.2
+needed libpthread.so.0
+needed librt.so.1
+needed libc.so.6
+sym FUNC GLOBAL 1080 _snd_ctl_arcam_av_open
+sym FUNC GLOBAL 116 arcam_av_server_start
+sym FUNC GLOBAL 132 arcam_av_connect
+sym FUNC GLOBAL 136 arcam_av_send
+sym FUNC GLOBAL 172 arcam_av_state_attach
+sym FUNC GLOBAL 232 arcam_av_client
+sym FUNC GLOBAL 4 arcam_av_state_detach
+sym FUNC GLOBAL 84 arcam_av_server_stop
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end
+sym OBJECT GLOBAL 1 __snd_ctl_arcam_av_open_dlsym_control_001

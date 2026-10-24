@@ -1,0 +1,6 @@
+file boot.img: 4718592 bytes, sha256 a0ce5967ba5dba1b0316c83e806d814c8e12f169d5470cf72ffe8165db3fba90
+first 16 bytes: 414e44524f49442190ab460000800010  b'ANDROID!'
+android boot header: kernel 4631440 bytes at load 0x10008000, ramdisk 0 at 0x0, second 69120 at 0x10f00000, tags 0x10000100, page size 2048
+cmdline: 
+gzip stream at 0x6fb0: 4604837 bytes -> 12984320
+device tree at 0x46be00: 24709 bytes rockchip,rk3032-dongle

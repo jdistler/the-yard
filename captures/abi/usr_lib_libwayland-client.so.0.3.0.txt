@@ -1,0 +1,85 @@
+path /usr/lib/libwayland-client.so.0.3.0
+soname libwayland-client.so.0
+needed libffi.so.6
+needed librt.so.1
+needed libm.so.6
+needed libpthread.so.0
+needed libc.so.6
+sym FUNC GLOBAL 100 wl_proxy_marshal
+sym FUNC GLOBAL 100 wl_proxy_marshal_constructor
+sym FUNC GLOBAL 108 wl_display_flush
+sym FUNC GLOBAL 108 wl_proxy_wrapper_destroy
+sym FUNC GLOBAL 112 wl_proxy_add_listener
+sym FUNC GLOBAL 112 wl_proxy_create_wrapper
+sym FUNC GLOBAL 112 wl_proxy_marshal_constructor_versioned
+sym FUNC GLOBAL 12 wl_list_init
+sym FUNC GLOBAL 12 wl_proxy_get_class
+sym FUNC GLOBAL 120 wl_proxy_add_dispatcher
+sym FUNC GLOBAL 132 wl_array_add
+sym FUNC GLOBAL 168 wl_display_dispatch_queue_pending
+sym FUNC GLOBAL 172 wl_display_dispatch_queue
+sym FUNC GLOBAL 188 wl_proxy_destroy
+sym FUNC GLOBAL 20 wl_array_init
+sym FUNC GLOBAL 20 wl_list_empty
+sym FUNC GLOBAL 212 wl_display_roundtrip_queue
+sym FUNC GLOBAL 24 wl_proxy_marshal_array_constructor
+sym FUNC GLOBAL 24 wl_proxy_set_queue
+sym FUNC GLOBAL 28 wl_array_release
+sym FUNC GLOBAL 28 wl_list_insert
+sym FUNC GLOBAL 32 wl_log_set_handler_client
+sym FUNC GLOBAL 36 wl_list_length
+sym FUNC GLOBAL 36 wl_list_remove
+sym FUNC GLOBAL 372 wl_proxy_marshal_array_constructor_versioned
+sym FUNC GLOBAL 40 wl_display_create_queue
+sym FUNC GLOBAL 40 wl_display_get_error
+sym FUNC GLOBAL 400 wl_display_connect_to_fd
+sym FUNC GLOBAL 508 wl_display_connect
+sym FUNC GLOBAL 52 wl_event_queue_destroy
+sym FUNC GLOBAL 64 wl_proxy_create
+sym FUNC GLOBAL 68 wl_list_insert_list
+sym FUNC GLOBAL 72 wl_display_cancel_read
+sym FUNC GLOBAL 72 wl_display_get_protocol_error
+sym FUNC GLOBAL 76 wl_display_disconnect
+sym FUNC GLOBAL 8 wl_display_dispatch
+sym FUNC GLOBAL 8 wl_display_dispatch_pending
+sym FUNC GLOBAL 8 wl_display_get_fd
+sym FUNC GLOBAL 8 wl_display_prepare_read
+sym FUNC GLOBAL 8 wl_display_roundtrip
+sym FUNC GLOBAL 8 wl_proxy_get_id
+sym FUNC GLOBAL 8 wl_proxy_get_listener
+sym FUNC GLOBAL 8 wl_proxy_get_user_data
+sym FUNC GLOBAL 8 wl_proxy_get_version
+sym FUNC GLOBAL 8 wl_proxy_marshal_array
+sym FUNC GLOBAL 8 wl_proxy_set_user_data
+sym FUNC GLOBAL 80 wl_array_copy
+sym FUNC GLOBAL 92 wl_display_prepare_read_queue
+sym FUNC GLOBAL 920 wl_display_read_events
+sym NOTYPE GLOBAL 0 __bss_end__
+sym NOTYPE GLOBAL 0 __bss_start
+sym NOTYPE GLOBAL 0 __bss_start__
+sym NOTYPE GLOBAL 0 __end__
+sym NOTYPE GLOBAL 0 _bss_end__
+sym NOTYPE GLOBAL 0 _edata
+sym NOTYPE GLOBAL 0 _end
+sym OBJECT GLOBAL 24 wl_buffer_interface
+sym OBJECT GLOBAL 24 wl_callback_interface
+sym OBJECT GLOBAL 24 wl_compositor_interface
+sym OBJECT GLOBAL 24 wl_data_device_interface
+sym OBJECT GLOBAL 24 wl_data_device_manager_interface
+sym OBJECT GLOBAL 24 wl_data_offer_interface
+sym OBJECT GLOBAL 24 wl_data_source_interface
+sym OBJECT GLOBAL 24 wl_display_interface
+sym OBJECT GLOBAL 24 wl_keyboard_interface
+sym OBJECT GLOBAL 24 wl_output_interface
+sym OBJECT GLOBAL 24 wl_pointer_interface
+sym OBJECT GLOBAL 24 wl_region_interface
+sym OBJECT GLOBAL 24 wl_registry_interface
+sym OBJECT GLOBAL 24 wl_seat_interface
+sym OBJECT GLOBAL 24 wl_shell_interface
+sym OBJECT GLOBAL 24 wl_shell_surface_interface
+sym OBJECT GLOBAL 24 wl_shm_interface
+sym OBJECT GLOBAL 24 wl_shm_pool_interface
+sym OBJECT GLOBAL 24 wl_subcompositor_interface
+sym OBJECT GLOBAL 24 wl_subsurface_interface
+sym OBJECT GLOBAL 24 wl_surface_interface
+sym OBJECT GLOBAL 24 wl_touch_interface

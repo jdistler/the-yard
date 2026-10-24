@@ -245,4 +245,109 @@ Only reads, apart from the 32 MB test file on the card, which it removes. Don't 
 
 ## Results
 
-(Add dated blocks here.)
+### Task 1 (2026-10-24)
+
+Commands run:
+```bash
+cd ~/Projects/arcade1up-partycade
+D=~/partycade-dumps/2026-10-23_raw_plug3032slc
+ls $D/rootfs/usr/lib/libSDL2-2.0.so.0.7.0 $D/boot.img
+python3 tools/device_facts.py --rootfs $D/rootfs --kernel $D/boot.img --out captures
+du -sh captures/abi captures/kernel captures/gl captures/sdl captures/system
+```
+
+Output summary:
+* `abi: 126 libraries -> captures/abi` (1.9M)
+* `gl: 1 mali libraries; sdl: 1 -> captures/gl, captures/sdl` (12K, 8.0K)
+* `system: 50 entries -> captures/system` (232K); `captures/system/INDEX.txt` confirms `lib/udev/mtd_probe: 5496 bytes, binary or a key, not copied` and `etc/shadow: password state only -> shadow-state.txt` (`root: set`, all others `locked`).
+* `kernel: Linux version 4.4.194 (tyc@dell) (gcc version 6.3.1 20170404; config no -> captures/kernel` (20K). `captures/kernel/config.txt` says `# The image carries no config (no IKCFG_ST). drivers.txt is the string search instead.` The kernel was built without `IKCONFIG`.
+
+`captures/kernel/bootimg.txt`:
+```text
+file boot.img: 4718592 bytes, sha256 a0ce5967ba5dba1b0316c83e806d814c8e12f169d5470cf72ffe8165db3fba90
+first 16 bytes: 414e44524f49442190ab460000800010  b'ANDROID!'
+android boot header: kernel 4631440 bytes at load 0x10008000, ramdisk 0 at 0x0, second 69120 at 0x10f00000, tags 0x10000100, page size 2048
+cmdline: 
+gzip stream at 0x6fb0: 4604837 bytes -> 12984320
+device tree at 0x46be00: 24709 bytes rockchip,rk3032-dongle
+```
+
+`captures/kernel/drivers.txt` (WIFI, USB-NET, FLASH, GADGET sections):
+```text
+wifi     cfg80211             absent
+wifi     mac80211             absent
+wifi     nl80211              absent
+wifi     rtl8xxxu             absent
+wifi     rtl8192cu            absent
+wifi     rtl8188eu            absent
+wifi     r8188eu              absent
+wifi     8188eu               absent
+wifi     8192cu               absent
+wifi     8812au               absent
+wifi     8821cu               absent
+wifi     rtw88                absent
+wifi     rtl8187              absent
+wifi     rt2800usb            absent
+wifi     rt2x00               absent
+wifi     mt7601u              absent
+wifi     mt76x0u              absent
+wifi     mt76x2u              absent
+wifi     ath9k_htc            absent
+wifi     carl9170             absent
+wifi     brcmfmac             absent
+wifi     zd1211rw             absent
+wifi     ar5523               absent
+wifi     rsi_usb              absent
+wifi     wpa                  present
+wifi     WEXT                 absent
+wifi     cfg80211_scan        absent
+wifi     ieee80211            absent
+usb-net  usbnet               present
+usb-net  cdc_ether            present
+usb-net  rndis_host           present
+usb-net  asix                 present
+usb-net  ax88179              present
+usb-net  r8152                present
+usb-net  smsc95xx             present
+usb-net  cdc_ncm              present
+usb-net  g_ether              absent
+usb-net  rndis                present
+usb-net  usb_f_rndis          absent
+usb-net  usb_f_ecm            absent
+usb-net  usb_f_fs             absent
+usb-net  configfs             present
+usb-net  dwc2                 present
+usb-net  ehci                 present
+usb-net  ohci                 present
+usb-net  usb-storage          present
+usb-net  uas                  present
+flash    rkflash              present
+flash    rknand               absent
+flash    rk_nand              absent
+flash    sftl                 absent
+flash    mtdblock             absent
+flash    mtd                  present
+flash    spinand              absent
+flash    sfc                  present
+flash    blkdev               present
+flash    by-name              absent
+gadget   usb_f_fs             absent
+gadget   f_fs                 present
+gadget   functionfs           present
+gadget   android_usb          present
+gadget   usb_f_adb            absent
+gadget   adb                  present
+gadget   usb_f_mass_storage   absent
+gadget   usb_f_acm            absent
+gadget   g_serial             absent
+gadget   libcomposite         absent
+gadget   udc-core             absent
+gadget   dwc2_hsotg           present
+gadget   otg                  present
+```
+
+Surprises / notable findings:
+* Every Wi-Fi stack (`cfg80211`, `mac80211`, `nl80211`, `WEXT`, `ieee80211`) and every USB Wi-Fi driver is **absent** from the kernel strings, whereas USB Ethernet/RNDIS host drivers (`usbnet`, `cdc_ether`, `rndis_host`, `asix`, `ax88179`, `r8152`, `smsc95xx`, `cdc_ncm`) are **present**! That means a USB Ethernet dongle or USB RNDIS/CDC-Ether device (e.g. a phone in USB tethering mode or a tiny USB-Ethernet/Wi-Fi bridge) may work with the stock kernel without rebuilding `boot.img`, whereas a bare USB Wi-Fi adapter would require a kernel rebuild.
+* `etc/init.d/S50usbdevice` uses configfs (`ffs.adb`, `rndis.gs0`, etc.) and reads `/etc/init.d/.usb_config` (`usb_adb_en`).
+* `lib/udev/rules.d/61-sd-cards-auto-mount.rules` matches `KERNEL!="mmcblk*[0-9]"` and `ATTRS{type}!="SD"`, mounting `vfat` with `rw,uid=1000,gid=1000,dmask=022,fmask=133,noatime` and `ext2` with `users,exec,noatime` at `/mnt/sdcard`.
+
