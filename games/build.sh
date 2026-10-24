@@ -9,6 +9,7 @@ ROOTFS=${ROOTFS:-$HOME/partycade-dumps/2026-10-23_raw_plug3032slc/rootfs}
 pc() { make TARGET=pc; }
 cab() {
   [ -f "$ROOTFS/usr/lib/libSDL2-2.0.so.0.7.0" ] || { echo "ROOTFS=$ROOTFS has no libSDL2 2.0.7"; exit 1; }
+  python3 tools/bin2c.py && touch engine/lib_lua.h engine/fonts/round_ttf.h
   docker image inspect partycade-armhf >/dev/null 2>&1 || docker build -t partycade-armhf toolchain
   docker run --rm -u "$(id -u):$(id -g)" -v "$PWD/..:/src" -v "$ROOTFS:/rootfs:ro" -w /src/games \
     partycade-armhf make TARGET=cab

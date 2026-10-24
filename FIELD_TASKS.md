@@ -424,4 +424,38 @@ built /home/joseph/Projects/arcade1up-partycade/games/out/love-x86
 == 12 passed, 0 failed ==
 ```
 
+### Task 3 (2026-10-24)
+
+Commands run:
+```bash
+cd ~/Projects/arcade1up-partycade/games
+./build.sh cab
+./cart pack
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy YARD_PAK=out/yard.pak \
+  qemu-arm-static -L ~/partycade-dumps/2026-10-23_raw_plug3032slc/rootfs out/cab/yard --check keep
+./cart check
+./stress.sh
+```
+
+Note on `build.sh`:
+* On a fresh git checkout `tools/bin2c.py` had a timestamp 15 ms newer than `engine/lib_lua.h`, causing `make TARGET=cab` inside the `partycade-armhf` Docker container (which has no `python3`) to attempt `python3 tools/bin2c.py`. Added `python3 tools/bin2c.py && touch engine/lib_lua.h engine/fonts/round_ttf.h` on the host side of `cab()` in `games/build.sh` before invoking Docker.
+
+Output of `./build.sh cab`, `./cart pack`, and the `qemu-arm-static` smoke test:
+```text
+out/cab/yard: OK for the cabinet (newest GLIBC 2.27, 396824 bytes)
+out/cab/orb: OK for the cabinet (newest GLIBC 2.27, 188964 bytes)
+out/cab/probe: OK for the cabinet (newest GLIBC 2.27, 171124 bytes)
+/home/joseph/Projects/arcade1up-partycade/games/out/yard.pak: 13 files, 121 KB used of the 4 MB slot
+  the runtime reads: yard, keep, lamp, orb, tea, chest
+yard: pid 2931285, memory 7224920 kB of 16148340 kB available
+yard: start keep, 6 carts
+stats keep frame 300 update 0.06ms draw 1.55ms peak 21.81ms lua 593KB images 300KB
+ok: 300 frames, lua 593 KB, images 300 KB
+```
+
+Output of `./cart check` and `./stress.sh`:
+* `./cart check`: all 5 carts (`chest`, `keep`, `lamp`, `tea`, `yard`) passed 30 s bot play and 30 s random mashing; ended with `all carts pass`.
+* `./stress.sh`: all four passes (`quick`, `play`, `stress`, `system`, plus `love`) passed; ended with `== 97 passed, 0 failed ==`.
+
+
 
