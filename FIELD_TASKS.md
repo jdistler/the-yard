@@ -211,7 +211,7 @@ sudo mount /dev/sdX1 /mnt && echo hello-fat | sudo tee /mnt/hello.txt && sudo dd
 sudo mount /dev/sdX2 /mnt && echo hello-ext2 | sudo tee /mnt/hello.txt && sudo umount /mnt
 ```
 
-Record `big.bin`'s sha256. (The 64 MB file is for a read-speed number; the probe reads it with `dd`.)
+Record `big.bin`'s sha256. (The 64 MB file is for a read-speed number; the probe reads it with `dd`.) This two-partition card is a test layout on purpose: it shows what the udev rule does with two partitions and with each filesystem. The card the games will use is the one-partition ext2 card in [SDCARD.md](SDCARD.md), made in 7f.
 
 **7d. The "after" probes.** Cabinet on, card **out**, nothing in USB-A. Open System probe and, about 30 seconds in:
 
@@ -237,7 +237,9 @@ adb pull /data/Games/ captures/sysprobe-after/   # then keep only the sysprobe-*
 
 Only reads, apart from the 32 MB test file on the card, which it removes. Don't change anything else over ADB in this task, however easy it looks: no remounts, no writes to `/data` or any partition. If `adb devices` shows nothing, record `lsusb` and `dmesg` and carry on: task 6's way of reading the reports still works.
 
-**7f. Read back and report.** If ADB worked, the probe reports are already pulled; otherwise read them back as in task 6 (as `after-N.txt`). Also note the Wi-Fi adapter's make and model as printed on it. Commit `captures/sysprobe/` and the report, and ask the user to push.
+**7f. The real card.** Make the card exactly as [SDCARD.md](SDCARD.md) says (one ext2 partition, label `YARD`), and put one test cart on it: `cp -r games/carts/keep /mnt/yard/carts/cardkeep`, then change `title = "Keep"` to `title = "Card Keep"` in its `info.lua`. Card in, cabinet on, open The Yard: is there a "Card Keep" row, does it play, and does the menu say "card in"? Over ADB (if it worked): `adb shell 'mount | grep -i mmc; ls -l /mnt/sdcard /mnt/sdcard/yard/carts'`. Record what was seen, and update SDCARD.md's "How sure" column with it.
+
+**7g. Read back and report.** If ADB worked, the probe reports are already pulled; otherwise read them back as in task 6 (as `after-N.txt`). Also note the Wi-Fi adapter's make and model as printed on it. Commit `captures/sysprobe/` and the report, and ask the user to push.
 
 ---
 

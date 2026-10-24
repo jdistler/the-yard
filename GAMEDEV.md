@@ -243,7 +243,7 @@ Games already have the call. `cab_ext_root()` returns `CAB_EXT` when that direct
 The microSD slot is the storage, and USB-A stays free for a network adapter later.
 
 * **Turn on only the slot.** That is one `boot` write: `enable_storage.py --which sd` (§ 11). Add `adb` to the same write for a shell over the Micro-USB cable if the user wants it.
-* **Use two partitions on the card.** FAT32 for carts, pictures, sound, and saves; udev mounts it at `/mnt/sdcard` with no exec, which a cart doesn't need. A small ext2 partition holds programs that must run from the card, such as LÖVE and its libraries (§ 12), since FAT can't run them. Format both on the PC. The kernel has no ext4.
+* **One ext2 partition on the card.** The format, the layout, and the exact commands are in [SDCARD.md](SDCARD.md). ext2 is mounted with exec, so it can hold programs such as LÖVE (§ 12); FAT can't run anything. The stock udev rule mounts every card partition on the same `/mnt/sdcard`, so two partitions would hide each other (untested; FIELD_TASKS.md task 7 checks). The kernel has no ext4.
 * **Speed.** The slot's limit is 37.5 MHz on four bits, about 18 MB/s at best. Loading a scene is fine; streaming video is not.
 * **Keep the NAND copy.** Everything that must run with nothing plugged in stays there: the menu, the carts that ship today, saves. The card adds; it never replaces. The runtime already reads carts from `<card>/yard/carts` (CARTS.md § 11).
 * **Not known until a card is in a powered cabinet:**

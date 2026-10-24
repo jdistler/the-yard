@@ -532,6 +532,20 @@ def system():
     check(os.path.getsize(os.path.join(lshelf, "yard.log.1")) == 300 * 1024 and len(text) < 64 * 1024,
           "a log over 256 KB moves to yard.log.1 and a new one starts")
     shutil.rmtree(lshelf, ignore_errors=True)
+    # A card laid out as SDCARD.md says: carts in yard/carts/<id>/ are listed; an id already shipped is not replaced.
+    card = tmpdir()
+    os.makedirs(os.path.join(card, "yard", "carts"))
+    shutil.copytree(os.path.join(HERE, "carts", "keep"), os.path.join(card, "yard", "carts", "cardkeep"))
+    info = os.path.join(card, "yard", "carts", "cardkeep", "info.lua")
+    text = open(info).read().replace('title = "Keep"', 'title = "Card Keep"')
+    open(info, "w").write(text)
+    shutil.copytree(os.path.join(HERE, "carts", "lamp"), os.path.join(card, "yard", "carts", "keep"))
+    r = subprocess.run([yard, "--list"], capture_output=True, text=True, timeout=60, env={**os.environ, "CAB_EXT": card})
+    lines = r.stdout.splitlines()
+    check(any(l.startswith("cardkeep") and "Card Keep" in l and card in l for l in lines),
+          "a cart in the card's yard/carts is listed")
+    check(not any(l.startswith("keep ") and card in l for l in lines), "a card cart cannot replace a shipped one")
+    shutil.rmtree(card, ignore_errors=True)
     r = subprocess.run(["sh", "-n", os.path.join(HERE, "sysprobe", "sysprobe.sh")], capture_output=True, text=True)
     check(r.returncode == 0, "the System probe script parses (sh -n)")
     shutil.rmtree(shelf, ignore_errors=True)
