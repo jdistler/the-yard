@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Play Keep, Lamp, Orb, and The Yard past the happy path. Headless. No cabinet.
+# Play Keep, Lamp, Orb, Tea, and The Yard past the happy path. Headless. No cabinet.
 set -euo pipefail
 cd "$(dirname "$0")"
 make -s TARGET=pc
@@ -267,18 +267,22 @@ yard += [
     "13 down DOWN", "14 up DOWN",
     f"17 shot {out}/yard-row2.bmp",
     "19 down DOWN", "20 up DOWN",
-    f"23 shot {out}/yard-wrap0.bmp",
-    "25 down UP", "26 up UP",
-    f"29 shot {out}/yard-wrap2.bmp",
-    "32 down LOW", "33 up LOW",
-    f"36 shot {out}/yard-after-orb.bmp",
-    "38 down DOWN", "39 up DOWN",
-    "42 down LOW", "43 up LOW",
-    f"46 shot {out}/yard-after-keep.bmp",
+    f"23 shot {out}/yard-row3.bmp",
+    "25 down DOWN", "26 up DOWN",
+    f"29 shot {out}/yard-wrap0.bmp",
+    "31 down UP", "32 up UP",
+    f"35 shot {out}/yard-wrap3.bmp",
+    "37 down UP", "38 up UP",
+    "40 down LOW", "41 up LOW",
+    f"44 shot {out}/yard-after-orb.bmp",
+    "46 down DOWN", "47 up DOWN",
     "48 down DOWN", "49 up DOWN",
     "52 down LOW", "53 up LOW",
-    f"56 shot {out}/yard-after-lamp.bmp",
-    "58 quit",
+    f"56 shot {out}/yard-after-keep.bmp",
+    "58 down DOWN", "59 up DOWN",
+    "62 down LOW", "63 up LOW",
+    f"66 shot {out}/yard-after-lamp.bmp",
+    "68 quit",
 ]
 # One catch inside Keep, then back. Lamp lights all seven. Orb draws and leaves.
 kholds, kscore, kcatch, _ = keep_run(False, 1, "quit")
@@ -373,7 +377,7 @@ def gold(x, y):
 y = 116 + row * 36
 if not gold(20, y):
     raise SystemExit(f"{path}: lantern not on row {row} {pix(20, y)}")
-for other in range(3):
+for other in range(4):
     if other != row and gold(20, 116 + other * 36):
         raise SystemExit(f"{path}: lantern also on row {other}")
 print(f"{path}: lantern on row {row}")
@@ -593,8 +597,9 @@ grep -q 'pocket' "$tmp/card/orb-card"
 gold_row "$out/yard-row0.bmp" 0
 gold_row "$out/yard-row1.bmp" 1
 gold_row "$out/yard-row2.bmp" 2
+gold_row "$out/yard-row3.bmp" 3
 gold_row "$out/yard-wrap0.bmp" 0
-gold_row "$out/yard-wrap2.bmp" 2
+gold_row "$out/yard-wrap3.bmp" 3
 gold_row "$out/yard-after-orb.bmp" 2
 gold_row "$out/yard-after-keep.bmp" 0
 gold_row "$out/yard-after-lamp.bmp" 1
@@ -636,7 +641,7 @@ if not seen:
     raise SystemExit("keep launched from the yard did not catch")
 print("keep caught from the yard")
 PY
-echo "yard played all three"
+echo "yard played every row"
 
 echo "== yard, the game is not there =="
 mkdir -p "$tmp/alone" "$tmp/miss"
@@ -813,6 +818,296 @@ if not line.startswith("best ") or n < 40:
     raise SystemExit("the gate did not save a score")
 PY
 echo "centered dive stays up, the right-hand gate saves"
+
+echo "== tea, sky, door, party =="
+# No-input arrival is frame 989. A lean is a dozen pixels. The heart fills
+# on the same frame as the press. Empty hearts are cream; a filled one is rose.
+cat > "$tmp/tea-visit.cab" << EOF
+title=Tea
+8 shot $out/tea-sky.bmp
+16 down RIGHT
+24 shot $out/tea-lean.bmp
+25 up RIGHT
+910 shot $out/tea-door.bmp
+1000 shot $out/tea-party.bmp
+1002 down RIGHT
+1002 shot $out/tea-moth.bmp
+1003 up RIGHT
+1004 down LEFT
+1005 up LEFT
+1006 down LOW
+1006 shot $out/tea-heart.bmp
+1007 up LOW
+1008 quit
+EOF
+mkdir -p "$tmp/tea-visit"
+( cd "$tmp/tea-visit" && CAB_SCRIPT="$tmp/tea-visit.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=1200 "$root/out/pc/tea" >"$out/tea-visit.log" 2>&1 )
+grep -q "tea say She flies to the castle." "$out/tea-visit.log"
+grep -q "tea say She leans in the clouds." "$out/tea-visit.log"
+grep -q "tea arrive 1" "$out/tea-visit.log"
+grep -q "tea say They saved her a seat." "$out/tea-visit.log"
+grep -q "tea party" "$out/tea-visit.log"
+grep -q "tea heart Pip 1" "$out/tea-visit.log"
+python3 - "$out" << 'PY'
+import struct, sys
+out = sys.argv[1]
+def pix(path, x, y):
+    d = open(path, "rb").read()
+    off = struct.unpack_from("<I", d, 10)[0]
+    w, h = struct.unpack_from("<ii", d, 18)
+    W, H = abs(w), abs(h)
+    if (W, H) != (384, 512):
+        raise SystemExit(f"{path}: {W}x{H}")
+    bpp = struct.unpack_from("<H", d, 28)[0] // 8
+    stride = (W * bpp + 3) & ~3
+    row = (H - 1 - y) if h > 0 else y
+    i = off + row * stride + x * bpp
+    return d[i + 2], d[i + 1], d[i]
+def kind(rgb):
+    r, g, b = rgb
+    if r > 240 and g > 230 and b > 220:
+        return "cream"
+    if r > 220 and 150 < g < 210 and 180 < b < 240:
+        return "castle"
+    if 160 < r < 210 and g < 190 and b > 200:
+        return "lilac"
+    if r > 220 and 130 < g < 190 and b < 100:
+        return "orange"
+    if 110 < r < 170 and 110 < g < 170 and 120 < b < 190:
+        return "grey"
+    if r > 210 and g < 140 and 120 < b < 190:
+        return "rose"
+    if 170 < r < 230 and 100 < g < 170 and 50 < b < 130:
+        return "tea"
+    if r < 180 and g > 170 and b > 220:
+        return "sky"
+    return f"other{rgb}"
+want = {
+    "tea-sky.bmp": {(192, 340): "cream", (230, 340): "lilac", (184, 52): "castle"},
+    "tea-lean.bmp": {(230, 340): "cream", (184, 52): "castle", (192, 340): "cream"},
+    "tea-door.bmp": {(118, 316): "sky"},
+    "tea-party.bmp": {(72, 270): "orange", (192, 270): "cream", (52, 194): "cream"},
+    "tea-moth.bmp": {(192, 270): "grey", (72, 270): "cream"},
+    "tea-heart.bmp": {(52, 194): "rose"},
+}
+for name, pts in want.items():
+    for (x, y), k in pts.items():
+        got = kind(pix(f"{out}/{name}", x, y))
+        if got != k:
+            raise SystemExit(f"{name} ({x},{y}) {got} wanted {k}")
+    print(f"{name} ok")
+PY
+
+echo "== tea, nine cares, then the gifts at the door =="
+cat > "$tmp/tea-cheer.cab" << EOF
+title=Tea
+1000 down LOW
+1001 up LOW
+1002 down LOW
+1003 up LOW
+1004 down LOW
+1005 up LOW
+1006 down RIGHT
+1007 up RIGHT
+1008 down LOW
+1009 up LOW
+1010 down LOW
+1011 up LOW
+1012 down LOW
+1013 up LOW
+1014 down RIGHT
+1015 up RIGHT
+1016 down LOW
+1017 up LOW
+1018 down LOW
+1019 up LOW
+1020 down LOW
+1020 shot $out/tea-cheer.bmp
+1021 up LOW
+1024 quit
+EOF
+mkdir -p "$tmp/tea-cheer"
+( cd "$tmp/tea-cheer" && CAB_SCRIPT="$tmp/tea-cheer.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=1200 "$root/out/pc/tea" >"$out/tea-cheer.log" 2>&1 )
+test "$(grep -c 'tea heart' "$out/tea-cheer.log")" = 9
+grep -q "tea cheer" "$out/tea-cheer.log"
+grep -q "tea say The whole table glows." "$out/tea-cheer.log"
+python3 - "$tmp/tea-cheer/tea.sav" << 'PY'
+import sys
+text = open(sys.argv[1]).read().splitlines()
+want = ["visits 1", "pip teacup", "moth ribbon", "pearl flower", "nib none"]
+if text != want:
+    raise SystemExit(f"tea.sav {text}")
+print("tea.sav", text)
+PY
+cat > "$tmp/tea-back.cab" << EOF
+title=Tea
+910 shot $out/tea-reunion.bmp
+920 quit
+EOF
+cat > "$tmp/tea-arrive.cab" << EOF
+title=Tea
+920 quit
+EOF
+( cd "$tmp/tea-cheer" && CAB_SCRIPT="$tmp/tea-back.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=1000 "$root/out/pc/tea" >"$out/tea-back.log" 2>&1 )
+grep -q "tea arrive 2" "$out/tea-back.log"
+grep -q "tea say Pip kept a teacup." "$out/tea-back.log"
+python3 - "$out/tea-reunion.bmp" << 'PY'
+import struct, sys
+d = open(sys.argv[1], "rb").read()
+off = struct.unpack_from("<I", d, 10)[0]
+w, h = struct.unpack_from("<ii", d, 18)
+W, H = abs(w), abs(h)
+bpp = struct.unpack_from("<H", d, 28)[0] // 8
+stride = (W * bpp + 3) & ~3
+row = (H - 1 - 316) if h > 0 else 316
+i = off + row * stride + 118 * bpp
+r, g, b = d[i + 2], d[i + 1], d[i]
+print(f"reunion cup {(r, g, b)}")
+if not (170 < r < 230 and 100 < g < 170 and 50 < b < 130):
+    raise SystemExit("the teacup is not at the door")
+PY
+
+echo "== tea, a broken save is the first visit =="
+for bad in 'not a save' 'visits -4' 'visits nope'; do
+    dir="$tmp/tea-bad"
+    rm -rf "$dir"
+    mkdir -p "$dir"
+    printf '%s\n' "$bad" > "$dir/tea.sav"
+    ( cd "$dir" && CAB_SCRIPT="$tmp/tea-arrive.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+        CAB_MAX_FRAMES=1000 "$root/out/pc/tea" >"$out/tea-bad.log" 2>&1 )
+    grep -q "tea arrive 1" "$out/tea-bad.log"
+    grep -q "tea say They saved her a seat." "$out/tea-bad.log"
+    echo "rejected $bad"
+done
+mkdir -p "$tmp/tea-huge"
+printf 'visits 1000001\npip flower\n' > "$tmp/tea-huge/tea.sav"
+( cd "$tmp/tea-huge" && CAB_SCRIPT="$tmp/tea-arrive.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=1000 "$root/out/pc/tea" >"$out/tea-huge.log" 2>&1 )
+grep -q "tea arrive 100000" "$out/tea-huge.log"
+echo "a huge visit count stays at 100000"
+
+echo "== tea, the other two buttons =="
+cat > "$tmp/tea-buttons.cab" << EOF
+title=Tea
+1000 down TL
+1000 shot $out/tea-tl.bmp
+1001 up TL
+1004 down RIGHT
+1005 up RIGHT
+1006 down TR
+1007 up TR
+1008 quit
+EOF
+mkdir -p "$tmp/tea-buttons"
+( cd "$tmp/tea-buttons" && CAB_SCRIPT="$tmp/tea-buttons.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=1100 "$root/out/pc/tea" >"$out/tea-buttons.log" 2>&1 )
+grep -q "tea heart Pip 1" "$out/tea-buttons.log"
+grep -q "tea heart Moth 1" "$out/tea-buttons.log"
+python3 - "$out/tea-tl.bmp" << 'PY'
+import struct, sys
+d = open(sys.argv[1], "rb").read()
+off = struct.unpack_from("<I", d, 10)[0]
+w, h = struct.unpack_from("<ii", d, 18)
+H = abs(h)
+bpp = struct.unpack_from("<H", d, 28)[0] // 8
+stride = (abs(w) * bpp + 3) & ~3
+row = (H - 1 - 194) if h > 0 else 194
+i = off + row * stride + 52 * bpp
+r, g, b = d[i + 2], d[i + 1], d[i]
+if not (r > 210 and g < 140 and 120 < b < 190):
+    raise SystemExit(f"TL did not fill the heart {(r, g, b)}")
+print("TL filled a heart")
+PY
+
+echo "== tea, 1P+2P quits in the sky =="
+cat > "$tmp/tea-quit.cab" << EOF
+title=Tea
+0 down 1P
+0 down 2P
+EOF
+mkdir -p "$tmp/tea-quit"
+( cd "$tmp/tea-quit" && CAB_SCRIPT="$tmp/tea-quit.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=200 "$root/out/pc/tea" >"$out/tea-quit.log" 2>&1 )
+if grep -q "tea arrive" "$out/tea-quit.log"; then
+    echo "quit reached the castle" >&2
+    exit 1
+fi
+grep -q "tea say They will keep the gifts." "$out/tea-quit.log"
+test ! -e "$tmp/tea-quit/tea.sav"
+echo "quit before arrival"
+
+echo "== tea, a button held from the start does not care =="
+# Hurry still arrives (party by frame 580). The held button is not a new press.
+cat > "$tmp/tea-held.cab" << EOF
+title=Tea
+0 down LOW
+580 shot $out/tea-held-empty.bmp
+582 up LOW
+584 down LOW
+584 shot $out/tea-held-heart.bmp
+586 up LOW
+588 quit
+EOF
+mkdir -p "$tmp/tea-held"
+( cd "$tmp/tea-held" && CAB_SCRIPT="$tmp/tea-held.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=700 "$root/out/pc/tea" >"$out/tea-held.log" 2>&1 )
+grep -q "tea party" "$out/tea-held.log"
+test "$(grep -c 'tea heart' "$out/tea-held.log")" = 1
+python3 - "$out/tea-held-empty.bmp" "$out/tea-held-heart.bmp" << 'PY'
+import struct, sys
+def pix(path, x, y):
+    d = open(path, "rb").read()
+    off = struct.unpack_from("<I", d, 10)[0]
+    w, h = struct.unpack_from("<ii", d, 18)
+    H = abs(h)
+    bpp = struct.unpack_from("<H", d, 28)[0] // 8
+    stride = (abs(w) * bpp + 3) & ~3
+    row = (H - 1 - y) if h > 0 else y
+    i = off + row * stride + x * bpp
+    return d[i + 2], d[i + 1], d[i]
+empty, filled = pix(sys.argv[1], 52, 194), pix(sys.argv[2], 52, 194)
+cat = pix(sys.argv[1], 72, 270)
+print(f"held empty {empty} filled {filled} cat {cat}")
+if not (empty[0] > 240 and empty[1] > 230):
+    raise SystemExit("the held button filled a heart before a new press")
+if not (filled[0] > 210 and filled[1] < 140):
+    raise SystemExit("the new press did not fill a heart")
+if not (cat[0] > 220 and cat[2] < 100):
+    raise SystemExit("hurry did not reach the party")
+PY
+
+echo "== tea, Nib on the third arrival =="
+mkdir -p "$tmp/tea-nib"
+printf 'visits 2\npip none\nmoth none\npearl none\nnib none\n' > "$tmp/tea-nib/tea.sav"
+cat > "$tmp/tea-nib.cab" << EOF
+title=Tea
+910 shot $out/tea-nib-door.bmp
+1000 shot $out/tea-nib.bmp
+1002 quit
+EOF
+( cd "$tmp/tea-nib" && CAB_SCRIPT="$tmp/tea-nib.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=1100 "$root/out/pc/tea" >"$out/tea-nib.log" 2>&1 )
+grep -q "tea arrive 3" "$out/tea-nib.log"
+grep -q "tea say A kitten came to play." "$out/tea-nib.log"
+python3 - "$out/tea-nib.bmp" << 'PY'
+import struct, sys
+d = open(sys.argv[1], "rb").read()
+off = struct.unpack_from("<I", d, 10)[0]
+w, h = struct.unpack_from("<ii", d, 18)
+H = abs(h)
+bpp = struct.unpack_from("<H", d, 28)[0] // 8
+stride = (abs(w) * bpp + 3) & ~3
+row = (H - 1 - 270) if h > 0 else 270
+i = off + row * stride + 336 * bpp
+r, g, b = d[i + 2], d[i + 1], d[i]
+print(f"nib cushion {(r, g, b)}")
+if not (160 < r < 210 and 140 < g < 190 and b > 200):
+    raise SystemExit("Nib is not on her cushion")
+PY
+echo "tea played"
 
 echo "== play.sh =="
 ./play.sh

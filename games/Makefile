@@ -1,6 +1,6 @@
 # make TARGET=pc   native build for playing/testing on this PC (windowed, keyboard)
 # make TARGET=cab  armhf build for the cabinet; run through ./build.sh cab (Docker toolchain)
-GAMES := probe keep lamp yard orb
+GAMES := probe keep lamp yard orb tea
 TARGET ?= pc
 OUT := out/$(TARGET)
 

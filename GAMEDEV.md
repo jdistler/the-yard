@@ -59,6 +59,8 @@ The probe's picture was rotated **90° clockwise** on the cabinet. The framebuff
 * **Always have a way to quit back to the menu.** `cab_poll` returns 0 when 1-player and 2-player are held for 1 second (joystick buttons 6 and 7), or when select and start are held (the PC self-test; those two are not on this deck), or on Escape / window close. The menu is stuck until the game exits. Cutting power does not return to the menu, and it drops the last second of the log. The probe already on the cabinet is an older binary: it still quits only on select+start or 60 seconds idle.
 * Don't touch the volume. Optionally show the `/data/spk_volume` overlay like stock games do.
 
+Which verb sits on which button, and how the player's age changes difficulty without moving those verbs, is [CONTROLS.md](CONTROLS.md). New games follow that file.
+
 ## 3. What a game binary must be
 
 * ARM 32-bit, **hard-float** (`armhf`, ARMv7 Cortex-A7, NEON available). Dynamically linked against the cabinet's own libraries.
@@ -114,12 +116,13 @@ games/
   keep/keep.c            sample: catch a falling tile, one high score in keep.sav
   lamp/lamp.c            sample: carry a light, wake seven stars, lamp.sav
   orb/orb.c              sample: a lit room in OpenGL ES 2. Reads a card file named label
-  yard/yard.c            the menu behind Dig Dug II. Launches keep, lamp, or orb. yard.sav is the highlighted row
+  tea/tea.c              a unicorn, a castle, and three cats. tea.sav is visits and gifts. Spec: tea/DESIGN.md
+  yard/yard.c            the menu behind Dig Dug II. Launches keep, lamp, orb, or tea. yard.sav is the highlighted row
   check.sh               PC self-test: probe quits, scores, Yard launches Keep, framebuffer rotation
   play.sh                PC play-through on the real buttons: catch, miss, wake the stars, the room, the card, check the saves and the pictures
-  stress.sh              longer PC pass: records, edges, quit, every Yard row, Orb launched from the menu
+  stress.sh              longer PC pass: records, edges, quit, every Yard row, Orb, and Tea
   stage_game.py          build (if needed) and patch a raw dump. Does not flash
-  Makefile               TARGET=pc or TARGET=cab; GAMES := probe keep lamp yard orb
+  Makefile               TARGET=pc or TARGET=cab; GAMES := probe keep lamp yard orb tea
   build.sh pc|cab|all    cab builds in Docker against the extracted rootfs, then runs check_binary.sh
   check_binary.sh        armhf, every NEEDED lib in the rootfs, GLIBC <= 2.29, GLIBCXX <= 3.4.22
 ```
@@ -129,7 +132,7 @@ games/
 * Draw in upright pixels. A 240×320 frame scales evenly onto the 768×1024 panel. `cab_init` takes that upright size. The cabinet build rotates it in `cab_present`. Do not rotate again inside the game.
 * Smoke-test the ARM build without the cabinet (`qemu-arm-static` is in `~/.local/bin`):
   `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PROBE_SELFTEST=1 CAB_SCREENSHOT=/tmp/s.bmp qemu-arm-static -L $ROOTFS out/cab/probe` must exit 0 within a few seconds (the self-test presses the lower button, then holds select+start).
-* Tile 10 on the cabinet is The Yard (`GAME_NAME=yard`, plus `keep` and `lamp`). That flashed build has two rows. The working tree adds Orb as a third row and a pocket mark when a card is present; that build has not been flashed. The old probe binary is still sitting in `/data/Games/probe` and is not what the tile launches. Undo of The Yard is a restore of blocks 404, 405, 860, 861, 866, 867, 878, 879, 884, 885 from `~/partycade-dumps/2026-10-23_yard/nand_raw.bin`.
+* Tile 10 on the cabinet is The Yard (`GAME_NAME=yard`, plus `keep` and `lamp`). That flashed build has two rows. The working tree adds Orb, then Tea under it, and a pocket mark when a card is present. That build has not been flashed. The old probe binary is still sitting in `/data/Games/probe` and is not what the tile launches. Undo of The Yard is a restore of blocks 404, 405, 860, 861, 866, 867, 878, 879, 884, 885 from `~/partycade-dumps/2026-10-23_yard/nand_raw.bin`.
 * To stage the next game, from a **fresh** `rawdump` taken in the session you will write in:
 
 ```
