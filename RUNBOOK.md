@@ -90,9 +90,11 @@ Results are in [FIRMWARE_ANALYSIS.md](FIRMWARE_ANALYSIS.md) and [STATUS.md](STAT
 
 ```bash
 cd ~/partycade-dumps/<dir>
+# PARTYCADE_REPO is the clone. The default is this machine's checkout.
 python3 - <<'PY'
-import json
-parts = json.load(open("/home/joseph/Projects/arcade1up-partycade/captures/partitions.json"))["partitions"]
+import json, os
+repo = os.environ.get("PARTYCADE_REPO", os.path.expanduser("~/Projects/arcade1up-partycade"))
+parts = json.load(open(os.path.join(repo, "captures/partitions.json")))["partitions"]
 f = open("logical_rebuilt.img", "rb")
 for p in parts:
     f.seek(p["offset"] * 512); open(p["name"] + ".img", "wb").write(f.read(p["sectors"] * 512))
@@ -102,7 +104,9 @@ unsquashfs -q -no-xattrs -d rootfs rootfs.img                       # device-nod
 mkdir data_fs && debugfs -R "rdump / data_fs" data.img              # ext2 without root or mounting
 ```
 
-## 7. Phase 3: decide how custom games get onto the cabinet (CURRENT: the user decides)
+## 7. Phase 3: decide how custom games get onto the cabinet
+
+Option B is what tile 10 uses. Dig Dug II opens The Yard (Keep, Lamp, Orb, Tea, Chest), written 2026-10-23. Options A, A2, and C were not done. The notes below are how that choice was framed.
 
 Present these to the user. Don't pick on their behalf. All of them need a custom game built for the cabinet's ABI: ARM hard-float, glibc 2.29, SDL2 2.0.7 (plus SDL2_image and SDL2_mixer) and ALSA from the rootfs. Input arrives as evdev keys from `uart-keys` (codes in STATUS.md). The simplest first payload is a script or binary started in place of one of the 12 menu entries by `/data/start.sh`.
 

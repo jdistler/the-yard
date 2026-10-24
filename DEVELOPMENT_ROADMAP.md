@@ -1,5 +1,7 @@
 # Custom Software Development & System Roadmap
 
+The open questions below were answered on 2026-10-23. The ABI is ARM hard-float, glibc 2.29. The menu is MiniGUI, and the games are SDL2 on KMSDRM at 1024×768. Dig Dug II opens The Yard. [STATUS.md](STATUS.md) wins wherever this file still says something is unknown or unsolved. The rest is the earlier plan, including paths that were not taken.
+
 This document outlines technical specifications and workflows for developing and running custom software, games, and homebrew on this arcade hardware.
 
 ## 0. Platform facts that are verified (2026-10-23)

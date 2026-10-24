@@ -8,7 +8,7 @@ Read these, in this order, before doing anything:
 2. [RUNBOOK.md](RUNBOOK.md): hard rules, the session loop, and the phase you're in.
 3. [RECOVERY.md](RECOVERY.md): how to get the cabinet back if anything goes wrong. Read it before any step that could change the cabinet.
 4. [tools/README.md](tools/README.md): what each tool does.
-5. [GAMEDEV.md](GAMEDEV.md), when the task is a game. The cabinet currently runs `games/probe` on menu tile 10 (Dig Dug II). STATUS.md "Pickup" is the live hardware state.
+5. [GAMEDEV.md](GAMEDEV.md), when the task is a game. Dig Dug II opens The Yard (Keep, Lamp, Orb, Tea, Chest). STATUS.md "Pickup" is the live hardware state. The picture pass in this tree is newer than the build on the cabinet.
 
 ## Non-negotiable
 
@@ -27,6 +27,6 @@ At the end of each session:
 * Append a dated section to BOOT_RESEARCH.md with device numbers, commands, results, and what you concluded.
 * Update the `note` fields in `tools/rk.py` `STAGES` for any plug you tried.
 * Record any new firmware findings in FIRMWARE_ANALYSIS.md, and recovery findings (e.g. test ladder results) in RECOVERY.md.
-* Commit with git. The repo is local only; there is no remote.
+* Commit with git. The public remote is <https://github.com/jdistler/the-yard>. Do not push unless the user asks. Do not commit flash dumps, and do not force-push.
 
 Say "verified" only for things observed on this cabinet. Anything from vendor docs or other boards is "expected" or "unverified".
