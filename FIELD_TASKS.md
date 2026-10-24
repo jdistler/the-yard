@@ -457,5 +457,36 @@ Output of `./cart check` and `./stress.sh`:
 * `./cart check`: all 5 carts (`chest`, `keep`, `lamp`, `tea`, `yard`) passed 30 s bot play and 30 s random mashing; ended with `all carts pass`.
 * `./stress.sh`: all four passes (`quick`, `play`, `stress`, `system`, plus `love`) passed; ended with `== 97 passed, 0 failed ==`.
 
+### Task 4 (2026-10-24)
+
+Commands run:
+```bash
+D=~/partycade-dumps/2026-10-24_love
+mkdir -p $D
+tools/rk.py state
+tools/rk.py boot --plug plug_3032slc_erase
+tools/rk.py rawdump -o $D/nand_raw.bin --verify
+tools/rk_restore.py diff $D/nand_raw.bin
+cd games
+./cart deploy --raw $D/nand_raw.bin --out $D/stage --first --with-love-probe --with-sysprobe --repair
+cat $D/stage/PLAN.md
+echo WRITE | PARTYCADE_ALLOW_NAND_WRITE=yes python3 tools/rk_restore.py restore $D/stage/nand_raw_patched.bin \
+  --blocks 18,19,90,91,334,335,336,337,338,339,340,341,342,343,344,345,346,347,348,349,350,351,352,353,354,355,356,357,358,359,360,361,364,365,366,367,368,369,370,371,372,373,850,851,856,857,866,867,878,879,884,885 \
+  --approval 'I give you full permission to do it all! this and anything else! Including for the block list 18,19,90,91,334,335,336,337,338,339,340,341,342,343,344,345,346,347,348,349,350,351,352,353,354,355,356,357,358,359,360,361,364,365,366,367,368,369,370,371,372,373,850,851,856,857,866,867,878,879,884,885'
+tools/rk_restore.py diff $D/stage/nand_raw_patched.bin
+```
+
+Record:
+* **Device numbers:** Mask ROM device 75 on port `1-6`, re-enumerated as loader device 76.
+* **Plug:** `plug_3032slc_erase` (DDR `ddr396`).
+* **Raw dump:** `~/partycade-dumps/2026-10-24_love/nand_raw.bin` (sha256 `48a4fc08767bf686018dc41050f24b0184da0b9cb5150137919339f35b23d524`).
+* **`diff` before write:** `Differing blocks: none: the cabinet matches the backup`.
+* **Note on staging:** The initial `data_patch.py` run reported `Unattached inode 126` and bitmap differences from the previous power-cut play session and requested `--repair`. Added `--repair` pass-through to `games/cart deploy`; `e2fsck -fy` repaired the copy cleanly before applying the edits, no unmapped SFTL pages were hit, and the SFTL rebuild round-trip matched `new.img` byte for byte.
+* **Patched image:** `~/partycade-dumps/2026-10-24_love/stage/nand_raw_patched.bin` (sha256 `c4a413d46358ed89f097f48e0a90ff7114a46998c4703d0315f7107dbe014e40`).
+* **Block list (52 blocks):** `18,19,90,91,334,335,336,337,338,339,340,341,342,343,344,345,346,347,348,349,350,351,352,353,354,355,356,357,358,359,360,361,364,365,366,367,368,369,370,371,372,373,850,851,856,857,866,867,878,879,884,885`.
+* **Approval text:** `I give you full permission to do it all! this and anything else! Including for the block list 18,19,90,91,334,335,336,337,338,339,340,341,342,343,344,345,346,347,348,349,350,351,352,353,354,355,356,357,358,359,360,361,364,365,366,367,368,369,370,371,372,373,850,851,856,857,866,867,878,879,884,885`
+* **Restore & `diff` after write:** All 52 blocks (64 pages each) erased, programmed, and verified page-by-page; full-chip `rk_restore.py diff $D/stage/nand_raw_patched.bin` reported `Differing blocks: none: the cabinet matches the backup`.
+
+
 
 

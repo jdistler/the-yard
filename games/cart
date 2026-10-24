@@ -448,6 +448,8 @@ def cmd_deploy(a):
     pad(os.path.join(HERE, "out", "cab", "yard"), os.path.join(stage, "yard"), SLOTS["yard"])
     pad(os.path.join(HERE, "out", "cab", "orb"), os.path.join(stage, "orb"), SLOTS["orb"])
     cmd = [sys.executable, os.path.join(ROOT, "tools", "data_patch.py"), os.path.abspath(a.raw), out]
+    if a.repair:
+        cmd.append("--repair")
     names = ("yard", "orb", "yard.pak")
     if a.first:
         # The first time: the new runtime and pack go in as new files, the old C games come out
@@ -552,6 +554,8 @@ def main():
                    help="also stage the read-only system probe, with a 'System probe' menu row (FIELD_TASKS.md)")
     p.add_argument("--start-from", default=None,
                    help="with --first: the GAME_NAME=... text in start.sh to point at yard, if not already")
+    p.add_argument("--repair", action="store_true",
+                   help="pass --repair to data_patch.py (fixes a power-cut dirty data filesystem copy before editing)")
     a = ap.parse_args()
     {"new": cmd_new, "list": cmd_list, "run": cmd_run, "check": cmd_check, "shots": cmd_shots, "perf": cmd_perf,
      "pack": cmd_pack, "deploy": cmd_deploy, "love-pack": cmd_love_pack, "love": cmd_love}[a.cmd](a)
