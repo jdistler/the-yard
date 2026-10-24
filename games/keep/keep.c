@@ -69,10 +69,13 @@ static void draw(void)
     SDL_SetRenderDrawColor(cab_renderer, 40, 80, 220, 255);
     SDL_RenderFillRect(cab_renderer, &(SDL_Rect){0, H - 6, W, 6});
 
-    for (int i = 0; i < 10; i++) {
-        SDL_SetRenderDrawColor(cab_renderer, 180, 180, 200, 255);
-        SDL_RenderDrawPoint(cab_renderer, 24 + (i * 53) % 190, 120 + (i * 19) % 90);
+    /* A court, so the dark field has a place to stand. The red and blue bars stay. */
+    for (int x = 30; x < W; x += 30) {
+        SDL_SetRenderDrawColor(cab_renderer, 28, 32, 64, 255);
+        SDL_RenderFillRect(cab_renderer, &(SDL_Rect){x, 108, 2, H - 128});
     }
+    SDL_SetRenderDrawColor(cab_renderer, 40, 48, 88, 255);
+    SDL_RenderFillRect(cab_renderer, &(SDL_Rect){16, py - 4, W - 32, 2});
     cab_text(8, 12, 2, YELLOW, "KEEP");
     cab_text(8, 32, 1, WHITE, "score %d", score);
     cab_text(8, 44, 1, GREY, "best %d", best);
@@ -82,15 +85,30 @@ static void draw(void)
         cab_text(8, 86, 1, RED, "missed");
     cab_text(8, H - 22, 1, GREY, "1+2 quit");
 
-    SDL_SetRenderDrawColor(cab_renderer, 240, 220, 80, 255);
-    SDL_RenderFillRect(cab_renderer, &(SDL_Rect){px, py, PW, PH});
+    SDL_SetRenderDrawColor(cab_renderer, 180, 140, 40, 255);
+    SDL_RenderFillRect(cab_renderer, &(SDL_Rect){px - 2, py - 8, PW + 4, PH + 10});
+    SDL_SetRenderDrawColor(cab_renderer, 255, 220, 60, 255);
+    SDL_RenderFillRect(cab_renderer, &(SDL_Rect){px, py - 6, PW, PH + 6});
     if (spark) {
         SDL_SetRenderDrawColor(cab_renderer, 255, 255, 255, 255);
-        SDL_RenderFillRect(cab_renderer, &(SDL_Rect){px + PW / 2 - 2, py - 10, 4, 4});
+        SDL_RenderFillRect(cab_renderer, &(SDL_Rect){px + PW / 2 - 4, py - 18, 8, 8});
         spark--;
     }
+    if (!alive) {
+        SDL_SetRenderDrawColor(cab_renderer, 180, 140, 40, 255);
+        SDL_RenderFillRect(cab_renderer, &(SDL_Rect){W / 2 - 18, 128, 36, 36});
+        SDL_SetRenderDrawColor(cab_renderer, 255, 214, 70, 255);
+        SDL_RenderFillRect(cab_renderer, &(SDL_Rect){W / 2 - 12, 134, 24, 24});
+    }
     if (alive && !over) {
-        SDL_SetRenderDrawColor(cab_renderer, 80, 220, 140, 255);
+        int guide = py - (iy + 8);
+        if (guide > 0) {
+            SDL_SetRenderDrawColor(cab_renderer, 36, 64, 96, 255);
+            SDL_RenderFillRect(cab_renderer, &(SDL_Rect){ix + 2, iy + 8, 4, guide});
+        }
+        SDL_SetRenderDrawColor(cab_renderer, 210, 255, 230, 255);
+        SDL_RenderFillRect(cab_renderer, &(SDL_Rect){ix - 4, iy - 4, 16, 16});
+        SDL_SetRenderDrawColor(cab_renderer, 40, 200, 110, 255);
         SDL_RenderFillRect(cab_renderer, &(SDL_Rect){ix, iy, 8, 8});
     }
     cab_present();

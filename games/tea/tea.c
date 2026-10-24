@@ -471,7 +471,10 @@ static void draw_unicorn(int x, int y, int big, int pose)
     disc(x + r, y - 6, r / 2, wing > 0 ? MINT : LILAC);
     disc(x, y, r + 4, INK);
     disc(x, y, r, CREAM);
-    box(x - 6, y - r - 16, 8, 18, GOLD);
+    box(x - 6, y - r - 28, 8, 30, GOLD);
+    box(x - 12, y + r - 2, 7, 16, CREAM);
+    box(x + 6, y + r - 2, 7, 16, CREAM);
+    disc(x - r - 6, y + 4, 6, LILAC);
     box(x - 10, y - r + 4, 6, 10, GOLD);
     box(x - 2, y - r + 6, 6, 10, ROOF);
     box(x + 6, y - r + 4, 6, 10, MINT);
@@ -529,12 +532,14 @@ static void draw_sky(void)
     }
     for (int i = 0; i < 3; i++) {
         int squash = cloud_squish && i == 1 ? 8 : 0;
-        disc(70 + i * 120 - lean_x / 2, 100 + i * 24, 26 - squash, CREAM);
-        disc(96 + i * 120 - lean_x / 2, 108 + i * 24, 18 - squash, CREAM);
+        disc(70 + i * 120 - lean_x, 100 + i * 24, 26 - squash, CREAM);
+        disc(96 + i * 120 - lean_x, 108 + i * 24, 18 - squash, CREAM);
     }
     {
         int squash = cloud_squish ? 8 : 0;
-        disc(260 - lean_x / 2, 330, 22 - squash, CREAM);
+        disc(260 - lean_x, 330, 22 - squash, CREAM);
+        disc(56 - lean_x / 2, 250, 16, CREAM);
+        disc(150 - lean_x / 2, 286, 12, CREAM);
     }
     draw_castle(W / 2 - grown / 2, 24, grown, grown + 10, 0);
     draw_unicorn(cx, cy, 1, hurry ? 2 : 0);
@@ -624,9 +629,9 @@ int main(int argc, char **argv)
         if (cab_down(0, CAB_RIGHT))
             lean_x += 12;
         if (cab_down(0, CAB_UP))
-            lean_y -= 8;
+            lean_y -= 18;
         if (cab_down(0, CAB_DOWN))
-            lean_y += 8;
+            lean_y += 18;
         if (phase == SKY) {
             int step = held ? fast_mul(HURRY_STEP, fast) : fast_mul(SKY_STEP, fast);
             fly += step;

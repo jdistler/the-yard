@@ -60,23 +60,31 @@ static void draw(void)
     cab_text(8, 30, 1, INK, "stars %d/%d", score, NSTARS);
     cab_text(8, 42, 1, DIM, "best %d", best);
     if (done)
-        cab_text(8, 58, 1, GOLD, "the yard is awake");
+        cab_text(168, 14, 1, GOLD, "awake");
 
-    SDL_SetRenderDrawBlendMode(cab_renderer, SDL_BLENDMODE_BLEND);
     for (int i = 0; i < NSTARS; i++) {
         if (lit[i])
-            SDL_SetRenderDrawColor(cab_renderer, 255, 200, 80, 70);
+            SDL_SetRenderDrawColor(cab_renderer, 120, 80, 30, 255);
         else
-            SDL_SetRenderDrawColor(cab_renderer, 40, 44, 80, 80);
-        SDL_RenderFillRect(cab_renderer, &(SDL_Rect){stars[i].x - 8, stars[i].y - 8, 16, 16});
+            SDL_SetRenderDrawColor(cab_renderer, 28, 32, 58, 255);
+        SDL_RenderFillRect(cab_renderer, &(SDL_Rect){stars[i].x - 14, stars[i].y - 14, 28, 28});
+        if (lit[i])
+            SDL_SetRenderDrawColor(cab_renderer, 255, 190, 70, 255);
+        else
+            SDL_SetRenderDrawColor(cab_renderer, 48, 52, 88, 255);
+        SDL_RenderFillRect(cab_renderer, &(SDL_Rect){stars[i].x - 6, stars[i].y - 6, 12, 12});
         if (lit[i])
             SDL_SetRenderDrawColor(cab_renderer, 255, 220, 120, 255);
         else
             SDL_SetRenderDrawColor(cab_renderer, 70, 74, 110, 255);
         SDL_RenderFillRect(cab_renderer, &(SDL_Rect){stars[i].x - 2, stars[i].y - 2, 5, 5});
     }
-    SDL_SetRenderDrawBlendMode(cab_renderer, SDL_BLENDMODE_NONE);
-    SDL_SetRenderDrawColor(cab_renderer, 255, 186, 70, 255);
+    /* A lantern, narrow enough that a woken star still shows around it. */
+    SDL_SetRenderDrawColor(cab_renderer, 120, 70, 24, 255);
+    SDL_RenderFillRect(cab_renderer, &(SDL_Rect){px - 6, py - 18, 20, 34});
+    SDL_SetRenderDrawColor(cab_renderer, 255, 170, 50, 255);
+    SDL_RenderFillRect(cab_renderer, &(SDL_Rect){px - 2, py - 12, 12, 20});
+    SDL_SetRenderDrawColor(cab_renderer, 255, 230, 150, 255);
     SDL_RenderFillRect(cab_renderer, &(SDL_Rect){px, py, 8, 8});
     cab_text(8, H - 18, 1, DIM, done ? "Z again   1+2 quit" : "1+2 quit");
     cab_present();

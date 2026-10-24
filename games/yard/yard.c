@@ -70,6 +70,18 @@ static void draw(int frame, const char *note)
     cab_text(16, 80, 1, DIM, "a side door off the menu");
     for (int i = 0; i < N; i++) {
         int y = 112 + i * 36;
+        /* A mark a child can see beside the word. The lantern stays at x=18. */
+        SDL_SetRenderDrawColor(cab_renderer, i == row ? 255 : 90, i == row ? 196 : 96, i == row ? 70 : 120, 255);
+        if (i == 0)
+            SDL_RenderFillRect(cab_renderer, &(SDL_Rect){4, y + 10, 10, 4});
+        else if (i == 1)
+            SDL_RenderFillRect(cab_renderer, &(SDL_Rect){6, y + 6, 6, 8});
+        else if (i == 2)
+            SDL_RenderFillRect(cab_renderer, &(SDL_Rect){5, y + 6, 8, 8});
+        else if (i == 3)
+            SDL_RenderFillRect(cab_renderer, &(SDL_Rect){6, y + 6, 6, 6});
+        else
+            SDL_RenderFillRect(cab_renderer, &(SDL_Rect){6, y + 4, 4, 10});
         if (i == row) {
             SDL_SetRenderDrawColor(cab_renderer, 255, 196, 70, 255);
             SDL_RenderFillRect(cab_renderer, &(SDL_Rect){18, y + 2, 6, 6});

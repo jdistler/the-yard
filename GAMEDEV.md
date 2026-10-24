@@ -202,6 +202,8 @@ title=Keep
 
 `title=` selects the window title (`Keep`, `Lamp`, `The Yard`). `*` matches every game. A file with no `title=` line applies to whatever is running. Frame numbers are `cab_poll` calls, starting at 0. `down` latches until `up`. `shot` saves the BMP of the frame just drawn. `quit` ends on that frame, before it is drawn, so take the shot on the frame before. `CAB_MAX_FRAMES` is the safety stop. `CAB_SHOTDIR` dumps every `CAB_SHOT_EVERY` frame (default 30). `CAB_SCRIPT_LOG=1` prints how many commands that process kept.
 
+`python3 games/feel.py` plays each game and writes `games/out/feel/`. For Keep it looks at the picture, finds the tile, and steers the paddle under it, then does the same for the next tile. For Lamp it walks the light onto all seven stars. The other reels are short scripts. `report.txt` says whether the play came off (a catch, seven stars, a won fight) and how long a stick or a button takes to show. `strip.png`, `open.png`, and `payoff.png` are the pictures. `stress.sh` still checks that the games are correct. A reel frame file `frame-NNNN.bmp` is the picture after script frame N-1, so a press on script frame T is in `frame-(T+1).bmp`.
+
 The Yard's script keeps counting across the game it launches, because `cab_init` loads the file once per process and does not reset the frame counter. The child game is a new process and only sees its own `title=` section. That is how one file can move the lantern, open Lamp, play Lamp, and land back on the menu.
 
 What `./play.sh` checked, and the pictures in `games/out/play/` (gitignored) show:

@@ -425,11 +425,11 @@ static void draw_zam(int cx, int cy, int flash, int bow)
 static void draw_ned(void)
 {
     int sword = has_sword && phase != PATH && phase != POP;
-    box(nx - 10, ny + 8, 20, 22, CAPE);
-    disc(nx, ny - 6, 14, INK);
-    disc(nx, ny - 6, 12, SKIN);
-    box(nx - 8, ny - 8, 4, 3, INK);
-    box(nx + 3, ny - 8, 4, 3, INK);
+    box(nx - 16, ny + 4, 32, 30, CAPE);
+    disc(nx, ny - 10, 18, INK);
+    disc(nx, ny - 10, 15, SKIN);
+    box(nx - 10, ny - 14, 6, 4, INK);
+    box(nx + 4, ny - 14, 6, 4, INK);
     if (has_key && !sword)
         box(nx + 8, ny - 2, 6, 12, GOLD);
     if (sword || (phase == POP && pop_t > 20)) {
@@ -443,18 +443,19 @@ static void draw_ned(void)
 static void draw_chest_box(int open)
 {
     int lift = open ? 18 : hop;
-    box(156, 168, 72, 46, WOOD);
-    box(160, 176, 64, 28, GOLD);
-    box(186, 184, 12, 16, INK);
+    /* Short body, so Ned stands in front of the chest instead of inside it. */
+    box(156, 168, 72, 30, WOOD);
+    box(160, 176, 64, 16, GOLD);
+    box(186, 184, 12, 8, INK);
     box(148, 150 - lift, 88, 22, WOOD);
     box(152, 146 - lift, 12, 10, GOLD);
 }
 
 static void draw_key(int x, int y)
 {
-    box(x - 3, y - 16, 6, 22, GOLD);
-    disc(x, y - 20, 8, GOLD);
-    disc(x, y - 20, 3, GRASS);
+    box(x - 4, y - 18, 8, 26, GOLD);
+    disc(x, y - 24, 12, GOLD);
+    disc(x, y - 24, 5, GRASS);
     box(x + 3, y + 2, 8, 4, GOLD);
 }
 
@@ -519,7 +520,16 @@ static void draw(void)
     int open = phase != PATH;
     int flash = spoon_flash > 0 || telegraph > 0;
     box(0, 0, W, H - 32, GRASS);
-    box(168, 200, 48, 250, CREAM);
+    box(40, 70, 14, 6, (SDL_Color){78, 168, 72, 255});
+    box(300, 96, 16, 6, (SDL_Color){78, 168, 72, 255});
+    box(48, 230, 12, 6, (SDL_Color){78, 168, 72, 255});
+    box(312, 250, 14, 6, (SDL_Color){78, 168, 72, 255});
+    box(28, 400, 16, 6, (SDL_Color){78, 168, 72, 255});
+    box(318, 410, 12, 6, (SDL_Color){78, 168, 72, 255});
+    disc(70, 140, 5, GOLD);
+    disc(320, 170, 4, (SDL_Color){232, 107, 154, 255});
+    disc(36, 300, 4, GOLD);
+    box(140, 188, 104, 292, CREAM);
     for (int i = 0; i < (gems < 8 ? gems : 8); i++)
         disc(24 + i * 22, 28, 8, ROSE);
     if (gems > 8)
