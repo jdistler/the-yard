@@ -431,6 +431,7 @@ title=Bubbles
 * **Updates only rewrite blocks the files already own.** Because each file has a fixed size, an update is `data_patch.py --overwrite`: the new bytes go into the disk blocks the file already has. No block is allocated, so only flash pages that have been written before change. That is the case SFTL's in-place patch handles.
 * **`--first` installs the three files.** It removes the old C game binaries first, so the new files can reuse their freed blocks, which have been written before. If a page still lands where SFTL never wrote, the patch refuses and nothing is staged.
 * **Deploy never writes the cabinet.** It builds for the cabinet, packs, pads, patches a copy of the raw dump, and checks the round trip. Then it writes `PLAN.md` with the block list and the restore command. The write itself follows [RUNBOOK.md](RUNBOOK.md): a `diff` that says none in the same session, then the user's written approval of exactly those blocks.
+* **`--with-sysprobe`** also stages the read-only "System probe" row (`games/sysprobe/sysprobe.sh`), which records what Linux sees about flash, USB, the card slot, and drivers.
 * **`--with-love-probe`** also stages the GPU runtime as `love.tar.gz` with its two launchers and menu rows ("LOVE probe", "GPU yard"). [FIELD_TASKS.md](FIELD_TASKS.md) task 4 is the first time.
 * **The pack is safe to read.** The runtime checks every file's crc32 when it opens the pack. A damaged cart is left out of the menu and the others still load.
 
@@ -452,6 +453,7 @@ games/
     vendor/            stb_image.h, stb_truetype.h (public domain)
     fonts/             Fredoka SemiBold (SIL OFL 1.1)
   native/orb, native/probe   the two C programs that are not carts
+  sysprobe/            the System probe: a read-only shell script and its menu row (FIELD_TASKS.md)
   love/                the GPU runtime: LÖVE 11.5 built from source, the same carts on OpenGL ES (love/README.md)
   test.py, playtest.py, feel.py   checks, the frame-at-a-time player, the reel
 ```

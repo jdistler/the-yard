@@ -498,6 +498,26 @@ def system():
         check(r.stdout.startswith("ok:"), f"template {t}: a new cart runs 15 seconds on its bot ({r.stdout.strip()[:60]})")
     r = subprocess.run([sys.executable, os.path.join(HERE, "tools", "bin2c.py"), "--check"], capture_output=True, text=True)
     check(r.returncode == 0, "the embedded font and library are fresh (tools/bin2c.py --check)")
+
+    # The menu scrolls: with the deploy's three test rows it has eight, and the stick reaches the last one.
+    mshelf = tmpdir()
+    for c in ("yard", "keep", "lamp", "orb", "tea", "chest"):
+        shutil.copytree(os.path.join(HERE, "carts", c), os.path.join(mshelf, c))
+    for c in (("love", "label", "loveprobe"), ("love", "label", "loveyard"), ("sysprobe", "label", "sysprobe")):
+        shutil.copytree(os.path.join(HERE, *c), os.path.join(mshelf, c[-1]))
+    presses = "".join(f"{f} down DOWN\n{f + 1} up DOWN\n" for f in range(40, 40 + 12 * 7, 12))
+    shot = os.path.join(mshelf, "menu.bmp")
+    sc = f"title=The Yard\n{presses}170 shot {shot}\n180 down LOW\n181 up LOW\n"
+    open(os.path.join(mshelf, "m.cab"), "w").write(sc)
+    r = subprocess.run([yard, "--check", "yard"], cwd=mshelf, capture_output=True, text=True, timeout=300,
+                       env={**os.environ, "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy", "CAB_SCALE": "1",
+                            "CAB_SCRIPT": os.path.join(mshelf, "m.cab"), "YARD_CARTS": mshelf, "YARD_CHECK_FRAMES": "240",
+                            "CAB_MAX_FRAMES": "241"})
+    check("yard open sysprobe" in r.stdout + r.stderr, "the menu scrolls to its eighth row and opens it")
+    check(busy(shot) > 8, "the scrolled menu draws a picture")
+    shutil.rmtree(mshelf, ignore_errors=True)
+    r = subprocess.run(["sh", "-n", os.path.join(HERE, "sysprobe", "sysprobe.sh")], capture_output=True, text=True)
+    check(r.returncode == 0, "the System probe script parses (sh -n)")
     shutil.rmtree(shelf, ignore_errors=True)
 
 

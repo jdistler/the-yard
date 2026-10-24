@@ -11,6 +11,7 @@
   ./cart pack [--out FILE]                        build yard.pak: every cart, padded to its fixed slot
   ./cart deploy --raw RAW --out DIR [--first]     stage yard, orb, and yard.pak onto a copy of a raw dump
                 [--with-love-probe]               ... plus LÖVE, its probe, and a "GPU yard" row (FIELD_TASKS.md)
+                [--with-sysprobe]                 ... plus the read-only "System probe" row (FIELD_TASKS.md)
   ./cart love [ID]                                play on LÖVE, the GPU runtime (games/love/build.sh x86 first)
   ./cart love-pack [--out FILE]                   build yard.love: the LÖVE runtime, library, and font
 
@@ -441,6 +442,8 @@ def cmd_deploy(a):
     subprocess.check_call(["./build.sh", "cab"], cwd=HERE)
     print("2. Packing the carts")
     extra = [os.path.join(HERE, "love", "label", n) for n in ("loveprobe", "loveyard")] if a.with_love_probe else []
+    if a.with_sysprobe:
+        extra.append(os.path.join(HERE, "sysprobe", "label", "sysprobe"))
     pak = cmd_pack(argparse.Namespace(out=os.path.join(stage, "yard.pak"), extra=extra))
     pad(os.path.join(HERE, "out", "cab", "yard"), os.path.join(stage, "yard"), SLOTS["yard"])
     pad(os.path.join(HERE, "out", "cab", "orb"), os.path.join(stage, "orb"), SLOTS["orb"])
@@ -482,6 +485,10 @@ def cmd_deploy(a):
                 "--put", f"{launcher}:Games/loveprobe:755",
                 "--put", f"{launcher}:Games/loveyard:755"]
         names = names + ("love.tar.gz", "loveprobe", "loveyard")
+    if a.with_sysprobe:
+        # One small new file: a read-only shell script that records what Linux sees (FIELD_TASKS.md).
+        cmd += ["--put", f"{os.path.join(HERE, 'sysprobe', 'sysprobe.sh')}:Games/sysprobe:755"]
+        names = names + ("sysprobe",)
     print("3. Patching a copy of the raw dump (offline)\n   " + " ".join(cmd))
     r = subprocess.run(cmd, capture_output=True, text=True)
     print(r.stdout + r.stderr)
@@ -496,7 +503,7 @@ def cmd_deploy(a):
     with open(plan, "w") as f:
         f.write(f"# Deploy plan\n\nRaw dump: `{os.path.abspath(a.raw)}`\n\nFiles:\n\n")
         for n in names:
-            new = a.first or n in ("love.tar.gz", "loveprobe", "loveyard")
+            new = a.first or n in ("love.tar.gz", "loveprobe", "loveyard", "sysprobe")
             f.write(f"* `/data/Games/{n}` ({'new' if new else 'in place'})\n")
         f.write(f"\nBlocks to write: `{blocks}`\n\nBefore: `rk_restore.py diff` of the raw dump in the same Mask ROM "
                 "session must report none. Then, only with the user's written approval of exactly these blocks:\n\n"
@@ -541,6 +548,8 @@ def main():
                    help="with --first: old binaries to take out (default: the C games)")
     p.add_argument("--with-love-probe", action="store_true",
                    help="also stage the LOVE bundle and probe, with a 'LOVE probe' menu row (FIELD_TASKS.md)")
+    p.add_argument("--with-sysprobe", action="store_true",
+                   help="also stage the read-only system probe, with a 'System probe' menu row (FIELD_TASKS.md)")
     p.add_argument("--start-from", default=None,
                    help="with --first: the GAME_NAME=... text in start.sh to point at yard, if not already")
     a = ap.parse_args()

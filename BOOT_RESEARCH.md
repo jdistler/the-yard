@@ -297,3 +297,13 @@ No cabinet, no USB command, nothing staged or written. Cloud container: no `~/pa
 * `test.py`: 90 checks, all pass (12 new in `love`). `cart check`: all carts pass.
 
 Conclusion: everything that can be done without the cabinet is done. The next facts come from [FIELD_TASKS.md](FIELD_TASKS.md): the device facts, a cabinet build with `check_binary.sh`, a qemu run against the real rootfs, one staged deploy that needs written approval of its blocks, a play test, and the probe's report.
+
+### Addendum, same night: what the field tasks must settle about SD, USB-A, Wi-Fi, and ADB
+
+Still no hardware. The first FIELD_TASKS.md left the SD/USB question to a one-line task 7, so it would not have settled them. Added:
+
+* From `captures/device-tree.txt`: USB-A's power switch is probably `usb_en`, a fixed regulator on a GPIO (declared 3.3 V; the GPIO likely enables a 5 V switch) with `regulator-always-on`, so VBUS is expected to be present once `usb@101c0000` is enabled. The SD node has `broken-cd`: the card is found by polling (every `card-detect-delay` 200 ms), not by an interrupt on the detect pin. Expected, unverified.
+* `tools/device_facts.py` also writes `captures/kernel/bootimg.txt` (boot image header, gzip streams, device tree offsets) and `captures/system/` (init scripts, udev rules, network and dropbear settings, busybox applets, password state without hashes), and searches for flash and USB-gadget driver names. Tested on a fake rootfs and boot image.
+* `games/sysprobe/sysprobe.sh` and a "System probe" menu row (`cart deploy --with-sysprobe`): a read-only script that records the live device tree's status for the slot and ports, `/proc/partitions`, `/proc/mtd`, block devices and the sha256 of each small partition as Linux reads it, USB and MMC devices, regulators, UDC, network and firmware, which tools exist, processes, `dmesg`, and `/proc/config.gz` if present. Then it watches for 90 s and logs what appears while someone plugs things in. Dry-run under dash on this container.
+* The Yard's menu scrolls past five rows (eight with the three test rows). With five games nothing moves. New checks in `test.py system`; 93 checks pass.
+* FIELD_TASKS.md now has a table of the questions and the task that answers each, the System probe in tasks 4–6 as a "before" picture, and task 7 as concrete steps: the `boot` write with `sd,usb,adb`, a boot check, a card prepared with FAT32 and ext2 partitions, "after" probes with a card, a stick, and a Wi-Fi adapter, and ADB read-only checks including card read and write speed.

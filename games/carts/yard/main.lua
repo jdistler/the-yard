@@ -8,9 +8,11 @@
 
 local INK, CREAM, GOLD, DIM = pal.night, pal.cream, pal.sun, pal.dim
 local TOP, ROW_H = 92, 38
+local VISIBLE = 5        -- rows on screen; with more games the list scrolls to keep the lantern's row in view
 
 local carts, stats = {}, {}
 local row, shown_row, swing, hold = 0, 0, 0, 0
+local top, shown_top = 0, 0
 local opening, iris = false, 0
 local note, note_left = nil, 0
 local sel = {}
@@ -41,6 +43,8 @@ function init()
   for i = 1, 70 do stars[i] = {rnd(0, W), rnd(0, 230), rnd(0, tau)} end
   row = clamp(save.get("best", 0), 0, max(0, #carts - 1))
   shown_row = row
+  top = clamp(row - VISIBLE + 1, 0, max(0, #carts - VISIBLE))
+  shown_top = top
   for i = 1, #carts do sel[i] = 0 end
   if card.read("label") then
     pocket = true
@@ -53,6 +57,9 @@ function init()
     game.quit()
   end
 end
+
+-- Where row r (from 0) is drawn, with the list scrolled.
+local function row_y(r) return TOP + (r - shown_top) * ROW_H end
 
 local function open(c)
   save.set("best", row)
@@ -96,14 +103,16 @@ function update()
     row = (row + n + step) % n
     swing = step * 5
     snd.tick(row)
-    particles.burst(30, TOP + row * ROW_H + 15, 6, 1.2, 24, 1.5, alpha(carts[row + 1].tint or GOLD, 220), "glow")
+    if row < top then top = row elseif row > top + VISIBLE - 1 then top = row - VISIBLE + 1 end
+    particles.burst(30, TOP + (row - top) * ROW_H + 15, 6, 1.2, 24, 1.5, alpha(carts[row + 1].tint or GOLD, 220), "glow")
   end
   swing = swing * 0.9
   shown_row = approach(shown_row, row, 0.3)
+  shown_top = approach(shown_top, top, 0.3)
   for i = 1, n do sel[i] = approach(sel[i], i == row + 1 and 1 or 0, 0.2) end
   if input.action() then
     sfx.arp("tri", {67, 72, 76, 79}, 0.06, 0.35)
-    particles.burst(120, TOP + row * ROW_H + 15, 24, 2.5, 40, 2.5, alpha(carts[row + 1].tint or GOLD, 255), "star")
+    particles.burst(120, row_y(row) + 15, 24, 2.5, 40, 2.5, alpha(carts[row + 1].tint or GOLD, 255), "star")
     opening, iris = true, 1
   end
   if note_left > 0 then note_left = note_left - 1 end
@@ -176,8 +185,22 @@ function draw()
   local bob = sin(game.frame * 0.04) * 1.5
   gfx.text("The Yard", W / 2 - 6, 14 + bob, 38, GOLD, "center", INK)
   gfx.text(#carts == 1 and "a little game by the fence" or "little games by the fence", W / 2, 56 + bob, 12, 0xc0b8ff, "center")
-  for i, c in ipairs(carts) do draw_row(i, c, TOP + (i - 1) * ROW_H) end
-  if #carts > 0 then draw_lantern(TOP + shown_row * ROW_H + 4) end
+  if #carts > VISIBLE then gfx.clip(0, TOP - 4, W, VISIBLE * ROW_H) end
+  for i, c in ipairs(carts) do
+    local y = row_y(i - 1)
+    if y > TOP - ROW_H and y < TOP + VISIBLE * ROW_H then draw_row(i, c, y) end
+  end
+  if #carts > 0 then draw_lantern(row_y(shown_row) + 4) end
+  if #carts > VISIBLE then
+    gfx.clip()
+    -- Little arrows say there are more games above or below.
+    local b = sin(game.frame * 0.1) * 1.5
+    if shown_top > 0.05 then gfx.tri(W - 14, TOP - 8 + b, W - 8, TOP - 8 + b, W - 11, TOP - 13 + b, alpha(CREAM, 200)) end
+    if shown_top < #carts - VISIBLE - 0.05 then
+      local yb = TOP + VISIBLE * ROW_H - 2 - b
+      gfx.tri(W - 14, yb, W - 8, yb, W - 11, yb + 5, alpha(CREAM, 200))
+    end
+  end
   if pocket then
     gfx.circle(W - 10, H - 30, 4, 0x40d2dc)
     gfx.text("card in", W - 18, H - 36, 11, 0x40d2dc, "right")
@@ -199,5 +222,5 @@ function draw()
     gfx.text("stick: choose     button: play", W / 2, 283, 12, 0xb0a8e0, "center")
     gfx.text("hold 1P + 2P to go back", W / 2, 298, 11, alpha(DIM, 200), "center")
   end
-  if iris < 1 then gfx.iris(40, TOP + row * ROW_H + 15, iris * 420) end
+  if iris < 1 then gfx.iris(40, row_y(row) + 15, iris * 420) end
 end

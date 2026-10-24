@@ -15,6 +15,12 @@ and those are fine to commit:
                               input, sound), found by string search: "present" means the name is in the image.
   captures/gl/strings.txt     the GL, GLES, and EGL extension and version strings inside libmali.
   captures/sdl/strings.txt    the video, audio, and render back ends compiled into the stock SDL2.
+  captures/system/            the rootfs's own configuration, as text: init scripts, udev rules, inittab,
+                              fstab, network and dropbear settings, the account list with each account's
+                              password state (empty, locked, or set; never the hash), and the busybox
+                              applets. These say how USB, the card, ADB, and a network would come up.
+  captures/kernel/bootimg.txt the boot image's layout (header, kernel, device tree offsets and sizes), so a
+                              rebuilt kernel or tree can be put back the same way.
 
   tools/device_facts.py --rootfs ROOTFS --kernel KERNEL_IMAGE [--out captures]
 
@@ -39,6 +45,9 @@ NET = ["usbnet", "cdc_ether", "rndis_host", "asix", "ax88179", "r8152", "smsc95x
        "usb_f_rndis", "usb_f_ecm", "usb_f_fs", "configfs", "dwc2", "ehci", "ohci", "usb-storage", "uas"]
 STORAGE = ["dw_mmc", "dw_mmc-rockchip", "mmc_block", "vfat", "msdos", "exfat", "ntfs", "ext2", "ext3", "ext4",
            "squashfs", "fuse", "f2fs", "nls_cp437", "nls_iso8859-1", "nls_utf8"]
+FLASH = ["rkflash", "rknand", "rk_nand", "sftl", "mtdblock", "mtd", "spinand", "sfc", "blkdev", "by-name"]
+GADGET = ["usb_f_fs", "f_fs", "functionfs", "android_usb", "usb_f_adb", "adb", "usb_f_mass_storage", "usb_f_acm",
+          "g_serial", "libcomposite", "udc-core", "dwc2_hsotg", "otg"]
 OTHER = ["uinput", "evdev", "joydev", "hid-generic", "snd-usb-audio", "snd_usb_audio", "zram", "binfmt_misc",
          "IKCONFIG", "kallsyms", "devtmpfs", "inotify", "epoll", "cgroup", "namespaces"]
 
@@ -133,7 +142,8 @@ def kernel(path, out):
         f.write(cfg if cfg else "# The image carries no config (no IKCFG_ST). drivers.txt is the string search instead.\n")
     strs = set(re.findall(rb"[\x20-\x7e]{4,}", text))
     lines = []
-    for group, names in (("wifi", WIFI), ("usb-net", NET), ("storage", STORAGE), ("other", OTHER)):
+    for group, names in (("wifi", WIFI), ("usb-net", NET), ("storage", STORAGE), ("flash", FLASH),
+                        ("gadget", GADGET), ("other", OTHER)):
         for n in names:
             hit = any(n.encode() in s_ for s_ in strs)
             lines.append(f"{group:8} {n:20} {'present' if hit else 'absent'}")
@@ -142,6 +152,90 @@ def kernel(path, out):
                 "# the driver is built in; config.txt, when there is one, is the authority.\n")
         f.write("\n".join(lines) + "\n")
     print(f"kernel: {ver.group(0)[:60].decode() if ver else 'no banner'}; config {'yes' if cfg else 'no'} -> {out}")
+
+
+def bootimg(path, out):
+    """Where things are inside the boot image: its header, each gzip stream, each device tree."""
+    raw = open(path, "rb").read()
+    lines = [f"file {os.path.basename(path)}: {len(raw)} bytes, sha256 {hashlib.sha256(raw).hexdigest()}",
+             f"first 16 bytes: {raw[:16].hex()}  {raw[:8]!r}"]
+    if raw[:8] == b"ANDROID!":
+        import struct
+        ks, ka, rs, ra, ss, sa, ta, ps = struct.unpack_from("<8I", raw, 8)
+        lines.append(f"android boot header: kernel {ks} bytes at load 0x{ka:x}, ramdisk {rs} at 0x{ra:x}, "
+                     f"second {ss} at 0x{sa:x}, tags 0x{ta:x}, page size {ps}")
+        lines.append("cmdline: " + raw[64:64 + 512].split(b"\0")[0].decode("ascii", "replace"))
+    for tag in (b"KRNL", b"RSCE", b"LOADER"):
+        i = raw.find(tag)
+        if 0 <= i < 1024 * 1024:
+            lines.append(f"tag {tag.decode()} at 0x{i:x}")
+    for m in re.finditer(b"\x1f\x8b\x08", raw):
+        try:
+            d = zlib.decompressobj(16 + zlib.MAX_WBITS)
+            n = len(d.decompress(raw[m.start():m.start() + 64 * 1024 * 1024]))
+            if n > 4096:
+                lines.append(f"gzip stream at 0x{m.start():x}: {len(raw[m.start():]) - len(d.unused_data)} bytes -> {n}")
+        except zlib.error:
+            pass
+    for m in re.finditer(b"\xd0\x0d\xfe\xed", raw):
+        size = int.from_bytes(raw[m.start() + 4:m.start() + 8], "big")
+        if 256 < size < 1024 * 1024:
+            model = re.search(rb"rockchip,[a-z0-9,-]+", raw[m.start():m.start() + size])
+            lines.append(f"device tree at 0x{m.start():x}: {size} bytes {model.group(0).decode() if model else ''}")
+    os.makedirs(out, exist_ok=True)
+    open(os.path.join(out, "bootimg.txt"), "w").write("\n".join(lines) + "\n")
+
+
+SYSTEM_FILES = ["etc/inittab", "etc/fstab", "etc/profile", "etc/hostname", "etc/network/interfaces",
+                "etc/init.d/.usb_config", "etc/securetty", "etc/shells", "etc/mdev.conf", "etc/passwd", "etc/group"]
+SYSTEM_DIRS = ["etc/init.d", "etc/udev/rules.d", "lib/udev/rules.d", "etc/dropbear", "etc/network", "etc/default",
+               "usr/share/udhcpc", "etc/wpa_supplicant", "etc/profile.d"]
+
+
+def system(rootfs, out):
+    """The rootfs's configuration text: small files only, and never a password hash."""
+    os.makedirs(out, exist_ok=True)
+    picked = set(SYSTEM_FILES)
+    for d in SYSTEM_DIRS:
+        full = os.path.join(rootfs, d)
+        if os.path.isdir(full):
+            for f in sorted(os.listdir(full)):
+                picked.add(os.path.join(d, f))
+    for extra in ("usr/bin/usbdevice", "lib/udev/mtd_probe"):
+        picked.add(extra)
+    index = []
+    for rel in sorted(picked):
+        src = os.path.join(rootfs, rel)
+        if os.path.islink(src):
+            index.append(f"{rel} -> {os.readlink(src)}")
+            continue
+        if not os.path.isfile(src):
+            continue
+        data = open(src, "rb").read()
+        if b"\0" in data[:4096] or len(data) > 64 * 1024 or "dropbear" in rel and "key" in rel:
+            index.append(f"{rel}: {len(data)} bytes, binary or a key, not copied")
+            continue
+        dst = os.path.join(out, rel.replace("/", "_"))
+        open(dst, "wb").write(data)
+        index.append(f"{rel}: {len(data)} bytes -> {os.path.basename(dst)}")
+    shadow = os.path.join(rootfs, "etc", "shadow")
+    if os.path.isfile(shadow):
+        states = []
+        for line in open(shadow, errors="replace"):
+            parts = line.strip().split(":")
+            if len(parts) > 1:
+                pw = parts[1]
+                state = "empty (no password)" if pw == "" else "locked" if pw.startswith(("!", "*")) else "set"
+                states.append(f"{parts[0]}: {state}")
+        open(os.path.join(out, "shadow-state.txt"), "w").write("\n".join(states) + "\n")
+        index.append("etc/shadow: password state only -> shadow-state.txt")
+    bb = os.path.join(rootfs, "bin", "busybox")
+    if os.path.isfile(bb):
+        links = sorted(os.path.relpath(os.path.join(dp, f), rootfs) for dp, _, fs in os.walk(rootfs) for f in fs
+                       if os.path.islink(os.path.join(dp, f)) and os.readlink(os.path.join(dp, f)).endswith("busybox"))
+        open(os.path.join(out, "busybox-applets.txt"), "w").write("\n".join(links) + "\n")
+    open(os.path.join(out, "INDEX.txt"), "w").write("\n".join(index) + "\n")
+    print(f"system: {len(index)} entries -> {out}")
 
 
 def strings_of(path, pattern):
@@ -181,9 +275,12 @@ def main():
         sys.exit(f"{a.rootfs} does not look like the extracted rootfs (no usr/lib)")
     abi(a.rootfs, os.path.join(a.out, "abi"))
     gl_sdl(a.rootfs, a.out)
+    system(a.rootfs, os.path.join(a.out, "system"))
     if a.kernel:
         kernel(a.kernel, os.path.join(a.out, "kernel"))
-    print("Done. These are facts, not vendor code: commit captures/abi, captures/kernel, captures/gl, captures/sdl.")
+        bootimg(a.kernel, os.path.join(a.out, "kernel"))
+    print("Done. These are facts and config text, not vendor programs: commit captures/abi, captures/kernel, "
+          "captures/gl, captures/sdl, captures/system.")
 
 
 if __name__ == "__main__":

@@ -2,6 +2,26 @@
 
 Written 2026-10-24 by a cloud session that has no cabinet, no `~/partycade-dumps/`, and no rootfs. These tasks are for the agent on the PC the cabinet plugs into. Do them in order. Each one says what to run, what to look for, and what to write down. When a task is done, commit its results (never dumps or binaries) and tell the user to push, so the next cloud session can read them.
 
+## What these tasks must settle
+
+The goal: games stored on a microSD card, and later a USB Wi-Fi adapter on the USB-A port for remote access and for changing the system from Linux itself, without the Micro-USB cable and Mask ROM. Each question below is answered by the task named, and the result goes in **Results**.
+
+| Question | Answered by |
+| :--- | :--- |
+| Which Wi-Fi, USB, network, gadget, and flash drivers are built into the kernel? Can it load modules at all? Is there a kernel config to rebuild from? | 1 (from the dump), 5 (live: `/proc/config.gz`, `/proc/modules`) |
+| How does the boot image hold the kernel and the device tree (to put a rebuilt kernel or tree back)? | 1 (`captures/kernel/bootimg.txt`) |
+| How do the stock scripts bring up USB, ADB, udev mounts, the network, and dropbear? Does root have a password? | 1 (`captures/system/`) |
+| Which device tree is live? Are the SD slot and USB-A really off now? | 5 (System probe), 6 |
+| How does Linux see the flash: device names, partitions, read-only or not? Does what Linux reads match our partition images byte for byte? That is what decides whether a later update can be a plain write from Linux instead of a Mask ROM patch | 5, 6 (checksums) |
+| Does the PC see anything on the Micro-USB port while the cabinet runs normally? | 5 |
+| After the SD and USB-A nodes are turned on: does the machine still boot, does a card show up (polling, no detect pin), at what speed, with which filesystems and mount options? | 7 |
+| Is USB-A wired and powered? What does a stick, then a Wi-Fi adapter, show up as (vendor and product IDs, driver bound or not, firmware requests)? | 7 |
+| Does ADB give a root shell over Micro-USB with the switch ON? | 7 |
+
+From those answers the next cloud session decides the Wi-Fi route: a driver already in the kernel plus firmware and `wpa_supplicant` on the card (no flash write beyond `data`), or a rebuilt kernel (one more `boot` write).
+
+**Things the user needs on hand by task 7:** a microSD card of 32 GB or less (SDHC), a USB stick, any USB Wi-Fi adapter they own (its chip gets identified; it need not work yet), and `adb` on the PC (`sudo apt install adb`, or the platform-tools zip).
+
 Read [AGENTS.md](AGENTS.md), [STATUS.md](STATUS.md), [RUNBOOK.md](RUNBOOK.md), and [RECOVERY.md](RECOVERY.md) first. Every rule there still holds. The ones that matter most here:
 
 * Tasks 1 to 3 never touch the cabinet. Do them with the cabinet unplugged.
@@ -32,7 +52,7 @@ ls $D/rootfs/usr/lib/libSDL2-2.0.so.0.7.0 $D/boot.img      # both must exist
 python3 tools/device_facts.py --rootfs $D/rootfs --kernel $D/boot.img --out captures
 ```
 
-**Look for.** `captures/abi/INDEX.txt`, `captures/abi/*.txt`, `captures/kernel/version.txt`, `captures/kernel/config.txt`, `captures/kernel/drivers.txt`, `captures/gl/strings.txt`, `captures/sdl/strings.txt`. Open `captures/kernel/drivers.txt` and copy its WIFI and NET sections into your report. If `config.txt` says no config was found, write that down: the kernel was built without `IKCONFIG`, and the driver list from strings is all there is.
+**Look for.** `captures/abi/INDEX.txt`, `captures/abi/*.txt`, `captures/kernel/version.txt`, `config.txt`, `drivers.txt`, `bootimg.txt`, `captures/gl/strings.txt`, `captures/sdl/strings.txt`, and `captures/system/` (init scripts, udev rules, network and dropbear settings, `shadow-state.txt`, `busybox-applets.txt`). The tool never copies a password hash or a dropbear key; check `captures/system/INDEX.txt` says so for any key file. Open `captures/kernel/drivers.txt` and copy its WIFI and NET sections into your report. Copy its FLASH and GADGET sections too, and the first ten lines of `bootimg.txt`. If `config.txt` says no config was found, write that down: the kernel was built without `IKCONFIG`, and the driver list from strings is all there is until the System probe reads `/proc/config.gz` (task 5).
 
 **Check before committing.** `du -sh captures/abi captures/kernel captures/gl captures/sdl` should be a few MB at most, and every file text. If anything is binary or over 5 MB, don't commit it; report the size instead.
 
@@ -75,7 +95,7 @@ Run `./cart pack` first if `out/yard.pak` is missing. **Look for:** `check_binar
 
 ## Task 4: stage the update, then ask (cabinet plugged in, read-only until approval)
 
-This puts the cart runtime, `orb`, the pack, the LÖVE bundle, and two new menu rows ("LOVE probe" and "GPU yard") into one plan.
+This puts the cart runtime, `orb`, the pack, the LÖVE bundle, and three new menu rows ("LOVE probe", "GPU yard", "System probe") into one plan. The System probe is a read-only shell script (`games/sysprobe/sysprobe.sh`; read it before staging) that records what the running Linux sees.
 
 **4a. The user cold-plugs.** Tell them exactly this: "Unplug the cabinet's power and the Micro-USB cable. Put the back switch to OFF. Plug in only the Micro-USB cable to the PC." Then:
 
@@ -92,17 +112,17 @@ tools/rk_restore.py diff $D/nand_raw.bin            # must say none
 
 ```bash
 cd games
-./cart deploy --raw $D/nand_raw.bin --out $D/stage --first --with-love-probe
+./cart deploy --raw $D/nand_raw.bin --out $D/stage --first --with-love-probe --with-sysprobe
 cat $D/stage/PLAN.md
 ```
 
-* If it stops with **"no physical copy"**, the new files landed on pages SFTL has never written. Write down the output and stop task 4. Don't try other flags. The next cloud session will decide, and the fallback is the microSD card (task 7).
+* If it stops with **"no physical copy"**, the new files landed on pages SFTL has never written. Write down the output, then try once without the big file: the same command without `--with-love-probe` (the cart runtime and the System probe only). If that stages, carry on with it and say so in the report; LÖVE then waits for the microSD card. If it also fails, stop task 4.
 * If `--first` fails because the old games are already gone (a deploy was done since this file was written), write that down and stop.
 * Otherwise `PLAN.md` lists the files and the blocks.
 
 **4c. Ask the user.** Paste the file list and the block list from `PLAN.md`, and say:
 
-> This writes these N blocks of the `data` partition: [list]. It replaces Keep, Lamp, Tea, and Chest's separate programs with one cart runtime, adds the LÖVE bundle (4 MB, unpacked by the cabinet on first run to 9 MB), and adds two test rows to The Yard. If anything goes wrong, those same blocks come back from `$D/nand_raw.bin` with `rk_restore.py restore`. Do you approve writing exactly these blocks?
+> This writes these N blocks of the `data` partition: [list]. It replaces Keep, Lamp, Tea, and Chest's separate programs with one cart runtime, adds the LÖVE bundle (4 MB, unpacked by the cabinet on first run to 9 MB), and adds three test rows to The Yard: two for the GPU, and a System probe that only reads and writes a report file. If anything goes wrong, those same blocks come back from `$D/nand_raw.bin` with `rk_restore.py restore`. Do you approve writing exactly these blocks?
 
 Wait for a written yes that names or quotes the list. Then:
 
@@ -114,16 +134,18 @@ tools/rk_restore.py diff $D/stage/nand_raw_patched.bin      # must say none
 
 Record: the device number, the plug, the block list, the approval text, and both `diff` results.
 
-## Task 5: the user plays (cabinet on its own, no PC)
+## Task 5: the user plays and probes (cabinet on its own; the PC only watches USB)
 
-Tell the user: "Unplug the Micro-USB. Switch ON, then power. Open Dig Dug II (The Yard). Then:"
+Tell the user: "Unplug the Micro-USB. Switch ON, then power. Open Dig Dug II (The Yard). The list now scrolls: push the stick down past Chest for the new rows. Then:"
 
-1. **The Yard**: the menu shows Keep, Lamp, Orb, Tea, Chest, LOVE probe, GPU yard. Play each of the five games for a minute. Note anything slow, wrong, or silent.
+1. **The Yard**: Keep, Lamp, Orb, Tea, Chest, then LOVE probe, GPU yard, System probe (arrows at the right edge mean more rows). Play each of the five games for a minute. Note anything slow, wrong, or silent.
 2. **LOVE probe**: the first time it takes up to a minute (it unpacks 9 MB). Then a test card cycles through its loads for about a minute. **When it says "press every button", press each button and push the stick in all four directions, one at a time, within ten seconds.** It quits on its own. Note what was on screen, whether the picture was the right way up, and whether you heard a beep.
 3. **GPU yard**: the same menu on the GPU. Open Keep, Lamp, Tea, and Chest for a minute each; hold 1-player and 2-player to go back. Note smoothness compared with the normal Yard, and anything that looks different.
-4. Hold 1-player and 2-player in the GPU menu to leave, then switch OFF **from the stock menu** (not mid-game), so the logs are flushed.
+4. **System probe, with things to plug in.** Have the USB stick and the microSD card ready. Open System probe. The screen stays dark for about two minutes; that is normal. **About 30 seconds after opening it**, put the microSD card in the slot, wait 10 seconds, put the USB stick in the USB-A port, wait 10 seconds, then take both out. Then wait for the menu to come back. Nothing is expected to show up yet, because both ports are still switched off in the device tree; this run is the "before" picture.
+5. **The Micro-USB port while it runs.** With the cabinet on and in the menu, plug the Micro-USB cable into the PC. The agent runs `lsusb` and `dmesg | tail -20` on the PC and records both. Expected: nothing, because the port is in host mode. Then unplug it.
+6. Leave the GPU menu or the Yard with 1-player and 2-player, then switch OFF **from the stock menu** (not mid-game), so the logs are flushed.
 
-Write the user's notes into the report word for word.
+Write the user's notes into the report word for word, with the rough time they plugged each thing in.
 
 ## Task 6: read the results back (cabinet plugged in, read-only)
 
@@ -136,22 +158,75 @@ tools/rk.py state && tools/rk.py boot --plug plug_3032slc
 tools/rk.py rawdump -o $D2/nand_raw.bin --verify
 python3 tools/sftl_rebuild.py $D2/nand_raw.bin $D2/logical.img
 dd if=$D2/logical.img of=$D2/data.img bs=512 skip=$((0x22c00)) count=$((0xf000))
-mkdir -p captures/love
+mkdir -p captures/love captures/sysprobe
 for f in love-probe.txt love-probe.log love-yard.log yard.log; do
   debugfs -R "dump /Games/$f captures/love/$f" $D2/data.img
 done
+for n in 1 2 3 4 5; do debugfs -R "dump /Games/sysprobe-$n.txt captures/sysprobe/before-$n.txt" $D2/data.img; done
 debugfs -R "ls -l /Games" $D2/data.img > captures/love/games-ls.txt
 debugfs -R "ls -l /love" $D2/data.img > captures/love/love-ls.txt
-ls -l captures/love
+# The partitions as our tools see them, to compare with the checksums Linux printed in the probe report.
+python3 - $D2/logical.img > captures/sysprobe/partition-sums.txt <<'PY'
+import hashlib, json, sys
+img = open(sys.argv[1], "rb")
+for p in json.load(open("captures/partitions.json"))["partitions"]:
+    img.seek(p["offset"] * 512)
+    print(f"{p['name']}: offset {p['offset']}, {p['sectors']} sectors, sha256 {hashlib.sha256(img.read(p['sectors'] * 512)).hexdigest()}")
+PY
+ls -l captures/love captures/sysprobe
 ```
 
 Missing files are results too: write down which ones didn't exist. If `debugfs` says the filesystem is damaged (a power cut), add `-c` to read it anyway, and say so.
 
-**Commit** `captures/love/*` (text only; check with `file captures/love/*`) and the report. Add a line to STATUS.md "Pickup" saying what is now on the cabinet, with the dump paths and sha256s of `$D/nand_raw.bin`, `$D/stage/nand_raw_patched.bin`, and `$D2/nand_raw.bin`. Append a dated section to BOOT_RESEARCH.md with device numbers and commands. Then ask the user to push.
+**Before committing the probe report,** read it and remove anything private: it has no passwords, but if a line shows a serial number of the user's own USB stick or card, replace it with `<serial>`. Commit `captures/love/*` and `captures/sysprobe/*` (text only; check with `file`) and the report. In the report, compare each `/dev/...` checksum in the probe's "checksums" section with `partition-sums.txt`, and say which partitions match.
 
-## Task 7: the SD slot and ADB (a separate session, only after the user asks)
+Add a line to STATUS.md "Pickup" saying what is now on the cabinet, with the dump paths and sha256s of `$D/nand_raw.bin`, `$D/stage/nand_raw_patched.bin`, and `$D2/nand_raw.bin`. Append a dated section to BOOT_RESEARCH.md with device numbers and commands. Then ask the user to push, and stop: the next cloud session reads these before task 7.
 
-This is a write to the `boot` partition, which is riskier than a `data` write: a bad device tree means a cabinet that doesn't boot until those blocks are restored over USB. Don't start it on your own. When the user asks, follow [GAMEDEV.md](GAMEDEV.md) § 11 with `--which sd,adb`, and [RUNBOOK.md](RUNBOOK.md) Phase 4. Before asking for approval, explain that risk and the restore path in plain words.
+## Task 7: turn on the SD slot, USB-A, and ADB, then test them (only when the user asks)
+
+This writes the `boot` partition, which is riskier than a `data` write: if the new device tree is bad, the cabinet won't start its games until those same blocks are restored over Micro-USB in Mask ROM, as every write so far could be. Don't start it on your own. Before asking for approval, explain that risk and that restore path in plain words.
+
+**7a. Stage the boot change** (cold plug as 4a, with `plug_3032slc_erase`). Follow [GAMEDEV.md](GAMEDEV.md) § 11 exactly, with `--which sd,usb,adb`. `enable_storage.py report` on the result must show `dwmmc@10214000` and `usb@101c0000` as `okay` and `usb@10180000` with `dr_mode` `otg`, and nothing else changed. `sftl_patch.py --part boot` prints the blocks. Get written approval for exactly that list, restore those blocks, and `diff` against the patched image: none. Record everything as in task 4.
+
+**7b. Does it boot?** The user: Micro-USB out, switch ON, power. Does the stock menu appear, and does The Yard open? If not: power off, and go straight to restoring the same blocks from `$D/nand_raw.bin` (cold plug, `plug_3032slc_erase`, written approval for that restore). Write down exactly what the screen showed.
+
+**7c. Prepare the card on the PC.** Find the card's device with `lsblk` before and after inserting it, and **check the size matches the card. A wrong device name here erases the PC's own disk.** Then, with `/dev/sdX` the card:
+
+```bash
+sudo parted -s /dev/sdX mklabel msdos mkpart primary fat32 1MiB 1GiB mkpart primary ext2 1GiB 2GiB
+sudo mkfs.vfat -F 32 -n YARD /dev/sdX1
+sudo mkfs.ext2 -L yardx /dev/sdX2
+sudo mount /dev/sdX1 /mnt && echo hello-fat | sudo tee /mnt/hello.txt && sudo dd if=/dev/urandom of=/mnt/big.bin bs=1M count=64 && sha256sum /mnt/big.bin && sudo umount /mnt
+sudo mount /dev/sdX2 /mnt && echo hello-ext2 | sudo tee /mnt/hello.txt && sudo umount /mnt
+```
+
+Record `big.bin`'s sha256. (The 64 MB file is for a read-speed number; the probe reads it with `dd`.)
+
+**7d. The "after" probes.** Cabinet on, card **out**, nothing in USB-A. Open System probe and, about 30 seconds in:
+
+1. put in the card; wait 15 s;
+2. put in the USB stick; wait 15 s; take it out;
+3. put in the Wi-Fi adapter; wait 20 s; leave it in.
+
+Let the menu come back. Run System probe a second time with the card, the stick, and the adapter all in from the start, and plug nothing during it.
+
+**7e. ADB.** Cabinet on, at the menu, switch ON. Micro-USB to the PC. On the PC:
+
+```bash
+lsusb; dmesg | tail -20
+adb devices
+adb shell id
+adb shell cat /proc/partitions /proc/mounts
+adb shell 'ls -l /mnt /media /udisk; cat /proc/mounts | grep -i -e mmc -e sd'
+adb shell 'time dd if=/mnt/sdcard/big.bin of=/dev/null bs=1M' 2>&1   # use the card's mount point from the line above
+adb shell 'dd if=/dev/zero of=/mnt/sdcard/w.bin bs=1M count=32 && sync && rm /mnt/sdcard/w.bin' 2>&1
+adb shell 'for d in /sys/bus/usb/devices/*; do [ -e $d/idVendor ] && echo $d $(cat $d/idVendor):$(cat $d/idProduct) $(cat $d/product 2>/dev/null); done'
+adb pull /data/Games/ captures/sysprobe-after/   # then keep only the sysprobe-*.txt files
+```
+
+Only reads, apart from the 32 MB test file on the card, which it removes. Don't change anything else over ADB in this task, however easy it looks: no remounts, no writes to `/data` or any partition. If `adb devices` shows nothing, record `lsusb` and `dmesg` and carry on: task 6's way of reading the reports still works.
+
+**7f. Read back and report.** If ADB worked, the probe reports are already pulled; otherwise read them back as in task 6 (as `after-N.txt`). Also note the Wi-Fi adapter's make and model as printed on it. Commit `captures/sysprobe/` and the report, and ask the user to push.
 
 ---
 
