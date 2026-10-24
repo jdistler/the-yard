@@ -1,6 +1,6 @@
 # Tea: a unicorn, a castle, and the cats
 
-Built in `games/tea/tea.c`. The Yard lists it under Orb, blurb "tea with the cats." `games/stress.sh` plays the checks at the bottom of this note. It is not on the cabinet.
+Built in `games/tea/tea.c`. The Yard lists it under Orb, blurb "tea with the cats." `games/stress.sh` plays the checks at the bottom of this note. It is on the cabinet, on the Yard row under Orb, as of the 2026-10-23 22:00 flash.
 
 Audience is a four-year-old, in short turns, on the Partycade. She said: a unicorn is flying to a tea party at the princess castle, the party is full of kitty cats, and you play with them and take care of them. The game is that sentence, played with one hand if that is all she uses.
 

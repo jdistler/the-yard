@@ -117,12 +117,13 @@ games/
   lamp/lamp.c            sample: carry a light, wake seven stars, lamp.sav
   orb/orb.c              sample: a lit room in OpenGL ES 2. Reads a card file named label
   tea/tea.c              a unicorn, a castle, and three cats. tea.sav is visits and gifts. Spec: tea/DESIGN.md
-  yard/yard.c            the menu behind Dig Dug II. Launches keep, lamp, orb, or tea. yard.sav is the highlighted row
+  chest/chest.c          a person, a key, a chest, and Zam. chest.sav is gems. Spec: chest/DESIGN.md
+  yard/yard.c            the menu behind Dig Dug II. Launches keep, lamp, orb, tea, or chest. yard.sav is the highlighted row
   check.sh               PC self-test: probe quits, scores, Yard launches Keep, framebuffer rotation
   play.sh                PC play-through on the real buttons: catch, miss, wake the stars, the room, the card, check the saves and the pictures
-  stress.sh              longer PC pass: records, edges, quit, every Yard row, Orb, and Tea
+  stress.sh              longer PC pass: records, edges, quit, every Yard row, Orb, Tea, and Chest
   stage_game.py          build (if needed) and patch a raw dump. Does not flash
-  Makefile               TARGET=pc or TARGET=cab; GAMES := probe keep lamp yard orb tea
+  Makefile               TARGET=pc or TARGET=cab; GAMES := probe keep lamp yard orb tea chest
   build.sh pc|cab|all    cab builds in Docker against the extracted rootfs, then runs check_binary.sh
   check_binary.sh        armhf, every NEEDED lib in the rootfs, GLIBC <= 2.29, GLIBCXX <= 3.4.22
 ```
@@ -132,7 +133,7 @@ games/
 * Draw in upright pixels. A 240×320 frame scales evenly onto the 768×1024 panel. `cab_init` takes that upright size. The cabinet build rotates it in `cab_present`. Do not rotate again inside the game.
 * Smoke-test the ARM build without the cabinet (`qemu-arm-static` is in `~/.local/bin`):
   `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy PROBE_SELFTEST=1 CAB_SCREENSHOT=/tmp/s.bmp qemu-arm-static -L $ROOTFS out/cab/probe` must exit 0 within a few seconds (the self-test presses the lower button, then holds select+start).
-* Tile 10 on the cabinet is The Yard (`GAME_NAME=yard`, plus `keep` and `lamp`). That flashed build has two rows. The working tree adds Orb, then Tea under it, and a pocket mark when a card is present. That build has not been flashed. The old probe binary is still sitting in `/data/Games/probe` and is not what the tile launches. Undo of The Yard is a restore of blocks 404, 405, 860, 861, 866, 867, 878, 879, 884, 885 from `~/partycade-dumps/2026-10-23_yard/nand_raw.bin`.
+* Tile 10 on the cabinet is The Yard (`GAME_NAME=yard`) with Keep, Lamp, Orb, Tea, and Chest, flashed 2026-10-23 22:00. Blocks 372, 373, 404, 405, 860, 861, 878, 879, 884, 885. Undo of that write is a restore of those blocks from `~/partycade-dumps/2026-10-23_yard5/nand_raw.bin`. The old probe binary is still sitting in `/data/Games/probe` and is not what the tile launches.
 * To stage the next game, from a **fresh** `rawdump` taken in the session you will write in:
 
 ```

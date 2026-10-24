@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Play Keep, Lamp, Orb, Tea, and The Yard past the happy path. Headless. No cabinet.
+# Play Keep, Lamp, Orb, Tea, Chest, and The Yard past the happy path. Headless. No cabinet.
 set -euo pipefail
 cd "$(dirname "$0")"
 make -s TARGET=pc
@@ -269,20 +269,24 @@ yard += [
     "19 down DOWN", "20 up DOWN",
     f"23 shot {out}/yard-row3.bmp",
     "25 down DOWN", "26 up DOWN",
-    f"29 shot {out}/yard-wrap0.bmp",
-    "31 down UP", "32 up UP",
-    f"35 shot {out}/yard-wrap3.bmp",
+    f"29 shot {out}/yard-row4.bmp",
+    "31 down DOWN", "32 up DOWN",
+    f"35 shot {out}/yard-wrap0.bmp",
     "37 down UP", "38 up UP",
-    "40 down LOW", "41 up LOW",
-    f"44 shot {out}/yard-after-orb.bmp",
-    "46 down DOWN", "47 up DOWN",
-    "48 down DOWN", "49 up DOWN",
-    "52 down LOW", "53 up LOW",
-    f"56 shot {out}/yard-after-keep.bmp",
+    f"41 shot {out}/yard-wrap4.bmp",
+    "43 down UP", "44 up UP",
+    "46 down UP", "47 up UP",
+    "49 down LOW", "50 up LOW",
+    f"53 shot {out}/yard-after-orb.bmp",
+    "55 down DOWN", "56 up DOWN",
     "58 down DOWN", "59 up DOWN",
-    "62 down LOW", "63 up LOW",
-    f"66 shot {out}/yard-after-lamp.bmp",
-    "68 quit",
+    "61 down DOWN", "62 up DOWN",
+    "64 down LOW", "65 up LOW",
+    f"68 shot {out}/yard-after-keep.bmp",
+    "70 down DOWN", "71 up DOWN",
+    "73 down LOW", "74 up LOW",
+    f"77 shot {out}/yard-after-lamp.bmp",
+    "79 quit",
 ]
 # One catch inside Keep, then back. Lamp lights all seven. Orb draws and leaves.
 kholds, kscore, kcatch, _ = keep_run(False, 1, "quit")
@@ -377,7 +381,7 @@ def gold(x, y):
 y = 116 + row * 36
 if not gold(20, y):
     raise SystemExit(f"{path}: lantern not on row {row} {pix(20, y)}")
-for other in range(4):
+for other in range(5):
     if other != row and gold(20, 116 + other * 36):
         raise SystemExit(f"{path}: lantern also on row {other}")
 print(f"{path}: lantern on row {row}")
@@ -598,8 +602,9 @@ gold_row "$out/yard-row0.bmp" 0
 gold_row "$out/yard-row1.bmp" 1
 gold_row "$out/yard-row2.bmp" 2
 gold_row "$out/yard-row3.bmp" 3
+gold_row "$out/yard-row4.bmp" 4
 gold_row "$out/yard-wrap0.bmp" 0
-gold_row "$out/yard-wrap3.bmp" 3
+gold_row "$out/yard-wrap4.bmp" 4
 gold_row "$out/yard-after-orb.bmp" 2
 gold_row "$out/yard-after-keep.bmp" 0
 gold_row "$out/yard-after-lamp.bmp" 1
@@ -1108,6 +1113,288 @@ if not (160 < r < 210 and 140 < g < 190 and b > 200):
     raise SystemExit("Nib is not on her cushion")
 PY
 echo "tea played"
+
+echo "== chest, the path before anyone presses =="
+cat > "$tmp/chest-idle.cab" << EOF
+title=Chest
+6 shot $out/chest-idle.bmp
+8 quit
+EOF
+mkdir -p "$tmp/chest-idle"
+( cd "$tmp/chest-idle" && CAB_SCRIPT="$tmp/chest-idle.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=20 "$root/out/pc/chest" >"$out/chest-idle.log" 2>&1 )
+python3 - "$out/chest-idle.bmp" << 'PY'
+import struct, sys
+def pix(path, x, y):
+    d = open(path, "rb").read()
+    off = struct.unpack_from("<I", d, 10)[0]
+    w, h = struct.unpack_from("<ii", d, 18)
+    H = abs(h)
+    bpp = struct.unpack_from("<H", d, 28)[0] // 8
+    stride = (abs(w) * bpp + 3) & ~3
+    row = (H - 1 - y) if h > 0 else y
+    i = off + row * stride + x * bpp
+    return d[i + 2], d[i + 1], d[i]
+def gold(c):
+    return c[0] > 220 and 160 < c[1] < 220 and c[2] < 110
+def wood(c):
+    return 170 < c[0] < 220 and 110 < c[1] < 160 and c[2] < 100
+def cape(c):
+    return c[0] < 80 and 80 < c[1] < 140 and 140 < c[2] < 190
+def cream(c):
+    return c[0] > 240 and c[1] > 230 and c[2] > 210
+key, ned, chest, beam = pix(sys.argv[1], 128, 348), pix(sys.argv[1], 200, 436), pix(sys.argv[1], 158, 190), pix(sys.argv[1], 192, 215)
+print(f"idle key {key} ned {ned} chest {chest} beam {beam}")
+if not gold(key):
+    raise SystemExit("the key is not glowing")
+if not cape(ned):
+    raise SystemExit("Ned is not on the path")
+if not wood(chest):
+    raise SystemExit("the chest is not there")
+if not cream(beam):
+    raise SystemExit("a laser is on screen before a press")
+PY
+
+echo "== chest, the stick moves him =="
+cat > "$tmp/chest-move.cab" << EOF
+title=Chest
+0 down LEFT
+12 shot $out/chest-move.bmp
+14 quit
+EOF
+mkdir -p "$tmp/chest-move"
+( cd "$tmp/chest-move" && CAB_SCRIPT="$tmp/chest-move.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=30 "$root/out/pc/chest" >"$out/chest-move.log" 2>&1 )
+python3 - "$out/chest-move.bmp" << 'PY'
+import struct, sys
+def pix(path, x, y):
+    d = open(path, "rb").read()
+    off = struct.unpack_from("<I", d, 10)[0]
+    w, h = struct.unpack_from("<ii", d, 18)
+    H = abs(h)
+    bpp = struct.unpack_from("<H", d, 28)[0] // 8
+    stride = (abs(w) * bpp + 3) & ~3
+    row = (H - 1 - y) if h > 0 else y
+    i = off + row * stride + x * bpp
+    return d[i + 2], d[i + 1], d[i]
+ned, chest, key = pix(sys.argv[1], 200, 436), pix(sys.argv[1], 158, 190), pix(sys.argv[1], 128, 348)
+print(f"moved ned {ned} chest {chest} key {key}")
+if ned[0] < 80 and 140 < ned[2] < 190:
+    raise SystemExit("Ned did not leave his start")
+if not (170 < chest[0] < 220 and chest[2] < 100):
+    raise SystemExit("the chest moved with him")
+if not (key[0] > 220 and key[2] < 110):
+    raise SystemExit("the key left the grass before he reached it")
+PY
+
+walk='0 down LEFT
+0 down UP
+40 up LEFT
+40 down RIGHT
+76 up RIGHT'
+
+echo "== chest, key, sword, laser, and a gem =="
+cat > "$tmp/chest-win.cab" << EOF
+title=Chest
+$walk
+23 shot $out/chest-key.bmp
+118 shot $out/chest-zam.bmp
+120 down LOW
+120 shot $out/chest-laser.bmp
+122 up LOW
+124 down LOW
+126 up LOW
+128 down LOW
+130 up LOW
+132 down LOW
+134 up LOW
+136 down LOW
+138 up LOW
+140 down LOW
+142 up LOW
+144 down LOW
+146 up LOW
+148 down LOW
+150 up LOW
+152 down LOW
+154 up LOW
+280 shot $out/chest-back.bmp
+290 quit
+EOF
+mkdir -p "$tmp/chest-win"
+( cd "$tmp/chest-win" && CAB_SCRIPT="$tmp/chest-win.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=400 "$root/out/pc/chest" >"$out/chest-win.log" 2>&1 )
+grep -q "chest key 23" "$out/chest-win.log"
+grep -q "chest pop 76" "$out/chest-win.log"
+grep -q "chest sword 115" "$out/chest-win.log"
+grep -q "chest mark 1" "$out/chest-win.log"
+grep -q "chest win 152" "$out/chest-win.log"
+grep -q "chest gems 1" "$out/chest-win.log"
+grep -q "chest say The key is back. Go on." "$out/chest-win.log"
+test "$(cat "$tmp/chest-win/chest.sav")" = "gems 1"
+python3 - "$out/chest-key.bmp" "$out/chest-zam.bmp" "$out/chest-laser.bmp" "$out/chest-back.bmp" << 'PY'
+import struct, sys
+def pix(path, x, y):
+    d = open(path, "rb").read()
+    off = struct.unpack_from("<I", d, 10)[0]
+    w, h = struct.unpack_from("<ii", d, 18)
+    H = abs(h)
+    bpp = struct.unpack_from("<H", d, 28)[0] // 8
+    stride = (abs(w) * bpp + 3) & ~3
+    row = (H - 1 - y) if h > 0 else y
+    i = off + row * stride + x * bpp
+    return d[i + 2], d[i + 1], d[i]
+key = pix(sys.argv[1], 128, 348)
+head, stache, spoon, guard = pix(sys.argv[2], 192, 100), pix(sys.argv[2], 170, 110), pix(sys.argv[2], 150, 64), pix(sys.argv[2], 192, 206)
+beam = pix(sys.argv[3], 192, 215)
+back, gem = pix(sys.argv[4], 128, 348), pix(sys.argv[4], 24, 28)
+print(f"key {key} beam {beam} head {head} stache {stache} spoon {spoon} guard {guard} back {back} gem {gem}")
+if not (100 < key[0] < 150 and key[1] > 180):
+    raise SystemExit("the key stayed in the grass")
+if not (beam[0] > 220 and beam[2] < 110):
+    raise SystemExit("the laser did not leave on the press")
+if not (head[0] > 220 and head[2] < 110):
+    raise SystemExit("Zam's head is not gold")
+if not (140 < stache[0] < 180 and stache[1] < 130 and stache[2] < 80):
+    raise SystemExit("the mustache is not there")
+if not (90 < spoon[0] < 150 and 100 < spoon[2] < 170):
+    raise SystemExit("the spoon bowl is not there")
+if not (140 < guard[0] < 180 and guard[2] < 80):
+    raise SystemExit("the sword is not in his hand")
+if not (back[0] > 220 and back[2] < 110):
+    raise SystemExit("the key did not come back")
+if not (gem[0] > 210 and 80 < gem[1] < 140 and 130 < gem[2] < 180):
+    raise SystemExit("the gem did not join the pile")
+PY
+
+echo "== chest, a gold wrap is the big pop =="
+cat > "$tmp/chest-big.cab" << EOF
+title=Chest
+$walk
+230 down LOW
+232 up LOW
+240 quit
+EOF
+mkdir -p "$tmp/chest-big"
+( cd "$tmp/chest-big" && CAB_SCRIPT="$tmp/chest-big.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=300 "$root/out/pc/chest" >"$out/chest-big.log" 2>&1 )
+grep -q "chest wrap 221" "$out/chest-big.log"
+grep -q "chest big" "$out/chest-big.log"
+if grep -q "chest win" "$out/chest-big.log"; then
+    echo "a single big pop ended the fight" >&2
+    exit 1
+fi
+
+echo "== chest, the blue star wraps him =="
+cat > "$tmp/chest-star.cab" << EOF
+title=Chest
+$walk
+426 down LEFT
+470 quit
+EOF
+mkdir -p "$tmp/chest-star"
+( cd "$tmp/chest-star" && CAB_SCRIPT="$tmp/chest-star.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=500 "$root/out/pc/chest" >"$out/chest-star.log" 2>&1 )
+grep -q "chest star 425" "$out/chest-star.log"
+grep -q "chest say The star wrapped him." "$out/chest-star.log"
+test "$(grep -c 'chest wrap' "$out/chest-star.log")" = 2
+
+echo "== chest, three hurts restart the fight =="
+cat > "$tmp/chest-hurt.cab" << EOF
+title=Chest
+$walk
+900 quit
+EOF
+mkdir -p "$tmp/chest-hurt"
+printf 'gems 4\n' > "$tmp/chest-hurt/chest.sav"
+( cd "$tmp/chest-hurt" && CAB_SCRIPT="$tmp/chest-hurt.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=950 "$root/out/pc/chest" >"$out/chest-hurt.log" 2>&1 )
+grep -q "chest hurt 1 538" "$out/chest-hurt.log"
+grep -q "chest hurt 2 688" "$out/chest-hurt.log"
+grep -q "chest hurt 3 838" "$out/chest-hurt.log"
+grep -q "chest restart 838" "$out/chest-hurt.log"
+test "$(cat "$tmp/chest-hurt/chest.sav")" = "gems 4"
+if grep -q "chest win" "$out/chest-hurt.log"; then
+    echo "a lost fight wrote a win" >&2
+    exit 1
+fi
+
+echo "== chest, the other two buttons shoot =="
+cat > "$tmp/chest-buttons.cab" << EOF
+title=Chest
+$walk
+120 down TL
+122 up TL
+124 down TR
+126 up TR
+130 quit
+EOF
+mkdir -p "$tmp/chest-buttons"
+( cd "$tmp/chest-buttons" && CAB_SCRIPT="$tmp/chest-buttons.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=200 "$root/out/pc/chest" >"$out/chest-buttons.log" 2>&1 )
+grep -q "chest mark 1" "$out/chest-buttons.log"
+grep -q "chest mark 2" "$out/chest-buttons.log"
+test "$(grep -c 'chest bolt' "$out/chest-buttons.log")" = 2
+
+echo "== chest, a button held from the start does not fire =="
+cat > "$tmp/chest-held.cab" << EOF
+title=Chest
+0 down LOW
+40 up LOW
+42 down LOW
+50 quit
+EOF
+mkdir -p "$tmp/chest-held"
+( cd "$tmp/chest-held" && CAB_SCRIPT="$tmp/chest-held.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=80 "$root/out/pc/chest" >"$out/chest-held.log" 2>&1 )
+test "$(grep -c 'chest bolt' "$out/chest-held.log")" = 1
+if grep -q "chest key" "$out/chest-held.log"; then
+    echo "a held button walked him onto the key" >&2
+    exit 1
+fi
+
+echo "== chest, 1P+2P leaves the gems =="
+cat > "$tmp/chest-quit.cab" << EOF
+title=Chest
+0 down 1P
+0 down 2P
+8 quit
+EOF
+mkdir -p "$tmp/chest-quit"
+( cd "$tmp/chest-quit" && CAB_SCRIPT="$tmp/chest-quit.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=80 "$root/out/pc/chest" >"$out/chest-quit.log" 2>&1 )
+grep -q "chest say The gems will stay." "$out/chest-quit.log"
+if grep -q "chest key" "$out/chest-quit.log"; then
+    echo "quitting picked up the key" >&2
+    exit 1
+fi
+if test -f "$tmp/chest-quit/chest.sav"; then
+    echo "quitting wrote a save" >&2
+    exit 1
+fi
+
+echo "== chest, a broken save opens empty =="
+cat > "$tmp/chest-tiny.cab" << EOF
+title=Chest
+4 quit
+EOF
+for bad in "not a save" "gems -4" "gems nope"; do
+    dir="$tmp/chest-bad"
+    rm -rf "$dir"
+    mkdir -p "$dir"
+    printf '%s\n' "$bad" > "$dir/chest.sav"
+    ( cd "$dir" && CAB_SCRIPT="$tmp/chest-tiny.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+        CAB_MAX_FRAMES=20 "$root/out/pc/chest" >"$out/chest-bad.log" 2>&1 )
+    grep -q "chest gems 0" "$out/chest-bad.log"
+    echo "rejected $bad"
+done
+mkdir -p "$tmp/chest-huge"
+printf 'gems 1000001\n' > "$tmp/chest-huge/chest.sav"
+( cd "$tmp/chest-huge" && CAB_SCRIPT="$tmp/chest-tiny.cab" CAB_SCRIPT_LOG=1 CAB_SCALE=1 \
+    CAB_MAX_FRAMES=20 "$root/out/pc/chest" >"$out/chest-huge.log" 2>&1 )
+grep -q "chest gems 100000" "$out/chest-huge.log"
+echo "a huge gem count stays at 100000"
+echo "chest played"
 
 echo "== play.sh =="
 ./play.sh

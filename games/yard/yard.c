@@ -15,9 +15,9 @@
 
 static const SDL_Color INK = {236, 230, 210, 255}, DIM = {130, 132, 150, 255}, GOLD = {255, 210, 90, 255};
 
-static const char *ids[] = {"keep", "lamp", "orb", "tea"};
-static const char *titles[] = {"KEEP", "LAMP", "ORB", "TEA"};
-static const char *blurbs[] = {"catch what falls", "wake the stars", "dive the well", "tea with the cats"};
+static const char *ids[] = {"keep", "lamp", "orb", "tea", "chest"};
+static const char *titles[] = {"KEEP", "LAMP", "ORB", "TEA", "CHEST"};
+static const char *blurbs[] = {"catch what falls", "wake the stars", "dive the well", "tea with the cats", "key and the spoons"};
 #define N (int)(sizeof ids / sizeof ids[0])
 
 static int row, pocket;

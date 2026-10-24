@@ -69,6 +69,8 @@ Toddlers are below this panel. A joystick study of children 17 to 35 months foun
 
 A four-year-old is a further loosening, the little band. Any stick direction does the one useful thing, every right-hand button does the verb, and a turn has no fail state. The first game in that band is the tea party, specified in [games/tea/DESIGN.md](games/tea/DESIGN.md). The button places stay the same.
 
+A five-year-old who can already steer is still the walk-up band. The stick moves a body, `LOW` is the one bolt, and the other right-hand buttons fire it too. A soft restart is allowed when he asked to start over, and it restarts the round he lost, with the toy still in his hands. That game is the chest, specified in [games/chest/DESIGN.md](games/chest/DESIGN.md).
+
 Age never changes these:
 
 * The stick is move or aim for the whole game.
