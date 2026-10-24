@@ -516,6 +516,22 @@ def system():
     check("yard open sysprobe" in r.stdout + r.stderr, "the menu scrolls to its eighth row and opens it")
     check(busy(shot) > 8, "the scrolled menu draws a picture")
     shutil.rmtree(mshelf, ignore_errors=True)
+    # The log a play test on the cabinet leaves behind (/data/Games/yard.log there; YARD_LOG here).
+    lshelf = tmpdir()
+    logp = os.path.join(lshelf, "yard.log")
+    open(os.path.join(lshelf, "s.cab"), "w").write("title=The Yard\n40 down DOWN\n41 up DOWN\n60 down LOW\n61 up LOW\n")
+    open(logp, "w").write("x" * (300 * 1024))   # an old, full log moves to yard.log.1
+    subprocess.run([yard], cwd=lshelf, capture_output=True, text=True, timeout=300,
+                   env={**os.environ, "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy", "CAB_SCALE": "1",
+                        "CAB_SCRIPT": os.path.join(lshelf, "s.cab"), "CAB_MAX_FRAMES": "700", "YARD_LOG": logp,
+                        "YARD_STATS": "1", "YARD_CARTS": os.path.join(HERE, "carts")})
+    text = read(lshelf, "yard.log") or ""
+    check(all(k in text for k in ("yard: start the menu", "cab: The Yard: video", "cab: audio", "yard open lamp",
+                                  "yard: start lamp", "stats lamp frame 300", "lamp night 1")),
+          "the log keeps each start's facts, the cart opened, frame times, and the cart's own lines")
+    check(os.path.getsize(os.path.join(lshelf, "yard.log.1")) == 300 * 1024 and len(text) < 64 * 1024,
+          "a log over 256 KB moves to yard.log.1 and a new one starts")
+    shutil.rmtree(lshelf, ignore_errors=True)
     r = subprocess.run(["sh", "-n", os.path.join(HERE, "sysprobe", "sysprobe.sh")], capture_output=True, text=True)
     check(r.returncode == 0, "the System probe script parses (sh -n)")
     shutil.rmtree(shelf, ignore_errors=True)

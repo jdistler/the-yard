@@ -1291,12 +1291,47 @@ static void open_yard_table(lua_State *L)
 
 /* ------------------------------------------------------------------ main */
 
+/* The log. On the cabinet it is /data/Games/yard.log, so a play test leaves a trace to read back from a
+ * dump: what each process found at start, each cart opened, and the frame times every 300 frames. Over
+ * 256 KB it moves to yard.log.1 and starts again. YARD_LOG names another file (on the PC too). */
+static void open_log(void)
+{
+    const char *path = getenv("YARD_LOG");
+    char old[600];
+    struct stat st;
+    FILE *f;
+#ifdef CAB_CABINET
+    if (!path || !*path)
+        path = "/data/Games/yard.log";
+    setenv("YARD_STATS", "1", 0);
+#endif
+    if (!path || !*path)
+        return;
+    if (stat(path, &st) == 0 && st.st_size > 256 * 1024) {
+        snprintf(old, sizeof old, "%s.1", path);
+        rename(path, old);
+    }
+    cab_log_open(path);
+    f = fopen("/proc/meminfo", "r");
+    if (f) {
+        char line[128];
+        long avail = -1, total = -1;
+        while (fgets(line, sizeof line, f)) {
+            sscanf(line, "MemTotal: %ld", &total);
+            sscanf(line, "MemAvailable: %ld", &avail);
+        }
+        fclose(f);
+        cab_log("yard: pid %d, memory %ld kB of %ld kB available", (int)getpid(), avail, total);
+    }
+}
+
 int main(int argc, char **argv)
 {
     const char *want = NULL;
     int check = 0;
     cart_t *c;
     find_self();
+    open_log();
     fast = cab_fast(argc, argv);
     if (getenv("YARD_MEM_MB") && atoi(getenv("YARD_MEM_MB")) > 0)
         mem_cap = (size_t)atoi(getenv("YARD_MEM_MB")) << 20;
@@ -1326,6 +1361,7 @@ int main(int argc, char **argv)
             want = base;
     }
     scan_carts();
+    cab_log("yard: start %s, %d carts", want ? want : "the menu", ncarts);
     if (want) {
         c = find_cart(want);
         if (!c) {

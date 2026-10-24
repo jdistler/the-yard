@@ -20,6 +20,15 @@ The goal: games stored on a microSD card, and later a USB Wi-Fi adapter on the U
 
 From those answers the next cloud session decides the Wi-Fi route: a driver already in the kernel plus firmware and `wpa_supplicant` on the card (no flash write beyond `data`), or a rebuilt kernel (one more `boot` write).
 
+**What the tests leave behind.** Nothing on the cabinet needs a person to read a screen or copy numbers. Every test writes a file in `/data/Games`, the agent reads it out of a fresh dump (task 6) or pulls it over ADB (task 7), commits the text under `captures/`, and the next cloud session analyses it, the same way the controls probe's `probe.log` gave the button map.
+
+| File on the cabinet | Written by | When | What it holds |
+| :--- | :--- | :--- | :--- |
+| `yard.log` (and `yard.log.1`, the older half, past 256 KB) | The cart runtime, every time it runs | Automatically, from the moment Dig Dug II opens The Yard | Each start's facts (screen mode, renderer, joystick name with its button, axis, and hat counts, audio, free memory), each game opened, frame times every 5 seconds, and every game's own log lines |
+| `love-probe.txt`, `love-probe.log` | The LOVE probe row | When opened | GPU limits and formats, frame times, Lua speed, sound, every button the deck sent during "press every button" |
+| `love-yard.log` | The GPU yard row | When opened | Each game opened, frame times, and the games' log lines, from the GPU runtime |
+| `sysprobe-1.txt`, `-2.txt`, ... | The System probe row | When opened (each run adds a file) | Drivers, flash devices and checksums, USB and card devices, power, tools, and what appeared while things were plugged in |
+
 **Things the user needs on hand by task 7:** a microSD card of 32 GB or less (SDHC), a USB stick, any USB Wi-Fi adapter they own (its chip gets identified; it need not work yet), and `adb` on the PC (`sudo apt install adb`, or the platform-tools zip).
 
 Read [AGENTS.md](AGENTS.md), [STATUS.md](STATUS.md), [RUNBOOK.md](RUNBOOK.md), and [RECOVERY.md](RECOVERY.md) first. Every rule there still holds. The ones that matter most here:
@@ -159,7 +168,7 @@ tools/rk.py rawdump -o $D2/nand_raw.bin --verify
 python3 tools/sftl_rebuild.py $D2/nand_raw.bin $D2/logical.img
 dd if=$D2/logical.img of=$D2/data.img bs=512 skip=$((0x22c00)) count=$((0xf000))
 mkdir -p captures/love captures/sysprobe
-for f in love-probe.txt love-probe.log love-yard.log yard.log; do
+for f in love-probe.txt love-probe.log love-yard.log yard.log yard.log.1; do
   debugfs -R "dump /Games/$f captures/love/$f" $D2/data.img
 done
 for n in 1 2 3 4 5; do debugfs -R "dump /Games/sysprobe-$n.txt captures/sysprobe/before-$n.txt" $D2/data.img; done
@@ -177,6 +186,8 @@ ls -l captures/love captures/sysprobe
 ```
 
 Missing files are results too: write down which ones didn't exist. If `debugfs` says the filesystem is damaged (a power cut), add `-c` to read it anyway, and say so.
+
+`yard.log` should start with `yard: pid ..., memory ...` and `cab: The Yard: video KMSDRM, display 1024x768 ...`, and have `stats <cart> frame ...` lines for each game played: those are the first frame times measured on the cabinet. Copy the `cab:` lines and a few `stats` lines per game into the report.
 
 **Before committing the probe report,** read it and remove anything private: it has no passwords, but if a line shows a serial number of the user's own USB stick or card, replace it with `<serial>`. Commit `captures/love/*` and `captures/sysprobe/*` (text only; check with `file`) and the report. In the report, compare each `/dev/...` checksum in the probe's "checksums" section with `partition-sums.txt`, and say which partitions match.
 

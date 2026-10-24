@@ -113,6 +113,7 @@ static void open_joysticks(void)
 }
 
 static void script_load(void);
+static void log_info(const char *title, int use_gl);
 
 int cab_rotate_on(void) { return rotate_fb; }
 
@@ -210,6 +211,7 @@ int cab_video_init(const char *title, int logical_w, int logical_h, int use_gl)
     }
     SDL_ShowCursor(SDL_DISABLE);
     open_joysticks();
+    log_info(title, use_gl);
     snprintf(sc_title, sizeof sc_title, "%s", title ? title : "");
     script_load();
     return 0;
@@ -765,6 +767,8 @@ int cab_audio_open(void (*fill)(void *ud, Sint16 *out, int frames), void *ud)
         cab_log("SDL_OpenAudio: %s", SDL_GetError());
         return -1;
     }
+    if (log_file)
+        cab_log("cab: audio %s, %d Hz", SDL_GetCurrentAudioDriver(), want.freq);
     SDL_PauseAudio(0);
     return 0;
 }
@@ -871,7 +875,29 @@ void cab_present(void)
 
 void cab_log_open(const char *path)
 {
-    log_file = fopen(path, "a");
+    /* "e": a game the menu starts must not inherit this descriptor; it opens its own. */
+    log_file = fopen(path, "ae");
+}
+
+/* What this process found when it opened the screen: the facts a play test on the cabinet
+ * needs afterwards, read back from the log. Only written when there is a log file. */
+static void log_info(const char *title, int use_gl)
+{
+    SDL_DisplayMode m;
+    SDL_RendererInfo ri;
+    if (!log_file)
+        return;
+    if (SDL_GetCurrentDisplayMode(0, &m) == 0)
+        cab_log("cab: %s: video %s, display %dx%d @ %d Hz, format 0x%x", title ? title : "?",
+                SDL_GetCurrentVideoDriver(), m.w, m.h, m.refresh_rate, (unsigned)m.format);
+    if (!use_gl && cab_renderer && SDL_GetRendererInfo(cab_renderer, &ri) == 0)
+        cab_log("cab: renderer %s, flags 0x%x, max texture %dx%d", ri.name, (unsigned)ri.flags,
+                ri.max_texture_width, ri.max_texture_height);
+    cab_log("cab: %d joysticks", SDL_NumJoysticks());
+    for (int i = 0; i < SDL_NumJoysticks() && i < CAB_PLAYERS; i++)
+        if (joy[i])
+            cab_log("cab: joystick %d '%s': %d buttons, %d axes, %d hats", i, SDL_JoystickName(joy[i]),
+                    SDL_JoystickNumButtons(joy[i]), SDL_JoystickNumAxes(joy[i]), SDL_JoystickNumHats(joy[i]));
 }
 
 /* ext2 has no journal. The file fsync makes the bytes durable; the directory
@@ -1123,5 +1149,6 @@ void cab_log(const char *fmt, ...)
         vfprintf(log_file, fmt, ap);
         va_end(ap);
         fputc('\n', log_file);
+        fflush(log_file); /* a power cut keeps every line already logged */
     }
 }

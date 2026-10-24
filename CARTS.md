@@ -416,6 +416,7 @@ title=Bubbles
 301 quit
 ```
 
+* **On the cabinet, the log is a file.** The runtime appends to `/data/Games/yard.log` (moved to `yard.log.1` past 256 KB, flushed every line): what each start found (screen mode, renderer, joystick and its button count, audio, free memory), each cart opened, frame times every 300 frames, and every `log()` line. A play test leaves it behind, and FIELD_TASKS.md task 6 reads it back from a dump. `YARD_LOG=FILE` does the same on the PC.
 * **`./cart check`** lints (including the Lua 5.1 rules in § 3), runs your bot for 30 seconds, then a random child mashing every button for 30 seconds, then takes pictures and measures the cost. A cart the menu opens during a check stops after the same number of frames.
 * **On the GPU runtime.** `./cart love ID` plays it on LÖVE, and `python3 test.py love` checks that the bot's game logs the same lines and writes the same save on both runtimes. Add a new cart to `LOVE_CARTS` in `test.py`.
 
