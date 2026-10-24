@@ -74,7 +74,10 @@ for t in ar ranlib; do printf '#!/bin/sh\nexec %s %s "$@"\n' "$ZIG" "$t" > "$W/b
 chmod +x "$W"/bin-$T/*
 export CC=$W/bin-$T/cc CXX=$W/bin-$T/c++ OBJCXX=$W/bin-$T/c++ AR=$W/bin-$T/ar RANLIB=$W/bin-$T/ranlib
 export PKG_CONFIG_PATH= PKG_CONFIG_LIBDIR=$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig
-export CFLAGS="-O2 -fPIC -I$PREFIX/include" CXXFLAGS="-O2 -fPIC -I$PREFIX/include" LDFLAGS="-L$PREFIX/lib"
+# -D_FILE_OFFSET_BITS=64 uses __xstat64/__fxstat64/__lxstat64 (whose glibc 2.29 ARM implementation ignores
+# the version argument, whereas 32-bit __xstat rejects the _STAT_VER=0 that zig's generic xstatver.h passes
+# instead of ARM's _STAT_VER_LINUX=3) and avoids EOVERFLOW on 64-bit host inodes under qemu-arm.
+export CFLAGS="-O2 -fPIC -D_FILE_OFFSET_BITS=64 -I$PREFIX/include" CXXFLAGS="-O2 -fPIC -D_FILE_OFFSET_BITS=64 -I$PREFIX/include" LDFLAGS="-L$PREFIX/lib"
 mkdir -p "$PREFIX" "$B"
 
 cm() { # name srcdir [cmake args...]

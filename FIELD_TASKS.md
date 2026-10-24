@@ -351,3 +351,77 @@ Surprises / notable findings:
 * `etc/init.d/S50usbdevice` uses configfs (`ffs.adb`, `rndis.gs0`, etc.) and reads `/etc/init.d/.usb_config` (`usb_adb_en`).
 * `lib/udev/rules.d/61-sd-cards-auto-mount.rules` matches `KERNEL!="mmcblk*[0-9]"` and `ATTRS{type}!="SD"`, mounting `vfat` with `rw,uid=1000,gid=1000,dmask=022,fmask=133,noatime` and `ext2` with `users,exec,noatime` at `/mnt/sdcard`.
 
+### Task 2 (2026-10-24)
+
+Commands run:
+```bash
+pip install --user --break-system-packages ziglang==0.13.0
+games/love/build.sh arm
+python3 games/love/check_abi.py games/out/love-arm
+games/love/smoke.sh ~/partycade-dumps/2026-10-23_raw_plug3032slc/rootfs
+games/love/build.sh x86
+python3 games/test.py love
+```
+
+Surprise found and fixed in `games/love/build.sh`:
+* The initial run of `smoke.sh` against the cabinet's real `rootfs` (`libc-2.29.so`) failed with `Error: [love "boot.lua"]:48: Failed to initialize filesystem: no error`. Tracing with `qemu-arm-static -strace` and a test C binary showed that Zig 0.13.0's bundled glibc headers have no ARM-specific `xstatver.h` and fall back to `sysdeps/unix/sysv/linux/xstatver.h` (`_STAT_VER = 0`), whereas 32-bit ARM glibc 2.29 requires `_STAT_VER_LINUX = 3` in `__xstat(ver, path, buf)` and returns `EINVAL` (`errno = 22`) for `ver = 0`. However, `__xstat64`/`__fxstat64`/`__lxstat64` in the cabinet's `libc-2.29.so` ignore the `ver` argument and succeed for all versions `0..3` (and avoid `EOVERFLOW` on 64-bit inodes). Adding `-D_FILE_OFFSET_BITS=64` to `CFLAGS` and `CXXFLAGS` in `games/love/build.sh` routes all `stat`/`fstat`/`lstat` calls through `__xstat64`/`__fxstat64`/`__lxstat64`.
+
+Output of `check_abi.py`:
+```text
+ok   love.bin                     glibc 2.4    
+ok   lib/libSDL2-2.0.so.0         glibc 2.28   
+ok   lib/libfreetype.so.6         glibc 2.28   
+ok   lib/liblove-11.5.so          glibc 2.28   
+ok   lib/libluajit-5.1.so.2       glibc 2.7    
+ok   lib/libmodplug.so.1          glibc 2.27   
+ok   lib/libogg.so.0              glibc 2.4    
+ok   lib/libopenal.so.1           glibc 2.27   
+ok   lib/libtheoradec.so.1        glibc 2.4    
+ok   lib/libvorbis.so.0.4.9       glibc 2.4    
+ok   lib/libvorbisfile.so.3.3.8   glibc 2.4    
+ok   lib/libz.so.1                glibc 2.4    
+ok   opened at run time: libEGL.so.1 is on the cabinet
+ok   opened at run time: libGLESv2.so.2 is on the cabinet
+ok   opened at run time: libgbm.so.1 is on the cabinet
+ok   opened at run time: libdrm.so.2 is on the cabinet
+ok   opened at run time: libasound.so.2 is on the cabinet
+ok   opened at run time: libudev.so.1 is on the cabinet
+the bundle will load
+```
+
+Output of `smoke.sh`:
+```text
+qemu: /home/joseph/.local/bin/qemu-arm-static, rootfs: /home/joseph/partycade-dumps/2026-10-23_raw_plug3032slc/rootfs
+ok   version: 11.5.0, LuaJIT 2.1.1792588164 arm
+ok   lua loop: 3M sines in 2864 ms
+ok   a C++ exception comes back as a Lua error
+ok   image data
+ok   png encode
+ok   sound data
+ok   freetype
+ok   zlib
+ok   bit ops
+smoke ok
+```
+
+Output of `games/love/build.sh x86` and `python3 games/test.py love`:
+```text
+9.5M	/home/joseph/Projects/arcade1up-partycade/games/out/love-x86
+built /home/joseph/Projects/arcade1up-partycade/games/out/love-x86
+== love: the GPU runtime against the C runtime
+  ok   chest: the bot's game logs the same 105 lines on both runtimes
+  ok   chest: the same save file on both runtimes
+  ok   keep: the bot's game logs the same 8 lines on both runtimes
+  ok   keep: the same save file on both runtimes
+  ok   lamp: the bot's game logs the same 21 lines on both runtimes
+  ok   lamp: the same save file on both runtimes
+  ok   tea: the bot's game logs the same 60 lines on both runtimes
+  ok   tea: the same save file on both runtimes
+  ok   the menu runs, launches Lamp, and quits cleanly (exit 0)
+  ok   Lamp draws a picture when the menu starts it
+  ok   the menu draws again after Lamp quits
+  ok   no error on the way
+== 12 passed, 0 failed ==
+```
+
+
