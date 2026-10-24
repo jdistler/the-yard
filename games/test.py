@@ -1,0 +1,359 @@
+#!/usr/bin/env python3
+"""Headless checks for the games. No cabinet, no flash.
+
+    python3 test.py quick    the self-tests and the panel rotation (check.sh)
+    python3 test.py play     one session of every game, saves and pictures (play.sh)
+    python3 test.py stress   the edges: quit, held buttons, broken saves, records, demos (stress.sh)
+    python3 test.py all
+
+Every run happens in a fresh temporary directory, which stands in for /data/Games.
+The games play themselves where a test needs a long session (CAB_AUTOPLAY, the same
+built-in player the attract mode uses), and a CAB_SCRIPT presses the deck's buttons
+where a test needs exact presses. Pictures land in out/play/ and out/stress/.
+"""
+import os
+import shutil
+import struct
+import subprocess
+import sys
+import tempfile
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+BIN = os.path.join(HERE, "out", "pc")
+GL_GAMES = {"orb"}
+failures = []
+passes = 0
+
+
+def say(msg):
+    print(msg, flush=True)
+
+
+def check(cond, what):
+    global passes
+    if cond:
+        passes += 1
+        say(f"  ok   {what}")
+    else:
+        failures.append(what)
+        say(f"  FAIL {what}")
+
+
+def run(game, cwd, script=None, env=None, args=(), frames=None, timeout=180, binary=None):
+    """Run one game in cwd. Returns (exit code, stderr text)."""
+    e = dict(os.environ)
+    e.update({"SDL_VIDEODRIVER": "offscreen" if game in GL_GAMES else "dummy", "SDL_AUDIODRIVER": "dummy",
+              "CAB_SCALE": "1"})
+    if script is not None:
+        path = os.path.join(cwd, f"{game}.cab")
+        with open(path, "w") as f:
+            f.write(script)
+        e["CAB_SCRIPT"] = path
+    if frames:
+        e["CAB_MAX_FRAMES"] = str(frames)
+    if env:
+        e.update(env)
+    try:
+        p = subprocess.run([binary or os.path.join(BIN, game), *args], cwd=cwd, env=e, capture_output=True, text=True,
+                           timeout=timeout)
+        return p.returncode, p.stderr
+    except subprocess.TimeoutExpired as ex:
+        return -999, (ex.stderr or b"").decode() if isinstance(ex.stderr, bytes) else str(ex.stderr)
+
+
+def script(title, *lines):
+    return "\n".join([f"title={title}", *lines]) + "\n"
+
+
+def read(cwd, name):
+    try:
+        with open(os.path.join(cwd, name)) as f:
+            return f.read()
+    except OSError:
+        return None
+
+
+def best(cwd, name, word="best"):
+    text = read(cwd, name)
+    if not text:
+        return None
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[0] == word:
+            try:
+                return int(parts[1])
+            except ValueError:
+                return None
+    return None
+
+
+def bmp(path):
+    """(width, height, pixel(x, y) -> (r, g, b)) for a 24 or 32 bit BMP."""
+    with open(path, "rb") as f:
+        d = f.read()
+    if d[:2] != b"BM":
+        raise ValueError("not a bmp")
+    off = struct.unpack_from("<I", d, 10)[0]
+    w, h = struct.unpack_from("<ii", d, 18)
+    bpp = struct.unpack_from("<H", d, 28)[0]
+    W, H = abs(w), abs(h)
+    stride = (W * (bpp // 8) + 3) & ~3
+
+    def px(x, y):
+        row = (H - 1 - y) if h > 0 else y
+        i = off + row * stride + x * (bpp // 8)
+        return d[i + 2], d[i + 1], d[i]
+
+    return W, H, px
+
+
+def busy(path):
+    """How many distinct colors a coarse sample of the picture has. A blank frame has one or two."""
+    try:
+        W, H, px = bmp(path)
+    except (OSError, ValueError):
+        return 0
+    seen = set()
+    for y in range(0, H, max(1, H // 40)):
+        for x in range(0, W, max(1, W // 30)):
+            r, g, b = px(x, y)
+            seen.add((r >> 4, g >> 4, b >> 4))
+    return len(seen)
+
+
+def tmpdir():
+    return tempfile.mkdtemp(prefix="yard-test-")
+
+
+# ---------------------------------------------------------------------------- quick
+
+def quick():
+    say("== quick: self-tests and rotation ==")
+    d = tmpdir()
+    rc, _ = run("probe", d, env={"PROBE_SELFTEST": "1", "CAB_SCREENSHOT": os.path.join(d, "probe.bmp")})
+    check(rc == 0 and os.path.exists(os.path.join(d, "probe.bmp")), "probe self-test quits and draws")
+    rc, err = run("keep", d, env={"KEEP_SELFTEST": "1"})
+    check(rc == 0 and (best(d, "keep.sav") or 0) >= 1, f"keep self-test catches and saves ({read(d, 'keep.sav')!r})")
+    rc, err = run("lamp", d, env={"LAMP_SELFTEST": "1"})
+    check(rc == 0 and (best(d, "lamp.sav") or 0) >= 1, f"lamp self-test wakes a night and saves ({read(d, 'lamp.sav')!r})")
+    rc, _ = run("yard", d, env={"YARD_SELFTEST": "1"})
+    check(rc == 0 and best(d, "yard.sav") is not None, "yard self-test saves the row")
+    rc, _ = run("yard", d, env={"YARD_ONCE": "keep", "KEEP_SELFTEST": "1"})
+    check(rc == 0, "yard launches keep and keep comes back clean")
+    # The panel is mounted 90 degrees clockwise: the top of the game lands on the left of the framebuffer.
+    shot = os.path.join(d, "fb.bmp")
+    rc, _ = run("keep", d, script="", frames=6,
+                env={"CAB_RAW_FB": "1", "CAB_TESTCARD": "1", "CAB_SCREENSHOT": shot, "CAB_SCREENSHOT_FRAME": "3"})
+    try:
+        W, H, px = bmp(shot)
+        reds, blues = [], []
+        for y in range(0, H, 4):
+            for x in range(0, W, 4):
+                r, g, b = px(x, y)
+                if r > 180 and g < 90 and b < 90:
+                    reds.append(x)
+                elif b > 150 and r < 90 and g < 140:
+                    blues.append(x)
+        rm = sum(reds) / max(1, len(reds))
+        bm = sum(blues) / max(1, len(blues))
+        check((W, H) == (1024, 768), f"raw framebuffer is 1024x768 ({W}x{H})")
+        check(len(reds) > 10 and len(blues) > 10 and rm < W * 0.35 and bm > W * 0.65,
+              f"rotation: game top on the left (red x {rm:.0f}), bottom on the right (blue x {bm:.0f})")
+    except (OSError, ValueError) as ex:
+        check(False, f"rotation shot readable ({ex})")
+    # The GL path rotates the same way.
+    shot = os.path.join(d, "orbfb.bmp")
+    rc, err = run("orb", d, script="", frames=6,
+                  env={"CAB_RAW_FB": "1", "CAB_SCREENSHOT": shot, "CAB_SCREENSHOT_FRAME": "3"})
+    check(rc == 0 and busy(shot) > 3, "orb draws through OpenGL ES 2 on the rotated framebuffer")
+    shutil.rmtree(d, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------- play
+
+def play():
+    say("== play: one session of each game ==")
+    out = os.path.join(HERE, "out", "play")
+    shutil.rmtree(out, ignore_errors=True)
+    os.makedirs(out)
+    d = tmpdir()
+
+    def shots(title, frames, quit_at):
+        return script(title, *[f"{f} shot {out}/{title.lower().replace(' ', '')}-{f}.bmp" for f in frames], f"{quit_at} quit")
+
+    rc, err = run("keep", d, script=shots("Keep", [5, 600, 1500], 1600), env={"CAB_AUTOPLAY": "1"})
+    check(rc == 0 and (best(d, "keep.sav") or 0) > 5, f"keep: the built-in player scores and saves ({read(d, 'keep.sav')!r})")
+    check(busy(f"{out}/keep-600.bmp") > 20, "keep: the orchard is drawn")
+
+    rc, err = run("lamp", d, script=shots("Lamp", [5, 400, 1500], 1600), env={"CAB_AUTOPLAY": "1"})
+    check(rc == 0 and (best(d, "lamp.sav") or 0) >= 1, f"lamp: a night is woken and saved ({read(d, 'lamp.sav')!r})")
+    check("lamp night 1 done" in err, "lamp: the constellation completes")
+
+    rc, err = run("tea", d, script=shots("Tea", [100, 1000, 1500], 1600), env={"CAB_AUTOPLAY": "1"})
+    sav = read(d, "tea.sav") or ""
+    check(rc == 0 and "visits 1" in sav, "tea: she arrives and the visit is saved")
+    check("tea cheer" in err and "pip teacup" in sav and "moth ribbon" in sav and "pearl flower" in sav,
+          "tea: nine cares reach the cheer, and the gifts are saved")
+
+    rc, err = run("chest", d, script=shots("Chest", [20, 300, 1500], 1600), env={"CAB_AUTOPLAY": "1"})
+    check(rc == 0 and (best(d, "chest.sav", "gems") or 0) >= 1, f"chest: Zam bows and a gem is saved ({read(d, 'chest.sav')!r})")
+    check("chest key" in err and "chest sword" in err, "chest: key, chest, sword in that order")
+
+    # Orb: dive, then hold right into the first gate (it closes the right side).
+    rc, err = run("orb", d, script=script("Orb", "10 down LOW", "11 up LOW", "20 down RIGHT",
+                                          f"30 shot {out}/orb-dive.bmp", f"5 shot {out}/orb-title.bmp", "240 quit"))
+    check(rc == 0 and (best(d, "orb.sav") or 0) > 0, f"orb: steering into a gate crashes and saves ({read(d, 'orb.sav')!r})")
+    check(busy(f"{out}/orb-dive.bmp") > 10, "orb: the well is drawn")
+
+    # The Yard: down to Lamp, open it, quit Lamp with 1P+2P, land back on Lamp.
+    s = "\n".join([
+        "title=The Yard", "10 down DOWN", "11 up DOWN", "30 down LOW", "31 up LOW", f"25 shot {out}/yard.bmp",
+        f"150 shot {out}/yard-back.bmp", "160 quit",
+        "title=Lamp", "20 down 1P", "20 down 2P", f"10 shot {out}/yard-lamp.bmp",
+    ]) + "\n"
+    rc, err = run("yard", d, script=s, frames=400)
+    check(rc == 0 and best(d, "yard.sav") == 1 and "yard open lamp" in err, "yard: opens Lamp and comes back on its row")
+    check(busy(f"{out}/yard.bmp") > 20 and busy(f"{out}/yard-back.bmp") > 20, "yard: the menu is drawn before and after")
+    say(f"  pictures in {out}")
+    shutil.rmtree(d, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------- stress
+
+def stress():
+    say("== stress: the edges ==")
+    out = os.path.join(HERE, "out", "stress")
+    shutil.rmtree(out, ignore_errors=True)
+    os.makedirs(out)
+
+    # 1P+2P held for a second quits every game, and nothing else needs to happen first.
+    for game, title in (("keep", "Keep"), ("lamp", "Lamp"), ("tea", "Tea"), ("chest", "Chest"), ("orb", "Orb"),
+                        ("yard", "The Yard")):
+        d = tmpdir()
+        marker = os.path.join(d, "late.bmp")
+        rc, err = run(game, d, script=script(title, "5 down 1P", "5 down 2P", f"200 shot {marker}"), frames=400)
+        check(rc == 0 and not os.path.exists(marker), f"{game}: holding 1P+2P quits")
+        shutil.rmtree(d, ignore_errors=True)
+
+    # Keep.
+    d = tmpdir()
+    with open(os.path.join(d, "keep.sav"), "w") as f:
+        f.write("best 99999\n")
+    rc, err = run("keep", d, frames=900, script="", env={"CAB_AUTOPLAY": "1"})
+    check(best(d, "keep.sav") == 99999, "keep: a lower score never replaces the record")
+    with open(os.path.join(d, "keep.sav"), "w") as f:
+        f.write("best 99999999999\n")
+    rc, err = run("keep", d, env={"KEEP_SELFTEST": "1"})
+    check(rc == 0 and 0 < (best(d, "keep.sav") or 0) < 1000, "keep: an impossible record loads as none")
+    os.remove(os.path.join(d, "keep.sav"))
+    rc, err = run("keep", d, script=script("Keep", "720 down LOW", "721 up LOW", "800 quit"))
+    check("keep demo" in err and "keep demo off" in err, "keep: the attract demo starts when idle and a press ends it")
+    check(read(d, "keep.sav") is None, "keep: the demo never writes a record")
+    a = tmpdir()
+    run("keep", a, frames=1200, script="", env={"CAB_AUTOPLAY": "1", "CAB_SEED": "7"})
+    b = tmpdir()
+    run("keep", b, frames=1200, script="", env={"CAB_AUTOPLAY": "1", "CAB_SEED": "7"})
+    check(read(a, "keep.sav") == read(b, "keep.sav") and read(a, "keep.sav"), "keep: the same seed plays the same round")
+    rc, err = run("keep", d, script="", frames=1200, args=("-fast",), env={"CAB_AUTOPLAY": "1"})
+    check(rc == 0 and (best(d, "keep.sav") or 0) > 0, "keep: -fast runs and saves")
+    for x in (d, a, b):
+        shutil.rmtree(x, ignore_errors=True)
+
+    # Lamp.
+    d = tmpdir()
+    rc, err = run("lamp", d, script="", frames=2000, args=("-fast",), env={"CAB_AUTOPLAY": "1"})
+    check((best(d, "lamp.sav") or 0) >= 1, "lamp: -fast still wakes a night")
+    rc, err = run("lamp", d, script=script("Lamp", f"700 shot {out}/lamp-demo.bmp", "710 quit"))
+    check("lamp demo" in err, "lamp: the attract demo starts when idle")
+    shutil.rmtree(d, ignore_errors=True)
+
+    # Tea: a button held from the menu must not pour a pile of tea; TL and TR care too.
+    d = tmpdir()
+    rc, err = run("tea", d, script=script("Tea", "0 down LOW", "1300 quit"))
+    check("tea party" in err and "tea heart" not in err, "tea: a held button hurries the flight and pours nothing")
+    rc, err = run("tea", d, script=script("Tea", "1100 down TL", "1101 up TL", "1140 down TR", "1141 up TR",
+                                         "1180 down RIGHT", "1181 up RIGHT", "1200 down LOW", "1201 up LOW",
+                                         f"1201 shot {out}/tea-heart.bmp", "1260 quit"))
+    check("tea heart Pip 2" in err and "tea heart Moth 1" in err, "tea: TL, TR, and LOW each fill a heart; the stick moves the ring")
+    check("pip teacup" in (read(d, "tea.sav") or ""), "tea: the gift is saved the moment it is given")
+    with open(os.path.join(d, "tea.sav"), "w") as f:
+        f.write("visits 0\npip teacup\n")
+    rc, err = run("tea", d, script=script("Tea", f"960 shot {out}/tea-door.bmp", "1000 quit"))
+    check("tea say Pip kept a teacup." in err, "tea: a cat who kept a gift runs to the door next visit")
+    with open(os.path.join(d, "tea.sav"), "w") as f:
+        f.write("visits banana\npip sparkles\n\x00\x01\n")
+    rc, err = run("tea", d, script=script("Tea", "1000 quit"))
+    check(rc == 0 and "visits 1" in (read(d, "tea.sav") or ""), "tea: a broken save opens as the first visit")
+    with open(os.path.join(d, "tea.sav"), "w") as f:
+        f.write("visits 2\n")
+    rc, err = run("tea", d, script=script("Tea", f"1000 shot {out}/tea-nib.bmp", "1001 quit"))
+    check("visits 3" in (read(d, "tea.sav") or "") and "tea say A kitten came to play." in err,
+          "tea: Nib comes on the third visit")
+    shutil.rmtree(d, ignore_errors=True)
+
+    # Chest.
+    d = tmpdir()
+    rc, err = run("chest", d, script=script("Chest", "0 down LOW", "100 up LOW", "110 down TL", "111 up TL",
+                                           "130 down TR", "131 up TR", "150 quit"))
+    bolts = err.count("chest bolt")
+    check(bolts == 2, f"chest: a held button waits for a new press; TL and TR shoot ({bolts} bolts)")
+    with open(os.path.join(d, "chest.sav"), "w") as f:
+        f.write("gems -4\n")
+    rc, err = run("chest", d, script=script("Chest", "5 quit"))
+    check("chest gems 0" in err, "chest: a broken save opens with no gems")
+    rc, err = run("chest", d, script=script("Chest", f"200 shot {out}/chest-fight.bmp", "2400 quit"),
+                  env={"CAB_AUTOPLAY": "1"})
+    g = best(d, "chest.sav", "gems") or 0
+    check(g >= 2, f"chest: the pile keeps every win ({g} gems)")
+    shutil.rmtree(d, ignore_errors=True)
+
+    # Orb: the card file, the idle demo, and a clean title.
+    d = tmpdir()
+    card = os.path.join(d, "card")
+    os.makedirs(card)
+    with open(os.path.join(card, "label"), "w") as f:
+        f.write("hello from the card\n")
+    rc, err = run("orb", d, script=script("Orb", "700 quit"), env={"CAB_EXT": card})
+    check(read(card, "orb-card") == "hello from the card\n", "orb: copies the card label")
+    check("orb demo" in err and read(d, "orb.sav") is None, "orb: the idle demo plays and never saves")
+    rc, err = run("orb", d, script="", frames=2000, env={"CAB_AUTOPLAY": "1"})
+    check(rc == 0 and "orb dive" in err, "orb: the built-in pilot dives the well")
+    shutil.rmtree(d, ignore_errors=True)
+
+    # The Yard: wrap upward to Chest, open it, quit; a missing game leaves a note and the menu stays.
+    d = tmpdir()
+    s = "\n".join(["title=The Yard", "10 down UP", "11 up UP", "30 down LOW", "31 up LOW", "200 quit",
+                   "title=Chest", "10 down 1P", "10 down 2P"]) + "\n"
+    rc, err = run("yard", d, script=s, frames=600)
+    check(best(d, "yard.sav") == 4 and "yard open chest" in err, "yard: up from the top row wraps to Chest")
+    lone = os.path.join(d, "bin")
+    os.makedirs(lone)
+    shutil.copy(os.path.join(BIN, "yard"), lone)
+    rc, err = run("yard", d, script=script("The Yard", "10 down LOW", "11 up LOW", f"60 shot {out}/yard-missing.bmp",
+                                           "80 quit"), binary=os.path.join(lone, "yard"))
+    check(rc == 0 and "could not open" in err, "yard: a missing game leaves a note and the menu stays")
+    with open(os.path.join(d, "keep.sav"), "w") as f:
+        f.write("best 42\n")
+    rc, err = run("yard", d, script=script("The Yard", f"20 shot {out}/yard-stats.bmp", "21 quit"))
+    check(rc == 0 and busy(f"{out}/yard-stats.bmp") > 20, "yard: draws with saves from other games present")
+    shutil.rmtree(d, ignore_errors=True)
+    say(f"  pictures in {out}")
+
+
+def main():
+    which = sys.argv[1] if len(sys.argv) > 1 else "all"
+    subprocess.run(["make", "-s", "TARGET=pc"], cwd=HERE, check=True)
+    if which in ("quick", "all"):
+        quick()
+    if which in ("play", "all"):
+        play()
+    if which in ("stress", "all"):
+        stress()
+    say(f"== {passes} passed, {len(failures)} failed ==")
+    for f in failures:
+        say(f"  FAIL {f}")
+    sys.exit(1 if failures else 0)
+
+
+if __name__ == "__main__":
+    main()

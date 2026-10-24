@@ -1,6 +1,6 @@
 # Tea: a unicorn, a castle, and the cats
 
-Built in `games/tea/tea.c`. The Yard lists it under Orb, blurb "tea with the cats." `games/stress.sh` plays the checks at the bottom of this note. It is on the cabinet, on the Yard row under Orb, as of the 2026-10-23 22:00 flash.
+Built in `games/tea/tea.c`. The Yard lists it under Orb, blurb "tea with the cats," band 4+. `games/test.py` (run by `stress.sh`) plays the checks at the bottom of this note. The first build is on the cabinet, on the Yard row under Orb, as of the 2026-10-23 22:00 flash. The 2026-10-24 rebuild (new pictures and sound, same rules and lines) is on the PC only.
 
 Audience is a four-year-old, in short turns, on the Partycade. She said: a unicorn is flying to a tea party at the princess castle, the party is full of kitty cats, and you play with them and take care of them. The game is that sentence, played with one hand if that is all she uses.
 
@@ -124,7 +124,7 @@ Unknown lines are ignored. A gift word outside that list is `none`. `visits` abo
 
 ## Graphics
 
-2D, upright, 384×512, the panel's exact ×2 scale. Drawn with the SDL renderer, the path Keep and Lamp already use on the cabinet. The Mali path can paint a room, and this game does not need it. Big flat shapes read better for her than a lit 3D scene, and the cabinet has not run a GL game yet.
+2D, upright, 384×512, the panel's exact ×2 scale. Drawn in software into one frame and uploaded once per frame, the path the stock emulators use. The Mali path can paint a room, and this game does not need it. Big flat shapes read better for her than a lit 3D scene, and the cabinet has not run a GL game yet.
 
 Nearest-neighbor scaling. Thick outlines in soft ink `#3a2a44`, not pure black. Everything important is at least 32 pixels tall. The ask icon is 48×48. The unicorn is about 96 pixels tall on the ground and larger in the sky. Cats' heads are about 56 pixels. She should be able to tell them apart from a step away, and from her own height in front of the bartop.
 
@@ -146,19 +146,13 @@ Palette:
 
 The mane is four stripes in gold, rose, mint, and lilac, so the unicorn reads as rainbow without a thin spectrum. Wings are two simple shapes that swap vertical position for a flap. The horn is a single gold triangle.
 
-Art is original pixel drawings packed in one PNG atlas, nearest-filtered, loaded with the cabinet's libpng. If the atlas is missing, the game still runs with flat shapes in these colors, so a half-built binary is playable. No character from a film, a book, or a product.
+As built (2026-10-24), the art is drawn in code with `games/common/gfx.c`, not loaded from an atlas, so there is no picture file to lose. Every figure is outlined toon shapes: each part is painted once in ink a little larger, then filled, so one soft outline wraps the whole body. Nothing is from a film, a book, or a product.
 
-Atlas contents, each with the frames named:
-
-* Unicorn: fly (2), stand (2, a blink), pour, offer flower, toss yarn, cheer. Facing the table, so we do not need a back view.
-* Pip, Moth, Pearl, Nib: sit (2, blink), lean, delight. Nib's delight is the nose-bump.
-* Icons: cup, yarn, flower, sparkle.
-* Heart filled, heart empty.
-* Castle backdrop, table with pot and cakes, cloud, star, door.
-
-Animation is two or three frames, held long enough to read (about 8 to 12 frames at 60 Hz). Nothing flickers.
-
-The cheer is the same sprites, all delighting at once, plus a ring of 8-pixel sparkles. No full-screen flash. A flash is a startle.
+* The unicorn is seen from behind, so she is you: cream body, rainbow mane down her back, gold horn, lilac hooves, and wings of soft puffs that beat in the sky and fold at the table. Her wing beat is cut into eight steps and each is drawn once and reused.
+* The sky is a fly-through: clouds start small near the castle and swell as they pass her. The rainbow road runs from her to the castle, and five stars on it light as she gets closer.
+* At the door, two gold leaves swing open on warm light, the cats peek out one by one, and a cat wearing a gift runs out to her.
+* At the party: the castle and bunting behind, a scalloped cloth, the teapot steaming, a cake, and Moth's yarn ball. The cats have ears with pink insides, eyes that blink and look at the unicorn, whiskers, a tail with a tip, and their gifts. A happy cat's eyes become arcs. The focused cat sits forward inside a soft gold ring. The ask picture floats in a bubble with a tail over her, above three hearts.
+* Care, on the press frame: a heart fills and pops, the picture arcs from the unicorn to the cat, hearts drift up, and the cat answers (Pip sips and keeps a milk mustache, the yarn rolls away and back, Pearl twirls, Nib copies a friend). The cheer rains stars and hearts.
 
 ## Sound
 
@@ -182,6 +176,8 @@ All tunes are major and pentatonic, slow, and short. Nothing in a minor key, not
 | Quit | One falling G5, E5, so the goodbye is a sound too |
 
 Two sounds can overlap: the bed and one care. A third note waits. The speaker stays a room, not a pile.
+
+As built (2026-10-24) the synth has more voices, so a care's notes can ring over each other for a moment, and the party has its own very quiet music-box bed in place of silence. Everything stays sine and triangle and major, and the output is capped at 3000 of 32767 (`sfx_limit`), under the Keep beep. Pip's purr is a low triangle with a slow wobble.
 
 Holding the button retriggers the care no faster than twice a second, so a clamped finger does not machine-gun the speaker.
 
@@ -247,7 +243,7 @@ These are decisions, so a later build does not "improve" them back in.
 
 ## How we will know it works
 
-`stress.sh` plays this headless, on the PC:
+`games/test.py` plays this headless, on the PC (`stress.sh`):
 
 * The sky shows the unicorn without a button.
 * A scripted stick lean moves her and does not lose the castle.

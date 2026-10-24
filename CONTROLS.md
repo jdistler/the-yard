@@ -32,7 +32,7 @@ There is one stick and one cluster. A second person does not have a second deck.
 
 Four directions are the contract. Whether this stick closes two switches at once has not been measured, so a game is finishable with pure up, down, left, and right. Opposing directions cancel. Holding a direction is a level, not a stream of new presses. A one-shot verb listens for the edge (`cab_pressed`), so a button still held from the menu does not fire again on the first frame of the game.
 
-Holding 1-player and 2-player is quit. `cab_poll` already does this, after a second on the cabinet and after 60 frames in a script. No verb lives on that chord.
+Holding 1-player and 2-player is quit. `cab_poll` already does this, after a second on the cabinet and after 60 frames in a script. While the two are held, every game shows a meter filling toward "leaving...", so the grown-up holding them sees the quit coming. One of them alone shows nothing. No verb lives on that chord.
 
 ## Reach decides the verb
 
@@ -114,13 +114,13 @@ A new game is checked against this list before it grows past a toy in an empty r
 12. For the walk-up band, `TL` and `TR` may repeat `LOW` and must not punish.
 13. For the two-verb band, `LOW` alone still does something. The chord is extra.
 14. End a turn in a state the next person can start from: a title, a score of one number, the stick at rest.
-15. Prove it in `stress.sh`: the verb fires from stick and `LOW`, the frame of the press shows the answer, and a button held across the launch does not fire twice.
+15. Prove it in `games/test.py` (run by `stress.sh`): the verb fires from stick and `LOW`, a button held across the launch does not fire twice, and `feel.py` shows the press frame changing more than an idle frame.
 
 ## Shapes that fit the panel
 
-* **The body and the verb.** Stick moves. `LOW` acts in the facing direction. Keep is this, with one button and a wide catch.
-* **The stick is the verb.** Being in the right place is the act. Lamp is this. `LOW` only restarts. This is the kindest walk-up shape, because one hand can play it.
-* **The world comes to you.** Stick steers, the lane or the well scrolls. `LOW` confirms entry or the one shot. Orb's dive is this. Entering the well is a one-time commitment, which is a fair use of a button. A button that swaps the stick's meaning every few seconds is a different, worse thing.
+* **The body and the verb.** Stick moves. `LOW` acts in the facing direction. Keep is this: the stick carries the basket and `LOW` dashes the way Pip leans. A single fruit can always be caught by walking; the dash is for two at once and for the far ones. Chest is this too.
+* **The stick is the verb.** Being in the right place is the act. Lamp is this: walking into a star wakes it. `LOW` lifts the lamp for a moment, which helps and is never required. This is the kindest walk-up shape, because one hand can play it.
+* **The world comes to you.** Stick steers, the lane or the well scrolls. `LOW` confirms entry or the one shot. Orb's dive is this. Entering the well is a one-time commitment, which is a fair use of a button. Inside the well, holding the same button is a boost: the same finger, still "go", now held, and the hold is visible (the view widens and streaks pass). A button that swaps the stick's meaning every few seconds is a different, worse thing.
 * **The menu.** Stick picks a row. `LOW` confirms. The Yard is this. Confirmation is the same button as the verb inside the game you just left, so the hand does not relearn.
 * **Pass the cabinet.** A round ends, a score shows, the next person presses `LOW`. `1P` and `2P` can mean "this turn is mine" before the round, because the stick is still free.
 * **Split hands, the party shape.** One person holds the stick. The other holds `LOW` and, in a two-verb game, `TL`. The panel is already divided that way. This is the simultaneous two-human game this deck can host. Two people each trying to move and act is a game for a machine with two sticks.

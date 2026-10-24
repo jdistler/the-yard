@@ -65,6 +65,16 @@ void cab_shot_if_due(void);
 /* Call once per frame. Returns 0 when the game should exit (quit combo, Escape, window close). */
 int cab_poll(void);
 int cab_down(int player, int button);    /* held now */
+/* How far the 1P+2P quit hold has come, 0..1. gfx_present draws a meter from it. */
+float cab_quit_progress(void);
+/* A game's own autopilot (attract mode, CAB_AUTOPLAY): these buttons are held on
+ * player 0 from the next cab_poll on, through the same path as the deck. */
+void cab_bot(int button, int down);
+void cab_bot_clear(void);
+/* Something other than the bot is holding a button or direction this frame. */
+int cab_human_any(void);
+/* A script is driving the deck (CAB_SCRIPT). Games skip wall-clock pacing then. */
+int cab_scripted(void);
 int cab_pressed(int player, int button); /* went down this frame */
 const char *cab_button_name(int button);
 

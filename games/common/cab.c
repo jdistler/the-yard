@@ -23,6 +23,8 @@ int cab_w, cab_h;
 void (*cab_event_hook)(const SDL_Event *e);
 
 static Uint8 held[CAB_PLAYERS][CAB_NUM_BUTTONS], prev[CAB_PLAYERS][CAB_NUM_BUTTONS];
+static Uint8 bot[CAB_NUM_BUTTONS], human[CAB_NUM_BUTTONS];
+static float quit_progress;
 static Uint8 axis_dir[CAB_PLAYERS][4], hat_dir[CAB_PLAYERS][4], key_dir[4];
 static int joy_map[32];
 static SDL_JoystickID joy_id[CAB_PLAYERS] = {-1, -1};
@@ -115,6 +117,9 @@ int cab_video_init(const char *title, int logical_w, int logical_h, int use_gl)
     memset(key_dir, 0, sizeof key_dir);
     memset(axis_dir, 0, sizeof axis_dir);
     memset(hat_dir, 0, sizeof hat_dir);
+    memset(bot, 0, sizeof bot);
+    memset(human, 0, sizeof human);
+    quit_progress = 0;
     combo_since = 0;
     combo_frames = 0;
     pace_next = 0;
@@ -429,6 +434,9 @@ int cab_poll(void)
     int quit = 0;
 
     memcpy(prev, held, sizeof held);
+    /* held[0] carried last frame's bot buttons. Events and the script work on
+     * the deck's own state; the bot is laid on top again below. */
+    memcpy(held[0], human, sizeof human);
     while (SDL_PollEvent(&e)) {
         int p, b;
         if (cab_event_hook)
@@ -483,14 +491,24 @@ int cab_poll(void)
      * the script presses it. A script runs faster than the panel, so the hold
      * is 60 frames (one second at 60 Hz) instead of one second of wall clock. */
     script_apply(&quit);
-    if ((held[0][CAB_SELECT] && held[0][CAB_START]) || (held[0][CAB_1P] && held[0][CAB_2P])) {
+    memcpy(human, held[0], sizeof human);
+    for (int b = 0; b < CAB_NUM_BUTTONS; b++)
+        if (bot[b])
+            held[0][b] = 1;
+    quit_progress = 0;
+    if ((human[CAB_SELECT] && human[CAB_START]) || (human[CAB_1P] && human[CAB_2P])) {
         if (getenv("CAB_SCRIPT")) {
             if (++combo_frames >= QUIT_HOLD_FRAMES)
                 quit = 1;
+            quit_progress = (float)combo_frames / QUIT_HOLD_FRAMES;
         } else if (!combo_since)
             combo_since = SDL_GetTicks() | 1;
-        else if (SDL_GetTicks() - combo_since >= QUIT_HOLD_MS)
-            quit = 1;
+        else {
+            Uint32 dt = SDL_GetTicks() - combo_since;
+            if (dt >= QUIT_HOLD_MS)
+                quit = 1;
+            quit_progress = (float)dt / QUIT_HOLD_MS;
+        }
     } else {
         combo_since = 0;
         combo_frames = 0;
@@ -520,6 +538,21 @@ int cab_poll(void)
 }
 
 int cab_down(int player, int button) { return held[player][button]; }
+float cab_quit_progress(void) { return quit_progress > 1 ? 1 : quit_progress; }
+void cab_bot(int button, int down)
+{
+    if (button >= 0 && button < CAB_NUM_BUTTONS)
+        bot[button] = down ? 1 : 0;
+}
+void cab_bot_clear(void) { memset(bot, 0, sizeof bot); }
+int cab_human_any(void)
+{
+    for (int b = 0; b < CAB_NUM_BUTTONS; b++)
+        if (human[b])
+            return 1;
+    return 0;
+}
+int cab_scripted(void) { return sc_n > 0 || (getenv("CAB_SCRIPT") && getenv("CAB_SCRIPT")[0]); }
 int cab_pressed(int player, int button) { return held[player][button] && !prev[player][button]; }
 
 static void (*audio_fill)(void *, Sint16 *, int);

@@ -20,7 +20,7 @@ endif
 
 all: $(GAMES:%=$(OUT)/%)
 
-$(OUT)/%: %/*.c common/cab.c common/cab_gl.c common/cab.h | $(OUT)
+$(OUT)/%: %/*.c common/*.c common/*.h | $(OUT)
 	$(CC) $(CFLAGS) -o $@ $(filter %.c,$^) $(LDLIBS)
 
 $(OUT):

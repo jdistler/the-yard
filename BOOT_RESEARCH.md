@@ -220,3 +220,18 @@ Current truth is STATUS.md "Pickup" and GAMEDEV.md § 2. This section is the tra
 * The user played Dig Dug II (now the probe). Screen was rotated 90° clockwise. Framebuffer is 1024×768 @ 60, KMSDRM, opengles2, ALSA. Device 66 read the chip back (`2026-10-23_probe_played`, sha256 `5d8f173c…a2ad`). The deck is the stick, 1-player, 2-player, three buttons on the right, and volume. The user then read the probe screen: 1-player is button 6, 2-player is button 7, and the three buttons to the right are 1 (top-left), 3 (top-right), and 0 (lower). That is the same set of five codes as the log. Select, start, and the other advertised codes are not on this deck. The power switch ended the session, so `probe.log` has no exit line.
 
 Device 66 was left running `plug_3032slc_erase`, switch OFF. Do not restore the whole chip from the morning master.
+
+## 2026-10-24: games overhaul, no hardware
+
+No cabinet was attached and no USB command was sent. This session ran in a cloud container with no `~/partycade-dumps/` and no rootfs, so nothing here was built for, staged on, or written to the chip.
+
+* Built the PC simulator with SDL 2.0.7 headers taken from the `release-2.0.7` tag (the tarball URL in the Dockerfile returned 404 and libsdl.org was not reachable). Orb ran on Mesa (llvmpipe) through `SDL_VIDEODRIVER=offscreen`.
+* Added `games/common/gfx.{h,c}` (software 2D renderer) and `games/common/sfx.{h,c}` (synth and sequencer), plus to `cab.c` a quit-hold fraction for an on-screen meter and `cab_bot` for each game's built-in player.
+* Rebuilt The Yard, Keep, Lamp, Orb, Tea, and Chest on them. Save names and formats did not change. Tea and Chest keep their specs' rules and lines.
+* Replaced the frame-exact `play.sh` and `stress.sh` with `games/test.py` (49 checks, all pass) and rewrote `feel.py`.
+* Every source compiles for armhf with `arm-linux-gnueabihf-gcc` and the cabinet's flags (`-march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -DCAB_CABINET`), object files only. The two warnings are `-Wcast-align` in old `cab.c` code. Not linked against the cabinet's libraries and not run under `qemu-arm`, because the rootfs was not here.
+* Frame cost by callgrind on this PC, game work per frame excluding SDL's copy: Keep about 1 M instructions, Yard about 2.3, Lamp about 3.5, Chest about 3.4, Tea about 4. Expected to fit 16.7 ms on the 1.008 GHz Cortex-A7; not measured there.
+* Audio by SDL's disk driver: every game produces sound with no silent stretch; Tea peaks at 2354 and Chest at the 3000 cap (`sfx_limit`), both quieter than the other games.
+
+Conclusion: the new games are ready for a cabinet build and play test. The next flash needs a fresh dump, `build.sh cab`, `stage_game.py --bundle keep,lamp,orb,tea,chest`, and written approval for the printed blocks.
+

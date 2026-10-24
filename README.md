@@ -20,15 +20,17 @@ make
 
 Arrows move. `Z` is the lower button. `X` and `C` are the two buttons beside it. Hold `1` and `2` to leave. Escape closes the window.
 
-| Row | What it is |
-| :--- | :--- |
-| Keep | Catch the tile. The stick moves the paddle. `Z` starts. |
-| Lamp | Carry a lantern around a dark yard and wake seven stars. |
-| Orb | Turn a room with the stick. `Z` dives the well. |
-| Tea | A unicorn flies to a castle and looks after the cats. Any direction leans. Any right-hand button does the care. [Design](games/tea/DESIGN.md). |
-| Chest | Walk to a key, open the chest, and duel Zam. The stick walks. `Z`, `X`, and `C` shoot. [Design](games/chest/DESIGN.md). |
+| Row | For | What it is |
+| :--- | :--- | :--- |
+| Keep | everyone | Catch the falling fruit in Pip's basket at sunset. The stick walks, `Z` dashes. Combos, three hearts, bees later. |
+| Lamp | everyone | Carry a lantern through a dark meadow and wake the fallen stars into constellations, night after night. `Z` lifts the lamp. |
+| Orb | 8 and up | Dive a glowing well in OpenGL ES 2. The stick steers, `Z` dives, and holding it boosts for double points. |
+| Tea | 4 and up | A unicorn flies to a castle and looks after the cats. Any direction picks a cat. Any right-hand button does the care. [Design](games/tea/DESIGN.md). |
+| Chest | 5 and up | Walk to a key, open the chest, and duel Zam. The stick walks. `Z`, `X`, and `C` shoot. [Design](games/chest/DESIGN.md). |
 
-`./stress.sh` plays the edges. `python3 feel.py` plays a reel of each game and writes pictures under `games/out/feel/` (it needs Pillow). Both are headless.
+Leave a title alone for ten seconds and Keep, Lamp, and Orb play themselves until someone presses a button.
+
+`./stress.sh` runs every headless check (`test.py`). `python3 feel.py` plays a reel of each game and writes pictures under `games/out/feel/` (it needs Pillow). Orb needs Mesa's EGL and GLES libraries to run on a PC. All of it is headless.
 
 Building for the cabinet needs the stock rootfs and the Docker image in `games/toolchain/`. `./build.sh cab` does that. Putting a build on the cabinet writes NAND, and that stays a deliberate step. See [STATUS.md](STATUS.md).
 
@@ -64,7 +66,7 @@ Verified on the unit these notes were written from. The label details are in [HA
 | Power | 12V barrel, center positive |
 | Boot switch | OFF is USB Mask ROM. ON is the game. Read only at cold power-up |
 
-On the cabinet, Dig Dug II opens The Yard. That write landed on 2026-10-23. The picture pass after it (a fuller court, a lantern, a wider path) is in this tree and has been played on the PC. It has not been written back to the chip.
+On the cabinet, Dig Dug II opens The Yard. That write landed on 2026-10-23. The games in this tree are newer: on 2026-10-24 every one was rebuilt on a small software renderer and synth (`games/common/gfx.c`, `games/common/sfx.c`), with new pictures, music, and, for Keep, Lamp, and Orb, new rules. That build has been played on a PC only. It has not been written to the chip. See [GAMEDEV.md](GAMEDEV.md) § 12.
 
 ## License
 

@@ -1,6 +1,6 @@
 # Chest: the key, the sword, and Zam
 
-Built on the PC and flashed to tile 10 on 2026-10-23. `games/stress.sh` plays the checklist at the bottom.
+Built on the PC and flashed to tile 10 on 2026-10-23. Rebuilt on 2026-10-24 with new pictures and sound and the same rules and lines; that build is on the PC only. `games/test.py` (run by `stress.sh`) plays the checklist at the bottom.
 
 Audience is a five-year-old who can already steer in Mario Kart, on the Partycade, in a short turn, with a grown-up beside him reading the line and ready to hold the button. He said: you are a person walking to a treasure chest, first you need the key, the key unlocks it, a gold boss pops out and gives you a sword because he is the boss, you shoot lasers at him, a laser that hits you puts a bubble around you, good fairies bubble him, some fairies bubble you and that means start over, some good fairies bubble you and then it pops and you collect it and it goes around him, and bad fairies bubble you and that is how you get hurt.
 
@@ -171,6 +171,17 @@ Big flat shapes in code. A missing picture file must not be required, because th
 
 The cream band is the bottom 32 pixels, ink on `#fff6ea`, the 8×8 font at ×2. One line, 24 characters, the same fit as Tea. Ned's feet stop above it.
 
+As built (2026-10-24), drawn in code with `games/common/gfx.c`, every figure in outlined toon shapes:
+
+* The meadow has flowers, stones, and bushes down both sides; a cream path leads up to the chest. The gem pile sits in a gold dish at the top left, with the count beside it.
+* Ned has a round silver helmet with a red plume, a blue cape that trails the way he walks, legs that step, and eyes that look the way he faces; facing the chest, you see the back of his head. The sword is gold with a brown guard and a glow at the tip. His three pips float over his head.
+* The key bobs and sparkles. The chest has gold bands and a keyhole that pulses until the key is in his hand. Open, it glows.
+* Zam has no ears: a tuft of gold fur on top, narrow eyes under brown brows, a mustache that is the widest thing on screen and curls at both ends, a brown vest of plates, and a silver spoon in each raised hand. The spoons tap and flash before a shot. Nine little lights over his head are the marks; they fill gold.
+* Fairies have wings and leave a trail; the blue one carries her star. Bubbles have a shine and wobble. A laser stays on screen for a few frames, with a white core and a glow where it lands.
+* A win throws gems and stars; the pile hops. A hurt flashes Ned and rings out purple.
+
+The sound is the same table, played by `games/common/sfx.c` and capped at 3000 (`sfx_limit`), with a quiet walking tune on the path and a quicker one in the fight. The laser is a short falling note.
+
 ## Sounds
 
 Synth only, two voices, the bed and one effect. Amplitude stays under 3000, in the same quiet range as Tea. A third note waits.
@@ -256,7 +267,7 @@ Every one of those fits in 24 characters.
 
 ## How we will know it works
 
-Before it is a candidate for the cabinet, `stress.sh` grows a headless pass:
+`games/test.py` plays a headless pass of these:
 
 * The path shows Ned and the key with no button.
 * The stick moves him and the chest stays.
