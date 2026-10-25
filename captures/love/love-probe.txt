@@ -1,0 +1,42 @@
+renderer: OpenGL ES | OpenGL ES 2.0 | ARM | Mali-400 MP
+window 1024x768, desktop 1024x768, dpi scale 1
+limit anisotropy = 1
+limit canvasmsaa = 0
+limit cubetexturesize = 4096
+limit multicanvas = 1
+limit pointsize = 100
+limit texturelayers = 1
+limit texturesize = 4096
+limit volumetexturesize = 1
+supported glsl3 = false
+supported multicanvasformats = false
+supported clampzero = false
+supported lighten = true
+supported fullnpot = true
+supported pixelshaderhighp = false
+supported shaderderivatives = true
+supported instancing = false
+image formats: ETC1 r8 rgb565 rgb5a1 rgba4 rgba8
+canvas formats: depth16 depth24 depth24stencil8 normal rgb565 rgb5a1 rgba4 rgba8 stencil8
+os Linux, 2 cores, lua Lua 5.1, LuaJIT 2.1.1792588164
+memory at start: 22852 kB available
+lua loop 2M: interpreter 563 ms
+lua loop 2M: jit on 164 ms (status true)
+joystick "uart-keys": 21 buttons, 0 axes, 0 hats, gamepad true, guid 1900078d010000000100000000010000
+load clear              frames  242  mean  16.66 ms  median  16.66  p95  16.94  max  17.90  (60.0 fps)
+   drawcalls 2, texture memory 6.0 MB, 14104 kB available
+load sprites 500        frames  214  mean  18.72 ms  median  17.75  p95  25.71  max  26.94  (53.4 fps)
+   drawcalls 3, texture memory 6.0 MB, 13992 kB available
+load batch 4000         frames  102  mean  39.44 ms  median  39.39  p95  39.90  max  40.23  (25.4 fps)
+   drawcalls 3, texture memory 6.0 MB, 12920 kB available
+load shapes 300         frames  181  mean  22.23 ms  median  22.11  p95  24.42  max  25.35  (45.0 fps)
+   drawcalls 3, texture memory 6.0 MB, 12928 kB available
+load text 40 lines      frames  202  mean  19.95 ms  median  18.69  p95  25.67  max  26.06  (50.1 fps)
+   drawcalls 2, texture memory 6.0 MB, 12932 kB available
+load fullscreen shader  frames  124  mean  32.60 ms  median  32.58  p95  32.99  max  33.16  (30.7 fps)
+   drawcalls 3, texture memory 6.0 MB, 12932 kB available
+load msaa canvas        frames  132  mean  30.41 ms  median  30.35  p95  30.97  max  31.47  (32.9 fps)
+   drawcalls 4, texture memory 6.0 MB, 12932 kB available
+sound: playing true, 1 sources active
+deck: 11 inputs seen: joy button 1, joy button 16, joy button 17, joy button 18, joy button 19, joy button 2, joy button 20, joy button 21, joy button 4, joy button 7, joy button 8
+memory at end: 12568 kB available

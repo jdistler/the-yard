@@ -1252,6 +1252,8 @@ static int spawn(cart_t *c)
     return EXIT_STUMBLED;
 }
 
+static int launch_pipe = -1;
+
 /* yard.launch(id): close the window, run the cart, open the window again.
  * Returns "ok", "missing" (it would not start), or "stumbled" (it fell over). */
 static int l_yard_launch(lua_State *L)
@@ -1264,6 +1266,21 @@ static int l_yard_launch(lua_State *L)
     }
     music_stop();
     cab_shutdown();
+    if (launch_pipe >= 0) {
+        /* On the cabinet, libMali.so/libgbm.so leaks two 1024x768x4 DRM GEM shmem buffers (6.0 MiB)
+         * every time SDL_Init runs again in the same process. Exit the menu process before the cart
+         * starts so the kernel closes the DRM fd and reclaims all shmem and pak/Lua memory; the tiny
+         * pre-SDL parent loop in main() spawns the cart and then forks a fresh menu process. */
+        char spec[80];
+        int n = snprintf(spec, sizeof spec, "%s:%s", c->native[0] ? "native" : "cart",
+                         c->native[0] ? c->native : c->id);
+        if (n > 0 && (size_t)n < sizeof spec) {
+            ssize_t w = write(launch_pipe, spec, (size_t)n);
+            (void)w;
+        }
+        close(launch_pipe);
+        _exit(0);
+    }
     code = spawn(c);
     if (gfx_init(running->title, running->w, running->h) != 0) {
         cab_log("yard: could not reopen the window");
@@ -1331,7 +1348,6 @@ int main(int argc, char **argv)
     int check = 0;
     cart_t *c;
     find_self();
-    open_log();
     fast = cab_fast(argc, argv);
     if (getenv("YARD_MEM_MB") && atoi(getenv("YARD_MEM_MB")) > 0)
         mem_cap = (size_t)atoi(getenv("YARD_MEM_MB")) << 20;
@@ -1360,6 +1376,46 @@ int main(int argc, char **argv)
         if (strcmp(base, "yard") && name_ok(base, 32))
             want = base;
     }
+#ifdef CAB_CABINET
+    if (!want && !check && !getenv("CAB_SCRIPT") && !getenv("CAB_CTL")) {
+        for (;;) {
+            int pfd[2], st = 0;
+            char spec[80];
+            ssize_t n;
+            pid_t pid;
+            cart_t target;
+            if (pipe(pfd) != 0)
+                break;
+            pid = fork();
+            if (pid < 0) {
+                close(pfd[0]);
+                close(pfd[1]);
+                break;
+            }
+            if (pid == 0) {
+                close(pfd[0]);
+                launch_pipe = pfd[1];
+                break;
+            }
+            close(pfd[1]);
+            n = read(pfd[0], spec, sizeof spec - 1);
+            close(pfd[0]);
+            while (waitpid(pid, &st, 0) < 0 && errno == EINTR)
+                ;
+            if (n <= 0)
+                return WIFEXITED(st) ? WEXITSTATUS(st) : 0;
+            spec[n] = 0;
+            memset(&target, 0, sizeof target);
+            if (!strncmp(spec, "native:", 7))
+                snprintf(target.native, sizeof target.native, "%s", spec + 7);
+            else if (!strncmp(spec, "cart:", 5))
+                snprintf(target.id, sizeof target.id, "%s", spec + 5);
+            if (target.native[0] || target.id[0])
+                (void)spawn(&target);
+        }
+    }
+#endif
+    open_log();
     scan_carts();
     cab_log("yard: start %s, %d carts", want ? want : "the menu", ncarts);
     if (want) {

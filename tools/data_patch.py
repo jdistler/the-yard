@@ -53,11 +53,17 @@ def fsck(img, label, repair=False):
                 f"{r.stdout}{r.stderr}")
         print(f"  e2fsck {label}: clean")
         return
-    r = subprocess.run([E2FSCK, "-fy", img], capture_output=True, text=True)
-    # 0 clean, 1 errors fixed. Anything else is a failed repair.
-    if r.returncode not in (0, 1):
-        raise SystemExit(f"e2fsck -fy on {label} failed (exit {r.returncode}):\n{r.stdout}{r.stderr}")
-    print(f"  e2fsck -fy {label}: repaired" if r.returncode else f"  e2fsck -fy {label}: already clean")
+    repaired = False
+    for _ in range(2):
+        r = subprocess.run([E2FSCK, "-fy", img], capture_output=True, text=True)
+        # 0 clean, 1 errors fixed. Anything else is a failed repair.
+        if r.returncode not in (0, 1):
+            raise SystemExit(f"e2fsck -fy on {label} failed (exit {r.returncode}):\n{r.stdout}{r.stderr}")
+        if r.returncode == 1:
+            repaired = True
+        else:
+            break
+    print(f"  e2fsck -fy {label}: repaired" if repaired else f"  e2fsck -fy {label}: already clean")
     fsck(img, label, repair=False)
 
 

@@ -351,3 +351,152 @@
    15780 chest say Treasure for the pile.
    16197 stats chest frame 600 update 0.27ms draw 15.89ms peak 30.96ms lua 865KB images 768KB
    16666 chest say The gems will stay.
+       0 yard: pid 554, memory 37332 kB of 118668 kB available
+     148 yard: start the menu, 9 carts
+     520 cab: The Yard: video KMSDRM, display 1024x768 @ 60 Hz, format 0x16362004
+     520 cab: renderer opengles2, flags 0xe, max texture 4096x4096
+     520 cab: 1 joysticks
+     520 cab: joystick 0 'uart-keys': 21 buttons, 0 axes, 0 hats
+     582 cab: audio alsa, 44100 Hz
+    5726 stats yard frame 300 update 0.14ms draw 7.96ms peak 28.73ms lua 829KB images 300KB
+   10745 stats yard frame 600 update 0.14ms draw 7.94ms peak 11.55ms lua 834KB images 300KB
+   15773 stats yard frame 900 update 0.14ms draw 7.88ms peak 10.75ms lua 839KB images 300KB
+   20805 stats yard frame 1200 update 0.14ms draw 7.96ms peak 11.66ms lua 843KB images 300KB
+   25801 stats yard frame 1500 update 0.15ms draw 7.80ms peak 10.89ms lua 848KB images 300KB
+   30829 stats yard frame 1800 update 0.15ms draw 7.84ms peak 11.73ms lua 853KB images 300KB
+   35848 stats yard frame 2100 update 0.15ms draw 7.88ms peak 10.81ms lua 858KB images 300KB
+   40875 stats yard frame 2400 update 0.14ms draw 7.73ms peak 11.75ms lua 862KB images 300KB
+   45938 stats yard frame 2700 update 0.15ms draw 7.87ms peak 10.92ms lua 867KB images 300KB
+   50951 stats yard frame 3000 update 0.15ms draw 7.76ms peak 11.17ms lua 816KB images 300KB
+   55981 stats yard frame 3300 update 0.14ms draw 7.66ms peak 11.10ms lua 821KB images 300KB
+   61030 stats yard frame 3600 update 0.14ms draw 7.95ms peak 11.59ms lua 826KB images 300KB
+   66029 stats yard frame 3900 update 0.14ms draw 7.87ms peak 10.92ms lua 831KB images 300KB
+   71040 stats yard frame 4200 update 0.14ms draw 7.79ms peak 10.95ms lua 835KB images 300KB
+   75053 yard open orb
+       0 yard: pid 654, memory 33616 kB of 118668 kB available
+     131 yard: start the menu, 9 carts
+     314 cab: The Yard: video KMSDRM, display 1024x768 @ 60 Hz, format 0x16362004
+     314 cab: renderer opengles2, flags 0xe, max texture 4096x4096
+     314 cab: 1 joysticks
+     314 cab: joystick 0 'uart-keys': 21 buttons, 0 axes, 0 hats
+     377 cab: audio alsa, 44100 Hz
+    3378 yard open tea
+       0 yard: pid 665, memory 34076 kB of 118668 kB available
+     129 yard: start tea, 9 carts
+     317 cab: Tea: video KMSDRM, display 1024x768 @ 60 Hz, format 0x16362004
+     317 cab: renderer opengles2, flags 0xe, max texture 4096x4096
+     317 cab: 1 joysticks
+     318 cab: joystick 0 'uart-keys': 21 buttons, 0 axes, 0 hats
+     380 cab: audio alsa, 44100 Hz
+     458 tea say She flies to the castle.
+    6094 tea say She leans in the clouds.
+    6464 tea treat 0
+    6477 tea say A balloon for the party!
+    7667 tea treat 0
+    8236 stats tea frame 300 update 0.32ms draw 12.78ms peak 34.70ms lua 988KB images 3501KB
+    8671 tea treat 3
+    8686 tea say A star for the party!
+   10136 tea treat 2
+   10152 tea say Flowers for the party!
+   11215 tea treat 3
+   11232 tea say A star for the party!
+   12689 tea treat 1
+   12708 tea say A cupcake for the party!
+   14300 tea treat 2
+   14316 tea say Flowers for the party!
+   15985 tea treat 3
+   16002 tea say A star for the party!
+   17267 stats tea frame 600 update 0.35ms draw 17.00ms peak 27.02ms lua 1009KB images 4152KB
+   17742 tea treat 3
+   19059 tea treat 1
+   19081 tea say A cupcake for the party!
+   19694 tea arrive 3
+   19694 tea treats 10
+   19721 tea say A kitten came to play.
+   23652 tea party
+   23689 tea say Pip would love some tea.
+   23799 tea heart Pip 1
+   23854 tea say Pip sipped her tea.
+   24361 tea heart Pip 2
+   24401 tea say Pip ate the cupcake.
+   24520 tea heart Pip 3
+   24561 tea say Pip is so happy.
+   24669 tea heart Pip 3
+   24707 tea say Pip does a little dance.
+   24814 tea heart Pip 3
+   25091 tea focus Moth
+   25421 tea heart Moth 1
+   25461 tea say The yarn rolled back.
+   25639 tea heart Moth 2
+   25681 tea say Moth ate the cupcake.
+   25773 tea heart Moth 3
+   25814 tea say Moth is so happy.
+   25976 tea heart Moth 3
+   26020 tea say Moth does a little dance.
+   26101 tea heart Moth 3
+   26367 tea focus Pearl
+   26701 tea focus Nib
+   27078 tea heart Nib 1
+   27119 tea say Nib bumped her nose.
+   27210 tea heart Nib 2
+   27283 tea say Nib ate the cupcake.
+   27377 tea heart Nib 3
+   27445 tea say Nib is so happy.
+   27519 tea heart Nib 3
+   27602 tea say Nib does a little dance.
+   27668 tea heart Nib 3
+   27817 tea heart Nib 3
+   28448 stats tea frame 900 update 1.71ms draw 22.51ms peak 92.23ms lua 882KB images 6704KB
+   28610 tea heart Nib 3
+   30648 tea focus Pearl
+   30778 tea focus Nib
+   31629 tea focus Pearl
+   32391 tea heart Pearl 1
+   32431 tea say Pearl wears a flower.
+   32632 tea heart Pearl 2
+   32671 tea say Pearl ate the cupcake.
+   32823 tea heart Pearl 3
+   32839 tea cheer
+   32868 tea say The whole table glows.
+   32988 tea heart Pearl 3
+   33042 tea say Pip sipped her tea.
+   33196 tea heart Pearl 3
+   35129 tea say They will keep the gifts.
+   35862 tea photo 2
+       0 yard: pid 739, memory 34116 kB of 118668 kB available
+     112 yard: start the menu, 9 carts
+     331 cab: The Yard: video KMSDRM, display 1024x768 @ 60 Hz, format 0x16362004
+     331 cab: renderer opengles2, flags 0xe, max texture 4096x4096
+     331 cab: 1 joysticks
+     331 cab: joystick 0 'uart-keys': 21 buttons, 0 axes, 0 hats
+     394 cab: audio alsa, 44100 Hz
+    5517 stats yard frame 300 update 0.15ms draw 7.87ms peak 25.91ms lua 829KB images 300KB
+   10588 stats yard frame 600 update 0.14ms draw 7.91ms peak 11.42ms lua 834KB images 300KB
+   15593 stats yard frame 900 update 0.15ms draw 7.85ms peak 11.72ms lua 839KB images 300KB
+   20589 stats yard frame 1200 update 0.15ms draw 7.81ms peak 10.90ms lua 843KB images 300KB
+   25626 stats yard frame 1500 update 0.15ms draw 7.83ms peak 11.49ms lua 848KB images 300KB
+   29903 yard open loveprobe
+       0 yard: pid 922, memory 26724 kB of 118668 kB available
+     158 yard: start the menu, 9 carts
+     411 cab: The Yard: video KMSDRM, display 1024x768 @ 60 Hz, format 0x16362004
+     411 cab: renderer opengles2, flags 0xe, max texture 4096x4096
+     412 cab: 1 joysticks
+     412 cab: joystick 0 'uart-keys': 21 buttons, 0 axes, 0 hats
+     469 cab: audio alsa, 44100 Hz
+    5619 stats yard frame 300 update 0.15ms draw 7.86ms peak 29.04ms lua 828KB images 300KB
+   10633 stats yard frame 600 update 0.14ms draw 7.64ms peak 11.69ms lua 833KB images 300KB
+   15653 stats yard frame 900 update 0.14ms draw 7.79ms peak 10.84ms lua 838KB images 300KB
+   20698 stats yard frame 1200 update 0.15ms draw 7.88ms peak 11.87ms lua 843KB images 300KB
+   25749 stats yard frame 1500 update 0.14ms draw 7.93ms peak 10.88ms lua 848KB images 300KB
+   30816 stats yard frame 1800 update 0.14ms draw 8.01ms peak 11.59ms lua 853KB images 300KB
+   31072 yard open loveyard
+       0 yard: pid 1167, memory 68600 kB of 118668 kB available
+     140 yard: start the menu, 9 carts
+     352 cab: The Yard: video KMSDRM, display 1024x768 @ 60 Hz, format 0x16362004
+     352 cab: renderer opengles2, flags 0xe, max texture 4096x4096
+     352 cab: 1 joysticks
+     352 cab: joystick 0 'uart-keys': 21 buttons, 0 axes, 0 hats
+     408 cab: audio alsa, 44100 Hz
+    5540 stats yard frame 300 update 0.15ms draw 7.84ms peak 23.47ms lua 829KB images 300KB
+   10606 stats yard frame 600 update 0.15ms draw 7.86ms peak 11.39ms lua 833KB images 300KB
+   15601 stats yard frame 900 update 0.14ms draw 7.46ms peak 10.69ms lua 838KB images 300KB

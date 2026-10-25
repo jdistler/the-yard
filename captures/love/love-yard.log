@@ -1,0 +1,65 @@
+stats yard frame 300 update 3.38ms draw 24.56ms lua 6450KB images 3072KB
+stats yard frame 600 update 0.15ms draw 10.93ms lua 7337KB images 3072KB
+stats yard frame 900 update 0.15ms draw 11.17ms lua 8222KB images 3072KB
+yard open keep
+keep catch 1
+stats keep frame 300 update 1.89ms draw 3.68ms lua 3143KB images 6144KB
+keep miss lives 2
+yard open lamp
+lamp night 1 (the Kite, 4 stars)
+stats yard frame 1200 update 81.40ms draw 12.17ms lua 1028KB images 3072KB
+stats yard frame 1500 update 0.14ms draw 11.11ms lua 1913KB images 3072KB
+yard open orb
+stats yard frame 1800 update 45.76ms draw 11.76ms lua 2354KB images 3072KB
+yard open tea
+tea say She flies to the castle.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She flies to the castle.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She leans in the clouds.
+tea say The party is waiting.
+tea say She leans in the clouds.
+tea treat 0
+tea say A balloon for the party!
+tea say They will keep the gifts.
+yard open chest
+chest gems 4
+chest say The key is glowing.
+chest say He walks to the key.
+chest say The key is glowing.
+chest say He walks to the key.
+chest say The key is glowing.
+chest say He walks to the key.
+chest say The key is glowing.
+chest say He walks to the key.
+chest say The key is glowing.
+chest say The gems will stay.
+stats yard frame 2100 update 37.29ms draw 11.64ms lua 1209KB images 3072KB

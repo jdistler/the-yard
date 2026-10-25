@@ -318,8 +318,10 @@ void cab_gl_present(void)
         s = (float)uw / (float)cab_w;
         if ((float)uh / (float)cab_h < s)
             s = (float)uh / (float)cab_h;
-        dw = (int)(cab_w * s);
-        dh = (int)(cab_h * s);
+        /* In the landscape framebuffer (ow x oh), the rotated quad's width along X is the
+         * upright height (cab_h * s) and its height along Y is the upright width (cab_w * s). */
+        dw = (int)(cab_h * s);
+        dh = (int)(cab_w * s);
         dst.x = (ow - dw) / 2;
         dst.y = (oh - dh) / 2;
         dst.w = dw;

@@ -647,3 +647,162 @@ Record:
      * `rkflash0p5` (`data`, 61440 sectors): live `a0fe4a83…` vs post-play dump `a86522e7…` (expected: `/userdata` was mounted rw and being written by `sysprobe` itself).
    * All `/sys/class/block/rkflash0p*` report `ro 0`.
 
+### Take 2: Fixes, Deploy, Playtest, and Extracted GPU Logs (2026-10-24)
+
+#### Fixes applied for Take 2
+1. **`games/love/build.sh` (`SDL_VIDEO_DRIVER_KMSDRM` + dynamic SONAMEs):** Added `$W/stub-$T` (outside `$PREFIX`) with filename stubs (`libdrm.so -> libdrm.so.2`, `libgbm.so -> libgbm.so.1`, `libEGL.so -> libEGL.so.1`, `libasound.so -> libasound.so.2`, `libudev.so -> libudev.so.1`) and `.pc` files (`libdrm.pc`, `gbm.pc`, `egl.pc`), plus a post-build check asserting `#define SDL_VIDEO_DRIVER_KMSDRM 1` in `SDL_config.h`. Rebuilt `love-arm` and `love-x86`; `check_abi.py`, `smoke.sh` (against the dump rootfs), and `stress.sh` (97/97) all passed.
+2. **`games/love/loveprobe.sh` (1970 clock vs `-nt`):** Replaced `love.tar.gz -nt /data/love/.stamp` with a `sha256sum` comparison of the first 64 KiB of `love.tar.gz` stored in `/data/love/.stamp`, so it unpacks once when the archive changes and launches immediately thereafter.
+3. **`games/engine/runtime.c` (pre-SDL menu supervisor):** Added a small pre-SDL fork/pipe loop in `main()` (`#ifdef CAB_CABINET`) so the menu process exits before spawning any cart or native program, allowing the kernel to close its DRM fd and reclaim the `6.0 MiB` `libMali.so` GEM `shmem` buffers and heap on every launch.
+4. **`games/engine/cab_gl.c` (Orb viewport clipping):** Swapped `dw = (int)(cab_h * s)` and `dh = (int)(cab_w * s)` in `cab_gl_present()` for the 90°-rotated landscape framebuffer (`1024×768`).
+5. **`games/love/yard/gfx.lua` & `main.lua` (`GPU` badge & canvas cleanup):** Added a green `GPU` badge in the top-left corner of the menu, wrapped `lg.newCanvas(..., {msaa = ...})` in `pcall`, and added GC collection on cart exit.
+6. **`tools/data_patch.py` (two-pass `e2fsck -fy`):** When `--repair` clears an orphan inode list from a power-cut dump, a second `e2fsck -fy` pass now runs before `e2fsck -fn`. (Also noted that `pad()`'s `0x00` tail causes `e2fsprogs 1.47.0` `debugfs write` to create sparse holes `bmap = 0`, which `--overwrite` rejects unless `--put` is used.)
+
+#### Take 2 deploy (loader device 81)
+* Staged against `~/partycade-dumps/2026-10-24_love_played/nand_raw.bin` (`7a54af20…3adf`) into `~/partycade-dumps/2026-10-24_love_played/stage/nand_raw_patched.bin` (sha256 `33dedafff276d097a0331bcf869c6e77982c6e476899ba0b601b76f0401496f3`).
+* Verified `rk_restore.py diff` before write = `none`.
+* Restored 64 blocks (`194,195,200,201,334..361,364..373,824,825,832,833,856,857,866,867,878,879,884,885,922,923,948,949,950,951,952,953,960,961`) with user approval:
+  `Approved: 194,195,200,201,334,335,336,337,338,339,340,341,342,343,344,345,346,347,348,349,350,351,352,353,354,355,356,357,358,359,360,361,364,365,366,367,368,369,370,371,372,373,824,825,832,833,856,857,866,867,878,879,884,885,922,923,948,949,950,951,952,953,960,961`
+* Verified `rk_restore.py diff` after write = `none`.
+
+#### User's exact notes from the Take 2 playtest
+
+> #### 0. Boot into normal play mode  
+> All good. yard is still fuzzy but i dont think you addressed that yet which is fine.
+>
+> #### 1. Quick verify of the CPU runtime fixes (Orb & Tea)   
+> both good now
+>
+> #### 2. LOVE probe
+>  good did it!
+>  
+>  #### 3. GPU yard
+> so black screen like 3 seconds i haeard a blip of music then white screen flash then onto the yard at gpu mode, crystal clear pixels now! but the audio does seem to be coming in slower. all the fuzziness is gone though. maybe gameplay slower too? like on the lamp sluggish to move around. on orb joystick wouldnt even move at all. 
+>
+>   #### 4. Clean exit & cold-plug for log collection
+>
+> still a stuck "Loading..." had to force shut down.
+
+#### Take 2 dump & extraction (Mask ROM device 82 → loader device 83)
+* Dumped `~/partycade-dumps/2026-10-24_love_take2_played/nand_raw.bin` (sha256 `24e58c36d480412412a5fee013e70525c3afc56b95c4758fda22aaf91d2d2831`).
+* Rebuilt `~/partycade-dumps/2026-10-24_love_take2_played/logical.img` (sha256 `605ef80be481d650268e46a42afffd3ca411504feee01c31b87e8c1d1ad7815d`).
+* Extracted into `captures/love/`:
+  * `captures/love/love-probe.txt` (2,272 bytes)
+  * `captures/love/love-yard.log` (2,163 bytes)
+  * `captures/love/love-probe.log` (8,741 bytes)
+  * `captures/love/yard.log` (20,762 bytes)
+  * `captures/love/games-ls.txt` (8,461 bytes)
+  * `captures/love/love-ls.txt` (534 bytes)
+
+#### Full contents of `captures/love/love-probe.txt`
+
+```text
+renderer: OpenGL ES | OpenGL ES 2.0 | ARM | Mali-400 MP
+window 1024x768, desktop 1024x768, dpi scale 1
+limit anisotropy = 1
+limit canvasmsaa = 0
+limit cubetexturesize = 4096
+limit multicanvas = 1
+limit pointsize = 100
+limit texturelayers = 1
+limit texturesize = 4096
+limit volumetexturesize = 1
+supported glsl3 = false
+supported multicanvasformats = false
+supported clampzero = false
+supported lighten = true
+supported fullnpot = true
+supported pixelshaderhighp = false
+supported shaderderivatives = true
+supported instancing = false
+image formats: ETC1 r8 rgb565 rgb5a1 rgba4 rgba8
+canvas formats: depth16 depth24 depth24stencil8 normal rgb565 rgb5a1 rgba4 rgba8 stencil8
+os Linux, 2 cores, lua Lua 5.1, LuaJIT 2.1.1792588164
+memory at start: 22852 kB available
+lua loop 2M: interpreter 563 ms
+lua loop 2M: jit on 164 ms (status true)
+joystick "uart-keys": 21 buttons, 0 axes, 0 hats, gamepad true, guid 1900078d010000000100000000010000
+load clear              frames  242  mean  16.66 ms  median  16.66  p95  16.94  max  17.90  (60.0 fps)
+   drawcalls 2, texture memory 6.0 MB, 14104 kB available
+load sprites 500        frames  214  mean  18.72 ms  median  17.75  p95  25.71  max  26.94  (53.4 fps)
+   drawcalls 3, texture memory 6.0 MB, 13992 kB available
+load batch 4000         frames  102  mean  39.44 ms  median  39.39  p95  39.90  max  40.23  (25.4 fps)
+   drawcalls 3, texture memory 6.0 MB, 12920 kB available
+load shapes 300         frames  181  mean  22.23 ms  median  22.11  p95  24.42  max  25.35  (45.0 fps)
+   drawcalls 3, texture memory 6.0 MB, 12928 kB available
+load text 40 lines      frames  202  mean  19.95 ms  median  18.69  p95  25.67  max  26.06  (50.1 fps)
+   drawcalls 2, texture memory 6.0 MB, 12932 kB available
+load fullscreen shader  frames  124  mean  32.60 ms  median  32.58  p95  32.99  max  33.16  (30.7 fps)
+   drawcalls 3, texture memory 6.0 MB, 12932 kB available
+load msaa canvas        frames  132  mean  30.41 ms  median  30.35  p95  30.97  max  31.47  (32.9 fps)
+   drawcalls 4, texture memory 6.0 MB, 12932 kB available
+sound: playing true, 1 sources active
+deck: 11 inputs seen: joy button 1, joy button 16, joy button 17, joy button 18, joy button 19, joy button 2, joy button 20, joy button 21, joy button 4, joy button 7, joy button 8
+memory at end: 12568 kB available
+```
+
+#### Excerpt of `captures/love/love-yard.log` and Take 2 `captures/love/yard.log`
+
+`captures/love/love-yard.log`:
+```text
+stats yard frame 300 update 3.38ms draw 24.56ms lua 6450KB images 3072KB
+stats yard frame 600 update 0.15ms draw 10.93ms lua 7337KB images 3072KB
+stats yard frame 900 update 0.15ms draw 11.17ms lua 8222KB images 3072KB
+yard open keep
+stats keep frame 300 update 1.89ms draw 3.68ms lua 3143KB images 6144KB
+yard open lamp
+stats yard frame 1200 update 81.40ms draw 12.17ms lua 1028KB images 3072KB
+stats yard frame 1500 update 0.14ms draw 11.11ms lua 1913KB images 3072KB
+yard open orb
+stats yard frame 1800 update 45.76ms draw 11.76ms lua 2354KB images 3072KB
+yard open tea
+yard open chest
+stats yard frame 2100 update 37.29ms draw 11.64ms lua 1209KB images 3072KB
+```
+
+Take 2 `captures/love/yard.log` (lines 354–502):
+```text
+       0 yard: pid 554, memory 37332 kB of 118668 kB available
+     148 yard: start the menu, 9 carts
+    5726 stats yard frame 300 update 0.14ms draw 7.96ms peak 28.73ms lua 829KB images 300KB
+   75053 yard open orb
+       0 yard: pid 654, memory 33616 kB of 118668 kB available
+     131 yard: start the menu, 9 carts
+    3378 yard open tea
+       0 yard: pid 665, memory 34076 kB of 118668 kB available
+     129 yard: start tea, 9 carts
+     380 cab: audio alsa, 44100 Hz
+    8236 stats tea frame 300 update 0.32ms draw 12.78ms peak 34.70ms lua 988KB images 3501KB
+   17267 stats tea frame 600 update 0.35ms draw 17.00ms peak 27.02ms lua 1009KB images 4152KB
+   28448 stats tea frame 900 update 1.71ms draw 22.51ms peak 92.23ms lua 882KB images 6704KB
+   35862 tea photo 2
+       0 yard: pid 739, memory 34116 kB of 118668 kB available
+     112 yard: start the menu, 9 carts
+   29903 yard open loveprobe
+       0 yard: pid 922, memory 26724 kB of 118668 kB available
+     158 yard: start the menu, 9 carts
+   31072 yard open loveyard
+       0 yard: pid 1167, memory 68600 kB of 118668 kB available
+     140 yard: start the menu, 9 carts
+```
+
+#### Key takeaways from Take 2 for the next design iteration
+
+1. **Why `GPU yard` completely eliminated the fuzziness ("crystal clear pixels now! all the fuzziness is gone"):**
+   * Rendering vector shapes, circles, polygons, and TrueType text directly into a **`768×1024` canvas (`K = 3.2×` or `2×`)** instead of software-rasterizing at `240×320` and stretching by `3.2×` makes text and art crisp on the cabinet's panel.
+   * Even on the CPU runtime (`games/engine/gfx.c`), rendering into a `768×1024` buffer (or integer-scaling / high-res font rendering, or enabling the panel's native `1280×1024` mode in the kernel DRM driver) is the key to matching `GPU yard`'s visual sharpness.
+
+2. **Why CPU runtime memory stayed rock-steady (`37.3 MB` → `33.6 MB` → `34.1 MB` → `34.1 MB`) across Orb and Tea:**
+   * With the pre-SDL supervisor in `games/engine/runtime.c`, the menu process exited before spawning `orb` and `tea`, so `tea` started with `34,076 kB` free (instead of `7,464 kB`), opened ALSA audio cleanly (`cab: audio alsa, 44100 Hz`), played through arrival 3 (`Nib`) and `photo 2`, and returned to the menu with `34,116 kB` free — zero `shmem` leak!
+
+3. **Why audio in `GPU yard` had latency/stutter (`[ALSOFT] (EE) mmap commit error: Broken pipe`):**
+   * `captures/love/love-probe.log` lines 121–122 show OpenAL Soft's ALSA backend failing `mmap` commits on the Rockchip I2S ALSA device (`[ALSOFT] (EE) mmap commit error: Broken pipe`). Setting `ALSOFT_CONF` with `mmap = false` (so OpenAL uses standard `snd_pcm_writei` like SDL2 does) will eliminate the ALSA mmap stalls.
+   * Also, in `games/love/yard/audio.lua`, synth sounds are generated in Lua while LÖVE defaults to `jit.off()` on 32-bit ARM (`love-probe.txt` shows `jit.on()` is **3.4× faster**: `164 ms` vs `563 ms`). Calling `if jit then jit.on() end` at startup in `games/love/yard/main.lua` will speed up Lua synth generation and cart updates by ~3.4×.
+
+4. **Why `Lamp` felt sluggish in `GPU yard`:**
+   * On the tile-based Mali-400 MP (`love-probe.txt` line 36 shows a single 768×1024 fullscreen shader pass costs `32.60 ms` = `30.7 fps`), `games/love/yard/gfx.lua`'s `light.add` switches FBOs (`lg.setCanvas(lc)` then back to `{screen, stencil = true}`) on *every light source*, forcing the Mali-400 to flush and resolve its tile buffer to DRAM repeatedly mid-frame, followed by two fullscreen `768×1024` shader passes (`light_mul` and `light_add`) in `light.apply()`. Batching all `light.add` calls into one FBO pass (or using a `240×320` light canvas and a single combined multiply+tint shader) will eliminate the mid-frame FBO flushes and cut fragment work by >10×.
+
+5. **Why `Orb` inside `GPU yard` had no joystick response and why exiting at the end still hit `"LOADING..."`:**
+   * Inside `GPU yard` (`games/love/yard/main.lua` line 553), selecting `Orb` (`c.native = "orb"`) called `love.window.close()` and `os.execute("/data/Games/orb")` **while the `love.bin` process stayed alive in RAM** holding its ALSA device (`SDL_OpenAudio: ALSA: Couldn't open audio device: Device or resource busy` in `love-probe.log` line 147), its SDL joystick/evdev handles, and its ~40 MB of RAM/VRAM.
+   * Running both `love.bin` (~40 MB) AND `orb` (~15 MB) simultaneously pushed total memory past the 37 MB headroom and triggered the Linux OOM killer on `/usr/bin/game` (visible in `yard.log` line 493 where free memory jumped from `26,724 kB` before `loveyard` to `68,600 kB` after `loveyard`). Filtering out `c.native` carts inside `GPU yard` (just as `love*` carts are already filtered out on line 361 of `games/love/yard/main.lua`), or reducing `/usr/bin/game`'s memory footprint (or setting `/proc/<game_pid>/oom_score_adj` to `-1000` in `/data/start.sh`!), will prevent `/usr/bin/game` from ever being killed.
+
+

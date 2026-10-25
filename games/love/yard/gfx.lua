@@ -49,37 +49,42 @@ end
 
 function G.init(w, h, k)
   W, H, K = w, h, k
-  screen = lg.newCanvas(math.floor(W * K + 0.5), math.floor(H * K + 0.5), {msaa = G.msaa or 0})
-  -- A soft round light: alpha (1 - d^2)^2, the falloff the software renderer's glow used.
-  local n = 128
-  local d = love.image.newImageData(n, n)
-  d:mapPixel(function(x, y)
-    local dx, dy = (x + 0.5) / n * 2 - 1, (y + 0.5) / n * 2 - 1
-    local v = 1 - (dx * dx + dy * dy)
-    if v < 0 then v = 0 end
-    return 1, 1, 1, v * v
-  end)
-  glow_tex = lg.newImage(d)
-  glow_tex:setFilter("linear", "linear")
-  white = lg.newImage(love.image.newImageData(1, 1, "rgba8", "\255\255\255\255"))
-  tint_shader = lg.newShader([[
-    extern vec4 tint;
-    vec4 effect(vec4 c, Image t, vec2 uv, vec2 sc) {
-      vec4 p = Texel(t, uv);
-      return vec4(mix(p.rgb, tint.rgb, tint.a), p.a) * c;
-    }]])
-  -- Light, as Lamp's software pass did it: warm light keeps red a little longer than blue.
-  light_mul = lg.newShader([[
-    vec4 effect(vec4 c, Image t, vec2 uv, vec2 sc) {
-      float k = clamp(Texel(t, uv).r, 0.0, 1.0);
-      return vec4(k * (0.75 + 0.25 * k), k * (0.85 + 0.15 * k), k, 1.0);
-    }]])
-  light_add = lg.newShader([[
-    extern vec3 tint;
-    vec4 effect(vec4 c, Image t, vec2 uv, vec2 sc) {
-      float k = clamp(Texel(t, uv).r, 0.0, 1.0);
-      return vec4(tint * (1.0 - k), 1.0);
-    }]])
+  local cw, ch = math.floor(W * K + 0.5), math.floor(H * K + 0.5)
+  if screen then pcall(function() screen:release() end) end
+  local ok, c = pcall(lg.newCanvas, cw, ch, {msaa = G.msaa or 0})
+  screen = ok and c or lg.newCanvas(cw, ch)
+  if not glow_tex then
+    -- A soft round light: alpha (1 - d^2)^2, the falloff the software renderer's glow used.
+    local n = 128
+    local d = love.image.newImageData(n, n)
+    d:mapPixel(function(x, y)
+      local dx, dy = (x + 0.5) / n * 2 - 1, (y + 0.5) / n * 2 - 1
+      local v = 1 - (dx * dx + dy * dy)
+      if v < 0 then v = 0 end
+      return 1, 1, 1, v * v
+    end)
+    glow_tex = lg.newImage(d)
+    glow_tex:setFilter("linear", "linear")
+    white = lg.newImage(love.image.newImageData(1, 1, "rgba8", "\255\255\255\255"))
+    tint_shader = lg.newShader([[
+      extern vec4 tint;
+      vec4 effect(vec4 c, Image t, vec2 uv, vec2 sc) {
+        vec4 p = Texel(t, uv);
+        return vec4(mix(p.rgb, tint.rgb, tint.a), p.a) * c;
+      }]])
+    -- Light, as Lamp's software pass did it: warm light keeps red a little longer than blue.
+    light_mul = lg.newShader([[
+      vec4 effect(vec4 c, Image t, vec2 uv, vec2 sc) {
+        float k = clamp(Texel(t, uv).r, 0.0, 1.0);
+        return vec4(k * (0.75 + 0.25 * k), k * (0.85 + 0.15 * k), k, 1.0);
+      }]])
+    light_add = lg.newShader([[
+      extern vec3 tint;
+      vec4 effect(vec4 c, Image t, vec2 uv, vec2 sc) {
+        float k = clamp(Texel(t, uv).r, 0.0, 1.0);
+        return vec4(tint * (1.0 - k), 1.0);
+      }]])
+  end
 end
 
 function G.begin_frame()
@@ -96,6 +101,14 @@ function G.finish_frame(quitting)
   set_target(screen, K)
   offx, offy = 0, 0
   apply_transform()
+  if G.badge then
+    lg.setColor(20 / 255, 16 / 255, 42 / 255, 220 / 255)
+    lg.rectangle("fill", 5, 5, 34, 15, 4, 4)
+    lg.setColor(110 / 255, 235 / 255, 165 / 255, 1)
+    lg.setLineWidth(1)
+    lg.rectangle("line", 5, 5, 34, 15, 4, 4)
+    G.api.text("GPU", 22, 6, 11, 0x6eeba5, "center")
+  end
   if flash_left > 0 then
     local r, g, b, a = rgba(flash_c)
     lg.setColor(r, g, b, a * flash_left / flash_len)

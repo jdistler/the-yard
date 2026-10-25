@@ -73,7 +73,40 @@ EOF
 for t in ar ranlib; do printf '#!/bin/sh\nexec %s %s "$@"\n' "$ZIG" "$t" > "$W/bin-$T/$t"; done
 chmod +x "$W"/bin-$T/*
 export CC=$W/bin-$T/cc CXX=$W/bin-$T/c++ OBJCXX=$W/bin-$T/c++ AR=$W/bin-$T/ar RANLIB=$W/bin-$T/ranlib
-export PKG_CONFIG_PATH= PKG_CONFIG_LIBDIR=$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig
+# SDL's CMake checks (CheckKMSDRM, CheckALSA, CheckLibUDev) use pkg-config and FindLibraryAndSONAME to record
+# the dlopen SONAME strings ("libdrm.so.2", "libgbm.so.1", "libasound.so.2", "libudev.so.1") in SDL_config.h
+# when *_SHARED=ON. Keep filename stubs and .pc files in $STUB (outside $PREFIX) so CMake finds the exact
+# cabinet SONAMEs without linking against or bundling them.
+STUB=$W/stub-$T
+rm -rf "$STUB" && mkdir -p "$STUB/lib/pkgconfig"
+for pair in "libdrm.so.2:libdrm.so" "libgbm.so.1:libgbm.so" "libEGL.so.1:libEGL.so" \
+            "libasound.so.2:libasound.so" "libudev.so.1:libudev.so"; do
+  so=${pair%%:*}; ln=${pair#*:}
+  : > "$STUB/lib/$so"
+  ln -sf "$so" "$STUB/lib/$ln"
+done
+cat > "$STUB/lib/pkgconfig/libdrm.pc" <<EOF
+Name: libdrm
+Description: DRM stub for SDL_KMSDRM_SHARED
+Version: 2.4.0
+Cflags: -I$HDR -I$HDR/libdrm
+Libs: -L$STUB/lib -ldrm
+EOF
+cat > "$STUB/lib/pkgconfig/gbm.pc" <<EOF
+Name: gbm
+Description: GBM stub for SDL_KMSDRM_SHARED
+Version: 1.0.0
+Cflags: -I$HDR
+Libs: -L$STUB/lib -lgbm
+EOF
+cat > "$STUB/lib/pkgconfig/egl.pc" <<EOF
+Name: egl
+Description: EGL stub for SDL_KMSDRM_SHARED
+Version: 1.5
+Cflags: -I$HDR
+Libs: -L$STUB/lib -lEGL
+EOF
+export PKG_CONFIG_PATH= PKG_CONFIG_LIBDIR=$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig:$STUB/lib/pkgconfig
 # -D_FILE_OFFSET_BITS=64 uses __xstat64/__fxstat64/__lxstat64 (whose glibc 2.29 ARM implementation ignores
 # the version argument, whereas 32-bit __xstat rejects the _STAT_VER=0 that zig's generic xstatver.h passes
 # instead of ARM's _STAT_VER_LINUX=3) and avoids EOVERFLOW on 64-bit host inodes under qemu-arm.
@@ -87,7 +120,7 @@ cm() { # name srcdir [cmake args...]
   cmake -S "$s" -B "$B/$n" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     -DCMAKE_C_COMPILER="$CC" -DCMAKE_CXX_COMPILER="$CXX" -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" \
     -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR="${T/x86/x86_64}" -DCMAKE_PREFIX_PATH="$PREFIX" \
-    -DCMAKE_FIND_ROOT_PATH="$PREFIX" -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
+    -DCMAKE_FIND_ROOT_PATH="$PREFIX;$STUB" -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
     -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH \
     -DBUILD_SHARED_LIBS=ON "$@" > "$B/$n.log" 2>&1 || { tail -30 "$B/$n.log"; exit 1; }
   ninja -C "$B/$n" install >> "$B/$n.log" 2>&1 || { tail -30 "$B/$n.log"; exit 1; }
@@ -109,7 +142,11 @@ cm SDL "$SRC/SDL" -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TEST=OFF -DSDL_X11=OFF 
   -DSDL_ALSA=ON -DSDL_ALSA_SHARED=ON -DSDL_PULSEAUDIO=OFF -DSDL_PIPEWIRE=OFF -DSDL_JACK=OFF -DSDL_SNDIO=OFF \
   -DSDL_OSS=OFF -DSDL_LIBUDEV=ON -DSDL_DBUS=OFF -DSDL_IBUS=OFF -DSDL_RPATH=OFF -DSDL_HIDAPI=OFF \
   -DCMAKE_C_FLAGS="$CFLAGS -I$HDR -I$HDR/libdrm" -DSDL_LOADSO=ON \
+  -DALSA_INCLUDE_DIR="$HDR" -DALSA_LIBRARY="$STUB/lib/libasound.so" \
   -DSDL_KMSDRM_SHARED=ON -DSDL_ALSA_SHARED=ON -DSDL_DIRECTFB=OFF -DSDL_RPI=OFF -DSDL_VIVANTE=OFF -DSDL_SYSTEM_ICONV=OFF
+grep -q "#define SDL_VIDEO_DRIVER_KMSDRM 1" "$B/SDL/include-config-release/SDL2/SDL_config.h" || {
+  echo "SDL built without KMSDRM"; exit 1;
+}
 
 if [ ! -f "$B/theora.done" ]; then
   echo "== theora"

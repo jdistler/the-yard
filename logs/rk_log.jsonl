@@ -171,3 +171,74 @@
 {"ts": "2026-10-24T19:54:45-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "send_472", "devnum": 80, "stage": "plug_3032slc_erase", "ok": true, "rc": 0, "out": ["chunk 21 len=4096 actual=4096 status=0", "chunk 22 len=1406 actual=1406 status=0", "OK index 0x472 all 91518 bytes, 23 chunks"]}
 {"ts": "2026-10-24T19:54:47-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "loader_up", "devnum": 81, "from_devnum": 80, "plug": "plug_3032slc_erase", "sha": "53574f36b7637f55701f6a0e9aae7aec991fc3c2d326e9e9899956cd4ee8df91"}
 {"ts": "2026-10-24T19:55:55-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "rawdump", "devnum": 81, "start": 0, "count": 262144, "out": "/home/joseph/partycade-dumps/2026-10-24_love_played/nand_raw.bin", "sha256": "7a54af20e13f5305631bfc949dff0674248641f76daa484bb536056710f93adf", "verified": true}
+{"ts": "2026-10-24T20:38:26-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_diff", "devnum": 81, "image_sha256": "7a54af20e13f5305631bfc949dff0674248641f76daa484bb536056710f93adf", "blocks": "0-1023", "differ": []}
+{"ts": "2026-10-24T20:43:47-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_start", "devnum": 81, "image_sha256": "33dedafff276d097a0331bcf869c6e77982c6e476899ba0b601b76f0401496f3", "blocks": "194,195,200,201,334,335,336,337,338,339,340,341,342,343,344,345,346,347,348,349,350,351,352,353,354,355,356,357,358,359,360,361,364,365,366,367,368,369,370,371,372,373,824,825,832,833,856,857,866,867,878,879,884,885,922,923,948,949,950,951,952,953,960,961", "approval": "Approved: 194,195,200,201,334,335,336,337,338,339,340,341,342,343,344,345,346,347,348,349,350,351,352,353,354,355,356,357,358,359,360,361,364,365,366,367,368,369,370,371,372,373,824,825,832,833,856,857,866,867,878,879,884,885,922,923,948,949,950,951,952,953,960,961"}
+{"ts": "2026-10-24T20:43:47-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 194, "ok": true}
+{"ts": "2026-10-24T20:43:47-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 195, "ok": true}
+{"ts": "2026-10-24T20:43:47-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 200, "ok": true}
+{"ts": "2026-10-24T20:43:48-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 201, "ok": true}
+{"ts": "2026-10-24T20:43:48-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 334, "ok": true}
+{"ts": "2026-10-24T20:43:48-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 335, "ok": true}
+{"ts": "2026-10-24T20:43:48-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 336, "ok": true}
+{"ts": "2026-10-24T20:43:49-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 337, "ok": true}
+{"ts": "2026-10-24T20:43:49-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 338, "ok": true}
+{"ts": "2026-10-24T20:43:49-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 339, "ok": true}
+{"ts": "2026-10-24T20:43:49-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 340, "ok": true}
+{"ts": "2026-10-24T20:43:49-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 341, "ok": true}
+{"ts": "2026-10-24T20:43:50-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 342, "ok": true}
+{"ts": "2026-10-24T20:43:50-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 343, "ok": true}
+{"ts": "2026-10-24T20:43:50-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 344, "ok": true}
+{"ts": "2026-10-24T20:43:50-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 345, "ok": true}
+{"ts": "2026-10-24T20:43:51-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 346, "ok": true}
+{"ts": "2026-10-24T20:43:51-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 347, "ok": true}
+{"ts": "2026-10-24T20:43:51-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 348, "ok": true}
+{"ts": "2026-10-24T20:43:51-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 349, "ok": true}
+{"ts": "2026-10-24T20:43:52-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 350, "ok": true}
+{"ts": "2026-10-24T20:43:52-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 351, "ok": true}
+{"ts": "2026-10-24T20:43:52-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 352, "ok": true}
+{"ts": "2026-10-24T20:43:52-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 353, "ok": true}
+{"ts": "2026-10-24T20:43:52-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 354, "ok": true}
+{"ts": "2026-10-24T20:43:53-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 355, "ok": true}
+{"ts": "2026-10-24T20:43:53-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 356, "ok": true}
+{"ts": "2026-10-24T20:43:53-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 357, "ok": true}
+{"ts": "2026-10-24T20:43:53-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 358, "ok": true}
+{"ts": "2026-10-24T20:43:54-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 359, "ok": true}
+{"ts": "2026-10-24T20:43:54-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 360, "ok": true}
+{"ts": "2026-10-24T20:43:54-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 361, "ok": true}
+{"ts": "2026-10-24T20:43:54-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 364, "ok": true}
+{"ts": "2026-10-24T20:43:54-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 365, "ok": true}
+{"ts": "2026-10-24T20:43:55-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 366, "ok": true}
+{"ts": "2026-10-24T20:43:55-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 367, "ok": true}
+{"ts": "2026-10-24T20:43:55-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 368, "ok": true}
+{"ts": "2026-10-24T20:43:55-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 369, "ok": true}
+{"ts": "2026-10-24T20:43:56-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 370, "ok": true}
+{"ts": "2026-10-24T20:43:56-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 371, "ok": true}
+{"ts": "2026-10-24T20:43:56-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 372, "ok": true}
+{"ts": "2026-10-24T20:43:56-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 373, "ok": true}
+{"ts": "2026-10-24T20:43:57-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 824, "ok": true}
+{"ts": "2026-10-24T20:43:57-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 825, "ok": true}
+{"ts": "2026-10-24T20:43:57-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 832, "ok": true}
+{"ts": "2026-10-24T20:43:57-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 833, "ok": true}
+{"ts": "2026-10-24T20:43:57-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 856, "ok": true}
+{"ts": "2026-10-24T20:43:58-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 857, "ok": true}
+{"ts": "2026-10-24T20:43:58-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 866, "ok": true}
+{"ts": "2026-10-24T20:43:58-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 867, "ok": true}
+{"ts": "2026-10-24T20:43:58-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 878, "ok": true}
+{"ts": "2026-10-24T20:43:59-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 879, "ok": true}
+{"ts": "2026-10-24T20:43:59-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 884, "ok": true}
+{"ts": "2026-10-24T20:43:59-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 885, "ok": true}
+{"ts": "2026-10-24T20:43:59-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 922, "ok": true}
+{"ts": "2026-10-24T20:44:00-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 923, "ok": true}
+{"ts": "2026-10-24T20:44:00-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 948, "ok": true}
+{"ts": "2026-10-24T20:44:00-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 949, "ok": true}
+{"ts": "2026-10-24T20:44:00-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 950, "ok": true}
+{"ts": "2026-10-24T20:44:00-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 951, "ok": true}
+{"ts": "2026-10-24T20:44:01-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 952, "ok": true}
+{"ts": "2026-10-24T20:44:01-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 953, "ok": true}
+{"ts": "2026-10-24T20:44:01-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 960, "ok": true}
+{"ts": "2026-10-24T20:44:01-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_block", "devnum": 81, "block": 961, "ok": true}
+{"ts": "2026-10-24T20:44:37-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "restore_diff", "devnum": 81, "image_sha256": "33dedafff276d097a0331bcf869c6e77982c6e476899ba0b601b76f0401496f3", "blocks": "0-1023", "differ": []}
+{"ts": "2026-10-24T20:55:22-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "send_471", "devnum": 82, "stage": "ddr396", "ok": true, "rc": 0, "out": ["chunk 0 len=4096 actual=4096 status=0", "chunk 1 len=2 actual=2 status=0", "OK index 0x471 all 4098 bytes, 2 chunks"]}
+{"ts": "2026-10-24T20:55:23-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "send_472", "devnum": 82, "stage": "plug_3032slc_erase", "ok": true, "rc": 0, "out": ["chunk 21 len=4096 actual=4096 status=0", "chunk 22 len=1406 actual=1406 status=0", "OK index 0x472 all 91518 bytes, 23 chunks"]}
+{"ts": "2026-10-24T20:55:25-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "loader_up", "devnum": 83, "from_devnum": 82, "plug": "plug_3032slc_erase", "sha": "53574f36b7637f55701f6a0e9aae7aec991fc3c2d326e9e9899956cd4ee8df91"}
+{"ts": "2026-10-24T20:56:33-05:00", "boot_id": "e70a2365-fe18-44b0-8737-6f4b3a5ff79f", "action": "rawdump", "devnum": 83, "start": 0, "count": 262144, "out": "/home/joseph/partycade-dumps/2026-10-24_love_take2_played/nand_raw.bin", "sha256": "24e58c36d480412412a5fee013e70525c3afc56b95c4758fda22aaf91d2d2831", "verified": true}

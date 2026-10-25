@@ -486,6 +486,7 @@ local function run(cart, resume_title)
   local keep = current
   current = cart
   cart.want_quit = false
+  gfx.badge = cart.system and not input.scripted()
   gfx.init(cart.w, cart.h, 768 / cart.w)
   gfx.particles.clear()
   audio.reset()
@@ -558,8 +559,13 @@ Host_launch = function(id)
   else
     c.env = nil
     how = run(c)
+    c.env = nil
+    collectgarbage()
+    collectgarbage()
+    gfx.collect()
   end
   -- Back to the menu: its window size, its section of the script.
+  gfx.badge = menu.system and not input.scripted()
   gfx.init(menu.w, menu.h, 768 / menu.w)
   input.begin(menu.title, true)
   audio.reset()

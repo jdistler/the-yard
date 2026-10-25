@@ -8,9 +8,13 @@ cd /data/Games || exit 1
 LOG=/data/Games/love-probe.log
 {
   echo "loveprobe start $(date) $(cat /proc/uptime)"
-  if [ ! -x /data/love/run.sh ] || [ love.tar.gz -nt /data/love/.stamp ]; then
+  # The cabinet has no RTC (date is 1970) and `cart deploy` overwrites love.tar.gz in place without changing
+  # its inode timestamp, so compare a quick digest of the archive header instead of `love.tar.gz -nt .stamp`.
+  SUM=$(dd if=love.tar.gz bs=65536 count=1 2>/dev/null | sha256sum)
+  if [ ! -x /data/love/run.sh ] || [ "$(cat /data/love/.stamp 2>/dev/null)" != "$SUM" ]; then
     echo "unpacking love.tar.gz"
-    rm -rf /data/love && mkdir -p /data/love && gzip -dc love.tar.gz | tar -xf - -C /data/love && touch /data/love/.stamp
+    rm -rf /data/love && mkdir -p /data/love && gzip -dc love.tar.gz | tar -xf - -C /data/love &&
+      printf '%s\n' "$SUM" > /data/love/.stamp
     echo "unpacked: $?"
   fi
   df /data
