@@ -117,7 +117,7 @@ Present these to the user. Don't pick on their behalf. All of them need a custom
 | B. In-place edit of `data` | Modify a copy of `data.img` offline (e.g. `start.sh` entry 11 → our program in `/data/Games/`), turn that into a patched raw image with `sftl_patch.py`, then `rk_restore.py restore` only the few blocks it lists. Proven offline: adding a file and editing `start.sh` changed 6 blocks, and the rebuild reproduced the modified image exactly | **Yes**, a few blocks, fully reversible from the backup | The RECOVERY.md test ladder T1–T3 done first, a fresh `rawdump` right before, and the user's approval for the exact blocks |
 | C. Replace the board | LVDS controller + USB encoder + SBC ([DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) §3) | No | Hardware purchase |
 
-B is what we use. Booting from an SD card is not expected to work (Phase 4). The SD slot and an ADB shell are still worth turning on, as storage and a remote shell, through one edit to the `boot` partition on the NAND (Phase 4).
+B is what we use. Booting from an SD card is not expected to work (Phase 4). The SD slot is still worth turning on as storage, through one edit to the `boot` partition on the NAND (Phase 4). For a remote shell, SSH over a USB-Ethernet adapter needs no `boot` edit at all (2026-10-25; GAMEDEV.md § 4).
 
 Option B, step by step (only after T1–T3 pass and the user approves):
 
@@ -145,7 +145,7 @@ tools/rk_restore.py diff $D/patched_raw.bin         # must say "none"
 
 `start.sh` must stay executable. Stock is mode `0744`, owner `1006:1001`, and the cabinet runs everything as root. debugfs `write` copies the host file's mode and owner, so follow each `write` with `set_inode_field <path> mode 0100744` (or `0100755` for binaries). This was tested 2026-10-23, and `e2fsck` stays clean. To undo: `rk_restore.py restore $D/nand_raw.bin --blocks <same list>`.
 
-## 8. Phase 4: the SD slot as storage, and an ADB shell
+## 8. Phase 4: the SD slot as storage (and why not ADB)
 
 **Audit, 2026-10-24.** The earlier plan here was to boot the cabinet from a card. That cannot work with the stock U-Boot:
 
@@ -158,8 +158,8 @@ What does work, from the NAND, with one change to the `boot` partition's kernel 
 | Edit (all in `rk-kernel.dtb` inside `boot`) | Gives | Tool |
 | :--- | :--- | :--- |
 | `dwmmc@10214000` `status` `disabled` → `okay` | The microSD slot as storage. udev mounts a card at `/mnt/sdcard` (FAT: no exec; ext2: exec) | `tools/enable_storage.py patch --which sd` |
-| `usb@101c0000` `status` `disabled` → `okay` | The USB-A port as a host: a stick, or later a Wi-Fi adapter (which needs more than this; GAMEDEV.md § 9) | `tools/enable_storage.py patch --which usb` |
-| `usb@10180000` `dr_mode` `host` → `peripheral` | A UDC, so the stock `S50usbdevice` starts `adbd`: a root shell over the Micro-USB cable, switch ON (FIRMWARE_ANALYSIS.md). Untested. Whether the switch routes that port to the SoC when ON is unknown | `tools/enable_storage.py patch --which adb`. `peripheral` (11 bytes) won't fit in place of `host` (5), so it writes `otg`, which fits. In OTG mode dwc2 should register a UDC and pick device mode while nothing powers the ID pin as a host: expected from the driver, not tested on this board |
+| `usb@101c0000` `status` `disabled` → `okay` | **Not needed** (2026-10-25): USB-A already works through `usb@10180000`. Where this second controller goes is unknown | `tools/enable_storage.py patch --which usb` |
+| `usb@10180000` `dr_mode` `host` → `otg` | **Don't** (2026-10-25): this is the controller that serves USB-A in normal play, so it would likely take USB-A away. SSH over a USB-Ethernet adapter replaces the ADB idea (GAMEDEV.md § 4) | `tools/enable_storage.py patch --which adb` |
 
 Doing these is a write to `boot`, the riskiest write so far: a broken tree means Linux does not come up. Recovery is still Mask ROM plus `rk_restore.py restore` of the same blocks from the dump taken before, which does not depend on `boot` (RECOVERY.md). The sequence is GAMEDEV.md § 11, from a fresh dump, with the user's written approval of the exact blocks. Do the SD edit first and alone. Add USB and ADB in the same write only if the user wants all three at once.
 

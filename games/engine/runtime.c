@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <time.h>
@@ -1222,6 +1223,114 @@ static int l_yard_icon(lua_State *L)
     return 0;
 }
 
+/* ------------------------------------------------------------------ the stock menu, and memory
+ *
+ * While a game runs, the stock menu (/usr/bin/game) waits in memory: 53 MB of the cabinet's 118 MB
+ * (captures/sysprobe, 2026-10-24). When memory ran out, the kernel's OOM killer picked it, and since
+ * nothing restarts it, the cabinet sat on "LOADING..." after The Yard quit. Now our processes ask to be
+ * picked first, the stock menu asks never to be, and if it is gone when The Yard ends, The Yard starts it
+ * again the way /etc/init.d/S50ui does. With "stock_menu stop" in yard.conf, The Yard stops it on purpose
+ * to have that memory, and starts it again on the way out. */
+#define OOM_GAME 500    /* a game, a cart, the menu: picked first */
+#define OOM_KEEPER -500 /* the supervisor: small, and the one that restarts things */
+
+static int set_oom(pid_t pid, int adj)
+{
+    char p[64];
+    FILE *f;
+    if (pid > 0)
+        snprintf(p, sizeof p, "/proc/%d/oom_score_adj", (int)pid);
+    else
+        snprintf(p, sizeof p, "/proc/self/oom_score_adj");
+    f = fopen(p, "w");
+    if (!f)
+        return -1;
+    fprintf(f, "%d\n", adj);
+    return fclose(f) == 0 ? 0 : -1;
+}
+
+static const char *stock_menu(void)
+{
+    const char *p = getenv("YARD_STOCK_MENU");
+#ifdef CAB_CABINET
+    if (!p)
+        p = "/usr/bin/game";
+#endif
+    return p && p[0] == '/' ? p : NULL;
+}
+
+/* The pid of a running program by its name (/proc/PID/comm keeps 15 characters), or 0. */
+static pid_t find_proc(const char *path)
+{
+    const char *base = strrchr(path, '/') ? strrchr(path, '/') + 1 : path;
+    char want[16], comm[64], p[64];
+    DIR *d = opendir("/proc");
+    struct dirent *e;
+    pid_t found = 0;
+    snprintf(want, sizeof want, "%s", base);
+    if (!d)
+        return 0;
+    while (!found && (e = readdir(d))) {
+        FILE *f;
+        char state = 0;
+        if (e->d_name[0] < '1' || e->d_name[0] > '9' || atoi(e->d_name) == getpid())
+            continue;
+        snprintf(p, sizeof p, "/proc/%s/stat", e->d_name);
+        f = fopen(p, "r");
+        if (!f)
+            continue;
+        /* "pid (comm) S ...": a zombie (Z) is already gone. */
+        if (fscanf(f, "%*d (%63[^)]) %c", comm, &state) == 2 && !strcmp(comm, want) && state != 'Z')
+            found = (pid_t)atoi(e->d_name);
+        fclose(f);
+    }
+    closedir(d);
+    return found;
+}
+
+static void stock_menu_start(const char *path)
+{
+    pid_t pid = fork();
+    if (pid == 0) {
+        /* As S50ui starts it: its own session, from /, with its two settings and nothing of ours. */
+        char *envp[] = {"PATH=/sbin:/usr/sbin:/bin:/usr/bin", "HOME=/", "XDG_CONFIG_HOME=/userdata/",
+                        "MG_CFG_PATH=/etc", NULL};
+        int fd;
+        setsid();
+        if (chdir("/") != 0)
+            _exit(127);
+        set_oom(0, 0);
+        fd = open("/dev/null", O_RDWR);
+        if (fd >= 0) {
+            dup2(fd, 0);
+            dup2(fd, 1);
+            dup2(fd, 2);
+        }
+        execle(path, path, (char *)NULL, envp);
+        _exit(127);
+    }
+    cab_log(pid > 0 ? "yard: started the stock menu again (%s, pid %d)" : "yard: could not start %s (%d)", path,
+            (int)pid);
+}
+
+/* yard.conf beside the runtime (YARD_CONF elsewhere): "key value" lines. */
+static int conf_is(const char *key, const char *value)
+{
+    char path[600], line[160], k[48], v[64];
+    const char *env = getenv("YARD_CONF");
+    FILE *f;
+    int hit = 0;
+    snprintf(path, sizeof path, "%s/yard.conf", self_dir);
+    f = fopen(env && env[0] ? env : path, "r");
+    if (!f)
+        return 0;
+    while (fgets(line, sizeof line, f))
+        if (sscanf(line, "%47s %63s", k, v) == 2 && !strcmp(k, key) && !strcmp(v, value))
+            hit = 1;
+    fclose(f);
+    return hit;
+}
+
 static int spawn(cart_t *c)
 {
     char path[600];
@@ -1239,6 +1348,7 @@ static int spawn(cart_t *c)
     if (pid < 0)
         return 127;
     if (pid == 0) {
+        set_oom(0, OOM_GAME);
         if (c->native[0])
             execl(path, c->native, fast ? "-fast" : (char *)NULL, (char *)NULL);
         else
@@ -1253,6 +1363,20 @@ static int spawn(cart_t *c)
 }
 
 static int launch_pipe = -1;
+
+/* yard.returned(): under the supervisor, the menu is a fresh process after each game. This gives the
+ * game it came back from and how ("ok", "missing", "stumbled"), once; nil otherwise. */
+static int l_yard_returned(lua_State *L)
+{
+    char id[64], how[16];
+    const char *e = getenv("YARD_RETURNED");
+    if (!e || sscanf(e, "%63s %15s", id, how) != 2)
+        return 0;
+    unsetenv("YARD_RETURNED");
+    lua_pushstring(L, id);
+    lua_pushstring(L, how);
+    return 2;
+}
 
 /* yard.launch(id): close the window, run the cart, open the window again.
  * Returns "ok", "missing" (it would not start), or "stumbled" (it fell over). */
@@ -1301,7 +1425,8 @@ static int l_yard_card(lua_State *L)
 static void open_yard_table(lua_State *L)
 {
     static const luaL_Reg fns[] = {{"carts", l_yard_carts}, {"stat", l_yard_stat}, {"icon", l_yard_icon},
-                                   {"launch", l_yard_launch}, {"card", l_yard_card}, {NULL, NULL}};
+                                   {"launch", l_yard_launch}, {"returned", l_yard_returned},
+                                   {"card", l_yard_card}, {NULL, NULL}};
     luaL_newlib(L, fns);
     lua_setglobal(L, "yard");
 }
@@ -1313,6 +1438,7 @@ static void open_yard_table(lua_State *L)
  * 256 KB it moves to yard.log.1 and starts again. YARD_LOG names another file (on the PC too). */
 static void open_log(void)
 {
+    static int opened;
     const char *path = getenv("YARD_LOG");
     char old[600];
     struct stat st;
@@ -1324,11 +1450,15 @@ static void open_log(void)
 #endif
     if (!path || !*path)
         return;
-    if (stat(path, &st) == 0 && st.st_size > 256 * 1024) {
-        snprintf(old, sizeof old, "%s.1", path);
-        rename(path, old);
+    /* Once per process tree: a menu forked by the supervisor shares the supervisor's open log. */
+    if (!opened) {
+        opened = 1;
+        if (stat(path, &st) == 0 && st.st_size > 256 * 1024) {
+            snprintf(old, sizeof old, "%s.1", path);
+            rename(path, old);
+        }
+        cab_log_open(path);
     }
-    cab_log_open(path);
     f = fopen("/proc/meminfo", "r");
     if (f) {
         char line[128];
@@ -1339,6 +1469,110 @@ static void open_log(void)
         }
         fclose(f);
         cab_log("yard: pid %d, memory %ld kB of %ld kB available", (int)getpid(), avail, total);
+    }
+}
+
+/* The menu runs under a small supervisor: a game starts only after the menu's process has exited.
+ * On the cabinet, libMali/libgbm leak two 1024x768x4 DRM buffers (6 MiB) each time SDL starts again
+ * in the same process; a fresh process for each menu gives all of it back (field test, 2026-10-24).
+ * On by default on the cabinet unless a test script or control channel runs; YARD_SUPERVISE=1 or 0
+ * forces it either way (the PC tests use 1). */
+static int supervising(void)
+{
+    const char *e = getenv("YARD_SUPERVISE");
+    if (e && e[0])
+        return atoi(e) != 0;
+#ifdef CAB_CABINET
+    return !getenv("CAB_SCRIPT") && !getenv("CAB_CTL");
+#else
+    return 0;
+#endif
+}
+
+/* Returns the menu's exit code when the menu quits, or -1 to run the menu in this process instead. */
+static int supervise(void)
+{
+    const char *stock = stock_menu();
+    int stop = stock && conf_is("stock_menu", "stop");
+    pid_t sp = stock ? find_proc(stock) : 0;
+    open_log();
+    set_oom(0, OOM_KEEPER);
+    if (sp && stop) {
+        int i;
+        kill(sp, SIGTERM);
+        for (i = 0; i < 30 && find_proc(stock) == sp; i++)
+            usleep(100000);
+        if (find_proc(stock) == sp)
+            kill(sp, SIGKILL);
+        cab_log("yard: stopped the stock menu (pid %d) to free its memory; it starts again when The Yard quits",
+                (int)sp);
+    } else if (sp) {
+        cab_log("yard: the stock menu (pid %d) %s", (int)sp,
+                set_oom(sp, -1000) == 0 ? "is protected from the OOM killer" : "could not be protected");
+    }
+    {
+        /* The network helper, if it is installed (games/net/yardnet.sh): it puts itself in the background
+         * once per boot and outlives The Yard. */
+        char net[600];
+        pid_t np;
+        snprintf(net, sizeof net, "%s/yardnet", self_dir);
+        if (access(net, X_OK) == 0 && (np = fork()) >= 0) {
+            if (np == 0) {
+                set_oom(0, 0);
+                execl(net, "yardnet", (char *)NULL);
+                _exit(127);
+            }
+            while (waitpid(np, NULL, 0) < 0 && errno == EINTR)
+                ;
+            cab_log("yard: started %s", net);
+        }
+    }
+    for (;;) {
+        int pfd[2], st = 0;
+        char spec[80];
+        ssize_t n;
+        pid_t pid;
+        cart_t target;
+        if (pipe(pfd) != 0)
+            return -1;
+        pid = fork();
+        if (pid < 0) {
+            close(pfd[0]);
+            close(pfd[1]);
+            return -1;
+        }
+        if (pid == 0) {
+            close(pfd[0]);
+            launch_pipe = pfd[1];
+            set_oom(0, OOM_GAME);
+            return -1;
+        }
+        close(pfd[1]);
+        n = read(pfd[0], spec, sizeof spec - 1);
+        close(pfd[0]);
+        while (waitpid(pid, &st, 0) < 0 && errno == EINTR)
+            ;
+        if (n <= 0) {
+            /* The menu quit (or fell over): back to the stock menu, which must be there to draw. */
+            if (stock && !find_proc(stock))
+                stock_menu_start(stock);
+            return WIFEXITED(st) ? WEXITSTATUS(st) : 0;
+        }
+        spec[n] = 0;
+        memset(&target, 0, sizeof target);
+        if (!strncmp(spec, "native:", 7))
+            snprintf(target.native, sizeof target.native, "%s", spec + 7);
+        else if (!strncmp(spec, "cart:", 5))
+            snprintf(target.id, sizeof target.id, "%s", spec + 5);
+        if (target.native[0] || target.id[0]) {
+            int code = spawn(&target);
+            char back[96];
+            const char *id = target.native[0] ? target.native : target.id;
+            cab_log("yard: %s %s returned %d", target.native[0] ? "native" : "cart", id, code);
+            /* The next menu learns how it went (yard.returned), as yard.launch used to tell it. */
+            snprintf(back, sizeof back, "%s %s", id, code == 0 ? "ok" : code == 127 ? "missing" : "stumbled");
+            setenv("YARD_RETURNED", back, 1);
+        }
     }
 }
 
@@ -1376,45 +1610,11 @@ int main(int argc, char **argv)
         if (strcmp(base, "yard") && name_ok(base, 32))
             want = base;
     }
-#ifdef CAB_CABINET
-    if (!want && !check && !getenv("CAB_SCRIPT") && !getenv("CAB_CTL")) {
-        for (;;) {
-            int pfd[2], st = 0;
-            char spec[80];
-            ssize_t n;
-            pid_t pid;
-            cart_t target;
-            if (pipe(pfd) != 0)
-                break;
-            pid = fork();
-            if (pid < 0) {
-                close(pfd[0]);
-                close(pfd[1]);
-                break;
-            }
-            if (pid == 0) {
-                close(pfd[0]);
-                launch_pipe = pfd[1];
-                break;
-            }
-            close(pfd[1]);
-            n = read(pfd[0], spec, sizeof spec - 1);
-            close(pfd[0]);
-            while (waitpid(pid, &st, 0) < 0 && errno == EINTR)
-                ;
-            if (n <= 0)
-                return WIFEXITED(st) ? WEXITSTATUS(st) : 0;
-            spec[n] = 0;
-            memset(&target, 0, sizeof target);
-            if (!strncmp(spec, "native:", 7))
-                snprintf(target.native, sizeof target.native, "%s", spec + 7);
-            else if (!strncmp(spec, "cart:", 5))
-                snprintf(target.id, sizeof target.id, "%s", spec + 5);
-            if (target.native[0] || target.id[0])
-                (void)spawn(&target);
-        }
+    if (!want && !check && supervising()) {
+        int code = supervise();
+        if (code >= 0)
+            return code;
     }
-#endif
     open_log();
     scan_carts();
     cab_log("yard: start %s, %d carts", want ? want : "the menu", ncarts);

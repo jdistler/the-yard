@@ -119,3 +119,17 @@ The listing with sizes and hashes is committed as [captures/data-partition-listi
 ## What is safe to commit
 
 Commit text and metadata only: this file, `captures/*` (partition table, GPT sectors, decoded device tree, U-Boot env, file listings with sizes and hashes, small stock shell scripts). Never commit the images, the kernel, the U-Boot binary, launcher or emulator binaries, or ROMs.
+
+## The running system, from the field run (2026-10-24, analysed 2026-10-25)
+
+From `captures/system/` (the rootfs's scripts and rules), `captures/sysprobe/before-*.txt` (the System probe on the live cabinet), and `captures/love/`. Verified on this cabinet unless marked.
+
+* **Nothing restarts the stock menu.** `inittab` has no respawn line for it; `S50ui` runs `/usr/bin/game &` once at boot with `XDG_CONFIG_HOME=/userdata/` and `MG_CFG_PATH=/etc`. While a game runs, the stock menu waits in `system()` holding 53 MB anonymous and 8.6 MB file-backed of the 118,668 kB. The kernel's OOM killer chose it (score 506) when memory ran out, and the screen kept its last picture, "LOADING...", for good.
+* **Boot hooks into `/data`: none.** No init script or udev rule runs anything from `/data` or `/userdata` at boot. The first code of ours that runs is `/data/start.sh`, when the stock menu opens a game.
+* **Services:** `syslogd`, `klogd`, `udevd`, `dropbear -R` (host keys made in `/var/run/dropbear` at the first connection, so new ones every boot), and `adbd` (configfs gadget `rockchip`, function `ffs.adb`, mounted at `/dev/usb-ffs/adb`; it never gets a UDC while the OTG controller is in host mode). Root's password is set (hash not copied); `/root` is an empty directory on the read-only squashfs.
+* **Mounts:** `/` squashfs read-only; `/userdata` (`/dev/rkflash0p5`) ext2 read-write, with `/data` the same files; `/tmp` and `/run` tmpfs; debugfs at `/sys/kernel/debug`; configfs.
+* **The flash in Linux** is `rkflash` (`/dev/rkflash0p1..p5`, the GPT's five partitions). p1–p4 read back byte-identical to `sftl_rebuild.py`'s rebuild of the raw dump, and every partition reports `ro 0`.
+* **USB:** `usb@10180000` (`dwc2`, host) is bus 1 and serves the USB-A jack with the switch ON: a TP-Link AC600 (`2357:011e`, "802.11ac WLAN Adapter", Realtek) enumerated as `usb 1-1`, high speed, and no driver bound it. `usb@101c0000` is `disabled`.
+* **Kernel:** `4.4.194 #485 SMP`, built by `tyc@dell` with Linaro GCC 6.3.1 on May 11 2023. No `IKCONFIG`. `/proc/modules` exists (empty), so it can load modules; there is no `/lib/modules`. Its strings name USB-Ethernet drivers (`r8152`, `asix`, `ax88179`, `smsc95xx`, `cdc_ether`, `cdc_ncm`, `rndis_host`) and no Wi-Fi stack (expected from names; nothing was loaded or plugged in to prove a driver).
+* **Graphics leak:** each time a process quits SDL and starts it again (`SDL_Quit` then `SDL_Init` with KMSDRM on `libmali`), 6,144 KiB of DRM GEM shared memory stays allocated until the process exits (two 1024×768×4 buffers; `Shmem` grew to 43 MB). A process that exits gives it all back.
+* **Display:** KMSDRM, 1024×768 at 60 Hz, format XRGB8888 (`0x16362004`), renderer `opengles2` with 4096 textures. One joystick, `uart-keys`: 21 buttons, no axes or hats. Audio: ALSA at 44.1 kHz.

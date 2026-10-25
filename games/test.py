@@ -20,6 +20,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BIN = os.path.join(HERE, "out", "pc")
@@ -480,6 +481,27 @@ def system():
             fsck = subprocess.run(["e2fsck", "-fn", img], capture_output=True)
             check(before == after and open(dump, "rb").read() == open(b, "rb").read() and fsck.returncode == 0,
                   f"deploy: --overwrite rewrites a file in its own blocks (ext2, {bs}-byte blocks), fsck clean")
+            # A padded file, as deploy makes them: a program with zero runs inside, then zeros to the slot size.
+            def padded(seed):
+                r = __import__("random").Random(seed)
+                body = bytes(r.getrandbits(8) for _ in range(200000)) + b"\0" * 9000 + bytes(r.getrandbits(8) for _ in range(50000))
+                return body + b"\0" * ((1 << 20) - len(body))
+            p1, p2 = os.path.join(shelf, "p1.bin"), os.path.join(shelf, "p2.bin")
+            open(p1, "wb").write(padded(1))
+            open(p2, "wb").write(padded(2))
+            subprocess.run(["debugfs", "-w", "-R", f"write {p1} old", img], capture_output=True, check=True)
+            try:
+                data_patch.overwrite(img, p2, "old")
+                holes_refused = False
+            except SystemExit as e:
+                holes_refused = "has holes" in str(e)
+            check(holes_refused, f"deploy: a file debugfs left sparse is refused in place, with the fix named ({bs})")
+            data_patch.put(img, p1, "slot", 0o755, 0, 0)
+            data_patch.overwrite(img, p2, "slot")
+            subprocess.run(["debugfs", "-R", f"dump /slot {dump}", img], capture_output=True)
+            fsck = subprocess.run(["e2fsck", "-fn", img], capture_output=True)
+            check(open(dump, "rb").read() == open(p2, "rb").read() and fsck.returncode == 0,
+                  f"deploy: --put allocates every block of a padded file, so the next update is in place ({bs})")
     else:
         say("  skip data_patch --overwrite (no e2fsprogs)")
 
@@ -546,8 +568,101 @@ def system():
           "a cart in the card's yard/carts is listed")
     check(not any(l.startswith("keep ") and card in l for l in lines), "a card cart cannot replace a shipped one")
     shutil.rmtree(card, ignore_errors=True)
-    r = subprocess.run(["sh", "-n", os.path.join(HERE, "sysprobe", "sysprobe.sh")], capture_output=True, text=True)
-    check(r.returncode == 0, "the System probe script parses (sh -n)")
+    # The supervisor and the stock menu (on by default on the cabinet; YARD_SUPERVISE=1 here). A small
+    # script stands in for /usr/bin/game.
+    sup = tmpdir()
+    fake = os.path.join(sup, "fakegame")
+    open(fake, "w").write("#!/bin/sh\nwhile :; do sleep 1; done\n")
+    os.chmod(fake, 0o755)
+
+    def pids_of(name):
+        out = []
+        for d in os.listdir("/proc"):
+            if d.isdigit():
+                try:
+                    st = open(f"/proc/{d}/stat").read()
+                except OSError:
+                    continue
+                if f"({name})" in st and ") Z" not in st:
+                    out.append(int(d))
+        return out
+
+    def run_sup(extra, script="title=The Yard\n30 quit\n", wait=60, keep_running=False):
+        open(os.path.join(sup, "s.cab"), "w").write(script)
+        logp = os.path.join(sup, "yard.log")
+        if os.path.exists(logp):
+            os.remove(logp)
+        e = {**os.environ, "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy", "CAB_SCALE": "1",
+             "CAB_SCRIPT": os.path.join(sup, "s.cab"), "YARD_LOG": logp, "YARD_SUPERVISE": "1",
+             "YARD_STOCK_MENU": fake, "YARD_CARTS": os.path.join(HERE, "carts"), "YARD_CONF": os.path.join(sup, "conf"),
+             **extra}
+        p = subprocess.Popen([yard], cwd=sup, env=e, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             start_new_session=True)
+        try:
+            p.wait(timeout=wait)
+        except subprocess.TimeoutExpired:
+            if not keep_running:
+                raise
+            os.killpg(p.pid, 9)
+            p.wait()
+        return read(sup, "yard.log") or ""
+
+    def stop_fakes():
+        for pid in pids_of("fakegame"):
+            os.kill(pid, 9)
+        time.sleep(0.2)
+
+    stop_fakes()
+    first = subprocess.Popen([fake], start_new_session=True)
+    time.sleep(0.3)
+    open(os.path.join(sup, "conf"), "w").write("")
+    log_text = run_sup({})
+    adj = open(f"/proc/{first.pid}/oom_score_adj").read().strip()
+    # Lowering a score needs CAP_SYS_RESOURCE: root on the cabinet has it, some test sandboxes do not.
+    can_lower = subprocess.run(["sh", "-c", "echo -1 > /proc/self/oom_score_adj"], capture_output=True).returncode == 0
+    protected = ("is protected from the OOM killer" in log_text and adj == "-1000") if can_lower \
+        else "could not be protected" in log_text
+    check(protected and pids_of("fakegame") == [first.pid],
+          f"supervisor: the stock menu is protected from the OOM killer and left running (adj {adj}"
+          f"{'' if can_lower else ', this sandbox cannot lower scores'})")
+    first.kill()
+    first.wait()
+    stop_fakes()
+    log_text = run_sup({})
+    again = pids_of("fakegame")
+    env_ok = again and "XDG_CONFIG_HOME=/userdata/" in open(f"/proc/{again[0]}/environ").read()
+    check("started the stock menu again" in log_text and len(again) == 1 and env_ok,
+          "supervisor: a stock menu that is gone is started again, with its own settings, when The Yard quits")
+    stop_fakes()
+    first = subprocess.Popen([fake], start_new_session=True)
+    time.sleep(0.3)
+    open(os.path.join(sup, "conf"), "w").write("stock_menu stop\n")
+    log_text = run_sup({})
+    first.wait(timeout=10)
+    now = pids_of("fakegame")
+    check("stopped the stock menu" in log_text and "started the stock menu again" in log_text and len(now) == 1
+          and now[0] != first.pid, "supervisor: 'stock_menu stop' frees the stock menu's memory and starts it after")
+    stop_fakes()
+    open(os.path.join(sup, "conf"), "w").write("")
+    log_text = run_sup({}, "title=The Yard\n30 down LOW\n31 up LOW\ntitle=Keep\n20 quit\n", wait=8,
+                       keep_running=True)
+    check("yard open keep" in log_text and "cart keep returned 0" in log_text
+          and log_text.count("yard: start the menu") >= 2,
+          "supervisor: the menu exits, the cart runs on its own, and a fresh menu comes back")
+    # A game that cannot start: the fresh menu still says so (yard.returned).
+    mc = os.path.join(sup, "mcarts")
+    shutil.copytree(os.path.join(HERE, "carts", "yard"), os.path.join(mc, "yard"))
+    shutil.copytree(os.path.join(HERE, "sysprobe", "label", "sysprobe"), os.path.join(mc, "sysprobe"))
+    # Up once wraps to the last row, the probe (the PC runtime also lists the tree's own carts).
+    log_text = run_sup({"YARD_CARTS": mc}, "title=The Yard\n30 down UP\n31 up UP\n60 down LOW\n61 up LOW\n",
+                       wait=8, keep_running=True)
+    check("native sysprobe returned 127" in log_text and "could not open sysprobe" in log_text,
+          "supervisor: a game that is missing is still reported by the fresh menu")
+    stop_fakes()
+    shutil.rmtree(sup, ignore_errors=True)
+    for script_path in (("sysprobe", "sysprobe.sh"), ("net", "yardnet.sh"), ("love", "loveprobe.sh")):
+        r = subprocess.run(["sh", "-n", os.path.join(HERE, *script_path)], capture_output=True, text=True)
+        check(r.returncode == 0, f"the cabinet script {script_path[-1]} parses (sh -n)")
     shutil.rmtree(shelf, ignore_errors=True)
 
 
@@ -603,6 +718,18 @@ def love():
     check(colors(inlamp) > 8, "Lamp draws a picture when the menu starts it")
     check(colors(back) > 8, "the menu draws again after Lamp quits")
     check("error" not in err.lower(), "no error on the way")
+    # 3. On the cabinet a native program (Orb) runs after LÖVE quits: the menu writes the request and exits.
+    n_dir = tmpdir()
+    req = os.path.join(n_dir, "launch")
+    sc = "title=The Yard\n10 down DOWN\n11 up DOWN\n20 down DOWN\n21 up DOWN\n40 down LOW\n41 up LOW\n"
+    code, err = run("love", n_dir, sc, dict(lenv, CAB_MAX_FRAMES="600", YARD_LAUNCH_FILE=req), args=(yl,),
+                    timeout=300, binary=LOVE_RUN)
+    check(code == 0 and (read(n_dir, "launch") or "").strip() == "native:orb",
+          f"GPU menu: opening Orb asks the launcher for it and quits LÖVE (exit {code})")
+    # 4. Started again after it, the menu says how it went.
+    code, err = run("love", n_dir, "title=The Yard\n30 quit\n", dict(lenv, YARD_RETURNED="orb missing"), args=(yl,),
+                    timeout=300, binary=LOVE_RUN)
+    check("could not open orb" in err, "GPU menu: a native program that could not start is reported (yard.returned)")
 
 
 def main():

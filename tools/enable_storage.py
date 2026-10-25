@@ -202,6 +202,10 @@ def main():
         else:
             raise
     which = {w.strip() for w in a.which.split(",") if w.strip()}
+    if which & {"usb", "adb"}:
+        print("note (2026-10-25): USB-A already works through usb@10180000 on this cabinet. 'usb' turns on a second\n"
+              "controller whose wiring is unknown, and 'adb' moves usb@10180000 to otg, which would likely take USB-A\n"
+              "away. Only 'sd' is planned (RUNBOOK.md Phase 4).", file=sys.stderr)
     unknown = which - set(TARGETS.values()) - {"adb"}
     if unknown:
         raise SystemExit(f"unknown --which {unknown}; use sd, usb, adb")

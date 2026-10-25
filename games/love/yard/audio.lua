@@ -11,6 +11,12 @@ local master, peak = 0.32, 1
 local song, step_left, song_step, mus_vol, mus_target, tempo = nil, 0, 0, 1, 1, 1
 local nsteps = {}
 
+-- Samples go straight into the SoundData's memory through LuaJIT's FFI when it is there: one call per
+-- sample (setSample) was most of the cost of a new sound, and a new note mid-song made the music lag
+-- on the cabinet (field test, 2026-10-24).
+local ffi_ok, ffi = pcall(require, "ffi")
+if not ffi_ok then ffi = nil end
+
 local function midi_hz(m) return 440 * 2 ^ ((m - 69) / 12) end
 A.midi_hz = midi_hz
 local WAVES = {sine = 0, tri = 1, square = 2, saw = 3, noise = 4}
@@ -27,6 +33,7 @@ local function render(wave, hz, hz_end, dur, attack, release, duty, vib_hz, vib_
   local att = math.max(16, math.floor(attack * RATE))
   local rel = math.min(len, math.max(32, math.floor(release * RATE)))
   local sd = love.sound.newSoundData(len, RATE, 16, 1)
+  local mem = ffi and sd.getFFIPointer and ffi.cast("int16_t *", sd:getFFIPointer())
   local phase, noise, hold, ctr = 0, 0x12345, 0, 0
   local period = (wave == 4 and hz > 0) and math.max(1, math.floor(RATE / hz)) or 1
   local sin, exp, pi2 = math.sin, math.exp, 6.2831853
@@ -71,7 +78,9 @@ local function render(wave, hz, hz_end, dur, attack, release, duty, vib_hz, vib_
     if pos < att then env = pos / att end
     if len - pos < rel then local k = (len - pos) / rel env = env * k * k end
     -- The C synth soft-clipped the mix; one voice at these levels stays well under that knee.
-    sd:setSample(pos, math.max(-1, math.min(1, s * env)))
+    local v = s * env
+    if v > 1 then v = 1 elseif v < -1 then v = -1 end
+    if mem then mem[pos] = math.floor(v * 32767 + 0.5) else sd:setSample(pos, v) end
   end
   return sd
 end
@@ -156,6 +165,20 @@ local function parse_track(s)
   return out
 end
 
+-- The sound for step i of a track (v is a MIDI note or a drum letter); held steps ("-") lengthen it.
+local function note_sound(tr, v, i)
+  local st, len = tr.steps, #tr.steps
+  local release = tr.release > 0 and tr.release or 0.05
+  if type(v) == "string" then
+    local dur = v == "K" and 0.22 or v == "S" and 0.16 or v == "C" and 0.12 or 0.05
+    return sound(4, v == "H" and RATE or v == "S" and RATE / 2 or RATE / 3, 0, dur, tr.attack, dur * 0.95, 0.5, 0, 0, v)
+  end
+  local hold = 1
+  while hold < len and st[(i + hold) % len + 1] == -2 do hold = hold + 1 end
+  local step_s = 60 / (song.bpm * song.steps)
+  return sound(tr.wave, midi_hz(v + tr.transpose), 0, hold * step_s + release, tr.attack, release, tr.duty, 0, 0)
+end
+
 function A.song_tick()
   for t, tr in ipairs(song.tracks) do
     local st = tr.steps
@@ -169,17 +192,7 @@ function A.song_tick()
         end
         tr.voice = nil
         if v ~= -1 then
-          local hold = 1
-          while hold < len and st[(song_step + hold) % len + 1] == -2 do hold = hold + 1 end
-          local sd
-          local release = tr.release > 0 and tr.release or 0.05
-          if type(v) == "string" then
-            local dur = v == "K" and 0.22 or v == "S" and 0.16 or v == "C" and 0.12 or 0.05
-            sd = sound(4, v == "H" and RATE or v == "S" and RATE / 2 or RATE / 3, 0, dur, tr.attack, dur * 0.95, 0.5, 0, 0, v)
-          else
-            local step_s = 60 / (song.bpm * song.steps)
-            sd = sound(tr.wave, midi_hz(v + tr.transpose), 0, hold * step_s + release, tr.attack, release, tr.duty, 0, 0)
-          end
+          local sd = note_sound(tr, v, song_step % len)
           local src = love.audio.newSource(sd, "static")
           src:setVolume(math.min(1, tr.vol * mus_vol * master * peak))
           src:play()
@@ -234,6 +247,14 @@ function music.play(s)
   end
   song = {bpm = s.bpm or 120, steps = s.steps or 4, tracks = tracks}
   song_step, step_left = 0, 0
+  -- Render every note of the song now, so none is made while it plays.
+  for _, tr in ipairs(tracks) do
+    local st, len = tr.steps, #tr.steps
+    for i = 0, len - 1 do
+      local v = st[i + 1]
+      if v ~= -1 and v ~= -2 then note_sound(tr, v, i) end
+    end
+  end
 end
 function music.stop()
   if song then for _, t in ipairs(song.tracks) do if t.voice then t.voice:stop() end end end

@@ -19,6 +19,7 @@ local sel = {}
 local stars = {}
 local shoot = {t = 0}
 local pocket = false
+local came_back
 
 local night = {
   bpm = 76, steps = 4,
@@ -51,6 +52,7 @@ function init()
     card.write("visited", "yard\n")
   end
   start_music()
+  if yard.returned then came_back(yard.returned()) end
   if game.selftest then
     save.set("best", row)
     assert(save.write() and save.get("best") == row, "yard self-test: the row did not save")
@@ -61,6 +63,19 @@ end
 -- Where row r (from 0) is drawn, with the list scrolled.
 local function row_y(r) return TOP + (r - shown_top) * ROW_H end
 
+-- How the last game went: told by yard.launch, or by yard.returned() when this menu is a fresh process
+-- (the cabinet's supervisor starts a new menu after each game).
+function came_back(id, how)
+  if how == "missing" then
+    note, note_left = "that game is missing", 180
+    log("could not open " .. id)
+    sfx.slide("square", 300, 120, 0.3, 0.3)
+  elseif how == "stumbled" then
+    note, note_left = "that game tripped. try again?", 180
+    log("yard: " .. id .. " stumbled")
+  end
+end
+
 local function open(c)
   save.set("best", row)
   save.write()
@@ -68,14 +83,7 @@ local function open(c)
   local how = yard.launch(c.id)
   start_music()
   load_stats()
-  if how == "missing" then
-    note, note_left = "that game is missing", 180
-    log("could not open " .. c.id)
-    sfx.slide("square", 300, 120, 0.3, 0.3)
-  elseif how == "stumbled" then
-    note, note_left = "that game tripped. try again?", 180
-    log("yard: " .. c.id .. " stumbled")
-  end
+  came_back(c.id, how)
 end
 
 function update()

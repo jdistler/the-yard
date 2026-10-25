@@ -539,58 +539,78 @@ end
 
 local light = {}
 G.light = light
-local lc, lx, ly, lw, lh
+-- The light map is at the cart's own resolution. Lights are queued and drawn in apply(), in one switch
+-- to the light canvas: on the Mali-400 every canvas switch writes the whole screen out of its tile
+-- memory and reads it back, and Lamp adds a dozen lights a frame (field test, 2026-10-24: sluggish).
+-- The warm curve and the shadow tint are worked out at that small size too, so the two passes over the
+-- screen are plain blends with no shader.
+local lc, lm, lt, lx, ly, lw, lh, l_amb
+local queue, nq = {}, 0
+local function small_canvas(c, w, h)
+  if c and c:getWidth() == w and c:getHeight() == h then return c end
+  c = lg.newCanvas(w, h)
+  c:setFilter("linear", "linear")
+  return c
+end
 function light.begin(x, y, w, h, ambient)
   x, y, w, h = x or 0, y or 0, w or W, h or H
-  if not lc or lc:getWidth() ~= w or lc:getHeight() ~= h then lc = lg.newCanvas(w, h) lc:setFilter("linear", "linear") end
+  lc, lm, lt = small_canvas(lc, w, h), small_canvas(lm, w, h), small_canvas(lt, w, h)
   lx, ly, lw, lh = x, y, w, h
-  local keep, keep_k = target, target_k
-  lg.push("all")
-  lg.setCanvas(lc)
-  lg.origin()
-  local a = ambient or 0.1
-  lg.clear(a, a, a, 1)
-  lg.pop()
-  set_target(keep, keep_k)
+  l_amb = ambient or 0.1
+  nq = 0
 end
 function light.add(x, y, r, k)
   if not lc or r <= 0 then return end
-  local keep, keep_k = target, target_k
-  lg.push("all")
-  lg.setCanvas(lc)
-  lg.origin()
-  lg.setBlendMode("add")
-  local v = k or 1
-  lg.setColor(v, v, v, 1)
-  lg.draw(glow_tex, x + offx - lx - r, y + offy - ly - r, 0, 2 * r / 128, 2 * r / 128)
-  lg.pop()
-  set_target(keep, keep_k)
+  nq = nq + 1
+  local q = queue[nq] or {}
+  queue[nq] = q
+  q[1], q[2], q[3], q[4] = x + offx - lx, y + offy - ly, r, k or 1
 end
 function light.fill(k)
   if not lc then return end
-  local keep, keep_k = target, target_k
-  lg.push("all")
-  lg.setCanvas(lc)
-  lg.origin()
-  lg.setBlendMode("add")
-  lg.setColor(k, k, k, 1)
-  lg.rectangle("fill", 0, 0, lw, lh)
-  lg.pop()
-  set_target(keep, keep_k)
+  nq = nq + 1
+  local q = queue[nq] or {}
+  queue[nq] = q
+  q[1], q[2], q[3], q[4] = nil, nil, 0, k
 end
 function light.apply(tint)
   if not lc then return end
+  local keep, keep_k = target, target_k
+  lg.push("all")
+  lg.origin()
+  lg.setCanvas(lc)
+  lg.clear(l_amb, l_amb, l_amb, 1)
+  lg.setBlendMode("add")
+  for i = 1, nq do
+    local q = queue[i]
+    local v = q[4]
+    lg.setColor(v, v, v, 1)
+    if q[1] then
+      local r = q[3]
+      lg.draw(glow_tex, q[1] - r, q[2] - r, 0, 2 * r / 128, 2 * r / 128)
+    else
+      lg.rectangle("fill", 0, 0, lw, lh)
+    end
+  end
   lg.setColor(1, 1, 1, 1)
+  lg.setBlendMode("replace")
+  lg.setCanvas(lm)
   lg.setShader(light_mul)
-  lg.setBlendMode("multiply", "premultiplied")
-  lg.draw(lc, lx - offx, ly - offy)
+  lg.draw(lc)
   local r, g, b = rgba(tint or 0x00000e)
   light_add:send("tint", {r, g, b})
+  lg.setCanvas(lt)
   lg.setShader(light_add)
+  lg.draw(lc)
+  lg.pop()
+  set_target(keep, keep_k)
+  lg.setColor(1, 1, 1, 1)
+  lg.setBlendMode("multiply", "premultiplied")
+  lg.draw(lm, lx - offx, ly - offy)
   lg.setBlendMode("add")
-  lg.draw(lc, lx - offx, ly - offy)
-  lg.setShader()
+  lg.draw(lt, lx - offx, ly - offy)
   lg.setBlendMode("alpha")
+  nq = 0
 end
 
 -- ------------------------------------------------------------------ particles

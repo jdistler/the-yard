@@ -82,10 +82,38 @@ def cat(img, path, tmp):
     return open(tmp, "rb").read()
 
 
+def block_size(img):
+    return int(re.search(r"Block size:\s+(\d+)", debugfs(img, "stats")).group(1))
+
+
+def file_blocks(img, dest, size, bs):
+    """The disk block behind each logical block of dest, 0 for a hole. ("blocks" would also list the
+    indirect blocks, which are metadata and must never be written over.)"""
+    n = (size + bs - 1) // bs
+    cmds = os.path.join(os.path.dirname(img), "bmap.cmds")
+    with open(cmds, "w") as f:
+        for i in range(n):
+            f.write(f'bmap "/{dest}" {i}\n')
+    out = run([DEBUGFS, "-f", cmds, img])
+    os.remove(cmds)
+    return [int(x) for x in re.findall(r"^(\d+)$", out, re.M)], n
+
+
 def put(img, data_path, dest, mode, uid, gid):
     if stat(img, dest):
         debugfs(img, f'rm "/{dest}"', write=True)
     debugfs(img, f'write {data_path} "/{dest}"', write=True)
+    # debugfs "write" leaves every all-zero block as a hole: a padded file, or the zero runs inside a
+    # program. A hole owns no disk block, so a later --overwrite could not update the file in place.
+    # fallocate gives each hole a block of zeros; the read-back below checks the bytes did not change.
+    size = os.path.getsize(data_path)
+    bs = block_size(img)
+    n = (size + bs - 1) // bs
+    if n:
+        debugfs(img, f'fallocate "/{dest}" 0 {n - 1}', write=True)
+        blocks, _ = file_blocks(img, dest, size, bs)
+        if len(blocks) != n or 0 in blocks:
+            raise SystemExit(f"--put {dest}: {blocks.count(0) + n - len(blocks)} of {n} blocks still unallocated")
     for field, val in (("mode", f"0{0o100000 | mode:o}"), ("uid", uid), ("gid", gid)):
         debugfs(img, f'set_inode_field "/{dest}" {field} {val}', write=True)
 
@@ -99,19 +127,12 @@ def overwrite(img, src, dest):
     size = int(re.search(r"Size:\s+(\d+)", debugfs(img, f'stat "/{dest}"')).group(1))
     if size != len(data):
         raise SystemExit(f"--overwrite {dest}: {src} is {len(data)} bytes, the file is {size}. Sizes must match.")
-    bs = int(re.search(r"Block size:\s+(\d+)", debugfs(img, "stats")).group(1))
-    # bmap maps each logical block of the file to its disk block. ("blocks" would also list
-    # the indirect blocks, which are metadata and must never be written over.)
-    n = (size + bs - 1) // bs
-    cmds = os.path.join(os.path.dirname(img), "bmap.cmds")
-    with open(cmds, "w") as f:
-        for i in range(n):
-            f.write(f'bmap "/{dest}" {i}\n')
-    out = run([DEBUGFS, "-f", cmds, img])
-    os.remove(cmds)
-    blocks = [int(x) for x in re.findall(r"^(\d+)$", out, re.M)]
+    bs = block_size(img)
+    blocks, n = file_blocks(img, dest, size, bs)
     if len(blocks) != n or 0 in blocks:
-        raise SystemExit(f"--overwrite {dest}: the file has holes ({len(blocks)} of {n} blocks mapped); use --put")
+        raise SystemExit(f"--overwrite {dest}: the file has holes ({n - len([b for b in blocks if b])} of {n} blocks "
+                         "unallocated), so it cannot be updated in place. Install it again with --put "
+                         "(cart deploy --reinstall), which allocates every block.")
     with open(img, "r+b") as f:
         for i, b in enumerate(blocks):
             f.seek(b * bs)

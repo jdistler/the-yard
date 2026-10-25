@@ -2,18 +2,18 @@
 
 The C runtime (`games/engine/`) draws every pixel on the CPU into one frame and uploads it. The cabinet has a Mali-400 GPU that the stock games barely use. This folder runs the same carts on [LÖVE 11.5](https://love2d.org), which draws with OpenGL ES 2 on that GPU, mixes sound in OpenAL, and runs Lua on LuaJIT.
 
-Status (2026-10-24): built and tested on the PC only. **Nothing here has run on the cabinet.** [FIELD_TASKS.md](../../FIELD_TASKS.md) is the plan for the first run.
+Status (2026-10-25): **it runs on the cabinet** (field run, 2026-10-24: the "GPU yard" row). The user found it "crystal clear" next to the soft CPU picture, but Lamp was sluggish, the music lagged, and Orb opened from it had no deck or sound. Those are fixed in this tree and not yet on the cabinet ([FIELD_TASKS.md](../../FIELD_TASKS.md) round 2).
 
 | | C runtime (`yard`) | LÖVE runtime (`yard.love`) |
 | :--- | :--- | :--- |
-| Drawing | CPU, one texture upload a frame | GPU: shapes, text, layers, light map in shaders, 4x MSAA |
+| Drawing | CPU, one texture upload a frame | GPU: shapes, text, layers, light map, 4x MSAA where the GPU has it (the cabinet's doesn't) |
 | Lua | Lua 5.4.7 | LuaJIT 2.1 (Lua 5.1 language). LÖVE turns the JIT off on ARM; the probe measures both |
 | Sound | 16-voice synth in the audio callback | Each sound rendered once into a cached buffer, played by OpenAL |
 | Carts | The same carts, the same pack, the same save files | |
 | Size | 420 KB (expected) | 8.9 MB unpacked, 4.1 MB as `love.tar.gz` |
 | On the cabinet | Tile 10, via The Yard | A "GPU yard" row, once FIELD_TASKS.md task 4 is done |
 
-The C runtime stays the shipping one until the cabinet has measured the GPU runtime.
+The C runtime stays the shipping one until round 2 shows the GPU runtime smooth, and the memory question is settled: LÖVE took about 40 MB beside the stock menu's 53 MB of the cabinet's 118 MB.
 
 ## What's here
 
@@ -51,7 +51,7 @@ python3 games/test.py love # the bot plays each cart on both runtimes; logs and 
 
 The test runs headless (`YARD_HEADLESS=1`, `SDL_VIDEODRIVER=offscreen`, `ALSOFT_DRIVERS=null`). With the same seed and the same bot, Chest, Keep, Lamp, and Tea write identical log lines and identical saves on both runtimes: 105, 8, 21, and 60 lines over 1200 frames.
 
-The same environment variables as the C runtime work: `CAB_SCRIPT`, `CAB_AUTOPLAY`, `CAB_SEED`, `CAB_MAX_FRAMES`, `YARD_PAK`, `YARD_CARTS`, `YARD_CHECK_FRAMES`, `YARD_STATS`, `YARD_MEM_MB`. Its own: `YARD_MSAA` (default 4), `YARD_UPRIGHT=1` (no rotation), `YARD_DECK` (a button map file), `YARD_LOG`, `YARD_NATIVE_DIR`.
+The same environment variables as the C runtime work: `CAB_SCRIPT`, `CAB_AUTOPLAY`, `CAB_SEED`, `CAB_MAX_FRAMES`, `YARD_PAK`, `YARD_CARTS`, `YARD_CHECK_FRAMES`, `YARD_STATS`, `YARD_MEM_MB`. Its own: `YARD_MSAA` (default 4), `YARD_UPRIGHT=1` (no rotation), `YARD_DECK` (a button map file), `YARD_LOG`, `YARD_NATIVE_DIR`, `YARD_JIT=0` (compiler off), `YARD_LAUNCH_FILE` (where to ask the launcher for a native program), `YARD_RETURNED` (how the last one went).
 
 ## Writing carts for both
 
@@ -64,19 +64,28 @@ A cart is written once. It must stay inside the Lua both runtimes understand, wh
 
 ## Differences you might notice
 
-* **Shapes are GPU shapes.** Edges are smoothed by 4x MSAA rather than the C renderer's coverage, so a pixel-for-pixel compare differs slightly. Text uses the same font at the same size.
+* **Shapes are GPU shapes.** Edges are smoothed by MSAA where the GPU offers it (the cabinet's Mali-400 doesn't on canvases), not the C renderer's coverage, so a pixel-for-pixel compare differs slightly. Text uses the same font at the same size.
 * **Sound.** The synth renders at 22050 Hz. A held music note is faded rather than released when the next step starts.
-* **Launching.** The menu runs a cart in the same process, not as a child, so a crashing cart shows the Oops screen and the menu carries on. A native program (Orb) still gets the screen to itself: the window closes, it runs, the window reopens. The LÖVE rows are hidden inside the GPU menu.
+* **Launching.** The menu runs a cart in the same process, not as a child, so a crashing cart shows the Oops screen and the menu carries on. A native program (Orb) gets the whole machine: on the cabinet LÖVE quits, `loveprobe.sh` runs it, and starts LÖVE again; on the PC the window closes, it runs, and the window reopens. The LÖVE rows are hidden inside the GPU menu.
 * **Shake and particles** draw from the cart's own seeded generator, so a seed replays the same game, as in C.
 
-## What the cabinet has to tell us
+## What the cabinet told us (2026-10-24)
 
-The probe answers these. Until then they are expected, not verified:
+From `captures/love/love-probe.txt`, `love-probe.log`, and `love-yard.log` (verified on this cabinet):
 
-1. Does KMSDRM come up on the stock `libmali` and its `libgbm`? (SDL 2.30's KMSDRM is newer than 2.0.7's.)
-2. The real GL limits, texture formats (ETC1?), and whether 4x MSAA is affordable.
-3. Frame times for clears, sprites, batches, shapes, text, a full-screen shader, and an MSAA canvas.
-4. Lua speed in the interpreter and with `jit.on()`.
-5. Does OpenAL open the sound card through ALSA?
-6. Do the joystick buttons keep their SDL 2.0.7 numbers? If not, `/data/Games/yard-deck.txt` (lines `button N NAME`) fixes the map without a rebuild.
-7. How much memory is left with the GPU runtime running.
+* **GPU:** `OpenGL ES 2.0 | ARM | Mali-400 MP`. Textures up to 4096, ETC1, no MSAA on canvases (so `YARD_MSAA` falls back to none), no `highp` in fragment shaders.
+* **Frame times at 768×1024:** a clear 16.7 ms (vsync), 500 sprites 18.7 ms, text 20 ms, 300 shapes 22 ms, a full-screen shader 32.6 ms, 4000 sprites in a batch 39 ms. So a full-screen shader pass costs about 16 ms: one is the whole frame.
+* **LuaJIT:** 563 ms interpreted, 164 ms with `jit.on()` (2M loop). The runtime now turns the compiler on (`YARD_JIT=0` turns it off).
+* **The deck under SDL 2.30:** buttons 1, 2, 4, 7, 8, 16–21, exactly SDL 2.0.7's numbers plus one. No `yard-deck.txt` needed.
+* **Sound:** plays; OpenAL's ALSA output logged `mmap commit error: Broken pipe`. The bundle now carries `alsoft.conf` with `mmap = false`.
+* **KMSDRM** came up on the stock `libmali`/`libgbm` once SDL was really built with it (the field agent's fix to `build.sh`).
+* **Menu:** 11–12 ms a frame to draw. Lua memory grew from 6 to 8 MB between collections; the collector now runs sooner (`setpause 150`).
+
+What changed after it (2026-10-25):
+
+* **Light** (`gfx.lua`): lights are queued and drawn in one canvas switch per frame. Each switch on the Mali-400 writes the screen out of tile memory and back, and Lamp adds a dozen lights a frame. The warm curve and the shadow tint are computed at the cart's resolution; the two passes over the screen are plain blends.
+* **Sound** (`audio.lua`): samples are written through LuaJIT's FFI rather than one call each, and a song's notes are all made when it starts.
+* **Native programs:** on the cabinet the GPU yard writes `native:orb` to `$YARD_LAUNCH_FILE` and quits; `loveprobe.sh` runs Orb with the whole machine, then starts LÖVE again with `YARD_RETURNED` set, and the menu says how it went (`yard.returned()`).
+* **The pack** is read only as far as its header says it is used (not the whole 4 MB slot).
+
+Open, for round 2: Lamp, Tea, and the menu frame times now; whether `stock_menu stop` (the C supervisor, `yard.conf`) gives LÖVE the room to be the main runtime.

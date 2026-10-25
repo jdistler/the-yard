@@ -18,6 +18,7 @@ local MEM_CAP = (tonumber(os.getenv("YARD_MEM_MB") or "") or 32) * 1024 * 1024
 local headless = os.getenv("YARD_HEADLESS") == "1"
 local carts, by_id = {}, {}
 local Host_launch
+local returned_once  -- YARD_RETURNED, read once by yard.returned()
 local pak_files = {}
 local fast = false
 local log_file
@@ -54,9 +55,15 @@ local function u32(s, i) local a, b, c, d = s:byte(i, i + 3) return a + b * 256 
 -- The pack written by `cart pack`: "YARDPAK1", u32 count, u32 used, then (u16 name length, name, u32 length,
 -- u32 crc32, data) per file. A file that fails its checksum drops its whole cart.
 local function open_pak(path)
-  local s = read_file(path)
-  if not s or s:sub(1, 8) ~= "YARDPAK1" then return false end
+  -- The pack is padded to its 4 MB slot; read only the part the header says is used.
+  local f = io.open(path, "rb")
+  if not f then return false end
+  local s = f:read(16)
+  if not s or #s < 16 or s:sub(1, 8) ~= "YARDPAK1" then f:close() return false end
   local count, used = u32(s, 9), u32(s, 13)
+  if used < 16 or used > 64 * 1024 * 1024 then f:close() return false end
+  s = s .. (f:read(used - 16) or "")
+  f:close()
   local o, bad = 17, {}
   for _ = 1, count do
     if o + 1 > used then break end
@@ -439,6 +446,12 @@ local function boot(cart)
         end
       end,
       launch = function(id) return Host_launch(id) end,
+      -- The game the menu came back from and how, once (set by the launcher after a native program).
+      returned = function()
+        local e = returned_once
+        returned_once = nil
+        if e then return e:match("^(%S+) (%S+)") end
+      end,
       card = function() return false end,
     }
   end
@@ -545,6 +558,16 @@ Host_launch = function(id)
   local menu = current
   input.suspend()
   local how
+  local req = os.getenv("YARD_LAUNCH_FILE")
+  if c.native and req and req ~= "" then
+    -- On the cabinet: LÖVE quits and the launcher (loveprobe.sh) runs the program with all the memory,
+    -- the sound card, and the deck to itself, then starts LÖVE again (field test, 2026-10-24: Orb under
+    -- a running LÖVE had no deck, no sound, and pushed the stock menu out of memory).
+    local f = io.open(req, "w")
+    if f then f:write("native:" .. c.native .. "\n") f:close() end
+    menu.want_quit = true
+    return "ok"
+  end
   if c.native then
     -- A native program needs the screen to itself.
     local path = (os.getenv("YARD_NATIVE_DIR") or "/data/Games") .. "/" .. c.native
@@ -617,6 +640,12 @@ end
 
 function love.run()
   return function()
+    -- LÖVE leaves LuaJIT's compiler off on ARM. On the cabinet it runs Lua 3.4 times faster
+    -- (love-probe, 2026-10-24); YARD_JIT=0 turns it back off.
+    if jit and os.getenv("YARD_JIT") ~= "0" then jit.on() end
+    -- Collect sooner than LuaJIT's default (heap doubling): the menu grew from 6 to 8 MB of garbage.
+    collectgarbage("setpause", 150)
+    returned_once = os.getenv("YARD_RETURNED")
     log_file = os.getenv("YARD_LOG") and io.open(os.getenv("YARD_LOG"), "a")
     local want
     for _, a in ipairs(arg or {}) do

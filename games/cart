@@ -461,6 +461,12 @@ def cmd_deploy(a):
             cmd += ["--put", f"{os.path.join(stage, n)}:Games/{n}:{'644' if n.endswith('.pak') else '755'}"]
         if a.start_from:
             cmd += ["--replace", f"start.sh:{a.start_from}:GAME_NAME=yard"]
+    elif a.reinstall:
+        # The files are there but may have holes (deploys before 2026-10-25 let debugfs leave every zero
+        # block unallocated). --put writes each again with every block allocated; after that, updates
+        # are in place again.
+        for n in names:
+            cmd += ["--put", f"{os.path.join(stage, n)}:Games/{n}:{'644' if n.endswith('.pak') else '755'}"]
     else:
         # Every later time: same-size files, written into the blocks they already own.
         for n in names:
@@ -487,6 +493,18 @@ def cmd_deploy(a):
                 "--put", f"{launcher}:Games/loveprobe:755",
                 "--put", f"{launcher}:Games/loveyard:755"]
         names = names + ("love.tar.gz", "loveprobe", "loveyard")
+    if a.with_net:
+        # The network helper (games/net/yardnet.sh) and, if given, the SSH keys it lets in as root.
+        cmd += ["--put", f"{os.path.join(HERE, 'net', 'yardnet.sh')}:Games/yardnet:755"]
+        names = names + ("yardnet",)
+        if a.ssh_key:
+            key = open(os.path.expanduser(a.ssh_key)).read()
+            if not re.match(r"^(ssh-(rsa|ed25519|dss)|ecdsa-sha2-\S+) \S+", key.strip()):
+                die(f"{a.ssh_key} does not look like a public key (ssh-rsa/ssh-ed25519 ... ); give the .pub file")
+            keys = os.path.join(stage, "yardnet.keys")
+            open(keys, "w").write(key.strip() + "\n")
+            cmd += ["--put", f"{keys}:Games/yardnet.keys:600"]
+            names = names + ("yardnet.keys",)
     if a.with_sysprobe:
         # One small new file: a read-only shell script that records what Linux sees (FIELD_TASKS.md).
         cmd += ["--put", f"{os.path.join(HERE, 'sysprobe', 'sysprobe.sh')}:Games/sysprobe:755"]
@@ -495,6 +513,9 @@ def cmd_deploy(a):
     r = subprocess.run(cmd, capture_output=True, text=True)
     print(r.stdout + r.stderr)
     if r.returncode:
+        if "has holes" in r.stdout + r.stderr:
+            print("A file on the cabinet has unallocated blocks (an older deploy). Run the same command with")
+            print("--reinstall once; it writes the files whole, and later deploys update them in place.")
         if "no physical copy" in r.stdout + r.stderr:
             print("The new files landed on disk pages that have never been written, which the in-place patch")
             print("cannot reach. Try --first with --remove of the old C game binaries so their blocks are reused,")
@@ -505,7 +526,8 @@ def cmd_deploy(a):
     with open(plan, "w") as f:
         f.write(f"# Deploy plan\n\nRaw dump: `{os.path.abspath(a.raw)}`\n\nFiles:\n\n")
         for n in names:
-            new = a.first or n in ("love.tar.gz", "loveprobe", "loveyard", "sysprobe")
+            new = a.first or a.reinstall or n in ("love.tar.gz", "loveprobe", "loveyard", "sysprobe", "yardnet",
+                                                 "yardnet.keys")
             f.write(f"* `/data/Games/{n}` ({'new' if new else 'in place'})\n")
         f.write(f"\nBlocks to write: `{blocks}`\n\nBefore: `rk_restore.py diff` of the raw dump in the same Mask ROM "
                 "session must report none. Then, only with the user's written approval of exactly these blocks:\n\n"
@@ -554,6 +576,12 @@ def main():
                    help="also stage the read-only system probe, with a 'System probe' menu row (FIELD_TASKS.md)")
     p.add_argument("--start-from", default=None,
                    help="with --first: the GAME_NAME=... text in start.sh to point at yard, if not already")
+    p.add_argument("--with-net", action="store_true",
+                   help="also stage the network helper: DHCP on a USB-Ethernet adapter and SSH (games/net)")
+    p.add_argument("--ssh-key", default=None,
+                   help="with --with-net: a public key (.pub) the cabinet's SSH lets in as root")
+    p.add_argument("--reinstall", action="store_true",
+                   help="write yard, orb and yard.pak again as whole files (once, if an update reports holes)")
     p.add_argument("--repair", action="store_true",
                    help="pass --repair to data_patch.py (fixes a power-cut dirty data filesystem copy before editing)")
     a = ap.parse_args()

@@ -350,3 +350,27 @@ Hardware attached on port `1-6`. Devices 75/76 (`plug_3032slc_erase` for Task 4 
     3. **`GPU yard` findings (`love-yard.log` & `love-probe.log`):** Rendering at `768×1024` eliminated all `240×320 → 768×1024` upscaling fuzziness. Menu drew in `10.93–12.17 ms`, Keep in `3.68 ms`. OpenAL logged `[ALSOFT] (EE) mmap commit error: Broken pipe` (needs `mmap = false` in `ALSOFT_CONF`). `Lamp` was sluggish due to per-light FBO switches (`setCanvas(lc)`) and two 768×1024 fullscreen shader passes on the Mali-400, plus `jit.off()` default on 32-bit ARM. Launching native `Orb` inside `GPU yard` kept `love.bin` (~40 MB + ALSA/evdev handles) resident alongside `orb`, causing `Device or resource busy` on ALSA and triggering the Linux OOM killer on `/usr/bin/game`.
 
 
+
+## 2026-10-25: audit of field round 1, fixes, and round 2's plan (cloud, no hardware)
+
+No cabinet, no USB command, nothing written. No plug was tried, so `rk.py` `STAGES` notes are unchanged. This reads the field agent's six commits (`aad955e`..`2b1f6cd`): devices 75/76 (Take 1, 52 blocks), 80/81 (dump, then Take 2, 64 blocks), 82/83 (dump).
+
+**The agent's work, checked:**
+
+* Right, and kept: SDL had been built without KMSDRM because CMake's `pkg-config` check failed silently (stub `.pc` files fix it, with a check that fails the build otherwise); zig's glibc headers pass `_STAT_VER = 0` to ARM's `__xstat`, fixed by `-D_FILE_OFFSET_BITS=64`; the menu supervisor that exits the menu's process before each game (the 6 MiB per-launch graphics leak); Orb's rotated viewport (`cab_gl.c`); `--repair` through `cart deploy`; a two-pass `e2fsck -fy`.
+* Wrong or incomplete, fixed today:
+  * **Padded files went in sparse.** `debugfs write` skips every all-zero block, so `yard` (2 MiB), `orb`, and `yard.pak` (4 MiB, mostly padding) own far fewer blocks than their size, and `--overwrite` refuses them. `data_patch.py --put` now runs `fallocate` over the whole file and checks every block is mapped (tested on ext2 with 1 KiB and 4 KiB blocks, with zero runs inside the file as a program has). `cart deploy --reinstall` writes the three files whole once.
+  * **`loveprobe.sh` hashed only the first 64 KiB** of `love.tar.gz` to decide whether to unpack; `yard.love` is at the end of the archive, so an update to the GPU yard alone would not have been unpacked. It hashes the whole file now.
+  * **"Confirmed `CONFIG_MMC_DW=y` ..."** in STATUS and BOOT_RESEARCH: the kernel has no embedded config (task 1's own `config.txt` says so). Those were names found in its strings. STATUS corrected.
+  * **Missed:** `/proc/modules` exists, so the kernel loads modules (STATUS had said it could not). And task 7's `--which adb` would move the controller that serves USB-A to `otg`; task 7 is superseded, and the SD write will be `--which sd` alone.
+* **The stuck "LOADING..." screen**, in both takes, is the OOM killer taking `/usr/bin/game`, which nothing restarts. Take 1: the per-launch leak. Take 2: GPU yard ran Orb with LÖVE still resident (`yard.log`: 26.7 MB free before `loveyard`, 68.6 MB after, the stock menu gone).
+
+**Changed in this tree (PC only):**
+
+* The supervisor (`runtime.c`): `oom_score_adj` -1000 for the stock menu, 500 for our menu and games, -500 for itself; if the stock menu is gone when The Yard quits, it starts `/usr/bin/game` again with S50ui's settings in its own session; `stock_menu stop` in `yard.conf` stops it while The Yard runs and starts it after. A fresh menu learns how the last game went from `yard.returned()`. It starts `/data/Games/yardnet` if installed. `YARD_SUPERVISE=1` and `YARD_STOCK_MENU` let `test.py system` check all of it with a stand-in stock menu (this sandbox cannot lower an OOM score, so that one check accepts the logged refusal).
+* GPU yard: one canvas switch a frame for the light map (Lamp; the Lamp picture matches the C runtime's), FFI sample writes and songs rendered at start, `jit.on()`, `setpause 150`, OpenAL `mmap = false`, the pack read to its used length, and native programs run by `loveprobe.sh` after LÖVE quits.
+* `games/net/yardnet.sh` and `cart deploy --with-net --ssh-key`: DHCP on any network port and SSH as root with our key (a tmpfs over `/root`), dropbear's host keys kept in `/data/Games/net/hostkeys`. Untested on the cabinet; parses under `sh -n`.
+* `device_facts.py` writes `captures/kernel/modules.txt` (vermagic, `module_layout`).
+* `test.py`: 110 checks pass (96, plus 14 for the GPU runtime). `cart check`: all carts pass. Both LÖVE bundles rebuild here with the agent's `build.sh` changes; `check_abi.py` and `smoke.sh` pass.
+
+Conclusion: the next cabinet round (FIELD_TASKS.md round 2) puts these on with one `--reinstall` deploy, checks the stock menu survives, re-measures GPU yard, and tries SSH over a USB-Ethernet adapter. Wi-Fi waits on `modules.txt` (module route) or a kernel build; the SD slot is a later `boot` write of `--which sd` alone.

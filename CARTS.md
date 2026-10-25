@@ -363,6 +363,8 @@ A cart sees only what this file lists. There is no `io`, `os`, `require`, `load`
 
 The menu runs each cart as its own process. A cart that falls over takes nothing with it, and the menu says "that game tripped". Under `./cart run`, the Oops screen waits for you to save a fix, then restarts the cart.
 
+On the cabinet the menu itself runs under a small supervisor (2026-10-25): when a game is opened, the menu's process exits, the game runs, and a fresh menu starts after it. That gives back the 6 MB the graphics driver leaks each time a process reopens the screen, and every byte the menu held. The fresh menu learns how the game went from `yard.returned()` (the game's id and `ok`, `missing`, or `stumbled`), so the "tripped" note still shows. The supervisor also keeps the stock menu safe from the kernel's out-of-memory killer and starts it again if it is gone when The Yard quits. `YARD_SUPERVISE=1` turns it on for a PC test; `test.py system` checks it with a stand-in stock menu.
+
 ## 7. The quality bar
 
 These are the same rules [GAMEDEV.md](GAMEDEV.md) and [CONTROLS.md](CONTROLS.md) set, as a checklist. `./cart check` can't judge most of them, so look at your shots and play.
@@ -432,6 +434,8 @@ title=Bubbles
 * **Updates only rewrite blocks the files already own.** Because each file has a fixed size, an update is `data_patch.py --overwrite`: the new bytes go into the disk blocks the file already has. No block is allocated, so only flash pages that have been written before change. That is the case SFTL's in-place patch handles.
 * **`--first` installs the three files.** It removes the old C game binaries first, so the new files can reuse their freed blocks, which have been written before. If a page still lands where SFTL never wrote, the patch refuses and nothing is staged.
 * **Deploy never writes the cabinet.** It builds for the cabinet, packs, pads, patches a copy of the raw dump, and checks the round trip. Then it writes `PLAN.md` with the block list and the restore command. The write itself follows [RUNBOOK.md](RUNBOOK.md): a `diff` that says none in the same session, then the user's written approval of exactly those blocks.
+* **`--reinstall`** writes `yard`, `orb`, and `yard.pak` whole. Deploys before 2026-10-25 left their zero blocks unallocated, so an in-place update refuses them ("has holes"); one `--reinstall` fixes that for good.
+* **`--with-net --ssh-key KEY.pub`** also stages the network helper (`games/net/yardnet.sh`): a USB-Ethernet adapter on USB-A gets an address, and that key logs in as root over SSH. Then a later update can be an `scp` into `/data/Games` instead of a flash write (FIELD_TASKS.md R5).
 * **`--with-sysprobe`** also stages the read-only "System probe" row (`games/sysprobe/sysprobe.sh`), which records what Linux sees about flash, USB, the card slot, and drivers.
 * **`--with-love-probe`** also stages the GPU runtime as `love.tar.gz` with its two launchers and menu rows ("LOVE probe", "GPU yard"). [FIELD_TASKS.md](FIELD_TASKS.md) task 4 is the first time.
 * **The pack is safe to read.** The runtime checks every file's crc32 when it opens the pack. A damaged cart is left out of the menu and the others still load.

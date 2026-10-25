@@ -84,7 +84,7 @@ All flash changes go through the same reversible path. Edit a copy offline, `too
 
 **Recommendation:** **A** is what tile 10 does now (The Yard). **B** is the real 13th tile, later. **C** is extra room for pictures and music once a boot device-tree change is worth a flash of its own. Games that ship on the cabinet have to fit in the 24.40 MiB with nothing plugged in.
 
-**Optional development accelerator:** the stock system already ships `adbd`, and it only lacks USB device mode. One small device-tree change in the `boot` partition (`enable_storage.py --which adb`: the OTG port's `dr_mode` from `host` to `otg`) should give a root shell over the Micro-USB cable with the switch ON. Then a new game build is `adb push`, with no switch flips. It's untested. It can ride in the same `boot` write as the SD slot (§ 11).
+**Development accelerator: SSH over a wired adapter (2026-10-25).** The ADB idea (the OTG port to `otg`) is dropped: the field run showed that same controller serves the USB-A port, so it would likely cost USB-A. Instead, the stock system already runs `dropbear`, and its kernel has USB-Ethernet drivers. `games/net/yardnet.sh` (deployed with `cart deploy --with-net --ssh-key KEY.pub`) brings up a USB-Ethernet adapter on USB-A and lets that key in as root. Then a new game build is an `scp` into `/data/Games`, written by the kernel's own flash layer, with no Mask ROM and no switch flips. Untested on the cabinet ([FIELD_TASKS.md](FIELD_TASKS.md) R5).
 
 ## 5. Step-by-step plan
 
@@ -220,13 +220,13 @@ What the four passes check (78 checks, all passing on 2026-10-24 after the move 
 
 ## 9. A thumb drive or a microSD card
 
-Both jacks are on the metal shield. **Plugging either in today does nothing the games can use.** The kernel was built with the drivers. The device tree leaves the controllers off. There are no loadable modules; the drivers are inside the kernel image.
+Both jacks are on the metal shield. **Correction from the field run (2026-10-24, verified): USB-A already works.** A Wi-Fi adapter plugged into it enumerated on `usb@10180000`, the OTG controller, with the switch ON. So that controller is wired to USB-A in normal play, and to the Micro-USB jack for Mask ROM (switch OFF); the switch probably routes it. Expected, from that one observation: the switch, not the device tree, picks the jack. The kernel can also load modules (`/proc/modules` exists), though none are installed.
 
 | | USB-A (center jack) | Micro-USB | MicroSD |
 | :--- | :--- | :--- | :--- |
-| Silicon | `usb@101c0000`, the host controller | `usb@10180000`, the OTG controller | `dwmmc@10214000`, 4-bit SD |
-| Stock device tree | `status = "disabled"`, `dr_mode = "host"` | `okay`, `dr_mode = "host"` | `disabled`. Pins, 4-bit bus, card-detect GPIO, and 3.3 V supply are already filled in. Max clock 37.5 MHz |
-| What a plug does now | The `usb-en` GPIO regulator is always-on, so the jack may already have 5 V. The controller is off, so a stick gets power and never enumerates | This is the recovery port. VBUS is diode-fed *into* the board from a PC, so the jack does not power a stick. Leave it for Mask ROM | Nothing. Linux never sees a card |
+| Silicon | `usb@10180000`, the OTG controller in host mode (verified) | The same controller, for Mask ROM with the switch OFF (expected) | `dwmmc@10214000`, 4-bit SD |
+| Stock device tree | `okay`, `dr_mode = "host"`. (`usb@101c0000`, the second controller, is `disabled`; where it goes is unknown) | — | `disabled`. Pins, 4-bit bus, card-detect GPIO, and 3.3 V supply are already filled in. Max clock 37.5 MHz |
+| What a plug does now | Enumerates (verified with a TP-Link AC600, `2357:011e`). A stick or a USB-Ethernet adapter gets its driver if the kernel has one | The recovery port. VBUS is diode-fed *into* the board from a PC. Leave it for Mask ROM | Nothing. Linux never sees a card (verified) |
 
 U-Boot's own tree has the 8-bit eMMC controller (`dwmmc@1021c000`, non-removable) and **not** the 4-bit SD controller. The slot on this board is the SD one. Stock U-Boot will not boot from a card in it. The env's `rkimgtest mmc 1` does not change that.
 
@@ -234,7 +234,7 @@ Linux already contains `usb-storage`, the DesignWare MMC host, VFAT, ext2, exFAT
 
 `/lib/udev/rules.d/61-sd-cards-auto-mount.rules` mounts a partition whose kernel name is `mmcblk*` and whose parent type is `SD` onto `/mnt/sdcard`. VFAT is mounted with `fmask=133`, so files on a FAT card are not executable. ext2 is mounted with `exec`, so a binary can be run from an ext2 card. There is **no** rule that mounts a USB disk (`/dev/sda1`). A game runs as root and can mount one itself once the controller is on: `mkdir -p /tmp/stick && mount -t vfat -o rw,noatime /dev/sda1 /tmp/stick`.
 
-Turning a port on is one property in the kernel device tree inside the `boot` partition: `status = "okay"` on `usb@101c0000`, or on `dwmmc@10214000`, or both. That is a NAND write of boot blocks. It has not been done. The offline tool and the flash sequence are in § 11. It still would not make the card a boot disk. After it, the card or stick is the way past the 24.40 MiB on `data`. RAM stays 128 MiB, so a game loads a scene from the card. It does not treat the card as memory.
+Turning the card slot on is one property in the kernel device tree inside the `boot` partition: `status = "okay"` on `dwmmc@10214000`. USB-A needs nothing. That is a NAND write of boot blocks. It has not been done. The offline tool and the flash sequence are in § 11. It still would not make the card a boot disk. After it, the card or stick is the way past the 24.40 MiB on `data`. RAM stays 128 MiB, so a game loads a scene from the card. It does not treat the card as memory.
 
 Games already have the call. `cab_ext_root()` returns `CAB_EXT` when that directory exists (the simulator; it does not have to be a mount), otherwise `/mnt/sdcard` if that path is a mount, otherwise `/tmp/stick` if that path is a mount. On a cabinet build only, the first call tries `mount` of `/dev/mmcblk0p1`, `/dev/mmcblk0`, then `/dev/sda1` onto `/tmp/stick`, as vfat, then ext2, then exfat. A PC build never mounts. `cab_ext_read` and `cab_ext_write` take one file name, the same character rules as a score file, and writes are temp, fsync, rename. The Yard reads `label` and writes `visited`. Orb copies `label` to `orb-card`. A game that must run with nothing plugged in still fits in the 24.40 MiB on `data`. The card is extra.
 
@@ -242,7 +242,7 @@ Games already have the call. `cab_ext_root()` returns `CAB_EXT` when that direct
 
 The microSD slot is the storage, and USB-A stays free for a network adapter later.
 
-* **Turn on only the slot.** That is one `boot` write: `enable_storage.py --which sd` (§ 11). Add `adb` to the same write for a shell over the Micro-USB cable if the user wants it.
+* **Turn on only the slot.** That is one `boot` write: `enable_storage.py --which sd` (§ 11). Not `usb` (USB-A already works) and not `adb` (it would likely take USB-A away).
 * **One ext2 partition on the card.** The format, the layout, and the exact commands are in [SDCARD.md](SDCARD.md). ext2 is mounted with exec, so it can hold programs such as LÖVE (§ 12); FAT can't run anything. The stock udev rule mounts every card partition on the same `/mnt/sdcard`, so two partitions would hide each other (untested; FIELD_TASKS.md task 7 checks). The kernel has no ext4.
 * **Speed.** The slot's limit is 37.5 MHz on four bits, about 18 MB/s at best. Loading a scene is fine; streaming video is not.
 * **Keep the NAND copy.** Everything that must run with nothing plugged in stays there: the menu, the carts that ship today, saves. The card adds; it never replaces. The runtime already reads carts from `<card>/yard/carts` (CARTS.md § 11).
@@ -255,13 +255,17 @@ The microSD slot is the storage, and USB-A stays free for a network adapter late
 
 ### Wi-Fi on USB-A, later: what it needs
 
-Turning on `usb@101c0000` is the easy part. A USB Wi-Fi adapter then needs three more things, and the stock system has none of them:
+USB-A already enumerates a Wi-Fi adapter (the user's TP-Link AC600, Realtek RTL8821AU). Three things are missing, and the stock system has none of them:
 
-* **A driver in the kernel.** The kernel has no loadable modules, so the adapter's driver (an `rtl8xxxu`, `rt2800usb`, or `mt7601u` class driver, plus `cfg80211` and `mac80211`) must be built in. Nobody has listed what this kernel contains. `FIELD_TASKS.md` task 1 extracts its config if it carries one, and its driver strings either way. If the drivers are missing, Wi-Fi means building a new kernel from Rockchip's 4.4 tree for this board, a bigger `boot` change.
+* **A driver.** The kernel has no Wi-Fi stack at all: no `cfg80211`, `mac80211`, or Wi-Fi driver in its strings, and no embedded config (field run, 2026-10-24). It does load modules, so `cfg80211` and an RTL8821AU driver (the out-of-tree `8821au`) might be built as modules against Rockchip's 4.4.194 source, if they match its vermagic and symbol versions (`captures/kernel/modules.txt`, FIELD_TASKS.md R1). Otherwise Wi-Fi means a new kernel, a bigger `boot` change.
 * **Firmware files.** Most adapters load a firmware blob. The rootfs has no `/lib/firmware`, so it would go on the card or in `data`, and the kernel must be told where to look.
 * **Userland.** The rootfs has `udhcpc`, `ifup`, and `dropbear` (an SSH server, already with an init script), but no `wpa_supplicant` and no `iw`. Those can be cross-built and kept on the card's ext2 partition.
 
-A route that needs no kernel work: the ADB edit above, plus a small Wi-Fi computer inside the cabinet (a Raspberry Pi Zero 2 W, for example) cabled to the Micro-USB port as the ADB host. It reaches the cabinet's shell over the network, and USB-A stays free. That is a hardware idea, not tested.
+Routes that need no kernel work, because the kernel has USB-Ethernet drivers (`r8152`, `asix`, `ax88179`, `smsc95xx`, `cdc_ether`, `rndis_host`, by name):
+
+* **A USB-Ethernet adapter** on USB-A, cabled to the router. `yardnet` gives it an address and SSH (FIELD_TASKS.md R5). The first thing to try.
+* **A small Wi-Fi computer as a USB network gadget**, for example a Raspberry Pi Zero 2 W on USB-A as a USB Ethernet device (`g_ether`, seen by the cabinet as `cdc_ether` or `rndis_host`), routing to the home Wi-Fi. Wireless, and no change to the cabinet's kernel. Not tested.
+* **A pocket travel router** in client mode, cabled to a USB-Ethernet adapter. The same as the first, without a cable across the room.
 
 ## 10. How far this hardware can be pushed
 
@@ -294,7 +298,7 @@ Linux checks `status` with `strcmp`. The stock value is the 9-byte string `disab
 
 ```
 python3 tools/enable_storage.py report ~/partycade-dumps/extracted/bootimg/rk-kernel.dtb
-python3 tools/enable_storage.py patch ~/partycade-dumps/extracted/boot.img -o /tmp/boot-storage.img --which sd   # add ,adb for the shell; ,usb only when USB-A is wanted
+python3 tools/enable_storage.py patch ~/partycade-dumps/extracted/boot.img -o /tmp/boot-storage.img --which sd   # sd only: USB-A already works, and adb would likely take it away
 python3 tools/enable_storage.py report /tmp/boot-storage.img
 ```
 

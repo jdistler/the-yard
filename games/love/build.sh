@@ -227,8 +227,19 @@ D=$(cd "$(dirname "$0")" && pwd)
 export LD_LIBRARY_PATH="$D/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export SDL_VIDEODRIVER=${SDL_VIDEODRIVER:-kmsdrm}
 export LOVE_GRAPHICS_USE_OPENGLES=1
+export ALSOFT_CONF=${ALSOFT_CONF:-$D/alsoft.conf}
 exec "$D/love.bin" "$@"
 EOF
 chmod +x "$OUT/run.sh"
+# OpenAL Soft's ALSA output in mmap mode failed on the cabinet's I2S card ("mmap commit error: Broken
+# pipe", love-probe.log 2026-10-24); plain writes are what SDL's own audio uses there.
+cat > "$OUT/alsoft.conf" <<'EOF'
+[general]
+period_size = 1024
+periods = 3
+
+[alsa]
+mmap = false
+EOF
 du -sh "$OUT"
 echo "built $OUT"

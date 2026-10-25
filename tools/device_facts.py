@@ -19,6 +19,8 @@ and those are fine to commit:
                               fstab, network and dropbear settings, the account list with each account's
                               password state (empty, locked, or set; never the hash), and the busybox
                               applets. These say how USB, the card, ADB, and a network would come up.
+  captures/kernel/modules.txt what a loadable module must match: the vermagic string and whether
+                              symbol versions (CONFIG_MODVERSIONS) are checked.
   captures/kernel/bootimg.txt the boot image's layout (header, kernel, device tree offsets and sizes), so a
                               rebuilt kernel or tree can be put back the same way.
 
@@ -141,6 +143,15 @@ def kernel(path, out):
     with open(os.path.join(out, "config.txt"), "w") as f:
         f.write(cfg if cfg else "# The image carries no config (no IKCFG_ST). drivers.txt is the string search instead.\n")
     strs = set(re.findall(rb"[\x20-\x7e]{4,}", text))
+    # Loadable modules: the version string a module must carry (vermagic), and whether the kernel checks
+    # symbol checksums (CONFIG_MODVERSIONS, seen as the module_layout symbol). These decide whether a Wi-Fi
+    # driver can be added as a module built against Rockchip's 4.4 source, instead of a new kernel.
+    vm = sorted({m.decode() for m in re.findall(rb"\d+\.\d+\.\d+[\w.+-]* SMP[\w ]*mod_unload[\w ]*", text)})
+    with open(os.path.join(out, "modules.txt"), "w") as f:
+        f.write("vermagic: " + (" | ".join(vm) if vm else "not found") + "\n")
+        f.write("module_layout (CONFIG_MODVERSIONS): " + ("present" if b"module_layout" in text else "absent") + "\n")
+        f.write("init_module / finit_module syscalls named: " +
+                ("present" if (b"finit_module" in text or b"sys_init_module" in text) else "absent") + "\n")
     lines = []
     for group, names in (("wifi", WIFI), ("usb-net", NET), ("storage", STORAGE), ("flash", FLASH),
                         ("gadget", GADGET), ("other", OTHER)):
