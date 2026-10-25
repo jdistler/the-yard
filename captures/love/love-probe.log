@@ -1,0 +1,57 @@
+loveprobe start Thu Jan  1 00:01:32 UTC 1970 92.65 110.60
+unpacking love.tar.gz
+unpacked: 0
+Filesystem           1K-blocks      Used Available Use% Mounted on
+/dev/rkflash0p5          29745     18686      9523  66% /userdata
+             total       used       free     shared    buffers     cached
+Mem:        118668     116128       2540      24712        556      44648
+-/+ buffers/cache:      70924      47744
+Swap:            0          0          0
+Error: Could not initialize SDL video subsystem (kmsdrm not available)
+stack traceback:
+	[love "boot.lua"]:352: in function <[love "boot.lua"]:348>
+	[C]: at 0xb6d885c4
+	[C]: in function 'require'
+	[love "boot.lua"]:251: in function <[love "boot.lua"]:126>
+	[C]: in function 'xpcall'
+	[love "boot.lua"]:362: in function <[love "boot.lua"]:355>
+	[C]: in function 'xpcall'
+love exited 1
+loveprobe start Thu Jan  1 00:01:52 UTC 1970 112.54 128.07
+unpacking love.tar.gz
+unpacked: 0
+Filesystem           1K-blocks      Used Available Use% Mounted on
+/dev/rkflash0p5          29745     18686      9523  66% /userdata
+             total       used       free     shared    buffers     cached
+Mem:        118668     115724       2944      30860        736      43916
+-/+ buffers/cache:      71072      47596
+Swap:            0          0          0
+Error: Could not initialize SDL video subsystem (kmsdrm not available)
+stack traceback:
+	[love "boot.lua"]:352: in function <[love "boot.lua"]:348>
+	[C]: at 0xb6db85c4
+	[C]: in function 'require'
+	[love "boot.lua"]:251: in function <[love "boot.lua"]:126>
+	[C]: in function 'xpcall'
+	[love "boot.lua"]:362: in function <[love "boot.lua"]:355>
+	[C]: in function 'xpcall'
+love exited 1
+loveprobe start Thu Jan  1 00:02:34 UTC 1970 154.99 167.55
+unpacking love.tar.gz
+unpacked: 0
+Filesystem           1K-blocks      Used Available Use% Mounted on
+/dev/rkflash0p5          29745     18687      9522  66% /userdata
+             total       used       free     shared    buffers     cached
+Mem:        118668     116024       2644      37012       1196      43816
+-/+ buffers/cache:      71012      47656
+Swap:            0          0          0
+Error: Could not initialize SDL video subsystem (kmsdrm not available)
+stack traceback:
+	[love "boot.lua"]:352: in function <[love "boot.lua"]:348>
+	[C]: at 0xb6d645c4
+	[C]: in function 'require'
+	[love "boot.lua"]:251: in function <[love "boot.lua"]:126>
+	[C]: in function 'xpcall'
+	[love "boot.lua"]:362: in function <[love "boot.lua"]:355>
+	[C]: in function 'xpcall'
+love exited 1

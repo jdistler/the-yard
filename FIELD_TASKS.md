@@ -487,6 +487,163 @@ Record:
 * **Approval text:** `I give you full permission to do it all! this and anything else! Including for the block list 18,19,90,91,334,335,336,337,338,339,340,341,342,343,344,345,346,347,348,349,350,351,352,353,354,355,356,357,358,359,360,361,364,365,366,367,368,369,370,371,372,373,850,851,856,857,866,867,878,879,884,885`
 * **Restore & `diff` after write:** All 52 blocks (64 pages each) erased, programmed, and verified page-by-page; full-chip `rk_restore.py diff $D/stage/nand_raw_patched.bin` reported `Differing blocks: none: the cabinet matches the backup`.
 
+### Task 5 (2026-10-24)
 
+User's exact notes from the cabinet playtest:
 
+> ### 0. Boot into normal play mode
+> all good thanks
+>
+> ### 1. The Yard (standard CPU runtime)  
+> so the  yard selector screen a bit fuzzy. all games of the 5 look a bit fuzzy in fact. more than the simulated screenshots. the orb had left and right cut off a bit? like viewport was off. tea party had white acreen at first then went into the game but no sound. exiting the game entered a crash, then stuck on "LOADING..." screen so i had to do a restart. then finished with chest game all good. hopefully logs all intact let me know moving onto the next cab steps.
+>
+> ### 2. LOVE probe 
+> I opened it, black for 10ish seconds then kicked back to the yard. tried twice.
+>
+>   ### 3. GPU yard
+> I clicked then black 10 secs then back to the yard. how do i know whether im in gpu mode? yard should make it clear it seems like before it bounced me back. tried chest, worked the same as before. same for orb. but maybe not gpu mode at all?
+>
+>  ### 4. System probe (with SD card & USB stick ready)
+>  ok i did this. had to do it twice first time dropped the microsd into the enclosure so just did the usb then i did the whole thing over after fishing the microasd out for sd frist then usb. all goo hopefully.
+>  
+>  ### 5 & 6. Exit cleanly, check Micro-USB, and cold-plug for Task 6
+> so for this i couldnt exit cleanly back to a stuck loading... when i try to exit the yard and had to just shut down the machine.
+
+### Task 6 (2026-10-24)
+
+Commands run:
+```bash
+D=~/partycade-dumps/2026-10-24_love_played
+mkdir -p $D
+tools/rk.py state
+tools/rk.py boot --plug plug_3032slc_erase
+tools/rk.py rawdump -o $D/nand_raw.bin --verify
+python3 tools/sftl_rebuild.py $D/nand_raw.bin -o $D/logical.img
+dd if=$D/logical.img of=$D/data.img bs=512 skip=142336 count=61440 status=none
+mkdir -p captures/love captures/sysprobe
+for f in yard.log yard.log.1 love-probe.txt love-probe.log love-yard.log; do
+    /sbin/debugfs -R "dump Games/$f captures/love/$f" $D/data.img 2>/dev/null || true
+    [ -s "captures/love/$f" ] || rm -f "captures/love/$f"
+done
+/sbin/debugfs -R "ls -l Games" $D/data.img > captures/love/games-ls.txt
+/sbin/debugfs -R "ls -l love"  $D/data.img > captures/love/love-ls.txt
+for n in 1 2 3 4 5; do
+    /sbin/debugfs -R "dump Games/sysprobe-$n.txt captures/sysprobe/before-$n.txt" $D/data.img 2>/dev/null || true
+    [ -s "captures/sysprobe/before-$n.txt" ] || rm -f "captures/sysprobe/before-$n.txt"
+done
+python3 - <<'PY' > captures/sysprobe/partition-sums.txt
+import hashlib, pathlib
+img = pathlib.Path.home() / "partycade-dumps/2026-10-24_love_played/logical.img"
+with img.open("rb") as f:
+    for name, start, count in [
+        ("rkflash0p1", 64, 896),
+        ("rkflash0p2", 1024, 1024),
+        ("rkflash0p3", 2048, 9216),
+        ("rkflash0p4", 11264, 131072),
+        ("rkflash0p5", 142336, 61440),
+    ]:
+        f.seek(start * 512)
+        h = hashlib.sha256(f.read(count * 512)).hexdigest()
+        print(f"{name} {start} {count} {h}")
+PY
+```
+
+Record:
+* **Device numbers:** Mask ROM device 80 on port `1-6`, re-enumerated as loader device 81 (`plug_3032slc_erase`).
+* **Raw dump:** `~/partycade-dumps/2026-10-24_love_played/nand_raw.bin` (sha256 `7a54af20e13f5305631bfc949dff0674248641f76daa484bb536056710f93adf`).
+* **Rebuilt logical image:** `~/partycade-dumps/2026-10-24_love_played/logical.img` (sha256 `400befe33687638d94b50bdd1f4fe1552932d07ef12eb7836d1ee1671df758ba`).
+* **Files extracted:**
+  * `captures/love/yard.log` (13,475 bytes)
+  * `captures/love/love-probe.log` (2,519 bytes)
+  * `captures/love/games-ls.txt` (8,326 bytes)
+  * `captures/love/love-ls.txt` (534 bytes)
+  * `captures/sysprobe/before-1.txt` (63,749 bytes; redacted SoC serial `c3d9b8674f4b94f6` → `<redacted>`)
+  * `captures/sysprobe/before-2.txt` (63,966 bytes; redacted SoC serial `c3d9b8674f4b94f6` → `<redacted>`)
+  * `captures/sysprobe/partition-sums.txt` (534 bytes)
+  * Not present on `/data/Games`: `yard.log.1` (`yard.log` stayed under 256 KB), `love-probe.txt`, and `love-yard.log` (LÖVE exited before opening a window; see below).
+
+#### Excerpt of `captures/love/yard.log` (`cab:` and `stats` lines)
+
+```text
+       0 yard: pid 564, memory 37360 kB of 118668 kB available
+     176 yard: start the menu, 9 carts
+     561 cab: The Yard: video KMSDRM, display 1024x768 @ 60 Hz, format 0x16362004
+     561 cab: renderer opengles2, flags 0xe, max texture 4096x4096
+     561 cab: 1 joysticks
+     561 cab: joystick 0 'uart-keys': 21 buttons, 0 axes, 0 hats
+     621 cab: audio alsa, 44100 Hz
+    5720 stats yard frame 300 update 0.14ms draw 7.62ms peak 23.65ms lua 829KB images 300KB
+   10801 stats yard frame 600 update 0.14ms draw 8.01ms peak 11.56ms lua 834KB images 300KB
+   15847 stats yard frame 900 update 0.15ms draw 7.81ms peak 11.16ms lua 839KB images 300KB
+   20849 stats yard frame 1200 update 0.15ms draw 7.49ms peak 10.34ms lua 844KB images 300KB
+       0 yard: pid 597, memory 26372 kB of 118668 kB available
+     134 yard: start keep, 9 carts
+    5430 stats keep frame 300 update 0.14ms draw 2.74ms peak 14.90ms lua 841KB images 300KB
+   10427 stats keep frame 600 update 0.16ms draw 2.19ms peak 4.93ms lua 846KB images 300KB
+   40427 stats keep frame 2400 update 0.17ms draw 3.19ms peak 19.93ms lua 831KB images 300KB
+       0 yard: pid 652, memory 19840 kB of 118668 kB available
+     132 yard: start lamp, 9 carts
+    5807 stats lamp frame 300 update 0.22ms draw 9.34ms peak 22.75ms lua 851KB images 600KB
+   10949 stats lamp frame 600 update 0.27ms draw 8.57ms peak 12.22ms lua 825KB images 300KB
+   78378 stats lamp frame 4500 update 0.23ms draw 8.81ms peak 12.56ms lua 889KB images 300KB
+       0 yard: pid 810, memory 7464 kB of 118668 kB available
+     205 yard: start tea, 9 carts
+    4485 SDL_OpenAudio: Couldn't create audio thread
+   14715 stats tea frame 300 update 2.60ms draw 14.06ms peak 1459.09ms lua 1034KB images 3694KB
+   22996 stats tea frame 600 update 0.29ms draw 15.08ms peak 20.94ms lua 971KB images 3656KB
+   32446 stats tea frame 900 update 0.58ms draw 18.42ms peak 101.26ms lua 1024KB images 6478KB
+   41902 stats tea frame 1200 update 1.42ms draw 17.66ms peak 49.83ms lua 939KB images 7472KB
+   51191 stats tea frame 1500 update 1.33ms draw 17.04ms peak 71.17ms lua 1041KB images 7472KB
+       0 yard: pid 638, memory 37520 kB of 118668 kB available
+     148 yard: start the menu, 9 carts
+    5700 stats yard frame 300 update 0.14ms draw 7.89ms peak 23.17ms lua 829KB images 300KB
+       0 yard: pid 656, memory 26428 kB of 118668 kB available
+     125 yard: start chest, 9 carts
+    7372 stats chest frame 300 update 0.18ms draw 9.88ms peak 25.38ms lua 863KB images 768KB
+   16271 stats chest frame 600 update 0.31ms draw 16.49ms peak 51.67ms lua 915KB images 768KB
+       0 yard: pid 865, memory 64000 kB of 118668 kB available
+     132 yard: start chest, 9 carts
+    7606 stats chest frame 300 update 0.20ms draw 10.76ms peak 26.76ms lua 914KB images 768KB
+   16197 stats chest frame 600 update 0.27ms draw 15.89ms peak 30.96ms lua 865KB images 768KB
+```
+
+#### Root causes identified from the Task 5/6 logs
+
+1. **Why Tea had no sound and why exiting got stuck on `"LOADING..."` (Linux OOM killer + 6 MiB/launch `shmem` leak):**
+   * While a game runs, the stock menu `/usr/bin/game` (PID 439) stays in memory holding `53,228 kB` anon-rss + `8,608 kB` file-rss (`120,836 kB` total_vm), leaving `37,360 kB` of `118,668 kB` available when `yard` (the menu) starts.
+   * Each time `yard` launches a child game (`l_yard_launch` in `games/engine/runtime.c`), the parent `yard` process calls `cab_shutdown()` (`SDL_DestroyWindow` + `SDL_Quit`), `fork()+exec()`s the child, and then reopens its window with `gfx_init()` (`SDL_Init` + `SDL_CreateWindow`). On the cabinet's `libMali.so` / `libgbm.so` / `rockchip-drm` stack, each `SDL_Quit` + `SDL_Init` cycle in a long-lived process leaks **6,144 KiB (`6.0 MiB`) of DRM GEM `shmem` buffers** (two `1024×768×4` dumb buffers; visible in `love-probe.log` where `shared` climbs `24712` → `30860` → `37012` kB and in `dmesg` where `shmem` reaches `43,168 kB`).
+   * By the time Tea (PID 810) launched, available memory was down to `7,464 kB`. Tea baked `7,472 KB` of stamp images (causing the initial 1.46 s pause) and `SDL_OpenAudio` failed with `Couldn't create audio thread` (no sound).
+   * In the second boot session (`captures/sysprobe/before-1.txt` lines 1260–1428), at `169.68s` uptime `SDLAudioP1` triggered the Linux OOM killer, which killed `/bin/sh /data/start.sh` (PID 636), **`/usr/bin/game` (PID 439, score 506)**, and `input_monitor` (PID 490). Because `/usr/bin/game` paints `"LOADING..."` onto the framebuffer before spawning `/data/start.sh` and was killed by OOM while `yard` was running, exiting `yard` left no `/usr/bin/game` process to redraw the stock menu, leaving `"LOADING..."` on screen forever. (Once `/usr/bin/game` was killed, free RAM jumped to `64,000 kB` when Chest PID 865 started.)
+
+2. **Why `LOVE probe` and `GPU yard` showed a black screen for ~10s and returned to The Yard:**
+   * **Why it failed (`kmsdrm not available`):** `captures/love/love-probe.log` shows `love.bin` ran and exited 1 with `Error: Could not initialize SDL video subsystem (kmsdrm not available)`. Inspecting `~/lovebuild/build-arm/SDL/include-config-release/SDL2/SDL_config.h` and `CMakeCache.txt` confirmed `/* #undef SDL_VIDEO_DRIVER_KMSDRM */` and `PKG_KMSDRM_FOUND:INTERNAL=`: SDL 2.30's CMake `CheckKMSDRM` module calls `pkg_search_module(PKG_KMSDRM libdrm)` and `pkg_search_module(PKG_GBM gbm)`, which failed because `games/love/build.sh` passed `-I.../include` in `CFLAGS` without `.pc` files or `PKG_KMSDRM_*` cache overrides, so CMake silently disabled `SDL_VIDEO_DRIVER_KMSDRM` even with `-DSDL_KMSDRM=ON`.
+   * **Why each press took ~10 seconds:** `games/love/loveprobe.sh` checks `[ "$HERE/love.tar.gz" -nt /data/love/.stamp ]`. Because the cabinet has no RTC (`Thu Jan 1 00:01:32 UTC 1970`) and `love.tar.gz` carried a 2026 mtime from the host build, `love.tar.gz -nt /data/love/.stamp` was always true, re-unpacking the 4.1 MB archive onto NAND on every click.
+
+3. **Why Orb had its left and right edges cut off:**
+   * In `cab_gl_present()` (`games/engine/cab_gl.c` lines 321–326), `dw = (int)(cab_w * s)` (`768`) and `dh = (int)(cab_h * s)` (`1024`) were computed in upright dimensions and then centered against the landscape framebuffer (`ow = 1024, oh = 768`): `dst.x = (1024 - 768)/2 = 128`, `dst.y = (768 - 1024)/2 = -128`. Unlike `SDL_RenderCopyEx(..., -90)` in `cab.c` (which rotates `dst` around its center), `cab_gl_present()` feeds `dst` directly to `ndc(px, py, ow, oh)`, placing 1024 pixels along the 768-pixel axis (`dst.y = -128..896`) and clipping 128 pixels off both the left and right of the upright view. Swapping `dw = (int)(cab_h * s)` and `dh = (int)(cab_w * s)` fixes `cab_gl_present()`.
+
+4. **Why the 2D games looked slightly fuzzy compared to PC screenshots:**
+   * The physical LCD is a 1280×1024 BOE `DV170YGZ-N10` driven by the kernel CRTC at `1024×768@60` (`captures/sysprobe/before-1.txt` line 900: `1024x768p60`), so the panel's own scaler stretches 1024×768 → 1280×1024 (`1.25×` horizontal, `1.33×` vertical). In addition, 240×320 carts (`yard`, `keep`, `lamp`) scale by `3.2×` into `768×1024`.
+
+5. **Surprise finding in `captures/sysprobe/before-1.txt` and `before-2.txt`: the USB-A port (`usb@10180000`) is ALREADY live in host mode on the stock boot image!**
+   * In `before-1.txt` (lines 1431–1445) and `before-2.txt` (lines 1419–1445), plugging the user's **TP-Link AC600** Wi-Fi dongle into the top USB-A port immediately enumerated on `usb1` (`10180000.usb`, `dwc2`):
+     ```text
+     [  341.970815] usb 1-1: new high-speed USB device number 2 using dwc2
+     [  342.216565] usb 1-1: New USB device found, idVendor=2357, idProduct=011e
+     [  342.216664] usb 1-1: Product: 802.11ac WLAN Adapter
+     [  342.216677] usb 1-1: Manufacturer: Realtek
+     [  342.216690] usb 1-1: SerialNumber: 00e04c000001
+     ```
+   * This proves that **`usb@10180000` (which is already `status = "okay"; dr_mode = "host"` in the stock DTB) is wired to the USB-A port** (or switched to it when the power switch is ON)!
+   * Consequently, changing `usb@10180000` from `dr_mode = "host"` to `"otg"` (`enable_storage.py --which adb`) should be approached carefully or tested alongside `usb@101c0000`, since `10180000.usb` is the controller serving the external USB-A port during normal play.
+   * Meanwhile, `dwmmc@10214000` (`status = disabled`) did not see the microSD card in `before-1.txt` or `before-2.txt`, confirming that the microSD slot requires enabling `dwmmc@10214000` in the `boot` partition (Task 7).
+
+6. **Partition checksums (`captures/sysprobe/before-1.txt` vs `captures/sysprobe/partition-sums.txt`):**
+   * Every read-only partition read through `/dev/rkflash0p1..4` in running Linux matched the `sftl_rebuild.py` dump byte-for-byte:
+     * `rkflash0p1` (`IDBlock`, 896 sectors): `28db579236ad098103be2587f456fd35c2f7546b7e323d0325ffb6c75b0e309a` (exact match)
+     * `rkflash0p2` (`uboot`, 1024 sectors): `afb8c6c6c9a1563ecb6e8b098c220b3008cf0459a2370484cdab150e84d65b5c` (exact match)
+     * `rkflash0p3` (`boot`, 9216 sectors): `a0ce5967ba5dba1b0316c83e806d814c8e12f169d5470cf72ffe8165db3fba90` (exact match)
+     * `rkflash0p4` (`rootfs`, 131072 sectors): `253ab3c3cfb1c5c48ca8f117c3dc7ab1677c209f75d81b808441580e3e08c37e` (exact match)
+     * `rkflash0p5` (`data`, 61440 sectors): live `a0fe4a83…` vs post-play dump `a86522e7…` (expected: `/userdata` was mounted rw and being written by `sysprobe` itself).
+   * All `/sys/class/block/rkflash0p*` report `ro 0`.
 

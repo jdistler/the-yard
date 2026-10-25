@@ -1,0 +1,353 @@
+       0 yard: pid 564, memory 37360 kB of 118668 kB available
+     176 yard: start the menu, 9 carts
+     561 cab: The Yard: video KMSDRM, display 1024x768 @ 60 Hz, format 0x16362004
+     561 cab: renderer opengles2, flags 0xe, max texture 4096x4096
+     561 cab: 1 joysticks
+     561 cab: joystick 0 'uart-keys': 21 buttons, 0 axes, 0 hats
+     621 cab: audio alsa, 44100 Hz
+    5720 stats yard frame 300 update 0.14ms draw 7.62ms peak 23.65ms lua 829KB images 300KB
+   10801 stats yard frame 600 update 0.14ms draw 8.01ms peak 11.56ms lua 834KB images 300KB
+   15847 stats yard frame 900 update 0.15ms draw 7.81ms peak 11.16ms lua 839KB images 300KB
+   20849 stats yard frame 1200 update 0.15ms draw 7.49ms peak 10.34ms lua 844KB images 300KB
+   25737 yard open keep
+       0 yard: pid 597, memory 26372 kB of 118668 kB available
+     134 yard: start keep, 9 carts
+     304 cab: Keep: video KMSDRM, display 1024x768 @ 60 Hz, format 0x16362004
+     304 cab: renderer opengles2, flags 0xe, max texture 4096x4096
+     304 cab: 1 joysticks
+     304 cab: joystick 0 'uart-keys': 21 buttons, 0 axes, 0 hats
+     367 cab: audio alsa, 44100 Hz
+    4414 keep catch 1
+    5430 stats keep frame 300 update 0.14ms draw 2.74ms peak 14.90ms lua 841KB images 300KB
+    6881 keep catch 2
+    9278 keep catch 3
+   10427 stats keep frame 600 update 0.16ms draw 2.19ms peak 4.93ms lua 846KB images 300KB
+   11911 keep miss lives 2
+   14209 keep catch 5
+   15425 stats keep frame 900 update 0.16ms draw 2.18ms peak 4.37ms lua 851KB images 300KB
+   16709 keep catch 6
+   19023 keep catch 7
+   20422 stats keep frame 1200 update 0.17ms draw 2.15ms peak 4.04ms lua 809KB images 300KB
+   21488 keep catch 8
+   23721 keep catch 10
+   25419 stats keep frame 1500 update 0.16ms draw 2.20ms peak 4.34ms lua 814KB images 300KB
+   25937 keep catch 14
+   28135 keep catch 16
+   29034 keep catch 20
+   30416 stats keep frame 1800 update 0.17ms draw 2.46ms peak 4.98ms lua 820KB images 300KB
+   30851 keep catch 22
+   32833 keep miss lives 1
+   35414 stats keep frame 2100 update 0.18ms draw 2.50ms peak 4.64ms lua 825KB images 300KB
+   35497 keep catch 24
+   36580 keep miss lives 0
+   36590 keep over 24 best 24
+   40427 stats keep frame 2400 update 0.17ms draw 3.19ms peak 19.93ms lua 831KB images 300KB
+       0 yard: pid 652, memory 19840 kB of 118668 kB available
+     132 yard: start lamp, 9 carts
+     347 cab: Lamp: video KMSDRM, display 1024x768 @ 60 Hz, format 0x16362004
+     347 cab: renderer opengles2, flags 0xe, max texture 4096x4096
+     347 cab: 1 joysticks
+     347 cab: joystick 0 'uart-keys': 21 buttons, 0 axes, 0 hats
+     407 cab: audio alsa, 44100 Hz
+    1935 lamp night 1 (the Kite, 4 stars)
+    5807 stats lamp frame 300 update 0.22ms draw 9.34ms peak 22.75ms lua 851KB images 600KB
+   10949 stats lamp frame 600 update 0.27ms draw 8.57ms peak 12.22ms lua 825KB images 300KB
+   16161 stats lamp frame 900 update 0.24ms draw 8.88ms peak 14.38ms lua 829KB images 300KB
+   21309 stats lamp frame 1200 update 0.25ms draw 8.48ms peak 12.41ms lua 834KB images 300KB
+   26390 stats lamp frame 1500 update 0.28ms draw 8.19ms peak 11.20ms lua 839KB images 300KB
+   31439 stats lamp frame 1800 update 0.28ms draw 8.14ms peak 10.95ms lua 844KB images 300KB
+   33090 lamp star 1/4
+   36591 stats lamp frame 2100 update 0.26ms draw 8.57ms peak 12.20ms lua 849KB images 300KB
+   39891 lamp star 2/4
+   42014 stats lamp frame 2400 update 0.26ms draw 9.14ms peak 19.16ms lua 854KB images 300KB
+   47253 stats lamp frame 2700 update 0.24ms draw 8.83ms peak 12.51ms lua 859KB images 300KB
+   52481 stats lamp frame 3000 update 0.24ms draw 8.79ms peak 12.73ms lua 864KB images 300KB
+   57574 stats lamp frame 3300 update 0.21ms draw 8.52ms peak 11.53ms lua 869KB images 300KB
+   62804 stats lamp frame 3600 update 0.24ms draw 8.83ms peak 12.62ms lua 874KB images 300KB
+   68000 stats lamp frame 3900 update 0.24ms draw 8.81ms peak 12.33ms lua 879KB images 300KB
+   73155 stats lamp frame 4200 update 0.22ms draw 8.68ms peak 11.67ms lua 884KB images 300KB
+   78378 stats lamp frame 4500 update 0.23ms draw 8.81ms peak 12.56ms lua 889KB images 300KB
+       0 yard: pid 810, memory 7464 kB of 118668 kB available
+     205 yard: start tea, 9 carts
+     902 cab: Tea: video KMSDRM, display 1024x768 @ 60 Hz, format 0x16362004
+     911 cab: renderer opengles2, flags 0xe, max texture 4096x4096
+     911 cab: 1 joysticks
+     911 cab: joystick 0 'uart-keys': 21 buttons, 0 axes, 0 hats
+    4485 SDL_OpenAudio: Couldn't create audio thread
+    7321 tea say She flies to the castle.
+    9742 tea say She leans in the clouds.
+   10395 tea treat 0
+   10408 tea say A balloon for the party!
+   12046 tea say She leans in the clouds.
+   12687 tea say The party is waiting.
+   12853 tea treat 0
+   12867 tea say A balloon for the party!
+   13898 tea treat 0
+   14715 stats tea frame 300 update 2.60ms draw 14.06ms peak 1459.09ms lua 1034KB images 3694KB
+   14959 tea treat 3
+   14973 tea say A star for the party!
+   16505 tea treat 2
+   16521 tea say Flowers for the party!
+   17964 tea treat 1
+   17979 tea say A cupcake for the party!
+   18904 tea treat 3
+   18920 tea say A star for the party!
+   20531 tea treat 2
+   20547 tea say Flowers for the party!
+   21551 tea treat 0
+   21566 tea say A balloon for the party!
+   22996 stats tea frame 600 update 0.29ms draw 15.08ms peak 20.94ms lua 971KB images 3656KB
+   23385 tea say She flies to the castle.
+   24816 tea treat 1
+   24833 tea say A cupcake for the party!
+   26007 tea treat 3
+   26022 tea say A star for the party!
+   26357 tea arrive 2
+   26357 tea treats 11
+   26384 tea say Pip kept a teacup.
+   29948 tea party
+   29979 tea say Pip would love some tea.
+   30048 tea focus Pearl
+   30064 tea say Pearl wants a flower.
+   30960 tea focus Moth
+   30977 tea say Moth wants the yarn.
+   31457 tea heart Moth 1
+   31502 tea say The yarn rolled back.
+   31990 tea heart Moth 2
+   32017 tea say Moth ate the cupcake.
+   32446 stats tea frame 900 update 0.58ms draw 18.42ms peak 101.26ms lua 1024KB images 6478KB
+   32535 tea heart Moth 3
+   32564 tea say Moth is so happy.
+   32758 tea heart Moth 3
+   32786 tea say Moth does a little dance.
+   33044 tea heart Moth 3
+   33172 tea focus Pearl
+   33614 tea heart Pearl 1
+   33643 tea say Pearl wears a flower.
+   33834 tea heart Pearl 2
+   33862 tea say Pearl ate the cupcake.
+   34414 tea heart Pearl 3
+   34443 tea say Pearl is so happy.
+   34751 tea heart Pearl 3
+   34780 tea say Pearl does a little dance.
+   36361 tea heart Pearl 3
+   36625 tea heart Pearl 3
+   36799 tea heart Pearl 3
+   36883 tea focus Moth
+   37069 tea heart Moth 3
+   37110 tea say Moth does a little dance.
+   37272 tea heart Moth 3
+   37463 tea heart Moth 3
+   37728 tea heart Moth 3
+   37860 tea heart Moth 3
+   38057 tea heart Moth 3
+   38481 tea focus Pip
+   38802 tea heart Pip 1
+   38832 tea say Pip sipped her tea.
+   38993 tea heart Pip 2
+   39021 tea say Pip ate the cupcake.
+   39187 tea heart Pip 3
+   39198 tea cheer
+   39217 tea say The whole table glows.
+   39382 tea heart Pip 3
+   39412 tea say Pip sipped her tea.
+   39609 tea heart Pip 3
+   39839 tea heart Pip 3
+   40886 tea heart Pip 3
+   41205 tea heart Pip 3
+   41709 tea photo 1
+   41783 tea focus Moth
+   41902 stats tea frame 1200 update 1.42ms draw 17.66ms peak 49.83ms lua 939KB images 7472KB
+   42050 tea focus Pearl
+   42281 tea heart Pearl 3
+   42487 tea heart Pearl 3
+   42694 tea heart Pearl 3
+   42903 tea heart Pearl 3
+   43083 tea heart Pearl 3
+   43309 tea heart Pearl 3
+   43577 tea heart Pearl 3
+   44089 tea heart Pearl 3
+   44405 tea focus Moth
+   44555 tea heart Moth 3
+   44779 tea heart Moth 3
+   44969 tea heart Moth 3
+   45147 tea heart Moth 3
+   45314 tea focus Pip
+   45642 tea heart Pip 3
+   45778 tea say Play a song for them.
+   45838 tea say La la la!
+   46297 tea focus Moth
+   46701 tea focus Pearl
+   49785 tea say Play a song for them.
+   50426 tea say They will keep the gifts.
+   51191 stats tea frame 1500 update 1.33ms draw 17.04ms peak 71.17ms lua 1041KB images 7472KB
+       0 yard: pid 638, memory 37520 kB of 118668 kB available
+     148 yard: start the menu, 9 carts
+     531 cab: The Yard: video KMSDRM, display 1024x768 @ 60 Hz, format 0x16362004
+     532 cab: renderer opengles2, flags 0xe, max texture 4096x4096
+     532 cab: 1 joysticks
+     532 cab: joystick 0 'uart-keys': 21 buttons, 0 axes, 0 hats
+     592 cab: audio alsa, 44100 Hz
+    5700 stats yard frame 300 update 0.14ms draw 7.89ms peak 23.17ms lua 829KB images 300KB
+   10429 yard open chest
+       0 yard: pid 656, memory 26428 kB of 118668 kB available
+     125 yard: start chest, 9 carts
+     315 cab: Chest: video KMSDRM, display 1024x768 @ 60 Hz, format 0x16362004
+     315 cab: renderer opengles2, flags 0xe, max texture 4096x4096
+     315 cab: 1 joysticks
+     315 cab: joystick 0 'uart-keys': 21 buttons, 0 axes, 0 hats
+     375 cab: audio alsa, 44100 Hz
+     407 chest gems 2
+     433 chest say The key is glowing.
+    1158 chest say He walks to the key.
+    1695 chest say The key is glowing.
+    1815 chest say He walks to the key.
+    2208 chest key 87
+    2215 chest say The key is his.
+    3843 chest pop 174
+    3862 chest say Pop! He threw the sword.
+    5407 chest sword 233
+    5407 chest level 2
+    5939 chest say The sword can zap him.
+    6285 chest bolt
+    6286 chest mark 1
+    6304 chest say The sword zapped him.
+    6759 chest bolt
+    6759 chest mark 2
+    7238 chest bolt
+    7238 chest mark 3
+    7372 stats chest frame 300 update 0.18ms draw 9.88ms peak 25.38ms lua 863KB images 768KB
+    7748 chest bolt
+    7748 chest mark 4
+    8120 chest bolt
+    8120 chest mark 5
+    8538 chest wrap 339
+    8555 chest say Gold fairy has him.
+    8596 chest bolt
+    8597 chest big
+    8614 chest say The big bubble popped.
+    8979 chest bolt
+    8979 chest mark 9
+    9000 chest say The sword zapped him.
+    9349 chest bolt
+    9349 chest mark 10
+    9854 chest bolt
+    9854 chest mark 11
+    9854 chest shield
+    9871 chest say His shield is up. Wait.
+   10606 chest bolt
+   10606 chest blocked
+   12880 chest bolt
+   12880 chest mark 12
+   12898 chest say The sword zapped him.
+   12941 chest teleport 2
+   12964 chest say Zam jumped! Find him.
+   12977 chest hurt 1 484
+   12992 chest say That bubble got him.
+   13378 chest bolt
+   13753 chest bolt
+   14157 chest bolt
+   14157 chest mark 13
+   14174 chest say The sword zapped him.
+   14858 chest bolt
+   14858 chest mark 14
+   15250 chest bolt
+   15250 chest mark 15
+   15276 chest win 566
+   15276 chest gems 3
+   15301 chest say Treasure for the pile.
+   16271 stats chest frame 600 update 0.31ms draw 16.49ms peak 51.67ms lua 915KB images 768KB
+   19747 chest say The key is back. Go on.
+   20210 chest bolt
+   21335 chest say The gems will stay.
+       0 yard: pid 865, memory 64000 kB of 118668 kB available
+     132 yard: start chest, 9 carts
+     342 cab: Chest: video KMSDRM, display 1024x768 @ 60 Hz, format 0x16362004
+     343 cab: renderer opengles2, flags 0xe, max texture 4096x4096
+     343 cab: 1 joysticks
+     343 cab: joystick 0 'uart-keys': 21 buttons, 0 axes, 0 hats
+     398 cab: audio alsa, 44100 Hz
+     433 chest gems 3
+     461 chest say The key is glowing.
+    1652 chest say He walks to the key.
+    2332 chest say The key is glowing.
+    2353 chest say He walks to the key.
+    2722 chest key 113
+    2729 chest say The key is his.
+    3196 chest bolt
+    3432 chest bolt
+    3432 chest pop 150
+    3451 chest say Pop! He threw the sword.
+    3988 chest bolt
+    4545 chest bolt
+    4955 chest sword 209
+    4955 chest level 3
+    5112 chest bolt
+    5112 chest mark 1
+    5129 chest say The sword zapped him.
+    5480 chest bolt
+    5480 chest mark 2
+    6155 chest bolt
+    6155 chest mark 3
+    6613 chest bolt
+    6613 chest mark 4
+    7252 chest bolt
+    7252 chest mark 5
+    7606 stats chest frame 300 update 0.20ms draw 10.76ms peak 26.76ms lua 914KB images 768KB
+    7660 chest bolt
+    7660 chest mark 6
+    8045 chest wrap 315
+    8062 chest say Gold fairy has him.
+    8140 chest bolt
+    8140 chest big
+    8157 chest say The big bubble popped.
+    8668 chest bolt
+    8668 chest mark 10
+    8685 chest say The sword zapped him.
+    9155 chest bolt
+    9155 chest mark 11
+    9302 chest shield
+    9319 chest say His shield is up. Wait.
+    9587 chest bolt
+    9587 chest blocked
+    9930 chest bolt
+    9930 chest blocked
+   10421 chest bolt
+   10421 chest blocked
+   10767 chest bolt
+   10767 chest blocked
+   11126 chest bolt
+   11127 chest blocked
+   11857 chest bolt
+   11857 chest blocked
+   12170 chest hurt 1 458
+   12184 chest say That bubble got him.
+   12197 chest teleport 0
+   12211 chest say Zam jumped! Find him.
+   12301 chest bolt
+   12302 chest mark 12
+   12318 chest say The sword zapped him.
+   12663 chest bolt
+   12983 chest bolt
+   13713 chest bolt
+   13713 chest mark 13
+   13921 chest star 523
+   13937 chest say Walk over the star.
+   14122 chest bolt
+   14123 chest mark 14
+   14139 chest say The sword zapped him.
+   14549 chest bolt
+   14550 chest mark 15
+   14686 chest say Three bubbles! Step away.
+   14901 chest bolt
+   14901 chest mark 16
+   14918 chest say The sword zapped him.
+   15275 chest bolt
+   15276 chest mark 17
+   15749 chest bolt
+   15750 chest mark 18
+   15763 chest win 585
+   15763 chest gems 4
+   15780 chest say Treasure for the pile.
+   16197 stats chest frame 600 update 0.27ms draw 15.89ms peak 30.96ms lua 865KB images 768KB
+   16666 chest say The gems will stay.

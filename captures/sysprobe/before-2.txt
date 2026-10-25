@@ -1,0 +1,1459 @@
+sysprobe run 2, Thu Jan  1 00:07:38 UTC 1970, uptime 458.69 571.21
+watching for 90 s at the end: plug and unplug the card, the stick, and the Wi-Fi adapter then
+
+===== kernel and board
+--- /proc/version
+Linux version 4.4.194 (tyc@dell) (gcc version 6.3.1 20170404 (Linaro GCC 6.3-2017.05) ) #485 SMP Thu May 11 19:05:37 CST 2023
+--- /proc/cmdline
+storagemedia=nand androidboot.storagemedia=nand androidboot.mode=normal  androidboot.slot_suffix= androidboot.serialno=<redacted>  rw rootwait console=ttyS2,115200 root=PARTUUID=614e0000-0000 rootfstype=squashfs
+--- /proc/cpuinfo
+processor	: 0
+model name	: ARMv7 Processor rev 5 (v7l)
+BogoMIPS	: 80.64
+Features	: half thumb fastmult vfp edsp thumbee neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae evtstrm 
+CPU implementer	: 0x41
+CPU architecture: 7
+CPU variant	: 0x0
+CPU part	: 0xc07
+CPU revision	: 5
+
+processor	: 1
+model name	: ARMv7 Processor rev 5 (v7l)
+BogoMIPS	: 80.64
+Features	: half thumb fastmult vfp edsp thumbee neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae evtstrm 
+CPU implementer	: 0x41
+CPU architecture: 7
+CPU variant	: 0x0
+CPU part	: 0xc07
+CPU revision	: 5
+
+Hardware	: Generic DT based system
+Revision	: 0000
+Serial		: <redacted>
+--- /proc/meminfo
+MemTotal:         118668 kB
+MemFree:            4044 kB
+MemAvailable:      45284 kB
+Buffers:           36328 kB
+Cached:            59524 kB
+SwapCached:            0 kB
+Active:            13688 kB
+Inactive:          86244 kB
+Active(anon):       4196 kB
+Inactive(anon):    52336 kB
+Active(file):       9492 kB
+Inactive(file):    33908 kB
+Unevictable:           0 kB
+Mlocked:               0 kB
+HighTotal:             0 kB
+HighFree:              0 kB
+LowTotal:         118668 kB
+LowFree:            4044 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+Dirty:                28 kB
+Writeback:             0 kB
+AnonPages:          4100 kB
+Mapped:             5272 kB
+Shmem:             52452 kB
+Slab:               7996 kB
+SReclaimable:       3580 kB
+SUnreclaim:         4416 kB
+KernelStack:         560 kB
+PageTables:          240 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:       59332 kB
+Committed_AS:     125212 kB
+VmallocTotal:     901120 kB
+VmallocUsed:           0 kB
+VmallocChunk:          0 kB
+CmaTotal:           4096 kB
+CmaFree:            2160 kB
+--- /proc/filesystems
+nodev	sysfs
+nodev	rootfs
+nodev	ramfs
+nodev	bdev
+nodev	proc
+nodev	tmpfs
+nodev	devtmpfs
+nodev	configfs
+nodev	debugfs
+nodev	tracefs
+nodev	securityfs
+nodev	sockfs
+nodev	pipefs
+nodev	devpts
+	ext2
+	squashfs
+	vfat
+	exfat
+	iso9660
+	hfsplus
+nodev	cifs
+	ntfs
+	fuseblk
+nodev	fuse
+nodev	fusectl
+	udf
+nodev	functionfs
+--- /proc/devices
+Character devices:
+  1 mem
+  4 /dev/vc/0
+  4 tty
+  4 ttyS
+  5 /dev/tty
+  5 /dev/console
+  5 /dev/ptmx
+  7 vcs
+ 10 misc
+ 13 input
+ 14 sound
+ 29 fb
+ 89 i2c
+116 alsa
+128 ptm
+136 pts
+153 spi
+180 usb
+189 usb_device
+226 drm
+247 usbmon
+248 vpu-service
+249 hevc-service
+250 bsg
+251 iio
+252 ptp
+253 pps
+254 tpm
+
+Block devices:
+259 blkext
+  8 sd
+ 31 rkflash
+ 65 sd
+ 66 sd
+ 67 sd
+ 68 sd
+ 69 sd
+ 70 sd
+ 71 sd
+128 sd
+129 sd
+130 sd
+131 sd
+132 sd
+133 sd
+134 sd
+135 sd
+179 mmc
+--- /proc/misc
+ 58 mali
+ 59 memory_bandwidth
+ 60 network_throughput
+ 61 network_latency
+ 62 cpu_dma_latency
+ 63 vendor_storage
+183 hw_random
+229 fuse
+--- $ uname -a
+Linux host 4.4.194 #485 SMP Thu May 11 19:05:37 CST 2023 armv7l GNU/Linux
+--- $ cat /proc/modules
+--- $ ls /lib/modules
+ls: /lib/modules: No such file or directory
+
+===== kernel config (only if CONFIG_IKCONFIG_PROC)
+no /proc/config.gz
+
+===== the live device tree: status of the nodes that matter
+dwmmc@10214000: status=disabled dr_mode=
+dwmmc@10218000: status=disabled dr_mode=
+dwmmc@1021c000: status=disabled dr_mode=
+usb@10180000: status=okay dr_mode=host
+usb@101c0000: status=disabled dr_mode=host
+serial@20068000: status=disabled dr_mode=
+serial@20064000: status=disabled dr_mode=
+serial@20060000: status=okay dr_mode=
+--- /proc/device-tree/model
+Rockchip RK3032 Dongle--- /proc/device-tree/compatible
+rockchip,rk3032-donglerockchip,rk3036
+--- $ ls /proc/device-tree
+#address-cells
+#size-cells
+__symbols__
+acodec-ana@20030000
+aliases
+amba
+arm-pmu
+bus_intmem@10080000
+chosen
+clock-controller@20000000
+compatible
+cpus
+display-subsystem
+dwmmc@10214000
+dwmmc@10218000
+dwmmc@1021c000
+ethernet@10200000
+gpu@10090000
+hdmi-sound
+hdmi@20034000
+hevc-service@1010c000
+i2c@20056000
+i2c@2005a000
+i2c@20072000
+i2s@10220000
+interrupt-controller@10139000
+interrupt-parent
+iommu@10108800
+iommu@1010c440
+iommu@10118300
+lcd-en
+lvds-panel
+memory
+model
+name
+opp-table1
+opp_table0
+oscillator
+pinctrl
+power-led
+pwm@20050000
+pwm@20050010
+pwm@20050020
+pwm@20050030
+qos@1012e000
+serial-number
+serial@20060000
+serial@20064000
+serial@20068000
+sfc@10208000
+sound
+spi@20074000
+syscon@20008000
+timer
+timer@20044000
+uart-keys
+usb-en
+usb@10180000
+usb@101c0000
+vcc-io
+vcc-lcd
+video-codec@10108000
+vop@10118000
+vpu-combo
+vpu-service@10108400
+vsys-regulator
+watchdog@2004c000
+xin32k
+
+===== flash as Linux sees it
+--- /proc/partitions
+major minor  #blocks  name
+
+  31        0     110336 rkflash0
+  31        1        448 rkflash0p1
+  31        2        512 rkflash0p2
+  31        3       4608 rkflash0p3
+  31        4      65536 rkflash0p4
+  31        5      30720 rkflash0p5
+--- $ ls -l /dev/block/by-name /dev/block/platform /dev/rkflash0 /dev/rkflash0p1 /dev/rkflash0p2 /dev/rkflash0p3 /dev/rkflash0p4 /dev/rkflash0p5 /dev/mtd* /dev/mmcblk* /dev/sd* /dev/nand*
+ls: /dev/block/platform: No such file or directory
+ls: /dev/mtd*: No such file or directory
+ls: /dev/mmcblk*: No such file or directory
+ls: /dev/sd*: No such file or directory
+ls: /dev/nand*: No such file or directory
+brw-rw----    1 root     disk       31,   0 Jan  1 00:00 /dev/rkflash0
+brw-rw----    1 root     disk       31,   1 Jan  1 00:00 /dev/rkflash0p1
+brw-rw----    1 root     disk       31,   2 Jan  1 00:00 /dev/rkflash0p2
+brw-rw----    1 root     disk       31,   3 Jan  1 00:00 /dev/rkflash0p3
+brw-rw----    1 root     disk       31,   4 Jan  1 00:00 /dev/rkflash0p4
+brw-rw----    1 root     disk       31,   5 Jan  1 00:00 /dev/rkflash0p5
+
+/dev/block/by-name:
+total 0
+lrwxrwxrwx    1 root     root            16 Jan  1 00:00 IDBlock -> ../../rkflash0p1
+lrwxrwxrwx    1 root     root            16 Jan  1 00:00 boot -> ../../rkflash0p3
+lrwxrwxrwx    1 root     root            16 Jan  1 00:00 data -> ../../rkflash0p5
+lrwxrwxrwx    1 root     root            16 Jan  1 00:00 rootfs -> ../../rkflash0p4
+lrwxrwxrwx    1 root     root            16 Jan  1 00:00 uboot -> ../../rkflash0p2
+--- $ ls -l /dev/block
+total 0
+lrwxrwxrwx    1 root     root            11 Jan  1 00:00 31:0 -> ../rkflash0
+lrwxrwxrwx    1 root     root            13 Jan  1 00:00 31:1 -> ../rkflash0p1
+lrwxrwxrwx    1 root     root            13 Jan  1 00:00 31:2 -> ../rkflash0p2
+lrwxrwxrwx    1 root     root            13 Jan  1 00:00 31:3 -> ../rkflash0p3
+lrwxrwxrwx    1 root     root            13 Jan  1 00:00 31:4 -> ../rkflash0p4
+lrwxrwxrwx    1 root     root            13 Jan  1 00:00 31:5 -> ../rkflash0p5
+drwxr-xr-x    2 root     root           140 Jan  1 00:00 by-name
+--- $ mount
+/dev/root on / type squashfs (ro,relatime)
+devtmpfs on /dev type devtmpfs (rw,relatime,size=56772k,nr_inodes=14193,mode=755)
+proc on /proc type proc (rw,relatime)
+devpts on /dev/pts type devpts (rw,relatime,gid=5,mode=620,ptmxmode=000)
+tmpfs on /dev/shm type tmpfs (rw,relatime,mode=777)
+tmpfs on /tmp type tmpfs (rw,relatime)
+tmpfs on /run type tmpfs (rw,nosuid,nodev,relatime,mode=755)
+sysfs on /sys type sysfs (rw,relatime)
+debug on /sys/kernel/debug type debugfs (rw,relatime)
+/dev/rkflash0p5 on /userdata type ext2 (rw,relatime,errors=continue)
+none on /sys/kernel/config type configfs (rw,relatime)
+adb on /dev/usb-ffs/adb type functionfs (rw,relatime)
+--- $ df
+Filesystem           1K-blocks      Used Available Use% Mounted on
+/dev/root                57600     57600         0 100% /
+devtmpfs                 56772         0     56772   0% /dev
+tmpfs                    59332         0     59332   0% /dev/shm
+tmpfs                    59332       160     59172   0% /tmp
+tmpfs                    59332        64     59268   0% /run
+/dev/rkflash0p5          29745     18764      9445  67% /userdata
+--- $ cat /proc/swaps
+Filename				Type		Size	Used	Priority
+--- /sys/class/block/rkflash0: 220672 sectors, start , ro 0, name 
+--- /sys/class/block/rkflash0p1: 896 sectors, start 64, ro 0, name PARTNAME=IDBlock
+--- /sys/class/block/rkflash0p2: 1024 sectors, start 1024, ro 0, name PARTNAME=uboot
+--- /sys/class/block/rkflash0p3: 9216 sectors, start 2048, ro 0, name PARTNAME=boot
+--- /sys/class/block/rkflash0p4: 131072 sectors, start 11264, ro 0, name PARTNAME=rootfs
+--- /sys/class/block/rkflash0p5: 61440 sectors, start 142336, ro 0, name PARTNAME=data
+
+===== checksums of the small partitions, read through Linux (compare with the dump's partition images)
+/dev/rkflash0p1 896 sectors: 28db579236ad098103be2587f456fd35c2f7546b7e323d0325ffb6c75b0e309a
+/dev/rkflash0p2 1024 sectors: afb8c6c6c9a1563ecb6e8b098c220b3008cf0459a2370484cdab150e84d65b5c
+/dev/rkflash0p3 9216 sectors: a0ce5967ba5dba1b0316c83e806d814c8e12f169d5470cf72ffe8165db3fba90
+/dev/rkflash0p4 131072 sectors: 253ab3c3cfb1c5c48ca8f117c3dc7ab1677c209f75d81b808441580e3e08c37e
+/dev/rkflash0p5 61440 sectors: f2f08c14de77567883f3ecd539cd3b95a86b1e32486e97ada539663e78616555
+
+===== USB
+/sys/bus/usb/devices/1-0:1.0: bInterfaceClass=09 bInterfaceSubClass=00 bInterfaceProtocol=00 driver=hub
+/sys/bus/usb/devices/usb1: idVendor=1d6b idProduct=0002 manufacturer=Linux 4.4.194 dwc2_hsotg product=DWC OTG Controller serial=10180000.usb speed=480 bMaxPower=0mA bDeviceClass=09 version= 2.00
+--- $ ls -l /sys/class/udc /sys/bus/usb/drivers /sys/kernel/config
+/sys/bus/usb/drivers:
+total 0
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 MOSCHIP usb-ethernet driver
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 asix
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 ax88179_178a
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 cdc_ether
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 cdc_mbim
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 cdc_ncm
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 cdc_wdm
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 dm9601
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 hub
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 iforce
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 net1080
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 pegasus
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 r8152
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rndis_host
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rtl8150
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 smsc75xx
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 smsc95xx
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 snd-usb-audio
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 udl
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 usb
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 usb-storage
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 usbfs
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 usbhid
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 xpad
+
+/sys/class/udc:
+total 0
+
+/sys/kernel/config:
+total 0
+drwxr-xr-x    3 root     root             0 Jan  1 00:00 usb_gadget
+--- $ ls /sys/bus/platform/devices
+0.qos
+10080000.bus_intmem
+10091000.gpu
+10108400.vpu-service
+10108800.iommu
+1010c000.hevc-service
+1010c440.iommu
+10118000.vop
+10118300.iommu
+10139000.interrupt-controller
+10180000.usb
+10208000.sfc
+10220000.i2s
+20000000.clock-controller
+20008000.syscon
+20008000.syscon:power-controller
+20008000.syscon:reboot-mode
+20030000.acodec-ana
+20034000.hdmi
+20044000.timer
+2004c000.watchdog
+2005a000.i2c
+20060000.serial
+alarmtimer
+amba
+arm-pmu
+cpufreq-dt
+display-subsystem
+hdmi-audio-codec
+lcd-en
+lvds-panel
+opp-table1
+opp_table0
+oscillator
+pinctrl
+power-led
+reg-dummy
+rk_iommu_domain.0.auto
+rk_iommu_domain.1.auto
+rk_iommu_domain.2.auto
+serial8250
+snd-soc-dummy
+sound
+timer
+uart-keys
+usb-en
+vcc-io
+vcc-lcd
+vpu-combo
+vsys-regulator
+xin32k
+--- $ ls -l /sys/bus/platform/drivers
+total 0
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 adc_keys
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 alarmtimer
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 armv7-pmu
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 asoc-simple-card
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 basic-mmio-gpio
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 cpufreq-dt
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 dw-apb-uart
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 dw_mmc
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 dwc2
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 dwmmc_rockchip
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 ehci-platform
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 generic-bl
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 gpio-keys
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 hdmi-audio-codec
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 inno-hdmi-phy
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 inno-video-combo-phy
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 inno-video-phy
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 innohdmi-rockchip
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 lvds-panel-simple
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 mali
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 mali-utgard
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 of_serial
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 ohci-platform
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 pwm-backlight
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 pwm-regulator
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 reg-dummy
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 reg-fixed-voltage
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rk-vcodec
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rk3036-codec-platform
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rk3036-dwc-control-usb
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rk3036-usb-control
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rk3126-dwc-control-usb
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rk3126-usb-control
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rk312x-codec
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rk3188-dwc-control-usb
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rk3288-dwc-control-usb
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rk3x-i2c
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rk_gmac-dwmac
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rk_iommu
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rk_iommu_domain
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rksfc
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-clcok-pvtm
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-cpuinfo
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-dfi
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-dmc
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-dp-phy
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-drm
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-i2s
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-iodomain
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-pinctrl
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-pm-domain
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-pvtm
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-pwm
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-rgb
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-saradc
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-snd-max98090
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-snd-rt5645
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-spdif
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-spi
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-system-monitor
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-thermal
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-tve
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-usb-phy
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-usb2phy
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip-vop
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 rockchip_emac
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 serial8250
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 snd-soc-dummy
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 soc-audio
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 spdif-dir
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 spdif-dit
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 stmmaceth
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 switch-gpio
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 syscon
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 uart-keys
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 usb20_host
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 usb20_otg
+
+===== microSD
+--- $ ls -l /sys/bus/mmc/drivers /sys/bus/platform/drivers/dwmmc_rockchip
+/sys/bus/mmc/drivers:
+total 0
+drwxr-xr-x    2 root     root             0 Jan  1 00:04 mmcblk
+
+/sys/bus/platform/drivers/dwmmc_rockchip:
+total 0
+--w-------    1 root     root          4096 Jan  1 00:04 bind
+--w-------    1 root     root          4096 Jan  1 00:04 uevent
+--w-------    1 root     root          4096 Jan  1 00:04 unbind
+
+===== power
+/sys/class/regulator/regulator.0: name=regulator-dummy num_users=0 type=voltage
+/sys/class/regulator/regulator.1: name=vcc_io microvolts=3300000 num_users=0 type=voltage
+/sys/class/regulator/regulator.2: name=power_led state=enabled microvolts=3300000 num_users=0 type=voltage
+/sys/class/regulator/regulator.3: name=usb_en state=enabled microvolts=3300000 num_users=0 type=voltage
+/sys/class/regulator/regulator.4: name=vcc_lcd microvolts=3300000 num_users=1 type=voltage
+/sys/class/regulator/regulator.5: name=lcd_en state=enabled microvolts=3300000 num_users=0 type=voltage
+/sys/class/regulator/regulator.6: name=vcc_sys microvolts=5000000 num_users=0 type=voltage
+--- /sys/kernel/debug/gpio
+GPIOs 0-31, platform/pinctrl, gpio0:
+ gpio-0   (                    |bl_enable           ) out hi    
+
+GPIOs 32-63, platform/pinctrl, gpio1:
+
+GPIOs 64-95, platform/pinctrl, gpio2:
+ gpio-71  (                    |lcd_en              ) out hi    
+ gpio-75  (                    |spk-ctl             ) out lo    
+ gpio-87  (                    |power_led           ) out hi    
+ gpio-92  (                    |hp-det              ) in  hi    
+ gpio-93  (                    |hp-ctl              ) out lo    
+ gpio-94  (                    |usb_en              ) out hi    
+
+===== network, Wi-Fi, firmware
+--- $ ls -l /sys/class/net /sys/class/ieee80211 /sys/class/rfkill
+ls: /sys/class/ieee80211: No such file or directory
+ls: /sys/class/rfkill: No such file or directory
+/sys/class/net:
+total 0
+lrwxrwxrwx    1 root     root             0 Jan  1 00:04 lo -> ../../devices/virtual/net/lo
+/sys/class/net/lo: address=00:00:00:00:00:00 operstate=unknown type=772 carrier=1
+--- /proc/net/dev
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+--- $ ls -lR /lib/firmware /etc/firmware /vendor/firmware
+ls: /lib/firmware: No such file or directory
+ls: /etc/firmware: No such file or directory
+ls: /vendor/firmware: No such file or directory
+ip: /sbin/ip
+ifconfig: /sbin/ifconfig
+iw: absent
+iwconfig: absent
+iwlist: absent
+wpa_supplicant: absent
+wpa_cli: absent
+hostapd: absent
+udhcpc: /sbin/udhcpc
+dhcpcd: absent
+dropbear: /usr/sbin/dropbear
+dropbearkey: /usr/bin/dropbearkey
+dbclient: /usr/bin/dbclient
+sshd: absent
+adbd: /usr/bin/adbd
+telnetd: absent
+nc: absent
+wget: /usr/bin/wget
+curl: absent
+tftp: /usr/bin/tftp
+ftpd: absent
+httpd: absent
+rsync: absent
+tar: /bin/tar
+gzip: /bin/gzip
+xz: /usr/bin/xz
+unzip: /usr/bin/unzip
+mkfs.vfat: absent
+mkfs.ext2: /sbin/mkfs.ext2
+mke2fs: /sbin/mke2fs
+e2fsck: /sbin/e2fsck
+fsck.fat: absent
+blkid: /sbin/blkid
+fdisk: /sbin/fdisk
+sfdisk: absent
+parted: absent
+mount.exfat: absent
+ntfs-3g: absent
+insmod: /sbin/insmod
+modprobe: /sbin/modprobe
+flash_erase: absent
+nandwrite: absent
+dd: /bin/dd
+sha256sum: /usr/bin/sha256sum
+md5sum: /usr/bin/md5sum
+--- $ busybox --list
+[
+[[
+addgroup
+adduser
+ar
+arp
+arping
+ash
+awk
+basename
+blkid
+bunzip2
+bzcat
+cat
+chattr
+chgrp
+chmod
+chown
+chroot
+chrt
+chvt
+cksum
+clear
+cmp
+cp
+cpio
+crond
+crontab
+cut
+date
+dc
+dd
+deallocvt
+delgroup
+deluser
+devmem
+df
+diff
+dirname
+dmesg
+dnsd
+dnsdomainname
+dos2unix
+du
+dumpkmap
+echo
+egrep
+eject
+env
+ether-wake
+expr
+factor
+fallocate
+false
+fbset
+fdflush
+fdformat
+fdisk
+fgrep
+find
+flock
+fold
+free
+freeramdisk
+fsck
+fsfreeze
+fstrim
+fuser
+getopt
+getty
+grep
+gunzip
+gzip
+halt
+hdparm
+head
+hexdump
+hostid
+hostname
+hwclock
+i2cdetect
+i2cdump
+i2cget
+i2cset
+id
+ifconfig
+ifdown
+ifup
+inetd
+init
+insmod
+install
+ip
+ipaddr
+ipcrm
+ipcs
+iplink
+ipneigh
+iproute
+iprule
+iptunnel
+kill
+killall
+killall5
+klogd
+last
+less
+link
+linux32
+linux64
+linuxrc
+ln
+loadfont
+loadkmap
+logger
+login
+logname
+losetup
+ls
+lsattr
+lsmod
+lsof
+lspci
+lsscsi
+lsusb
+lzcat
+lzma
+lzopcat
+makedevs
+md5sum
+mdev
+mesg
+microcom
+mkdir
+mkdosfs
+mke2fs
+mkfifo
+mknod
+mkpasswd
+mkswap
+mktemp
+modprobe
+more
+mount
+mountpoint
+mt
+mv
+nameif
+netstat
+nice
+nl
+nohup
+nproc
+nslookup
+od
+openvt
+partprobe
+passwd
+paste
+patch
+pidof
+ping
+pipe_progress
+pivot_root
+poweroff
+printenv
+printf
+ps
+pwd
+rdate
+readlink
+readprofile
+realpath
+reboot
+renice
+reset
+resize
+rm
+rmdir
+rmmod
+route
+run-parts
+runlevel
+sed
+seq
+setarch
+setconsole
+setkeycodes
+setlogcons
+setpriv
+setserial
+setsid
+sh
+sha1sum
+sha256sum
+sha3sum
+sha512sum
+shred
+sleep
+sort
+start-stop-daemon
+strings
+stty
+su
+sulogin
+svc
+swapoff
+swapon
+switch_root
+sync
+sysctl
+syslogd
+tail
+tar
+tee
+telnet
+test
+tftp
+time
+top
+touch
+tr
+traceroute
+true
+truncate
+tty
+ubirename
+udhcpc
+uevent
+umount
+uname
+uniq
+unix2dos
+unlink
+unlzma
+unlzop
+unxz
+unzip
+uptime
+usleep
+uudecode
+uuencode
+vconfig
+vi
+vlock
+w
+watch
+watchdog
+wc
+wget
+which
+who
+whoami
+xargs
+xxd
+xz
+xzcat
+yes
+zcat
+
+===== processes and services
+--- $ ps
+PID   USER     COMMAND
+    1 root     init
+    2 root     [kthreadd]
+    3 root     [ksoftirqd/0]
+    5 root     [kworker/0:0H]
+    6 root     [kworker/u4:0]
+    7 root     [rcu_sched]
+    8 root     [rcu_bh]
+    9 root     [migration/0]
+   10 root     [watchdog/0]
+   11 root     [watchdog/1]
+   12 root     [migration/1]
+   13 root     [ksoftirqd/1]
+   15 root     [kworker/1:0H]
+   16 root     [kdevtmpfs]
+   17 root     [perf]
+   18 root     [khungtaskd]
+   19 root     [writeback]
+   20 root     [crypto]
+   21 root     [bioset]
+   22 root     [kblockd]
+   23 root     [kworker/0:1]
+   24 root     [devfreq_wq]
+   25 root     [cfinteractive]
+   26 root     [kswapd0]
+   27 root     [vmstat]
+   28 root     [fsnotify_mark]
+   29 root     [SquashFS read w]
+   30 root     [cifsiod]
+   46 root     [vcodec]
+   47 root     [irq/30-1010c000]
+   48 root     [irq/28-10108400]
+   49 root     [irq/37-20034000]
+   50 root     [dwc2]
+   52 root     [bioset]
+   53 root     [rkflash]
+   56 root     [deferwq]
+   57 root     [kworker/1:1]
+   59 root     [kworker/u4:3]
+   60 root     [kworker/u4:4]
+   61 root     [kworker/u5:0]
+   62 root     [kworker/1:1H]
+   64 root     [kworker/0:1H]
+   65 root     [kworker/0:3]
+   80 root     /sbin/syslogd -n
+   82 root     /sbin/klogd -n
+   85 root     /sbin/udevd -d
+  435 root     /usr/sbin/dropbear -R
+  462 root     [kworker/1:2]
+  482 root     /usr/bin/adbd
+  637 root     {start.sh} /bin/sh /data/start.sh 10 0 0
+  638 root     ./yard
+  850 root     [kworker/0:7]
+ 5538 root     {sysprobe} /bin/sh /userdata/Games/sysprobe
+ 5849 root     [init]
+ 5914 root     ps
+--- /etc/init.d/.usb_config
+usb_adb_en
+--- $ ls -l /etc/init.d /etc/dropbear /var/run /tmp
+lrwxrwxrwx    1 root     root            17 Nov  4  2021 /etc/dropbear -> /var/run/dropbear
+lrwxrwxrwx    1 root     root             6 Apr 29  2020 /var/run -> ../run
+
+/etc/init.d:
+total 28
+-rwxr-xr-x    1 root     root           670 Nov  4  2021 S01logging
+-rwxr-xr-x    1 root     root          1594 Nov  4  2021 S10udev
+-rwxr-xr-x    1 root     root          1272 Nov  4  2021 S20urandom
+-rwxr-xr-x    1 root     root         10276 Nov  4  2021 S21mountall.sh
+-rwxr-xr-x    1 root     root           438 Nov  4  2021 S40network
+-rwxr-xr-x    1 root     root          1354 Nov  4  2021 S50dropbear
+-rwxr-xr-x    1 root     root           556 Apr 17  2023 S50ui
+-rwxr-xr-x    1 root     root          8943 Nov  4  2021 S50usbdevice
+-rwxr-xr-x    1 root     root           423 Nov  4  2021 rcK
+-rwxr-xr-x    1 root     root           408 Nov  4  2021 rcS
+
+/tmp:
+total 160
+-rw-r--r--    1 root     root             3 Jan  1 00:00 drm_connector.cfg
+-rw-r--r--    1 root     root             9 Jan  1 00:00 drm_mode.cfg
+-rw-r--r--    1 root     root        143610 Jan  1 00:07 messages
+-rw-r--r--    1 root     root           352 Jan  1 00:00 mountall.log
+-rw-r--r--    1 root     root             3 Jan  1 00:00 pid
+drwxr-xr-x    2 root     root            40 Jan  1 00:00 stick
+
+===== input and sound
+--- /proc/bus/input/devices
+I: Bus=0019 Vendor=0001 Product=0001 Version=0100
+N: Name="uart-keys"
+P: Phys=uart-keys/input0
+S: Sysfs=/devices/platform/uart-keys/input/input0
+U: Uniq=
+H: Handlers=kbd js0 event0 cpufreq 
+B: PROP=0
+B: EV=100003
+B: KEY=7fff0000 0 0 0 0 0 c1680 0 0 0
+
+--- /proc/asound/cards
+ 0 [rockchiprk3032c]: rockchip_rk3032 - rockchip,rk3032-codec
+                      rockchip,rk3032-codec
+--- /proc/asound/pcm
+00-00: 10220000.i2s-rk3036-codec-dai rk3036-codec-dai-0 :  : playback 1
+
+===== dmesg (whole ring)
+--- $ dmesg
+[    0.000000] Booting Linux on physical CPU 0xf00
+[    0.000000] Linux version 4.4.194 (tyc@dell) (gcc version 6.3.1 20170404 (Linaro GCC 6.3-2017.05) ) #485 SMP Thu May 11 19:05:37 CST 2023
+[    0.000000] CPU: ARMv7 Processor [410fc075] revision 5 (ARMv7), cr=10c5387d
+[    0.000000] CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+[    0.000000] Machine model: Rockchip RK3032 Dongle
+[    0.000000] cma: Reserved 4 MiB at 0x67c00000
+[    0.000000] Memory policy: Data cache writealloc
+[    0.000000] On node 0 totalpages: 32768
+[    0.000000] free_area_init_node: node 0, pgdat c0c64b00, node_mem_map c7af7000
+[    0.000000]   Normal zone: 256 pages used for memmap
+[    0.000000]   Normal zone: 0 pages reserved
+[    0.000000]   Normal zone: 32768 pages, LIFO batch:7
+[    0.000000] PERCPU: Embedded 13 pages/cpu @c7aca000 s24216 r8192 d20840 u53248
+[    0.000000] pcpu-alloc: s24216 r8192 d20840 u53248 alloc=13*4096
+[    0.000000] pcpu-alloc: [0] 0 [0] 1 
+[    0.000000] Built 1 zonelists in Zone order, mobility grouping on.  Total pages: 32512
+[    0.000000] Kernel command line: storagemedia=nand androidboot.storagemedia=nand androidboot.mode=normal  androidboot.slot_suffix= androidboot.serialno=<redacted>  rw rootwait console=ttyS2,115200 root=PARTUUID=614e0000-0000 rootfstype=squashfs
+[    0.000000] PID hash table entries: 512 (order: -1, 2048 bytes)
+[    0.000000] Dentry cache hash table entries: 16384 (order: 4, 65536 bytes)
+[    0.000000] Inode-cache hash table entries: 8192 (order: 3, 32768 bytes)
+[    0.000000] Memory: 113548K/131072K available (7168K kernel code, 418K rwdata, 2056K rodata, 1024K init, 355K bss, 13428K reserved, 4096K cma-reserved, 0K highmem)
+[    0.000000] Virtual kernel memory layout:
+[    0.000000]     vector  : 0xffff0000 - 0xffff1000   (   4 kB)
+[    0.000000]     fixmap  : 0xffc00000 - 0xfff00000   (3072 kB)
+[    0.000000]     vmalloc : 0xc8800000 - 0xff800000   ( 880 MB)
+[    0.000000]     lowmem  : 0xc0000000 - 0xc8000000   ( 128 MB)
+[    0.000000]     pkmap   : 0xbfe00000 - 0xc0000000   (   2 MB)
+[    0.000000]     modules : 0xbf000000 - 0xbfe00000   (  14 MB)
+[    0.000000]       .text : 0xc0008000 - 0xc0800000   (8160 kB)
+[    0.000000]       .init : 0xc0b00000 - 0xc0c00000   (1024 kB)
+[    0.000000]       .data : 0xc0c00000 - 0xc0c68bec   ( 419 kB)
+[    0.000000]        .bss : 0xc0c6a000 - 0xc0cc2ec8   ( 356 kB)
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1
+[    0.000000] Hierarchical RCU implementation.
+[    0.000000] 	Build-time adjustment of leaf fanout to 32.
+[    0.000000] 	RCU restricting CPUs from NR_CPUS=4 to nr_cpu_ids=2.
+[    0.000000] RCU: Adjusting geometry for rcu_fanout_leaf=32, nr_cpu_ids=2
+[    0.000000] NR_IRQS:16 nr_irqs:16 16
+[    0.000000] Architected cp15 timer(s) running at 24.00MHz (phys).
+[    0.000000] clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x588fe9dc0, max_idle_ns: 440795202592 ns
+[    0.000013] sched_clock: 56 bits at 24MHz, resolution 41ns, wraps every 4398046511097ns
+[    0.000039] Switching to timer-based delay loop, resolution 41ns
+[    0.001894] Console: colour dummy device 80x30
+[    0.001950] Calibrating delay loop (skipped), value calculated using timer frequency.. 48.00 BogoMIPS (lpj=240000)
+[    0.001986] pid_max: default: 32768 minimum: 301
+[    0.002228] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes)
+[    0.002255] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes)
+[    0.003510] CPU: Testing write buffer coherency: ok
+[    0.003593] ftrace: allocating 26429 entries in 78 pages
+[    0.074582] /cpus/cpu@f00 missing clock-frequency property
+[    0.074624] /cpus/cpu@f01 missing clock-frequency property
+[    0.074645] CPU0: update cpu_capacity 430
+[    0.074663] CPU0: thread -1, cpu 0, socket 15, mpidr 80000f00
+[    0.074888] Setting up static identity map for 0x60100000 - 0x60100058
+[    0.079956] CPU1: update cpu_capacity 430
+[    0.079971] CPU1: thread -1, cpu 1, socket 15, mpidr 80000f01
+[    0.080186] Brought up 2 CPUs
+[    0.080227] SMP: Total of 2 processors activated (96.00 BogoMIPS).
+[    0.080241] CPU: All CPU(s) started in SVC mode.
+[    0.081874] devtmpfs: initialized
+[    0.098236] VFP support v0.3: implementor 41 architecture 2 part 30 variant 7 rev 5
+[    0.099094] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.099150] futex hash table entries: 512 (order: 3, 32768 bytes)
+[    0.100226] pinctrl core: initialized pinctrl subsystem
+[    0.102606] NET: Registered protocol family 16
+[    0.105202] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    0.134376] cpuidle: using governor ladder
+[    0.164439] cpuidle: using governor menu
+[    0.185196] gpiochip_add_data: registered GPIOs 0 to 31 on device: gpio0
+[    0.185502] gpiochip_add_data: registered GPIOs 32 to 63 on device: gpio1
+[    0.185775] gpiochip_add_data: registered GPIOs 64 to 95 on device: gpio2
+[    0.192824] hw-breakpoint: found 5 (+1 reserved) breakpoint and 4 watchpoint registers.
+[    0.192848] hw-breakpoint: maximum watchpoint size is 8 bytes.
+[    0.249186] of_get_named_gpiod_flags: can't parse 'gpio' property of node '/vcc-io[0]'
+[    0.250041] of_get_named_gpiod_flags: parsed 'gpio' property of node '/power-led[0]' - status (0)
+[    0.250929] of_get_named_gpiod_flags: parsed 'gpio' property of node '/usb-en[0]' - status (0)
+[    0.251775] of_get_named_gpiod_flags: can't parse 'gpio' property of node '/vcc-lcd[0]'
+[    0.251869] vcc_lcd: supplied by vcc_io
+[    0.252740] of_get_named_gpiod_flags: parsed 'gpio' property of node '/lcd-en[0]' - status (0)
+[    0.253581] of_get_named_gpiod_flags: can't parse 'gpio' property of node '/vsys-regulator[0]'
+[    0.254645] iommu: Adding device 10108400.vpu-service to group 0
+[    0.254862] iommu: Adding device 1010c000.hevc-service to group 1
+[    0.255000] iommu: Adding device 10118000.vop to group 2
+[    0.255595] rk_iommu 10108800.iommu: can't get aclk
+[    0.255629] rk_iommu 10108800.iommu: can't get hclk
+[    0.255654] rk_iommu 10108800.iommu: can't get sclk
+[    0.256327] rk_iommu 1010c440.iommu: can't get aclk
+[    0.256361] rk_iommu 1010c440.iommu: can't get hclk
+[    0.256386] rk_iommu 1010c440.iommu: can't get sclk
+[    0.256706] rk_iommu 10118300.iommu: can't get aclk
+[    0.256740] rk_iommu 10118300.iommu: can't get hclk
+[    0.256765] rk_iommu 10118300.iommu: can't get sclk
+[    0.257794] SCSI subsystem initialized
+[    0.258424] usbcore: registered new interface driver usbfs
+[    0.258604] usbcore: registered new interface driver hub
+[    0.258855] usbcore: registered new device driver usb
+[    0.260586] pps_core: LinuxPPS API ver. 1 registered
+[    0.260611] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.260689] PTP clock support registered
+[    0.262849] Advanced Linux Sound Architecture Driver Initialized.
+[    0.265618] clocksource: Switched to clocksource arch_sys_counter
+[    0.334543] NET: Registered protocol family 2
+[    0.335906] TCP established hash table entries: 1024 (order: 0, 4096 bytes)
+[    0.335968] TCP bind hash table entries: 1024 (order: 2, 20480 bytes)
+[    0.336045] TCP: Hash tables configured (established 1024 bind 1024)
+[    0.336154] UDP hash table entries: 256 (order: 1, 12288 bytes)
+[    0.336215] UDP-Lite hash table entries: 256 (order: 1, 12288 bytes)
+[    0.336616] NET: Registered protocol family 1
+[    0.338235] hw perfevents: enabled with armv7_cortex_a7 PMU driver, 5 counters available
+[    0.361253] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.361977] exFAT: Version 1.2.9
+[    0.364737] ntfs: driver 2.1.32 [Flags: R/W DEBUG].
+[    0.365549] fuse init (API version 7.23)
+[    0.371739] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 250)
+[    0.371784] io scheduler noop registered
+[    0.371816] io scheduler deadline registered
+[    0.372247] io scheduler cfq registered (default)
+[    0.376028] rk-vcodec vpu-combo: no regulator for vcodec
+[    0.376566] rk-vcodec vpu-combo: failed on clk_get clk_cabac
+[    0.376723] platform 1010c000.hevc-service: probe device
+[    0.377323] platform 1010c000.hevc-service: drm allocator with mmu enabled
+[    0.378592] platform 10108400.vpu-service: probe device
+[    0.379291] platform 10108400.vpu-service: drm allocator with mmu enabled
+[    0.380584] rk-vcodec vpu-combo: could not find power_model node
+[    0.380613] rk-vcodec vpu-combo: init success
+[    0.385003] dma-pl330 20078000.pdma: Loaded driver for PL330 DMAC-241330
+[    0.385038] dma-pl330 20078000.pdma: 	DBUFF-64x8bytes Num_Chans-8 Num_Peri-14 Num_Events-16
+[    0.387174] Serial: 8250/16550 driver, 5 ports, IRQ sharing disabled
+[    0.388395] 20060000.serial: ttyS0 at MMIO 0x20060000 (irq = 39, base_baud = 1500000) is a 16550A
+[    0.390789] [drm] Initialized drm 1.1.0 20060810
+[    0.393216] [drm] Rockchip DRM driver version: v1.0.1
+[    0.393559] rockchip-drm display-subsystem: devfreq is not set
+[    0.394279] rockchip-vop 10118000.vop: failed to get vop register byname
+[    0.394350] rockchip-vop 10118000.vop: missing rockchip,grf property
+[    0.394630] rockchip-drm display-subsystem: bound 10118000.vop (ops 0xc0870ea8)
+[    0.395409] i2c i2c-3: of_i2c: modalias failure on /hdmi@20034000/port
+[    0.395447] innohdmi-rockchip 20034000.hdmi: registered Inno HDMI I2C bus driver
+[    0.396479] rockchip-drm display-subsystem: bound 20034000.hdmi (ops 0xc08696a0)
+[    0.396509] [drm] Supports vblank timestamp caching Rev 2 (21.10.2013).
+[    0.396526] [drm] No driver support for vblank timestamp query.
+[    0.396685] rockchip-drm display-subsystem: failed to parse display resources
+[    0.407928] rockchip-vop 10118000.vop: [drm:vop_crtc_enable] Update mode to 1024x768p60, type: 11
+[    0.466712] Console: switching to colour frame buffer device 128x48
+[    0.482649] rockchip-drm display-subsystem: fb0:  frame buffer device
+[    0.486191] usbcore: registered new interface driver udl
+[    0.486905] lvds-panel-simple lvds-panel: GPIO lookup for consumer enable
+[    0.486934] lvds-panel-simple lvds-panel: using device tree for GPIO lookup
+[    0.486962] of_get_named_gpiod_flags: can't parse 'enable-gpios' property of node '/lvds-panel[0]'
+[    0.486982] of_get_named_gpiod_flags: can't parse 'enable-gpio' property of node '/lvds-panel[0]'
+[    0.487002] lvds-panel-simple lvds-panel: using lookup tables for GPIO lookup
+[    0.487022] lvds-panel-simple lvds-panel: lookup for GPIO enable failed
+[    0.487048] lvds-panel-simple lvds-panel: GPIO lookup for consumer bl_enable
+[    0.487066] lvds-panel-simple lvds-panel: using device tree for GPIO lookup
+[    0.487110] of_get_named_gpiod_flags: parsed 'bl_enable-gpios' property of node '/lvds-panel[0]' - status (0)
+[    0.487155] no flags found for bl_enable
+[    0.487178] lvds-panel-simple lvds-panel: GPIO lookup for consumer reset
+[    0.487198] lvds-panel-simple lvds-panel: using device tree for GPIO lookup
+[    0.487221] of_get_named_gpiod_flags: can't parse 'reset-gpios' property of node '/lvds-panel[0]'
+[    0.487239] of_get_named_gpiod_flags: can't parse 'reset-gpio' property of node '/lvds-panel[0]'
+[    0.487257] lvds-panel-simple lvds-panel: using lookup tables for GPIO lookup
+[    0.487276] lvds-panel-simple lvds-panel: lookup for GPIO reset failed
+[    0.492270] lkdtm: No crash points registered, enable through debugfs
+[    0.495073] pegasus: v0.9.3 (2013/04/25), Pegasus/Pegasus II USB Ethernet driver
+[    0.495232] usbcore: registered new interface driver pegasus
+[    0.495404] usbcore: registered new interface driver rtl8150
+[    0.495548] usbcore: registered new interface driver r8152
+[    0.495854] usbcore: registered new interface driver asix
+[    0.496007] usbcore: registered new interface driver ax88179_178a
+[    0.496173] usbcore: registered new interface driver cdc_ether
+[    0.496316] usbcore: registered new interface driver dm9601
+[    0.496505] usbcore: registered new interface driver smsc75xx
+[    0.496686] usbcore: registered new interface driver smsc95xx
+[    0.496831] usbcore: registered new interface driver net1080
+[    0.496963] usbcore: registered new interface driver rndis_host
+[    0.497107] usbcore: registered new interface driver MOSCHIP usb-ethernet driver
+[    0.497368] usbcore: registered new interface driver cdc_ncm
+[    0.497523] usbcore: registered new interface driver cdc_mbim
+[    0.498031] 10180000.usb supply vusb_d not found, using dummy regulator
+[    0.498200] 10180000.usb supply vusb_a not found, using dummy regulator
+[    0.601492] dwc2 10180000.usb: DWC OTG Controller
+[    0.601601] dwc2 10180000.usb: new USB bus registered, assigned bus number 1
+[    0.601696] dwc2 10180000.usb: irq 34, io mem 0x10180000
+[    0.602267] usb usb1: New USB device found, idVendor=1d6b, idProduct=0002
+[    0.602299] usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    0.602320] usb usb1: Product: DWC OTG Controller
+[    0.602344] usb usb1: Manufacturer: Linux 4.4.194 dwc2_hsotg
+[    0.602362] usb usb1: SerialNumber: 10180000.usb
+[    0.604146] hub 1-0:1.0: USB hub found
+[    0.604279] hub 1-0:1.0: 1 port detected
+[    0.607369] ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+[    0.607411] ehci-platform: EHCI generic platform driver
+[    0.607874] ohci_hcd: USB 1.1 'Open' Host Controller (OHCI) Driver
+[    0.607931] ohci-platform: OHCI generic platform driver
+[    0.608425] usbcore: registered new interface driver cdc_wdm
+[    0.608699] usbcore: registered new interface driver usb-storage
+[    0.608740] usb20_otg: version 3.10a 21-DEC-2012
+[    0.609312] usb20_host: version 3.10a 21-DEC-2012
+[    0.610801] uart_keys_init 927
+[    0.611839] input: uart-keys as /devices/platform/uart-keys/input/input0
+[    0.614020] usbcore: registered new interface driver iforce
+[    0.614264] usbcore: registered new interface driver xpad
+[    0.614300] i2c /dev entries driver
+[    0.616954] rk3x-i2c 2005a000.i2c: Initialized RK3xxx I2C bus at c883e000
+[    0.619910] cpu cpu0: avs=0
+[    0.620141] cpufreq: cpufreq_online: CPU0: Running at unlisted freq: 600000 KHz
+[    0.620342] cpufreq: cpufreq_online: CPU0: Unlisted initial frequency changed to: 1008000 KHz
+[    0.620702] Synopsys Designware Multimedia Card Interface Driver
+[    0.621973] usbcore: registered new interface driver usbhid
+[    0.621985] usbhid: USB HID core driver
+[    0.623305] rksfc_base v1.1 2016-01-08
+[    0.623684] rksfc 10208000.sfc: rksfc_probe clk rate = 99000000
+[    0.623757] rkflash_dev_init enter
+[    0.623778] sfc_nand id: ef aa 21
+[    0.623817] SFTL version: 5.0.55 20200925
+[    0.676616] FtlGcRefreshBlock  0xa5
+[    0.676634] FtlGcRefreshBlock  0x9
+[    0.694656] ...FtlVpcCheckAndModify enter...
+[    0.712740] FtlCheckVpc 1d9 = 40  0
+[    0.712761] FtlCheckVpc 1da = 40  0
+[    0.714219] rkflash[2] init success
+[    0.715119] rkflashd vendor storage init ok !
+[    0.772901] Alternate GPT is invalid, using primary GPT.
+[    0.773023]  rkflash0: p1 p2 p3 p4 p5
+[    0.775494] rkflash_dev_init device register as blk dev, ret= 0
+[    0.776975] usbcore: registered new interface driver snd-usb-audio
+[    0.778053] rk3036-codec-platform 20030000.acodec-ana: GPIO lookup for consumer spk-ctl
+[    0.778077] rk3036-codec-platform 20030000.acodec-ana: using device tree for GPIO lookup
+[    0.778110] of_get_named_gpiod_flags: parsed 'spk-ctl-gpios' property of node '/acodec-ana@20030000[0]' - status (0)
+[    0.795682] rk3036-codec-platform 20030000.acodec-ana: GPIO lookup for consumer hp-ctl
+[    0.795705] rk3036-codec-platform 20030000.acodec-ana: using device tree for GPIO lookup
+[    0.795742] of_get_named_gpiod_flags: parsed 'hp-ctl-gpios' property of node '/acodec-ana@20030000[0]' - status (0)
+[    0.815677] rk3036-codec-platform 20030000.acodec-ana: GPIO lookup for consumer hp-det
+[    0.815700] rk3036-codec-platform 20030000.acodec-ana: using device tree for GPIO lookup
+[    0.815734] of_get_named_gpiod_flags: parsed 'hp-det-gpios' property of node '/acodec-ana@20030000[0]' - status (0)
+[    0.819751] Initializing XFRM netlink socket
+[    0.819806] NET: Registered protocol family 17
+[    0.819877] NET: Registered protocol family 15
+[    0.819980] bridge: automatic filtering via arp/ip/ip6tables has been deprecated. Update your scripts to load br_netfilter if you need this.
+[    0.820010] 8021q: 802.1Q VLAN Support v1.8
+[    0.820431] flash vendor_init_thread!
+[    0.820451] flash vendor storage:20170308 ret = -1
+[    0.820883] ThumbEE CPU extension supported.
+[    0.820923] Registering SWP/SWPB emulation handler
+[    0.822555] pvtm list NULL
+[    0.823414] of_get_named_gpiod_flags: can't parse 'simple-audio-card,hp-det-gpio' property of node '/sound[0]'
+[    0.823435] of_get_named_gpiod_flags: can't parse 'simple-audio-card,mic-det-gpio' property of node '/sound[0]'
+[    0.829105] asoc-simple-card sound: rk3036-codec-dai <-> 10220000.i2s mapping ok
+[    0.842529] I : [File] : drivers/gpu/arm/mali400/mali/linux/mali_kernel_linux.c; [Line] : 417; [Func] : mali_module_init(); svn_rev_string_from_arm of this mali_ko is '', rk_ko_ver is '5', built at '09:25:33', on 'Nov  4 2021'.
+[    0.842918] mali-utgard 10091000.gpu: mali_platform_device->num_resources = 9
+[    0.842942] mali-utgard 10091000.gpu: resource[0].start = 0x0x10091000
+[    0.842958] mali-utgard 10091000.gpu: resource[1].start = 0x0x10090000
+[    0.842972] mali-utgard 10091000.gpu: resource[2].start = 0x0x10093000
+[    0.842984] mali-utgard 10091000.gpu: resource[3].start = 0x0x10098000
+[    0.842998] mali-utgard 10091000.gpu: resource[4].start = 0x0x10094000
+[    0.843012] mali-utgard 10091000.gpu: resource[5].start = 0x0x00000019
+[    0.843024] mali-utgard 10091000.gpu: resource[6].start = 0x0x0000001a
+[    0.843038] mali-utgard 10091000.gpu: resource[7].start = 0x0x0000001b
+[    0.843050] mali-utgard 10091000.gpu: resource[8].start = 0x0x0000001a
+[    0.843066] D : [File] : drivers/gpu/arm/mali400/mali/platform/rk/rk.c; [Line] : 623; [Func] : mali_platform_device_init(); to add platform_specific_data to platform_device_of_mali.
+[    0.843167] mali-utgard 10091000.gpu: Failed to get leakage
+[    0.843202] mali-utgard 10091000.gpu: Failed to get reg
+[    0.843420] mali-utgard 10091000.gpu: avs=0
+[    0.846528] Mali: Mali device driver loaded
+[    0.846728] ALSA device list:
+[    0.846739]   #0: rockchip,rk3032-codec
+[    0.846896] Warning: unable to open an initial console.
+[    0.899125] VFS: Mounted root (squashfs filesystem) readonly on device 31:4.
+[    0.907359] devtmpfs: mounted
+[    0.912951] Freeing unused kernel memory: 1024K
+[    0.937860] devfreq 10091000.gpu: Couldn't update frequency transition information.
+[    1.332878] udevd[84]: starting version 3.2.7
+[    1.335161] random: udevd: uninitialized urandom read (16 bytes read, 13 bits of entropy available)
+[    1.335915] random: udevd: uninitialized urandom read (16 bytes read, 13 bits of entropy available)
+[    1.336134] random: udevd: uninitialized urandom read (16 bytes read, 13 bits of entropy available)
+[    1.336339] random: udevd: uninitialized urandom read (16 bytes read, 13 bits of entropy available)
+[    1.375371] udevd[84]: specified group 'kvm' unknown
+[    1.396123] udevd[85]: starting eudev-3.2.7
+[    1.475752] random: udevd: uninitialized urandom read (16 bytes read, 14 bits of entropy available)
+[    1.606114] ttyS0 - failed to request DMA, use interrupt mode
+[    2.985979] lcd_work_func 368
+[    3.213042] EXT2-fs (rkflash0p5): warning: mounting unchecked fs, running e2fsck is recommended
+[    3.356329] random: dropbear: uninitialized urandom read (32 bytes read, 41 bits of entropy available)
+[    3.552000] file system registered
+[    3.619588] Mass Storage Function, version: 2009/09/11
+[    3.619620] LUN: removable file: (no medium)
+[    3.813691] read descriptors
+[    3.813739] read strings
+[    3.875790] vendor storage:20190527 ret = -1
+[   10.057495] random: nonblocking pool is initialized
+[   20.548040] sh (611): drop_caches: 3
+[  169.683263] game invoked oom-killer: gfp_mask=0x24201ca, order=0, oom_score_adj=0
+[  169.683293] CPU: 1 PID: 489 Comm: game Not tainted 4.4.194 #485
+[  169.683303] Hardware name: Generic DT based system
+[  169.683352] [<c010f9c8>] (unwind_backtrace) from [<c010b64c>] (show_stack+0x20/0x24)
+[  169.683377] [<c010b64c>] (show_stack) from [<c036546c>] (dump_stack+0x84/0xa0)
+[  169.683401] [<c036546c>] (dump_stack) from [<c021a3ec>] (dump_header.constprop.6+0x58/0x16c)
+[  169.683431] [<c021a3ec>] (dump_header.constprop.6) from [<c01d9a78>] (oom_kill_process+0x8c/0x494)
+[  169.683453] [<c01d9a78>] (oom_kill_process) from [<c01da018>] (out_of_memory+0x124/0x2fc)
+[  169.683473] [<c01da018>] (out_of_memory) from [<c01de7fc>] (__alloc_pages_nodemask+0x69c/0x734)
+[  169.683495] [<c01de7fc>] (__alloc_pages_nodemask) from [<c01d889c>] (filemap_fault+0x218/0x420)
+[  169.683518] [<c01d889c>] (filemap_fault) from [<c01fa348>] (__do_fault+0x5c/0xb8)
+[  169.683538] [<c01fa348>] (__do_fault) from [<c01fd5c4>] (handle_mm_fault+0x504/0xbfc)
+[  169.683560] [<c01fd5c4>] (handle_mm_fault) from [<c0114ff8>] (do_page_fault+0x1f0/0x354)
+[  169.683579] [<c0114ff8>] (do_page_fault) from [<c0101224>] (do_DataAbort+0x48/0xc8)
+[  169.683600] [<c0101224>] (do_DataAbort) from [<c010c300>] (__dabt_usr+0x40/0x60)
+[  169.683611] Exception stack(0xc6b43fb0 to 0xc6b43ff8)
+[  169.683623] 3fa0:                                     00000000 b42fdd0c 00000000 00000000
+[  169.683637] 3fc0: 00000000 00000000 b6ef4000 b6f2a160 b6f2dbb4 b42fdd0c 00000000 b42fde7c
+[  169.683650] 3fe0: b6ef47a8 b42fdcdc b6e2ef04 b6e39cd8 600b0010 ffffffff
+[  169.683659] Mem-Info:
+[  169.683683] active_anon:14310 inactive_anon:10777 isolated_anon:0
+[  169.683683]  active_file:324 inactive_file:365 isolated_file:0
+[  169.683683]  unevictable:0 dirty:0 writeback:0 unstable:0
+[  169.683683]  slab_reclaimable:839 slab_unreclaimable:1060
+[  169.683683]  mapped:2467 shmem:10792 pagetables:102 bounce:0
+[  169.683683]  free:336 free_pcp:48 free_cma:225
+[  169.683730] Normal free:1344kB min:1344kB low:1680kB high:2016kB active_anon:57240kB inactive_anon:43108kB active_file:1296kB inactive_file:1460kB unevictable:0kB isolated(anon):0kB isolated(file):0kB present:131072kB managed:118668kB mlocked:0kB dirty:0kB writeback:0kB mapped:9868kB shmem:43168kB slab_reclaimable:3356kB slab_unreclaimable:4240kB kernel_stack:640kB pagetables:408kB unstable:0kB bounce:0kB free_pcp:192kB local_pcp:40kB free_cma:900kB writeback_tmp:0kB pages_scanned:16904 all_unreclaimable? yes
+[  169.683740] lowmem_reserve[]: 0 0 0
+[  169.683760] Normal: 10*4kB (UC) 48*8kB (UMEC) 10*16kB (MC) 4*32kB (C) 4*64kB (C) 3*128kB (C) 0*256kB 0*512kB 0*1024kB 0*2048kB 0*4096kB = 1352kB
+[  169.683832] 11493 total pagecache pages
+[  169.683844] 0 pages in swap cache
+[  169.683855] Swap cache stats: add 0, delete 0, find 0/0
+[  169.683864] Free swap  = 0kB
+[  169.683872] Total swap = 0kB
+[  169.683879] 32768 pages RAM
+[  169.683885] 0 pages HighMem/MovableOnly
+[  169.683893] 3101 pages reserved
+[  169.683900] 1024 pages cma reserved
+[  169.683907] [ pid ]   uid  tgid total_vm      rss nr_ptes nr_pmds swapents oom_score_adj name
+[  169.683936] [   80]     0    80      592       13       5       0        0             0 syslogd
+[  169.683949] [   82]     0    82      592       10       5       0        0             0 klogd
+[  169.683963] [   85]     0    85      675       68       5       0        0         -1000 udevd
+[  169.683981] [  435]     0   435      561       20       4       0        0             0 dropbear
+[  169.683994] [  439]     0   439    30209    15520      44       0        0             0 game
+[  169.684008] [  482]     0   482     7623       40       8       0        0             0 adbd
+[  169.684025] [  636]     0   636      592       10       6       0        0             0 sh
+[  169.684037] [  637]     0   637      592       10       4       0        0             0 start.sh
+[  169.684049] [  638]     0   638    13919      778      17       0        0             0 yard
+[  169.684066] Out of memory: Kill process 439 (game) score 508 or sacrifice child
+[  169.684113] Killed process 636 (sh) total-vm:2368kB, anon-rss:40kB, file-rss:0kB
+[  169.849172] SDLAudioP1 invoked oom-killer: gfp_mask=0x2420848, order=0, oom_score_adj=0
+[  169.849201] CPU: 0 PID: 847 Comm: SDLAudioP1 Not tainted 4.4.194 #485
+[  169.849210] Hardware name: Generic DT based system
+[  169.849259] [<c010f9c8>] (unwind_backtrace) from [<c010b64c>] (show_stack+0x20/0x24)
+[  169.849287] [<c010b64c>] (show_stack) from [<c036546c>] (dump_stack+0x84/0xa0)
+[  169.849316] [<c036546c>] (dump_stack) from [<c021a3ec>] (dump_header.constprop.6+0x58/0x16c)
+[  169.849345] [<c021a3ec>] (dump_header.constprop.6) from [<c01d9a78>] (oom_kill_process+0x8c/0x494)
+[  169.849369] [<c01d9a78>] (oom_kill_process) from [<c01da018>] (out_of_memory+0x124/0x2fc)
+[  169.849396] [<c01da018>] (out_of_memory) from [<c01de7fc>] (__alloc_pages_nodemask+0x69c/0x734)
+[  169.849419] [<c01de7fc>] (__alloc_pages_nodemask) from [<c01d6b00>] (pagecache_get_page+0x154/0x1e4)
+[  169.849445] [<c01d6b00>] (pagecache_get_page) from [<c024e654>] (__getblk_slow+0xd8/0x2f8)
+[  169.849465] [<c024e654>] (__getblk_slow) from [<c024e8d0>] (__getblk_gfp+0x5c/0x6c)
+[  169.849488] [<c024e8d0>] (__getblk_gfp) from [<c028ba80>] (squashfs_bio_submit+0x1ac/0x4a4)
+[  169.849511] [<c028ba80>] (squashfs_bio_submit) from [<c028c13c>] (__squashfs_read_data+0xd0/0x1f0)
+[  169.849530] [<c028c13c>] (__squashfs_read_data) from [<c028c368>] (squashfs_read_data_async+0x3c/0x44)
+[  169.849557] [<c028c368>] (squashfs_read_data_async) from [<c028f944>] (squashfs_readpages_block+0x2e8/0x2f8)
+[  169.849578] [<c028f944>] (squashfs_readpages_block) from [<c028dad8>] (__squashfs_readpages.constprop.0+0x66c/0x780)
+[  169.849599] [<c028dad8>] (__squashfs_readpages.constprop.0) from [<c028dcec>] (squashfs_readpages+0x2c/0x34)
+[  169.849620] [<c028dcec>] (squashfs_readpages) from [<c01e21f8>] (__do_page_cache_readahead+0xe8/0x218)
+[  169.849641] [<c01e21f8>] (__do_page_cache_readahead) from [<c01d88f0>] (filemap_fault+0x26c/0x420)
+[  169.849667] [<c01d88f0>] (filemap_fault) from [<c01fa348>] (__do_fault+0x5c/0xb8)
+[  169.849688] [<c01fa348>] (__do_fault) from [<c01fd5c4>] (handle_mm_fault+0x504/0xbfc)
+[  169.849711] [<c01fd5c4>] (handle_mm_fault) from [<c0114ff8>] (do_page_fault+0x1f0/0x354)
+[  169.849731] [<c0114ff8>] (do_page_fault) from [<c01151bc>] (do_pabt_page_fault+0x60/0x6c)
+[  169.849756] [<c01151bc>] (do_pabt_page_fault) from [<c01012ec>] (do_PrefetchAbort+0x48/0xac)
+[  169.849779] [<c01012ec>] (do_PrefetchAbort) from [<c010c5cc>] (ret_from_exception+0x0/0x14)
+[  169.849791] Exception stack(0xc4115fb0 to 0xc4115ff8)
+[  169.849804] 5fa0:                                     b6d7ecf8 b620d102 b6214dea 0000213b
+[  169.849821] 5fc0: b6d7ee38 00000000 b6212493 b6214dea 0000213b b6211b25 00000000 b46ced9c
+[  169.849837] 5fe0: b62337ec b46ced60 b618d060 b6c82b8c 600f0010 ffffffff
+[  169.849848] Mem-Info:
+[  169.849877] active_anon:14300 inactive_anon:10777 isolated_anon:0
+[  169.849877]  active_file:346 inactive_file:377 isolated_file:32
+[  169.849877]  unevictable:0 dirty:0 writeback:0 unstable:0
+[  169.849877]  slab_reclaimable:839 slab_unreclaimable:1060
+[  169.849877]  mapped:2418 shmem:10792 pagetables:95 bounce:0
+[  169.849877]  free:336 free_pcp:0 free_cma:225
+[  169.849930] Normal free:1344kB min:1344kB low:1680kB high:2016kB active_anon:57200kB inactive_anon:43108kB active_file:1384kB inactive_file:1508kB unevictable:0kB isolated(anon):0kB isolated(file):128kB present:131072kB managed:118668kB mlocked:0kB dirty:0kB writeback:0kB mapped:9672kB shmem:43168kB slab_reclaimable:3356kB slab_unreclaimable:4240kB kernel_stack:640kB pagetables:380kB unstable:0kB bounce:0kB free_pcp:0kB local_pcp:0kB free_cma:900kB writeback_tmp:0kB pages_scanned:18120 all_unreclaimable? yes
+[  169.849946] lowmem_reserve[]: 0 0 0
+[  169.849969] Normal: 15*4kB (UEC) 42*8kB (UMEC) 12*16kB (UMEC) 4*32kB (C) 4*64kB (C) 3*128kB (C) 0*256kB 0*512kB 0*1024kB 0*2048kB 0*4096kB = 1356kB
+[  169.850045] 11563 total pagecache pages
+[  169.850060] 0 pages in swap cache
+[  169.850071] Swap cache stats: add 0, delete 0, find 0/0
+[  169.850077] Free swap  = 0kB
+[  169.850085] Total swap = 0kB
+[  169.850092] 32768 pages RAM
+[  169.850102] 0 pages HighMem/MovableOnly
+[  169.850110] 3101 pages reserved
+[  169.850117] 1024 pages cma reserved
+[  169.850126] [ pid ]   uid  tgid total_vm      rss nr_ptes nr_pmds swapents oom_score_adj name
+[  169.850158] [   80]     0    80      592       13       5       0        0             0 syslogd
+[  169.850177] [   82]     0    82      592       10       5       0        0             0 klogd
+[  169.850192] [   85]     0    85      675       68       5       0        0         -1000 udevd
+[  169.850210] [  435]     0   435      561       20       4       0        0             0 dropbear
+[  169.850224] [  439]     0   439    30209    15459      44       0        0             0 game
+[  169.850238] [  482]     0   482     7623       40       8       0        0             0 adbd
+[  169.850254] [  637]     0   637      592       10       4       0        0             0 start.sh
+[  169.850272] [  638]     0   638    13919      778      17       0        0             0 yard
+[  169.850289] Out of memory: Kill process 439 (game) score 506 or sacrifice child
+[  169.850378] Killed process 439 (game) total-vm:120836kB, anon-rss:53228kB, file-rss:8608kB
+[  169.858128] SDLAudioP1 invoked oom-killer: gfp_mask=0x2420848, order=0, oom_score_adj=0
+[  169.858155] CPU: 0 PID: 847 Comm: SDLAudioP1 Not tainted 4.4.194 #485
+[  169.858166] Hardware name: Generic DT based system
+[  169.858212] [<c010f9c8>] (unwind_backtrace) from [<c010b64c>] (show_stack+0x20/0x24)
+[  169.858235] [<c010b64c>] (show_stack) from [<c036546c>] (dump_stack+0x84/0xa0)
+[  169.858259] [<c036546c>] (dump_stack) from [<c021a3ec>] (dump_header.constprop.6+0x58/0x16c)
+[  169.858286] [<c021a3ec>] (dump_header.constprop.6) from [<c01d9a78>] (oom_kill_process+0x8c/0x494)
+[  169.858307] [<c01d9a78>] (oom_kill_process) from [<c01da018>] (out_of_memory+0x124/0x2fc)
+[  169.858328] [<c01da018>] (out_of_memory) from [<c01de7fc>] (__alloc_pages_nodemask+0x69c/0x734)
+[  169.858348] [<c01de7fc>] (__alloc_pages_nodemask) from [<c01d6b00>] (pagecache_get_page+0x154/0x1e4)
+[  169.858368] [<c01d6b00>] (pagecache_get_page) from [<c024e654>] (__getblk_slow+0xd8/0x2f8)
+[  169.858386] [<c024e654>] (__getblk_slow) from [<c024e8d0>] (__getblk_gfp+0x5c/0x6c)
+[  169.858403] [<c024e8d0>] (__getblk_gfp) from [<c028ba80>] (squashfs_bio_submit+0x1ac/0x4a4)
+[  169.858422] [<c028ba80>] (squashfs_bio_submit) from [<c028c13c>] (__squashfs_read_data+0xd0/0x1f0)
+[  169.858442] [<c028c13c>] (__squashfs_read_data) from [<c028c368>] (squashfs_read_data_async+0x3c/0x44)
+[  169.858462] [<c028c368>] (squashfs_read_data_async) from [<c028f944>] (squashfs_readpages_block+0x2e8/0x2f8)
+[  169.858482] [<c028f944>] (squashfs_readpages_block) from [<c028dad8>] (__squashfs_readpages.constprop.0+0x66c/0x780)
+[  169.858502] [<c028dad8>] (__squashfs_readpages.constprop.0) from [<c028dcec>] (squashfs_readpages+0x2c/0x34)
+[  169.858527] [<c028dcec>] (squashfs_readpages) from [<c01e21f8>] (__do_page_cache_readahead+0xe8/0x218)
+[  169.858548] [<c01e21f8>] (__do_page_cache_readahead) from [<c01d88f0>] (filemap_fault+0x26c/0x420)
+[  169.858572] [<c01d88f0>] (filemap_fault) from [<c01fa348>] (__do_fault+0x5c/0xb8)
+[  169.858592] [<c01fa348>] (__do_fault) from [<c01fd5c4>] (handle_mm_fault+0x504/0xbfc)
+[  169.858613] [<c01fd5c4>] (handle_mm_fault) from [<c0114ff8>] (do_page_fault+0x1f0/0x354)
+[  169.858634] [<c0114ff8>] (do_page_fault) from [<c01151bc>] (do_pabt_page_fault+0x60/0x6c)
+[  169.858653] [<c01151bc>] (do_pabt_page_fault) from [<c01012ec>] (do_PrefetchAbort+0x48/0xac)
+[  169.858671] [<c01012ec>] (do_PrefetchAbort) from [<c010c5cc>] (ret_from_exception+0x0/0x14)
+[  169.858681] Exception stack(0xc4115fb0 to 0xc4115ff8)
+[  169.858694] 5fa0:                                     b6d7ecf8 b620d102 b6214dea 0000213b
+[  169.858709] 5fc0: b6d7ee38 00000000 b6212493 b6214dea 0000213b b6211b25 00000000 b46ced9c
+[  169.858721] 5fe0: b62337ec b46ced60 b618d060 b6c82b8c 600f0010 ffffffff
+[  169.858731] Mem-Info:
+[  169.858757] active_anon:14065 inactive_anon:10777 isolated_anon:0
+[  169.858757]  active_file:356 inactive_file:377 isolated_file:32
+[  169.858757]  unevictable:0 dirty:0 writeback:0 unstable:0
+[  169.858757]  slab_reclaimable:839 slab_unreclaimable:1060
+[  169.858757]  mapped:2418 shmem:10792 pagetables:95 bounce:0
+[  169.858757]  free:531 free_pcp:36 free_cma:265
+[  169.858806] Normal free:2204kB min:1344kB low:1680kB high:2016kB active_anon:56180kB inactive_anon:43108kB active_file:1424kB inactive_file:1508kB unevictable:0kB isolated(anon):0kB isolated(file):128kB present:131072kB managed:118668kB mlocked:0kB dirty:0kB writeback:0kB mapped:9672kB shmem:43168kB slab_reclaimable:3356kB slab_unreclaimable:4240kB kernel_stack:640kB pagetables:380kB unstable:0kB bounce:0kB free_pcp:156kB local_pcp:0kB free_cma:1140kB writeback_tmp:0kB pages_scanned:0 all_unreclaimable? no
+[  169.858818] lowmem_reserve[]: 0 0 0
+[  169.858837] Normal: 78*4kB (UMEC) 72*8kB (UMEC) 22*16kB (UMEC) 6*32kB (MC) 5*64kB (C) 5*128kB (C) 0*256kB 0*512kB 0*1024kB 0*2048kB 0*4096kB = 2392kB
+[  169.858905] 11563 total pagecache pages
+[  169.858919] 0 pages in swap cache
+[  169.858929] Swap cache stats: add 0, delete 0, find 0/0
+[  169.858935] Free swap  = 0kB
+[  169.858941] Total swap = 0kB
+[  169.858949] 32768 pages RAM
+[  169.858958] 0 pages HighMem/MovableOnly
+[  169.858966] 3101 pages reserved
+[  169.858972] 1024 pages cma reserved
+[  169.858983] [ pid ]   uid  tgid total_vm      rss nr_ptes nr_pmds swapents oom_score_adj name
+[  169.859014] [   80]     0    80      592       13       5       0        0             0 syslogd
+[  169.859028] [   82]     0    82      592       10       5       0        0             0 klogd
+[  169.859042] [   85]     0    85      675       68       5       0        0         -1000 udevd
+[  169.859057] [  435]     0   435      561       20       4       0        0             0 dropbear
+[  169.859074] [  482]     0   482     7623       40       8       0        0             0 adbd
+[  169.859090] [  637]     0   637      592       10       4       0        0             0 start.sh
+[  169.859103] [  638]     0   638    13919      778      17       0        0             0 yard
+[  169.859116] Out of memory: Kill process 490 (input_monitor) score 508 or sacrifice child
+[  170.089333] rockchip-vop 10118000.vop: [drm:vop_crtc_enable] Update mode to 1024x768p60, type: 11
+[  342.015669] usb 1-1: new high-speed USB device number 2 using dwc2
+[  342.216624] usb 1-1: New USB device found, idVendor=2357, idProduct=011e
+[  342.216650] usb 1-1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[  342.216663] usb 1-1: Product: 802.11ac WLAN Adapter 
+[  342.216679] usb 1-1: Manufacturer: Realtek 
+[  342.216690] usb 1-1: SerialNumber: 00e04c000001
+[  450.766185] usb 1-1: USB disconnect, device number 2
+
+===== watching 90 s: what appears and disappears
+--- at 34 s:
++/sys/bus/usb/devices/1-1: idVendor=2357 idProduct=011e manufacturer=Realtek product=802.11ac WLAN Adapter serial=00e04c000001 speed=480 bMaxPower=500mA bDeviceClass=00 version= 2.10
++/sys/bus/usb/devices/1-1:1.0: bInterfaceClass=ff bInterfaceSubClass=ff bInterfaceProtocol=ff driver=
+--- at 66 s:
+-/sys/bus/usb/devices/1-1: idVendor=2357 idProduct=011e manufacturer=Realtek product=802.11ac WLAN Adapter serial=00e04c000001 speed=480 bMaxPower=500mA bDeviceClass=00 version= 2.10
+-/sys/bus/usb/devices/1-1:1.0: bInterfaceClass=ff bInterfaceSubClass=ff bInterfaceProtocol=ff driver=
+--- dmesg lines added while watching:
++[  507.875683] usb 1-1: new high-speed USB device number 3 using dwc2
++[  508.076797] usb 1-1: New USB device found, idVendor=2357, idProduct=011e
++[  508.076826] usb 1-1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
++[  508.076841] usb 1-1: Product: 802.11ac WLAN Adapter 
++[  508.076855] usb 1-1: Manufacturer: Realtek 
++[  508.076866] usb 1-1: SerialNumber: 00e04c000001
++[  547.515913] usb 1-1: USB disconnect, device number 3
+
+===== the end of the watch
+/sys/bus/usb/devices/1-0:1.0: bInterfaceClass=09 bInterfaceSubClass=00 bInterfaceProtocol=00 driver=hub
+/sys/bus/usb/devices/usb1: idVendor=1d6b idProduct=0002 manufacturer=Linux 4.4.194 dwc2_hsotg product=DWC OTG Controller serial=10180000.usb speed=480 bMaxPower=0mA bDeviceClass=09 version= 2.00
+--- $ mount
+/dev/root on / type squashfs (ro,relatime)
+devtmpfs on /dev type devtmpfs (rw,relatime,size=56772k,nr_inodes=14193,mode=755)
+proc on /proc type proc (rw,relatime)
+devpts on /dev/pts type devpts (rw,relatime,gid=5,mode=620,ptmxmode=000)
+tmpfs on /dev/shm type tmpfs (rw,relatime,mode=777)
+tmpfs on /tmp type tmpfs (rw,relatime)
+tmpfs on /run type tmpfs (rw,nosuid,nodev,relatime,mode=755)
+sysfs on /sys type sysfs (rw,relatime)
+debug on /sys/kernel/debug type debugfs (rw,relatime)
+/dev/rkflash0p5 on /userdata type ext2 (rw,relatime,errors=continue)
+none on /sys/kernel/config type configfs (rw,relatime)
+adb on /dev/usb-ffs/adb type functionfs (rw,relatime)
+sysprobe done Thu Jan  1 00:09:34 UTC 1970
