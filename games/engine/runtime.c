@@ -1321,6 +1321,13 @@ static void stock_menu_start(const char *path)
             (int)pid);
 }
 
+/* Where native programs are: beside the runtime, or YARD_NATIVE_DIR (tests). */
+static const char *native_dir(void)
+{
+    const char *d = getenv("YARD_NATIVE_DIR");
+    return d && d[0] ? d : self_dir;
+}
+
 /* yard.conf beside the runtime (YARD_CONF elsewhere): "key value" lines. */
 static int conf_is(const char *key, const char *value)
 {
@@ -1347,7 +1354,7 @@ static int spawn(cart_t *c)
     if (c->native[0]) {
         if (!name_ok(c->native, 32))
             return 127;
-        snprintf(path, sizeof path, "%s/%s", self_dir, c->native);
+        snprintf(path, sizeof path, "%s/%s", native_dir(), c->native);
         if (access(path, X_OK) != 0)
             return 127;
     } else
@@ -1540,6 +1547,40 @@ static int supervise(void)
             while (waitpid(np, NULL, 0) < 0 && errno == EINTR)
                 ;
             cab_log("yard: started %s", net);
+        }
+    }
+    {
+        /* GPU yard first (2026-10-26: the user's choice of the default): when loveyard is installed and yard.conf
+         * does not say "menu classic", The Yard opens on GPU yard. Leaving it (exit 0) leaves The Yard; its
+         * "Classic yard" row (exit 10) or any failure brings the C runtime's menu, and after a failure this boot
+         * opens on the classic menu from then on (/tmp/yard-gpu-failed). */
+        char gy[600];
+        snprintf(gy, sizeof gy, "%s/loveyard", native_dir());
+        const char *failed = getenv("YARD_GPU_FAILED") ? getenv("YARD_GPU_FAILED") : "/tmp/yard-gpu-failed";
+        if (access(gy, X_OK) == 0 && !conf_is("menu", "classic") && access(failed, F_OK) != 0) {
+            cart_t g;
+            pid_t now;
+            int code;
+            memset(&g, 0, sizeof g);
+            snprintf(g.native, sizeof g.native, "loveyard");
+            if (stock && (now = find_proc(stock)) > 0)
+                stock_menu_stop(stock, now, "GPU yard");
+            code = spawn(&g);
+            cab_log("yard: GPU yard returned %d", code);
+            if (code == 0) {
+                if (stock && !find_proc(stock))
+                    stock_menu_start(stock);
+                return 0;
+            }
+            if (code != 10) {
+                FILE *f = fopen(failed, "w");
+                if (f)
+                    fclose(f);
+                cab_log("yard: GPU yard failed (%d); the classic Yard instead, for the rest of this boot", code);
+                setenv("YARD_RETURNED", "loveyard stumbled", 1);
+            } else {
+                cab_log("yard: the classic Yard was asked for from GPU yard");
+            }
         }
     }
     for (;;) {

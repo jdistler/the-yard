@@ -10,6 +10,10 @@ LOG=/data/Games/love-probe.log
 # The GPU yard asks for a native program (Orb) by writing its name here and quitting; this script runs it
 # with the memory, the sound card, and the deck to itself, then starts LÖVE again.
 REQ=/tmp/yard-love-launch
+# The exit code is LÖVE's last one (0: the player left), or 10 when GPU yard's "Classic yard" row asked for the
+# C runtime's menu (The Yard's supervisor then shows it). It goes through a file: the block below is a pipe.
+CODE_FILE=/tmp/yard-love-code
+echo 0 > "$CODE_FILE"
 {
   echo "loveprobe start $(date) $(cat /proc/uptime)"
   # The cabinet's clock starts at 1970 on every boot, so a timestamp can't say the archive changed. A
@@ -29,12 +33,15 @@ REQ=/tmp/yard-love-launch
         rm -f "$REQ"
         YARD_LAUNCH_FILE=$REQ YARD_PAK=/data/Games/yard.pak YARD_LOG=/data/Games/love-yard.log YARD_STATS=1 \
           /data/love/run.sh /data/love/yard.love
-        echo "love exited $?"
+        LCODE=$?
+        echo "love exited $LCODE"
+        echo $LCODE > "$CODE_FILE"
         [ -s "$REQ" ] || break
         WHAT=$(head -n 1 "$REQ")
         NAME=${WHAT#native:}
         case "$NAME" in
           ""|*[!a-z0-9_-]*) echo "bad launch request: $WHAT"; break ;;
+          classic) echo "the classic yard asked for"; echo 10 > "$CODE_FILE"; break ;;
         esac
         if [ -x "/data/Games/$NAME" ]; then
           echo "running $NAME"
@@ -56,3 +63,4 @@ REQ=/tmp/yard-love-launch
   esac
 } >> "$LOG" 2>&1
 sync
+exit "$(cat "$CODE_FILE" 2>/dev/null || echo 0)"

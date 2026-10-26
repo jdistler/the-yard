@@ -448,7 +448,7 @@ def cmd_deploy(a):
     print("1. Building for the cabinet (./build.sh cab)")
     subprocess.check_call(["./build.sh", "cab"], cwd=HERE)
     print("2. Packing the carts")
-    extra = [os.path.join(HERE, "love", "label", n) for n in ("loveprobe", "loveyard")] if a.with_love_probe else []
+    extra = [os.path.join(HERE, "love", "label", n) for n in ("loveprobe", "loveyard", "classic")] if a.with_love_probe else []
     if a.with_sysprobe:
         extra.append(os.path.join(HERE, "sysprobe", "label", "sysprobe"))
     pak = cmd_pack(argparse.Namespace(out=os.path.join(stage, "yard.pak"), extra=extra))
@@ -584,7 +584,7 @@ def cmd_push(a):
     stage = tempfile.mkdtemp(prefix="cart-push-")
     print("1. Building for the cabinet")
     subprocess.check_call(["./build.sh", "cab"], cwd=HERE, stdout=subprocess.DEVNULL)
-    extra = [os.path.join(HERE, "love", "label", n) for n in ("loveprobe", "loveyard")]
+    extra = [os.path.join(HERE, "love", "label", n) for n in ("loveprobe", "loveyard", "classic")]
     extra.append(os.path.join(HERE, "sysprobe", "label", "sysprobe"))
     cmd_pack(argparse.Namespace(out=os.path.join(stage, "yard.pak.raw"), extra=extra))
     files = {}
@@ -594,6 +594,8 @@ def cmd_push(a):
     for n in ("yard", "orb", "yard.pak"):
         files[f"/data/Games/{n}"] = (os.path.join(stage, n), True)
     files["/data/love/yard.love"] = (love_pack(os.path.join(stage, "yard.love")), False)
+    for n in ("loveyard", "loveprobe"):
+        files[f"/data/Games/{n}"] = (os.path.join(HERE, "love", "loveprobe.sh"), False)
     for extra_file in a.also or []:
         src, dst = extra_file.split(":", 1)
         files[dst] = (os.path.abspath(src), False)

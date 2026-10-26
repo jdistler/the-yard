@@ -666,6 +666,37 @@ def system():
     check("native sysprobe returned 127" in log_text and "could not open sysprobe" in log_text,
           "supervisor: a game that is missing is still reported by the fresh menu")
     stop_fakes()
+    # GPU yard first: a stand-in loveyard that exits with a chosen code.
+    nd = os.path.join(sup, "native")
+    os.makedirs(nd, exist_ok=True)
+    failed = os.path.join(sup, "gpu-failed")
+    def gpu_first(code):
+        open(os.path.join(nd, "loveyard"), "w").write(f"#!/bin/sh\necho ran >> {nd}/ran\nexit {code}\n")
+        os.chmod(os.path.join(nd, "loveyard"), 0o755)
+        return run_sup({"YARD_NATIVE_DIR": nd, "YARD_GPU_FAILED": failed}, wait=20, keep_running=True)
+    for f in os.listdir(sup):
+        if f.endswith(".sav"):
+            os.remove(os.path.join(sup, f))
+    first = subprocess.Popen([fake], start_new_session=True)
+    time.sleep(0.3)
+    log_text = gpu_first(0)
+    now = pids_of("fakegame")
+    check("GPU yard returned 0" in log_text and "start the menu" not in log_text and "stopped the stock menu" in log_text
+          and len(now) == 1 and now[0] != first.pid,
+          "supervisor: The Yard opens on GPU yard, and leaving it leaves The Yard (stock menu back)")
+    stop_fakes()
+    log_text = gpu_first(10)
+    check("GPU yard returned 10" in log_text and "classic Yard was asked for" in log_text and "start the menu" in log_text
+          and not os.path.exists(failed), "supervisor: GPU yard's 'Classic yard' row opens the classic menu")
+    stop_fakes()
+    log_text = gpu_first(3)
+    check("GPU yard failed (3)" in log_text and "start the menu" in log_text and os.path.exists(failed),
+          "supervisor: a GPU yard that fails falls back to the classic menu")
+    open(os.path.join(nd, "ran"), "w").write("")
+    log_text = gpu_first(0)
+    check(read(nd, "ran") == "" and "GPU yard returned" not in log_text and "start the menu" in log_text,
+          "supervisor: after a failure, the rest of the boot opens on the classic menu")
+    stop_fakes()
     # A row with memory = "all" (GPU yard): the stock menu is stopped just before it runs, not before.
     mm = os.path.join(sup, "mmcarts")
     shutil.copytree(os.path.join(HERE, "carts", "yard"), os.path.join(mm, "yard"))
@@ -878,6 +909,24 @@ def love():
     code, err = run("love", n_dir, "title=The Yard\n30 quit\n", dict(lenv, YARD_RETURNED="orb missing"), args=(yl,),
                     timeout=300, binary=LOVE_RUN)
     check("could not open orb" in err, "GPU menu: a native program that could not start is reported (yard.returned)")
+    # 4. GPU yard's last row is "Classic yard" (its own row and the LÖVE probe are hidden); the classic menu's
+    # last row is "GPU yard" instead. Up from the first row wraps to the last.
+    lc = tmpdir()
+    shutil.copytree(os.path.join(HERE, "carts", "yard"), os.path.join(lc, "yard"))
+    shutil.copytree(os.path.join(HERE, "carts", "keep"), os.path.join(lc, "keep"))
+    for n in ("loveyard", "loveprobe", "classic"):
+        shutil.copytree(os.path.join(HERE, "love", "label", n), os.path.join(lc, n))
+    sc = "title=The Yard\n20 down UP\n21 up UP\n40 down LOW\n41 up LOW\n"
+    g_dir = tmpdir()
+    code, err = run("love", g_dir, sc, dict(lenv, CAB_MAX_FRAMES="600", YARD_CARTS=lc,
+                                            YARD_LAUNCH_FILE=os.path.join(g_dir, "launch")),
+                    args=(yl,), timeout=300, binary=LOVE_RUN)
+    check((read(g_dir, "launch") or "").strip() == "native:classic",
+          "GPU menu: the last row is 'Classic yard', and it asks the launcher for the classic menu")
+    k_dir = tmpdir()
+    _, k_err = run("yard", k_dir, sc, dict(base, YARD_CARTS=lc, CAB_MAX_FRAMES="600"), timeout=180)
+    check("yard open loveyard" in k_err and "classic" not in k_err.split("yard open")[-1][:20],
+          "classic menu: the last row is 'GPU yard', and 'Classic yard' is not shown")
 
 
 def main():

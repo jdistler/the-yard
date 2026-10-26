@@ -38,8 +38,17 @@ local function start_music()
   music.play(night)
 end
 
+-- Which rows this runtime shows: GPU yard hides its own row and the LÖVE probe and offers "Classic yard";
+-- the classic menu (C runtime) shows "GPU yard" and never "Classic yard".
+local function shown(c)
+  if c.native == "classic" then return game.gpu end
+  if c.native == "loveyard" or c.native == "loveprobe" then return not game.gpu end
+  return true
+end
+
 function init()
-  carts = yard.carts()
+  carts = {}
+  for _, c in ipairs(yard.carts()) do if shown(c) then carts[#carts + 1] = c end end
   load_stats()
   for i = 1, 70 do stars[i] = {rnd(0, W), rnd(0, 230), rnd(0, tau)} end
   row = clamp(save.get("best", 0), 0, max(0, #carts - 1))
