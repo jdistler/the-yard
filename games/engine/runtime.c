@@ -1537,15 +1537,15 @@ static int supervising(void)
 #endif
 }
 
-/* Stops the stock menu (TERM, then KILL after 3 s) to have its 53 MB; it starts again when The Yard quits. */
+/* Stops the stock menu to have its 53 MB; it starts again when The Yard quits. It ignores SIGTERM (2026-10-26:
+ * a TERM then a 3 s wait cost 3 s before every GPU yard), and while The Yard runs it only waits in system() for
+ * start.sh, so it is killed at once. */
 static void stock_menu_stop(const char *stock, pid_t sp, const char *why)
 {
     int i;
-    kill(sp, SIGTERM);
-    for (i = 0; i < 30 && find_proc(stock) == sp; i++)
-        usleep(100000);
-    if (find_proc(stock) == sp)
-        kill(sp, SIGKILL);
+    kill(sp, SIGKILL);
+    for (i = 0; i < 20 && find_proc(stock) == sp; i++)
+        usleep(25000);
     cab_log("yard: stopped the stock menu (pid %d) to free its memory for %s; it starts again when The Yard quits",
             (int)sp, why);
 }

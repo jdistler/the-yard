@@ -729,6 +729,11 @@ end
 
 function love.run()
   return function()
+    -- A black frame at once: the new framebuffer showed white for the second the fonts and carts take to load
+    -- (the user saw "a white flash", 2026-10-26).
+    if not headless then
+      for _ = 1, 2 do lg.origin() lg.clear(0, 0, 0, 1) lg.present() end
+    end
     -- LÖVE leaves LuaJIT's compiler off on ARM. On the cabinet it runs Lua 3.4 times faster
     -- (love-probe, 2026-10-24); YARD_JIT=0 turns it back off.
     if jit and os.getenv("YARD_JIT") ~= "0" then jit.on() end
