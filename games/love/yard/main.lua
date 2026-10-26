@@ -734,6 +734,7 @@ function love.run()
     if jit and os.getenv("YARD_JIT") ~= "0" then jit.on() end
     -- YARD_PROFILE=MODE[:FILE]: LuaJIT's sampling profiler (jit/p.lua, put beside the .love's files for a
     -- profiling run), e.g. YARD_PROFILE=Fl3:/tmp/prof.txt. Stopped when the cart run ends.
+    if os.getenv("YARD_JITV") then pcall(function() require("jit.v").start(os.getenv("YARD_JITV")) end) end
     local prof = os.getenv("YARD_PROFILE")
     if prof and jit then
       local mode, file = prof:match("^([^:]+):?(.*)$")
