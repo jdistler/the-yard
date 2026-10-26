@@ -86,7 +86,8 @@ ports() {
     [ "$i" = lo ] && continue
     if [ ! -f "$T/udhcpc.$i.pid" ] || ! kill -0 "$(cat "$T/udhcpc.$i.pid")" 2>/dev/null; then
       ifconfig "$i" up 2>/dev/null
-      udhcpc -i "$i" -b -S -p "$T/udhcpc.$i.pid" -s /usr/share/udhcpc/default.script >/dev/null 2>&1
+      # -x hostname: the router lists the cabinet as "partycade" (DHCP option 12).
+      udhcpc -i "$i" -b -S -x hostname:partycade -p "$T/udhcpc.$i.pid" -s /usr/share/udhcpc/default.script >/dev/null 2>&1
       log "port $i ($(cat "$d/address" 2>/dev/null)): asking for an address"
     fi
   done

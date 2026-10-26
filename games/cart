@@ -575,7 +575,10 @@ def cmd_push(a):
     is ~96% full); the rest are rewritten. Every file is checked by sha256 afterwards. Refuses while The Yard
     runs. Needs the cabinet's SSH key (tools/cab.sh)."""
     import hashlib
-    host = os.environ.get("CAB_HOST", "192.168.1.225")
+    r = subprocess.run([os.path.join(ROOT, "tools", "cab.sh"), "host"], capture_output=True, text=True)
+    if r.returncode != 0:
+        die(r.stderr.strip() or "cabinet not found")
+    host = r.stdout.strip()
     key = os.path.expanduser("~/yard_key_ecdsa")
     sshopt = ["-i", key, "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
               "-o", "LogLevel=ERROR", "-o", "ConnectTimeout=8"]
@@ -596,6 +599,7 @@ def cmd_push(a):
     files["/data/love/yard.love"] = (love_pack(os.path.join(stage, "yard.love")), False)
     for n in ("loveyard", "loveprobe"):
         files[f"/data/Games/{n}"] = (os.path.join(HERE, "love", "loveprobe.sh"), False)
+    files["/data/Games/yardnet"] = (os.path.join(HERE, "net", "yardnet.sh"), False)
     for extra_file in a.also or []:
         src, dst = extra_file.split(":", 1)
         files[dst] = (os.path.abspath(src), False)
@@ -617,7 +621,9 @@ def cmd_push(a):
         if slot:
             how = f"dd if={tmp} of={dst} bs=65536 conv=notrunc,fsync 2>/dev/null"
         else:
-            how = f"cat {tmp} > {dst}"
+            # A new file renamed over the old one: a running script (yardnet) keeps reading its old copy.
+            mode = "644" if dst.endswith((".love", ".pak", ".keys", ".txt", ".conf")) else "755"
+            how = f"cp {tmp} {dst}.new && chmod {mode} {dst}.new && mv -f {dst}.new {dst}"
         r = ssh(f"[ \"$(sha256sum {tmp} | cut -d' ' -f1)\" = {want} ] && {how} && sync && rm -f {tmp} && sha256sum {dst}")
         if want not in r.stdout:
             die(f"{dst}: the copy did not check out ({r.stdout.strip()} {r.stderr.strip()})")
