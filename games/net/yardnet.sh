@@ -32,7 +32,8 @@ LOG=$G/net.log
 STATUS=$G/net-status.txt
 PIDF=$T/yardnet.pid
 WTGZ=$G/wifi.tar.gz
-WDIR=$NET/wifi
+# Unpacked into RAM each boot: /data has about 1 MB free (round 2, 2026-10-26) and the bundle is 4 MB.
+WDIR=$T/yardwifi
 WCONF=$NET/wifi.conf
 
 if [ "$1" != "--run" ] && [ "$1" != "--once" ]; then
@@ -106,18 +107,21 @@ ac600() {
 
 wifi_unpack() {
   [ -f "$WTGZ" ] || return 1
+  [ -f "$WDIR/.sha256" ] && return 0
   h=$(sha256sum "$WTGZ" | cut -d' ' -f1)
-  [ "$(cat "$WDIR/.sha256" 2>/dev/null)" = "$h" ] && return 0
-  rm -rf "$WDIR.new" && mkdir -p "$WDIR.new" || return 1
-  if tar -xzf "$WTGZ" -C "$WDIR.new" && echo "$h" > "$WDIR.new/.sha256"; then
-    rm -rf "$WDIR" && mv "$WDIR.new" "$WDIR" && chmod 755 "$WDIR/wpa_supplicant"
-    rm -f "$NET/wifi.crashes" "$NET/wifi.trying"
-    sync
-    log "wifi: unpacked $WTGZ ($h)"
+  # A different bundle from the last one tried: forget its failed starts.
+  if [ "$(cat "$NET/wifi.sha256" 2>/dev/null)" != "$h" ]; then
+    rm -f "$NET/wifi.crashes" "$NET/wifi.trying"; echo "$h" > "$NET/wifi.sha256"; sync
+  fi
+  rm -rf "$WDIR" && mkdir -p "$WDIR" || return 1
+  # The stock busybox tar has no -z (round 2, 2026-10-26).
+  if out=$(gzip -dc "$WTGZ" 2>&1 | tar -xf - -C "$WDIR" 2>&1) && [ -f "$WDIR/8821au.ko" ]; then
+    chmod 755 "$WDIR/wpa_supplicant"; echo "$h" > "$WDIR/.sha256"
+    log "wifi: unpacked $WTGZ ($h) into $WDIR"
     return 0
   fi
-  log "wifi: could not unpack $WTGZ"
-  rm -rf "$WDIR.new"
+  log "wifi: could not unpack $WTGZ: $out"
+  rm -rf "$WDIR"; touch $T/yardnet.wifi.done   # once per boot, not every 5 s
   return 1
 }
 
@@ -148,6 +152,7 @@ wifi() {
       out=$(insmod "$WDIR/$m.ko" 2>&1) || { log "wifi: insmod $m failed: $out"; dmesg | tail -40 > "$NET/wifi-dmesg.txt"; rm -f "$NET/wifi.trying"; sync; touch $T/yardnet.wifi.done; return; }
       log "wifi: $m loaded"
     fi
+    rm -f "$WDIR/$m.ko"   # in the kernel now; give the RAM back
   done
   t=0; w=""
   while [ $t -lt 15 ] && [ -z "$w" ]; do sleep 1; t=$((t + 1)); w=$(wlan); done

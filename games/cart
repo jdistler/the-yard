@@ -386,22 +386,29 @@ def cmd_pack(a):
 LOVE_X86 = os.path.join(HERE, "out", "love-x86", "run.sh")
 
 
+def zip_files(out, files):
+    """A zip (.love) from [(path, name)], the same bytes for the same contents: fixed dates, sorted names.
+    The deploy leaves a file on the cabinet alone when it has not changed (data_patch same_on_disk)."""
+    import zipfile
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        for path, name in sorted(files, key=lambda x: x[1]):
+            zi = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            zi.external_attr = 0o644 << 16
+            zi.compress_type = zipfile.ZIP_DEFLATED
+            z.writestr(zi, open(path, "rb").read())
+    return out
+
+
 def love_pack(out=None):
     """games/love/yard + the shared library + the round font -> a .love (a zip LÖVE runs)."""
-    import zipfile
     out = out or os.path.join(HERE, "out", "yard.love")
-    os.makedirs(os.path.dirname(out), exist_ok=True)
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
-        src = os.path.join(HERE, "love", "yard")
-        for f in sorted(os.listdir(src)):
-            if f.endswith(".lua"):
-                z.write(os.path.join(src, f), f)
-        lib = os.path.join(HERE, "engine", "lib")
-        for f in sorted(os.listdir(lib)):
-            if f.endswith(".lua"):
-                z.write(os.path.join(lib, f), "lib/" + f)
-        z.write(os.path.join(HERE, "engine", "fonts", "Fredoka-SemiBold.ttf"), "fonts/Fredoka-SemiBold.ttf")
-    return out
+    src = os.path.join(HERE, "love", "yard")
+    lib = os.path.join(HERE, "engine", "lib")
+    files = [(os.path.join(src, f), f) for f in os.listdir(src) if f.endswith(".lua")]
+    files += [(os.path.join(lib, f), "lib/" + f) for f in os.listdir(lib) if f.endswith(".lua")]
+    files.append((os.path.join(HERE, "engine", "fonts", "Fredoka-SemiBold.ttf"), "fonts/Fredoka-SemiBold.ttf"))
+    return zip_files(out, files)
 
 
 def cmd_love_pack(a):
@@ -484,10 +491,14 @@ def cmd_deploy(a):
         shutil.rmtree(tree, ignore_errors=True)
         shutil.copytree(bundle, tree, symlinks=True)
         # Games ship as .love files (a zip). Under qemu a game folder failed to mount; a .love never has.
-        subprocess.check_call(["zip", "-q", "-r", "-X", os.path.join(tree, "probe.love"), "."],
-                              cwd=os.path.join(HERE, "love", "probe"))
+        probe = os.path.join(HERE, "love", "probe")
+        zip_files(os.path.join(tree, "probe.love"),
+                  [(os.path.join(r, f), os.path.relpath(os.path.join(r, f), probe))
+                   for r, _, fs in os.walk(probe) for f in fs])
         love_pack(os.path.join(tree, "yard.love"))
-        subprocess.check_call(["tar", "-czf", tgz, "--owner=0", "--group=0", "-C", tree, "."])
+        # Reproducible: sorted names, one date, no name or date in the gzip header.
+        subprocess.check_call(f"tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -C '{tree}' -cf - . "
+                              f"| gzip -n -9 > '{tgz}'", shell=True)
         launcher = os.path.join(HERE, "love", "loveprobe.sh")
         cmd += ["--put", f"{tgz}:Games/love.tar.gz:644",
                 "--put", f"{launcher}:Games/loveprobe:755",

@@ -6,6 +6,7 @@ return {
   band = "TEST",
   tint = 0x7fe8ff,
   native = "loveyard",
+  memory = "all",   -- LÖVE needs the stock menu's 53 MB (the supervisor stops it, and starts it after)
   order = 96,
   stat = function(s) return nil end,
   icon = function(x, y, lit, t)

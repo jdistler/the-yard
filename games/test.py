@@ -502,6 +502,13 @@ def system():
             fsck = subprocess.run(["e2fsck", "-fn", img], capture_output=True)
             check(open(dump, "rb").read() == open(p2, "rb").read() and fsck.returncode == 0,
                   f"deploy: --put allocates every block of a padded file, so the next update is in place ({bs})")
+            tmp_cat = os.path.join(shelf, "cat.bin")
+            old_mode = data_patch.stat(img, "old")["mode"] & 0o7777
+            check(data_patch.same_on_disk(img, p2, "slot", 0o755, tmp_cat)
+                  and not data_patch.same_on_disk(img, p1, "slot", 0o755, tmp_cat)
+                  and not data_patch.same_on_disk(img, p2, "slot", 0o644, tmp_cat)
+                  and not data_patch.same_on_disk(img, p1, "old", old_mode, tmp_cat),
+                  f"deploy: --put leaves an identical file alone, but not one with other bytes, mode, or holes ({bs})")
     else:
         say("  skip data_patch --overwrite (no e2fsprogs)")
 
@@ -659,16 +666,47 @@ def system():
     check("native sysprobe returned 127" in log_text and "could not open sysprobe" in log_text,
           "supervisor: a game that is missing is still reported by the fresh menu")
     stop_fakes()
+    # A row with memory = "all" (GPU yard): the stock menu is stopped just before it runs, not before.
+    mm = os.path.join(sup, "mmcarts")
+    shutil.copytree(os.path.join(HERE, "carts", "yard"), os.path.join(mm, "yard"))
+    os.makedirs(os.path.join(mm, "memhog"))
+    open(os.path.join(mm, "memhog", "info.lua"), "w").write(
+        'return { title = "Memhog", native = "memhog", memory = "all", order = 0 }\n')
+    for f in os.listdir(sup):
+        if f.endswith(".sav"):
+            os.remove(os.path.join(sup, f))   # the menu remembers its last row
+    first = subprocess.Popen([fake], start_new_session=True)
+    time.sleep(0.3)
+    log_text = run_sup({"YARD_CARTS": mm}, "title=The Yard\n30 down LOW\n31 up LOW\n",
+                       wait=8, keep_running=True)
+    try:
+        first.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        pass
+    i_stop = log_text.find("stopped the stock menu")
+    check(first.poll() is not None and i_stop >= 0 and "for memhog" in log_text
+          and i_stop > log_text.find("yard: start the menu") and "native memhog returned 127" in log_text,
+          "supervisor: a row with memory = \"all\" stops the stock menu just before it runs (GPU yard)")
+    stop_fakes()
     shutil.rmtree(sup, ignore_errors=True)
     for script_path in (("sysprobe", "sysprobe.sh"), ("net", "yardnet.sh"), ("love", "loveprobe.sh")):
         r = subprocess.run(["sh", "-n", os.path.join(HERE, *script_path)], capture_output=True, text=True)
         check(r.returncode == 0, f"the cabinet script {script_path[-1]} parses (sh -n)")
     yardnet_checks()
+    # Again with the cabinet's own shell and tools (busybox 1.27, under qemu), when the rootfs dump is here:
+    # the stock tar has no -z, which only this run can catch.
+    rootfs = os.environ.get("YARD_ROOTFS", os.path.expanduser("~/partycade-dumps/2026-10-23_raw_plug3032slc/rootfs"))
+    if os.path.exists(os.path.join(rootfs, "bin", "busybox")) and shutil.which("qemu-arm-static"):
+        yardnet_checks(rootfs)
+    else:
+        say("  skip: yardnet with the cabinet's busybox (no rootfs dump or qemu-arm-static)")
     shutil.rmtree(shelf, ignore_errors=True)
 
 
-def yardnet_checks():
-    """games/net/yardnet.sh against a fake cabinet: a fake AC600, fake insmod/mount, a fake stick."""
+def yardnet_checks(rootfs=None):
+    """games/net/yardnet.sh against a fake cabinet: a fake AC600, fake insmod/mount, a fake stick.
+    With rootfs, the script runs in the cabinet's busybox ash and uses its busybox applets."""
+    tag = "yardnet (cabinet busybox)" if rootfs else "yardnet"
     d = tmpdir()
     games, sysd, proc, tmp, fakebin, stick = (os.path.join(d, n) for n in ("Games", "sys", "proc", "tmp", "bin", "stick"))
     for p in (games, os.path.join(sysd, "class", "net", "lo"), os.path.join(sysd, "bus", "usb", "devices", "1-1"),
@@ -693,6 +731,16 @@ def yardnet_checks():
         p = os.path.join(fakebin, n)
         open(p, "w").write("#!/bin/sh\n" + body)
         os.chmod(p, 0o755)
+    shell = ["sh"]
+    if rootfs:
+        bb = os.path.join(rootfs, "bin", "busybox")
+        for n in ("tar", "gzip", "sha256sum", "cut", "grep", "cat", "cp", "mv", "rm", "mkdir", "chmod", "touch",
+                  "tail", "head", "awk", "wc", "ls", "cmp", "date", "uptime", "basename", "printf"):
+            if n not in fakes:
+                p = os.path.join(fakebin, n)
+                open(p, "w").write(f'#!/bin/sh\nexec qemu-arm-static -L {rootfs} {bb} {n} "$@"\n')
+                os.chmod(p, 0o755)
+        shell = ["qemu-arm-static", "-L", rootfs, bb, "ash"]
     # The Wi-Fi bundle: two "modules", a wpa_supplicant that records how it was started, and the id list.
     w = os.path.join(d, "w")
     os.makedirs(w)
@@ -707,7 +755,7 @@ def yardnet_checks():
     script_path = os.path.join(HERE, "net", "yardnet.sh")
 
     def once():
-        subprocess.run(["sh", script_path, "--once"], env=env, timeout=60, capture_output=True)
+        subprocess.run(shell + [script_path, "--once"], env=env, timeout=120, capture_output=True)
         return read(games, "net.log") or "", (open(calls).read() if os.path.exists(calls) else "")
 
     def reboot():   # /tmp and the loaded modules do not survive a power cycle; /data does
@@ -717,7 +765,7 @@ def yardnet_checks():
 
     log, c = once()
     check("no " in log and "wifi.conf" in log and "insmod" not in c,
-          "yardnet: the AC600 without a wifi.conf loads nothing and says what is missing")
+          f"{tag}: the AC600 without a wifi.conf loads nothing and says what is missing")
     # A stick: the Wi-Fi settings, a file to put in /data/Games, and a script; then the logs come back on it.
     open(os.path.join(stick, "yard", "wifi.conf"), "w").write('network={\n ssid="home"\n psk=00\n}\n')
     open(os.path.join(d, "hello.txt"), "w").write("hi\n")
@@ -726,32 +774,32 @@ def yardnet_checks():
     os.makedirs(os.path.join(sysd, "block", "sda"))
     log, c = once()
     check(read(os.path.join(games, "net"), "wifi.conf") is not None and read(games, "hello.txt") == "hi\n",
-          "yardnet: a stick's yard/wifi.conf and yard/put.tar go into /data/Games")
+          f"{tag}: a stick's yard/wifi.conf and yard/put.tar go into /data/Games")
     check(read(os.path.join(stick, "yard"), "run.log") == "ran-on-cabinet\n" and os.path.exists(os.path.join(stick, "yard", "done.txt"))
           and os.path.exists(os.path.join(stick, "yard", "logs", "net.log")),
-          "yardnet: the stick's run.sh runs, and the logs and done.txt are written back to it")
+          f"{tag}: the stick's run.sh runs, and the logs and done.txt are written back to it")
     check("insmod" in c and c.index("cfg80211.ko") < c.index("8821au.ko") and "wpa -B -i wlan0 -D nl80211" in c,
-          "yardnet: with a wifi.conf it loads cfg80211, then 8821au, then starts wpa_supplicant on wlan0")
+          f"{tag}: with a wifi.conf it loads cfg80211, then 8821au, then starts wpa_supplicant on wlan0")
     check(read(os.path.join(proc, "sys", "kernel"), "panic_on_oops") == "0\n" and os.path.exists(os.path.join(games, "net", "wifi.trying")),
-          "yardnet: an oops is not made a panic, and the guard file is set during the start")
+          f"{tag}: an oops is not made a panic, and the guard file is set during the start")
     # The stick stays in: it is read once per insertion, not every pass.
     n_mounts = c.count("mount ")
     log, c = once()
-    check(c.count("mount ") == n_mounts, "yardnet: a stick left in is read only once")
+    check(c.count("mount ") == n_mounts, f"{tag}: a stick left in is read only once")
     # Two starts that never finished (a freeze or reset each time): the third boot leaves Wi-Fi alone.
     shutil.rmtree(os.path.join(sysd, "block", "sda"))
     reboot(); log, c = once()
     check("did not finish" in log and "1 time" in log and c.count("insmod") == 4,
-          "yardnet: a start that did not finish is counted, and Wi-Fi is tried once more")
+          f"{tag}: a start that did not finish is counted, and Wi-Fi is tried once more")
     reboot(); open(calls, "w").write(""); log, c = once()
-    check("not trying again" in log and "insmod" not in c, "yardnet: after two failed starts it stops trying")
+    check("not trying again" in log and "insmod" not in c, f"{tag}: after two failed starts it stops trying")
     # A stick resets that; a clean start (an address, here) clears the guard.
     os.makedirs(os.path.join(sysd, "block", "sda"))
     reboot(); open(calls, "w").write(""); open(os.path.join(d, "addr"), "w").write("")
     log, c = once()
     log, c = once()
     check("insmod" in c and "start finished cleanly" in log and not os.path.exists(os.path.join(games, "net", "wifi.trying")),
-          "yardnet: a stick clears the failed starts, and an address clears the guard file")
+          f"{tag}: a stick clears the failed starts, and an address clears the guard file")
 
 
 # ---------------------------------------------------------------------------- love

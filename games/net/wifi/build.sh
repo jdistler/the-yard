@@ -78,6 +78,6 @@ for m in cfg80211 8821au; do
 done
 strings "$OUT/8821au.ko" | sed -n 's/^alias=usb:v\([0-9A-F]\{4\}\)p\([0-9A-F]\{4\}\).*/\1:\2/p' | tr 'A-F' 'a-f' | sort -u > "$OUT/usb-ids.txt"
 grep -qx 2357:011e "$OUT/usb-ids.txt"
-tar -czf "$OUT/wifi.tar.gz" --owner=0 --group=0 -C "$OUT" cfg80211.ko 8821au.ko wpa_supplicant usb-ids.txt
+tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -C "$OUT" -cf - cfg80211.ko 8821au.ko wpa_supplicant usb-ids.txt | gzip -n -9 > "$OUT/wifi.tar.gz"
 ls -l "$OUT"
 echo "built $OUT/wifi.tar.gz"

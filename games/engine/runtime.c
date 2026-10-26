@@ -43,6 +43,7 @@ typedef struct {
     char title[33];
     char native[33];
     int order, system, w, h;
+    int memory_all; /* info.memory == "all": the stock menu is stopped while it runs (GPU yard) */
     lua_State *L; /* the info state, kept by the menu for icons and stats */
 } cart_t;
 
@@ -671,6 +672,9 @@ static int load_info(cart_t *c, char *err, size_t errn)
     lua_pop(L, 1);
     lua_getfield(L, -1, "system");
     c->system = lua_toboolean(L, -1);
+    lua_pop(L, 1);
+    lua_getfield(L, -1, "memory");
+    c->memory_all = lua_isstring(L, -1) && !strcmp(lua_tostring(L, -1), "all");
     lua_pop(L, 1);
     lua_getfield(L, -1, "size");
     c->w = 240;
@@ -1396,8 +1400,9 @@ static int l_yard_launch(lua_State *L)
          * starts so the kernel closes the DRM fd and reclaims all shmem and pak/Lua memory; the tiny
          * pre-SDL parent loop in main() spawns the cart and then forks a fresh menu process. */
         char spec[80];
-        int n = snprintf(spec, sizeof spec, "%s:%s", c->native[0] ? "native" : "cart",
-                         c->native[0] ? c->native : c->id);
+        /* "\nmemory" asks the supervisor for the stock menu's memory too (info.memory = "all"). */
+        int n = snprintf(spec, sizeof spec, "%s:%s%s", c->native[0] ? "native" : "cart",
+                         c->native[0] ? c->native : c->id, c->memory_all ? "\nmemory" : "");
         if (n > 0 && (size_t)n < sizeof spec) {
             ssize_t w = write(launch_pipe, spec, (size_t)n);
             (void)w;
@@ -1489,6 +1494,19 @@ static int supervising(void)
 #endif
 }
 
+/* Stops the stock menu (TERM, then KILL after 3 s) to have its 53 MB; it starts again when The Yard quits. */
+static void stock_menu_stop(const char *stock, pid_t sp, const char *why)
+{
+    int i;
+    kill(sp, SIGTERM);
+    for (i = 0; i < 30 && find_proc(stock) == sp; i++)
+        usleep(100000);
+    if (find_proc(stock) == sp)
+        kill(sp, SIGKILL);
+    cab_log("yard: stopped the stock menu (pid %d) to free its memory for %s; it starts again when The Yard quits",
+            (int)sp, why);
+}
+
 /* Returns the menu's exit code when the menu quits, or -1 to run the menu in this process instead. */
 static int supervise(void)
 {
@@ -1498,14 +1516,7 @@ static int supervise(void)
     open_log();
     set_oom(0, OOM_KEEPER);
     if (sp && stop) {
-        int i;
-        kill(sp, SIGTERM);
-        for (i = 0; i < 30 && find_proc(stock) == sp; i++)
-            usleep(100000);
-        if (find_proc(stock) == sp)
-            kill(sp, SIGKILL);
-        cab_log("yard: stopped the stock menu (pid %d) to free its memory; it starts again when The Yard quits",
-                (int)sp);
+        stock_menu_stop(stock, sp, "The Yard (yard.conf)");
     } else if (sp) {
         cab_log("yard: the stock menu (pid %d) %s", (int)sp,
                 set_oom(sp, -1000) == 0 ? "is protected from the OOM killer" : "could not be protected");
@@ -1559,6 +1570,18 @@ static int supervise(void)
             return WIFEXITED(st) ? WEXITSTATUS(st) : 0;
         }
         spec[n] = 0;
+        {
+            /* A cart that wants all the memory (GPU yard: LÖVE does not fit beside the stock menu, and the
+             * stock menu is protected, so the OOM killer took LÖVE; round 2, 2026-10-26). */
+            char *nl = strchr(spec, '\n');
+            pid_t now;
+            if (nl) {
+                int want = !strcmp(nl + 1, "memory");
+                *nl = 0;
+                if (want && stock && (now = find_proc(stock)) > 0)
+                    stock_menu_stop(stock, now, strchr(spec, ':') ? strchr(spec, ':') + 1 : spec);
+            }
+        }
         memset(&target, 0, sizeof target);
         if (!strncmp(spec, "native:", 7))
             snprintf(target.native, sizeof target.native, "%s", spec + 7);

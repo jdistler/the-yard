@@ -99,6 +99,18 @@ def file_blocks(img, dest, size, bs):
     return [int(x) for x in re.findall(r"^(\d+)$", out, re.M)], n
 
 
+def same_on_disk(img, src, dest, mode, tmp):
+    """dest already holds src byte for byte, root-owned with this mode, and every block allocated (no holes).
+    Writing it again would only use free space (data was 96% full on 2026-10-26) and add blocks to the write."""
+    st = stat(img, dest)
+    if not st or st["type"] != "regular" or (st["mode"] & 0o7777, st["uid"], st["gid"]) != (mode, 0, 0):
+        return False
+    if cat(img, dest, tmp) != open(src, "rb").read():
+        return False
+    blocks, n = file_blocks(img, dest, os.path.getsize(src), block_size(img))
+    return len(blocks) == n and 0 not in blocks
+
+
 def put(img, data_path, dest, mode, uid, gid):
     if stat(img, dest):
         debugfs(img, f'rm "/{dest}"', write=True)
@@ -193,6 +205,10 @@ def main():
         if len(f) not in (2, 3):
             raise SystemExit(f"--put {spec}: want SRC:DEST[:MODE]")
         src, dest, mode = f[0], f[1].strip("/"), int(f[2], 8) if len(f) == 3 else 0o755
+        if same_on_disk(img, src, dest, mode, J("tmp_cat")):
+            expect.append((dest, open(src, "rb").read(), (mode, 0, 0)))
+            print(f"  put {src} -> /data/{dest}: unchanged, left alone")
+            continue
         put(img, os.path.abspath(src), dest, mode, 0, 0)
         expect.append((dest, open(src, "rb").read(), (mode, 0, 0)))
         print(f"  put {src} -> /data/{dest} mode {mode:o}")

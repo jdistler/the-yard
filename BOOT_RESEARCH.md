@@ -440,3 +440,29 @@ well enough to verify struct layouts by code comparison. Wi-Fi is expected, not 
   `32aa7d73…7639`. Same-session `diff` of the raw dump: none. `rk_restore.py restore` of the 136 blocks
   (the user's written approval of that list): every page verified, 136 blocks "restored and verified".
   `diff` against the patched image: none.
+
+### 2026-10-26 (evening): round 2 play test, the read-back, and the fix staged
+
+* **The user's play test:** Keep, Lamp, Orb, Tea, Chest, eight+ launches: good; the stock menu came back
+  every time (the "LOADING..." fix holds). **GPU yard failed twice:** black screen about 10 s, slow music,
+  then back to The Yard. AC600 plugged in for 2+ minutes: no crash, but no network (no SSH on the LAN, no
+  new client in the Omada controller; the SSID is WPA2-PSK AES, which our wpa_supplicant supports).
+* Read-back: Mask ROM device 5 → loader device 6 → `rawdump --verify`
+  `2026-10-26_round2_played/nand_raw.bin` (`c28f195b…8381`). Logs in `captures/round2/`.
+* **Wi-Fi:** `net.log` says `wifi: could not unpack /data/Games/wifi.tar.gz`, every 5 s. The stock busybox
+  1.27 `tar` has no `-z` (checked under qemu). The test missed it because it ran the script in busybox ash
+  but with the PC's `tar`. Also, `/userdata` is 96% full (1.2 MB free), so the 4 MB bundle would not have
+  fit unpacked on disk anyway. Fixed: `gzip -dc | tar -xf -` into `/tmp` (RAM), the `.ko` files deleted
+  once loaded, one failure logged per boot. `test.py` now runs the yardnet scenarios a second time with the
+  cabinet's own busybox applets (that run fails 5 checks with the old line).
+* **GPU yard:** `love-probe.log`: `Killed` / `love exited 137` both times, with 10 MB free and 37 MB
+  available when The Yard starts. Round 2 protects the stock menu (53 MB) from the OOM killer, so the
+  kernel now kills LÖVE instead. Fixed: a cart can say `memory = "all"`; the menu passes it with the launch
+  request; the supervisor stops the stock menu just before such a row runs (it starts again when The Yard
+  quits, as before). GPU yard's row says it. New `test.py` check with a stand-in stock menu.
+* `data_patch.py --put` leaves a file alone that is already there byte for byte with every block
+  allocated (`same_on_disk`); the LÖVE `.love` and `.tar.gz` and the Wi-Fi tar are now reproducible
+  (fixed dates, sorted names, `gzip -n`), so unchanged content stays unchanged on the cabinet.
+* Gate: all carts pass; 131 passed, 0 failed. Staged from `c28f195b…8381` (same-session `diff` none):
+  84 blocks; `yard`, `orb`, `yard.pak` in place, `love.tar.gz` (once more: the old one was not
+  reproducible) and `yardnet` rewritten, the rest unchanged. Waiting for the user's approval.
