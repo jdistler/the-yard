@@ -16,11 +16,11 @@ CACHE=$HOME/.cache/partycade-host
 # key (the cabinet asks DHCP for the name "partycade", so the router lists it too).
 find_host() {
   for h in ${CAB_HOST:-} $(cat "$CACHE" 2>/dev/null) 192.168.1.225; do
-    ssh $OPTS -o ConnectTimeout=4 root@$h true 2>/dev/null && { echo $h; return 0; }
+    ssh -n $OPTS -o ConnectTimeout=4 root@$h true 2>/dev/null && { echo $h; return 0; }
   done
   net=$(ip -4 route | awk '/ src / && !/docker|br-|tailscale/ {print $1; exit}')
   for h in $(nmap -p22 --open -n -T4 "$net" -oG - 2>/dev/null | awk '/22\/open/{print $2}'); do
-    ssh $OPTS -o ConnectTimeout=4 root@$h true 2>/dev/null && { echo $h; return 0; }
+    ssh -n $OPTS -o ConnectTimeout=4 root@$h true 2>/dev/null && { echo $h; return 0; }
   done
   return 1
 }
