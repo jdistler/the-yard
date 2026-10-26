@@ -832,6 +832,18 @@ def love():
         a, b = cart_lines(c_err, cid), cart_lines(l_err, cid)
         check(a and a == b, f"{cid}: the bot's game logs the same {len(a)} lines on both runtimes")
         check(read(c_dir, f"{cid}.sav") == read(l_dir, f"{cid}.sav"), f"{cid}: the same save file on both runtimes")
+    # game.gpu: false on the C runtime, true on LÖVE (carts use it only to choose a drawing).
+    gc = tmpdir()
+    os.makedirs(os.path.join(gc, "gpucheck"))
+    open(os.path.join(gc, "gpucheck", "info.lua"), "w").write('return { title = "Gpucheck" }\n')
+    open(os.path.join(gc, "gpucheck", "main.lua"), "w").write(
+        'function init() log("gpucheck " .. tostring(game.gpu)) end\nfunction update() end\nfunction draw() end\n')
+    c_dir, l_dir = tmpdir(), tmpdir()
+    _, c_err = run("yard", c_dir, script("Gpucheck", "30 quit"), dict(base, YARD_CARTS=gc), args=("gpucheck",), timeout=120)
+    _, l_err = run("love", l_dir, script("Gpucheck", "30 quit"), dict(lenv, YARD_CARTS=gc), args=(yl, "gpucheck"),
+                   timeout=300, binary=LOVE_RUN)
+    check("gpucheck false" in c_err and "gpucheck true" in l_err,
+          "game.gpu is false on the C runtime and true on the GPU runtime")
     # 2. The menu launches a cart in the same process and comes back to a drawn menu.
     m_dir = tmpdir()
     back, inlamp = os.path.join(m_dir, "back.png"), os.path.join(m_dir, "inlamp.png")

@@ -569,6 +569,62 @@ def cmd_deploy(a):
     print(f"Plan: {plan}\nNothing was written to the cabinet.")
 
 
+def cmd_push(a):
+    """Install over Wi-Fi (no Mask ROM): the runtime, Orb, the pack, and the GPU yard's .love, each only if it
+    changed. Slot files (yard, orb, yard.pak) are written into the blocks they own (dd conv=notrunc: /userdata
+    is ~96% full); the rest are rewritten. Every file is checked by sha256 afterwards. Refuses while The Yard
+    runs. Needs the cabinet's SSH key (tools/cab.sh)."""
+    import hashlib
+    host = os.environ.get("CAB_HOST", "192.168.1.225")
+    key = os.path.expanduser("~/yard_key_ecdsa")
+    sshopt = ["-i", key, "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
+              "-o", "LogLevel=ERROR", "-o", "ConnectTimeout=8"]
+    def ssh(cmd):
+        return subprocess.run(["ssh"] + sshopt + [f"root@{host}", cmd], capture_output=True, text=True)
+    stage = tempfile.mkdtemp(prefix="cart-push-")
+    print("1. Building for the cabinet")
+    subprocess.check_call(["./build.sh", "cab"], cwd=HERE, stdout=subprocess.DEVNULL)
+    extra = [os.path.join(HERE, "love", "label", n) for n in ("loveprobe", "loveyard")]
+    extra.append(os.path.join(HERE, "sysprobe", "label", "sysprobe"))
+    cmd_pack(argparse.Namespace(out=os.path.join(stage, "yard.pak.raw"), extra=extra))
+    files = {}
+    pad(os.path.join(stage, "yard.pak.raw"), os.path.join(stage, "yard.pak"), SLOTS["yard.pak"])
+    pad(os.path.join(HERE, "out", "cab", "yard"), os.path.join(stage, "yard"), SLOTS["yard"])
+    pad(os.path.join(HERE, "out", "cab", "orb"), os.path.join(stage, "orb"), SLOTS["orb"])
+    for n in ("yard", "orb", "yard.pak"):
+        files[f"/data/Games/{n}"] = (os.path.join(stage, n), True)
+    files["/data/love/yard.love"] = (love_pack(os.path.join(stage, "yard.love")), False)
+    for extra_file in a.also or []:
+        src, dst = extra_file.split(":", 1)
+        files[dst] = (os.path.abspath(src), False)
+    r = ssh("pidof yard love.bin >/dev/null && echo busy; sha256sum " + " ".join(files))
+    if r.returncode not in (0, 1) and not r.stdout:
+        die(f"cannot reach the cabinet at {host}: {r.stderr.strip()} (is The Yard opened once since boot, for Wi-Fi?)")
+    if "busy" in r.stdout:
+        die("The Yard or GPU yard is running on the cabinet: leave it first, nothing was changed")
+    have = {l.split()[1]: l.split()[0] for l in r.stdout.splitlines() if len(l.split()) == 2}
+    print("2. Installing")
+    changed = 0
+    for dst, (src, slot) in files.items():
+        want = hashlib.sha256(open(src, "rb").read()).hexdigest()
+        if have.get(dst) == want:
+            print(f"   {dst}: unchanged")
+            continue
+        tmp = "/tmp/cart-push." + os.path.basename(dst)
+        subprocess.check_call(["scp", "-O", "-q"] + sshopt + [src, f"root@{host}:{tmp}"])
+        if slot:
+            how = f"dd if={tmp} of={dst} bs=65536 conv=notrunc,fsync 2>/dev/null"
+        else:
+            how = f"cat {tmp} > {dst}"
+        r = ssh(f"[ \"$(sha256sum {tmp} | cut -d' ' -f1)\" = {want} ] && {how} && sync && rm -f {tmp} && sha256sum {dst}")
+        if want not in r.stdout:
+            die(f"{dst}: the copy did not check out ({r.stdout.strip()} {r.stderr.strip()})")
+        print(f"   {dst}: installed ({want[:12]})")
+        changed += 1
+    shutil.rmtree(stage, ignore_errors=True)
+    print(f"{changed} file(s) changed. A Mask ROM deploy must start from a fresh dump now (STATUS.md).")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -597,6 +653,8 @@ def main():
     p.add_argument("--out")
     p = sub.add_parser("love")
     p.add_argument("id", nargs="?")
+    p = sub.add_parser("push", help="install over Wi-Fi (SSH), no Mask ROM")
+    p.add_argument("--also", nargs="*", help="SRC:/data/DEST more files to install (rewritten whole)")
     p = sub.add_parser("deploy")
     p.add_argument("--raw", required=True, help="a fresh rk.py rawdump from this Mask ROM session")
     p.add_argument("--out", required=True, help="a new folder under ~/partycade-dumps/")
@@ -623,7 +681,7 @@ def main():
                    help="pass --repair to data_patch.py (fixes a power-cut dirty data filesystem copy before editing)")
     a = ap.parse_args()
     {"new": cmd_new, "list": cmd_list, "run": cmd_run, "check": cmd_check, "shots": cmd_shots, "perf": cmd_perf,
-     "pack": cmd_pack, "deploy": cmd_deploy, "love-pack": cmd_love_pack, "love": cmd_love}[a.cmd](a)
+     "pack": cmd_pack, "deploy": cmd_deploy, "push": cmd_push, "love-pack": cmd_love_pack, "love": cmd_love}[a.cmd](a)
 
 
 if __name__ == "__main__":

@@ -108,6 +108,7 @@ Write Lua 5.1 plus the library. The C runtime is Lua 5.4, but the GPU runtime ([
 | `game.selftest` | `<ID>_SELFTEST` is set: do a short self-check and `game.quit()` |
 | `game.scripted` | A test script is pressing the deck |
 | `game.dev` | `./cart run`: hot reload is on |
+| `game.gpu` | The GPU runtime (GPU yard, LÖVE) is running the cart; false on the C runtime. For a drawing that suits the renderer, never for game rules: Tea paints its clouds once and draws them scaled on the GPU (2026-10-26) |
 | `game.quit()` | Leave, back to the menu |
 
 ## 4. API reference

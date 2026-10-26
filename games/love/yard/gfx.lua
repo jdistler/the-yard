@@ -34,7 +34,21 @@ local function rgba(c)
   return band(rshift(c, 16), 255) / 255, band(rshift(c, 8), 255) / 255, band(c, 255) / 255, a / 255
 end
 G.rgba = rgba
-local function setc(c) lg.setColor(rgba(c)) end
+-- The blend mode, set lazily: LÖVE ends its draw batch at every change, and a glow used to switch to "add"
+-- and straight back, two batch breaks per glow (23% of Chest's CPU time, 2026-10-26). Now a glow leaves
+-- "add" on, and the next ordinary draw (setc, blit, image) asks for "alpha" again. Anything that sets the
+-- blend mode behind blend()'s back (push/pop, lg.setBlendMode) must call blend_unknown().
+local cur_blend, cur_amode
+local function blend(mode, amode)
+  amode = amode or "alphamultiply"
+  if (cur_blend ~= mode or cur_amode ~= amode) or not G.lazy_blend then
+    lg.setBlendMode(mode, amode)
+    cur_blend, cur_amode = mode, amode
+  end
+end
+local function blend_unknown() cur_blend, cur_amode = nil, nil end
+G.blend_unknown = blend_unknown
+local function setc(c) blend("alpha") lg.setColor(rgba(c)) end
 
 -- ------------------------------------------------------------------ targets and transforms
 
@@ -124,10 +138,12 @@ end
 
 function G.begin_frame()
   offx, offy = 0, 0
+  G.label_frame = G.label_frame + 1
   if screen == DIRECT and G.early_lights and G.lights_before_frame then G.lights_before_frame() end
   set_target(screen, K)
   if screen == DIRECT then lg.clear(0, 0, 0, 1) end
-  lg.setBlendMode("alpha")
+  blend_unknown()
+  blend("alpha")
   lg.setLineJoin("bevel")
 end
 
@@ -136,6 +152,7 @@ function G.screen() return screen ~= DIRECT and screen or nil end
 -- Shake, flash, and the quit meter are laid over the finished frame, as gfx_present did.
 function G.finish_frame(quitting)
   set_target(screen, K)
+  blend("alpha")
   offx, offy = 0, 0
   apply_transform()
   if G.badge then
@@ -185,7 +202,8 @@ end
 
 -- ------------------------------------------------------------------ shapes
 
-local function segs(r) return math.max(10, math.min(72, math.floor(r * target_k * 0.7))) end
+-- Segments for a circle of radius r: about one per 1.4 framebuffer pixels of radius (G.seg_k, default 0.7).
+local function segs(r) return math.max(10, math.min(72, math.floor(r * target_k * (G.seg_k or 0.7)))) end
 
 local api = {}
 G.api = api
@@ -216,6 +234,7 @@ local function grad(x, y, w, h, c0, c1, vertical)
     v = {{x, y, 0, 0, r0, g0, b0, a0}, {x + w, y, 1, 0, r1, g1, b1, a1}, {x + w, y + h, 1, 1, r1, g1, b1, a1}, {x, y + h, 0, 1, r0, g0, b0, a0}}
   end
   local m = lg.newMesh(v, "fan", "stream")
+  blend("alpha")
   lg.setColor(1, 1, 1)
   lg.draw(m)
   m:release()
@@ -255,9 +274,42 @@ end
 G.poly = poly
 function api.tri(x0, y0, x1, y1, x2, y2, c) poly({x0, y0, x1, y1, x2, y2}, c) end
 function api.poly(pts, c) poly(pts, c) end
+-- A thick line with round ends, as one convex "stadium" polygon: a line and two 12-sided caps were three
+-- shapes each, and Tea draws ~95 lines a frame (2026-10-26). CAP_N points per half circle.
+local CAP_N = 5
+local cap_cos, cap_sin = {}, {}
+for i = 0, CAP_N - 1 do
+  local a = -math.pi / 2 + math.pi * i / (CAP_N - 1)
+  cap_cos[i], cap_sin[i] = math.cos(a), math.sin(a)
+end
+local stadium = {}
 function api.line(x0, y0, x1, y1, thick, c)
   setc(c)
   thick = thick or 1
+  if thick > 1.5 and G.stadium_lines then
+    local dx, dy = x1 - x0, y1 - y0
+    local len = math.sqrt(dx * dx + dy * dy)
+    local h = thick / 2
+    if len < 1e-6 then lg.circle("fill", x0, y0, h, 12) return end
+    local ux, uy = dx / len, dy / len       -- along the line
+    local n = 0
+    -- the cap at (x1, y1), from one side round to the other, then the cap at (x0, y0)
+    for i = 0, CAP_N - 1 do
+      local cx, cy = cap_cos[i], cap_sin[i]
+      stadium[n + 1] = x1 + (ux * cx - uy * cy) * h
+      stadium[n + 2] = y1 + (uy * cx + ux * cy) * h
+      n = n + 2
+    end
+    for i = 0, CAP_N - 1 do
+      local cx, cy = -cap_cos[i], -cap_sin[i]
+      stadium[n + 1] = x0 + (ux * cx - uy * cy) * h
+      stadium[n + 2] = y0 + (uy * cx + ux * cy) * h
+      n = n + 2
+    end
+    stadium[n + 1] = nil
+    lg.polygon("fill", stadium)
+    return
+  end
   lg.setLineWidth(thick)
   lg.line(x0, y0, x1, y1)
   if thick > 1.5 then
@@ -268,10 +320,10 @@ end
 function api.glow(x, y, r, c)
   if r <= 0.5 then return end
   local cr, cg, cb, ca = rgba(c)
-  lg.setBlendMode("add")
+  blend("add")
   lg.setColor(cr, cg, cb, ca)
   lg.draw(glow_tex, x - r, y - r, 0, 2 * r / 128, 2 * r / 128)
-  lg.setBlendMode("alpha")
+  if not G.lazy_blend then blend("alpha") end
 end
 function api.star(x, y, r, rot, c)
   local p = {}
@@ -312,10 +364,10 @@ function api.rrect_o(x, y, w, h, r, fill, ink, t)
 end
 function api.dim(k)
   k = math.max(0, math.min(1, k))
-  lg.setBlendMode("multiply", "premultiplied")
+  blend("multiply", "premultiplied")
   lg.setColor(k, k, k, 1)
   lg.rectangle("fill", -offx, -offy, W, H)
-  lg.setBlendMode("alpha")
+  blend("alpha")
 end
 function api.shake(a) if a > shake_amt then shake_amt = a end end
 function api.flash(c, frames) flash_c, flash_left, flash_len = c, frames, math.max(1, frames) end
@@ -410,6 +462,60 @@ local function laid_out(f, s)
   return t
 end
 
+-- Outlined labels as pictures: an outlined label is nine prints, each laid out again every frame (42% of the
+-- menu's CPU time on the cabinet, 2026-10-26). Painted once into a small canvas, it is one quad after that.
+-- Kept per font, string, colors; the least recently used go past LABEL_KEEP. A frame paints at most
+-- LABEL_NEW_PER_FRAME new ones (a canvas switch each), the rest print as before until a later frame.
+local LABEL_KEEP, LABEL_NEW_PER_FRAME = 160, 6
+local labels, nlabels, label_tick, label_new, label_frame = {}, 0, 0, 0, -1
+G.label_frame = 0
+local function label(f, s, size, color, outline, k)
+  local key = s .. "\0" .. size .. "\0" .. color .. "\0" .. outline
+  local byf = labels[f]
+  if not byf then byf = {} labels[f] = byf end
+  label_tick = label_tick + 1
+  local e = byf[key]
+  if e then e[3] = label_tick return e[1], e[2] end
+  if label_frame ~= G.label_frame then label_frame, label_new = G.label_frame, 0 end
+  if label_new >= LABEL_NEW_PER_FRAME then return nil end
+  label_new = label_new + 1
+  if nlabels >= LABEL_KEEP then
+    local all = {}
+    for ff, t in pairs(labels) do for kk, ee in pairs(t) do all[#all + 1] = {ff, kk, ee[3]} end end
+    table.sort(all, function(p, q) return p[3] < q[3] end)
+    for i = 1, math.floor(#all / 2) do
+      local t = labels[all[i][1]]
+      t[all[i][2]][1]:release()
+      t[all[i][2]] = nil
+    end
+    nlabels = #all - math.floor(#all / 2)
+  end
+  local r = size >= 14 and math.floor((size + 6) / 12) or 1
+  local dy = size >= 18 and 1 or 0
+  local pad = math.ceil((r + 1) * k)
+  local cw, ch = math.ceil(f:getWidth(s)) + 2 * pad, math.ceil(f:getHeight()) + 2 * pad + dy
+  if cw > 2048 or ch > 2048 or cw < 1 then return nil end
+  local c = lg.newCanvas(cw, ch)
+  lg.push("all")
+  lg.origin()
+  lg.setCanvas(c)
+  lg.clear(0, 0, 0, 0)
+  lg.setBlendMode("alpha")
+  lg.setFont(f)
+  lg.setColor(rgba(outline))
+  for i = 0, 7 do
+    local a = i * math.pi / 4
+    lg.print(s, pad + math.cos(a) * r * k, pad + math.sin(a) * r * k + dy)
+  end
+  lg.setColor(rgba(color))
+  lg.print(s, pad, pad)
+  lg.pop()
+  blend_unknown()
+  byf[key] = {c, pad, label_tick}
+  nlabels = nlabels + 1
+  return c, pad
+end
+
 function api.text(s, x, y, size, color, align, outline, fid)
   s = tostring(s)
   if type(size) == "table" then
@@ -423,6 +529,17 @@ function api.text(s, x, y, size, color, align, outline, fid)
   local al = align_of(align)
   local px = x - (al == 1 and w / 2 or al == 2 and w or 0)
   local ik = 1 / k
+  -- Only opaque labels: a fading label (particle text) changes color every frame and would paint every frame.
+  if G.label_cache and outline and outline ~= 0 and select(4, rgba(outline)) == 1
+     and select(4, rgba(color or 0xffffff)) == 1 then
+    local img, pad = label(f, s, size, color or 0xffffff, outline, k)
+    if img then
+      blend("alpha", "premultiplied")
+      lg.setColor(1, 1, 1, 1)
+      lg.draw(img, px - pad * ik, y - pad * ik, 0, ik, ik)
+      return w
+    end
+  end
   if not G.text_cache then
     lg.setFont(f)
     if outline and outline ~= 0 then
@@ -611,7 +728,15 @@ function api.draw(img, x, y, o)
       quads[img][key] = q
     end
   end
-  lg.setColor(1, 1, 1, alpha / 255)
+  if img.canvas and not tint then
+    -- A layer's pixels are premultiplied (painted over transparent): draw them as such, as blit does.
+    blend("alpha", "premultiplied")
+    local a = alpha / 255
+    lg.setColor(a, a, a, a)
+  else
+    blend("alpha")
+    lg.setColor(1, 1, 1, alpha / 255)
+  end
   if tint then
     local r, g, b, a = rgba(tint)
     tint_shader:send("tint", {r, g, b, a})
@@ -627,9 +752,9 @@ end
 function api.blit(l, x, y)
   if not (G.is_img(l) and l.canvas) then error("blit takes a layer; use gfx.draw for images", 2) end
   lg.setColor(1, 1, 1, 1)
-  lg.setBlendMode("alpha", "premultiplied")
+  blend("alpha", "premultiplied")
   lg.draw(l.canvas, math.floor(x), math.floor(y), 0, 1 / l.k, 1 / l.k)
-  lg.setBlendMode("alpha")
+  if not G.lazy_blend then blend("alpha") end
 end
 function api.blit_key(l, x, y)
   if not (G.is_img(l) and l.canvas) then error("blit_key takes a layer", 2) end
@@ -699,7 +824,7 @@ end
 -- So this frame shows last frame's light map (one frame late, invisible), and apply() only composites it.
 local l_amb_pending = 0.1
 local function lights_before_frame()
-  if pending_n > 0 and lc then fill_light_canvas(spare, pending_n, l_amb_pending) end
+  if pending_n > 0 and lc then fill_light_canvas(spare, pending_n, l_amb_pending) blend_unknown() end
 end
 G.lights_before_frame = lights_before_frame
 function G.reset_lights() pending_n, nq = 0, 0 end
@@ -727,6 +852,7 @@ function light.apply(tint)
     lg.draw(lc, lx - offx, ly - offy)
     lg.setShader()
     lg.setBlendMode("alpha")
+    blend_unknown()
     return
   end
   lg.push("all")
@@ -749,6 +875,7 @@ function light.apply(tint)
   lg.setBlendMode("add")
   lg.draw(lt, lx - offx, ly - offy)
   lg.setBlendMode("alpha")
+  blend_unknown()
   nq = 0
 end
 

@@ -19,6 +19,7 @@ local MEM_CAP = (tonumber(os.getenv("YARD_MEM_MB") or "") or 32) * 1024 * 1024
 local TEX_CAP = (tonumber(os.getenv("YARD_TEX_MB") or "") or 64) * 1024 * 1024
 local headless = os.getenv("YARD_HEADLESS") == "1"
 local profiler                   -- jit.p while YARD_PROFILE runs
+local call_counts                -- YARD_COUNT: gfx calls since the last stats line
 -- Settings: an environment variable, else a "NAME value" line in YARD_GPU_CONF (on the cabinet
 -- /data/Games/gpu.conf, which can be changed over SSH between tries), else the default.
 local gpu_conf = {}
@@ -289,7 +290,7 @@ local function new_env(cart, is_info)
   env.music = audio.music
   color_api(env)
   env.game = {id = cart.id, title = cart.title or cart.id, w = cart.w, h = cart.h, fast = fast,
-              autoplay = os.getenv("CAB_AUTOPLAY") ~= nil, scripted = input.scripted(), dev = os.getenv("YARD_DEV") ~= nil,
+              autoplay = os.getenv("CAB_AUTOPLAY") ~= nil, scripted = input.scripted(), dev = os.getenv("YARD_DEV") ~= nil, gpu = true,
               selftest = os.getenv(cart.id:upper() .. "_SELFTEST") ~= nil or os.getenv("CART_SELFTEST") ~= nil,
               frame = 0}
   env.game.quit = function() cart.want_quit = true end
@@ -568,6 +569,15 @@ local function run(cart, resume_title)
           cart.id, frame, t_up / 300 * 1000, t_draw / math.max(1, draws) * 1000, t_pres / math.max(1, draws) * 1000,
           draws / (now - t_last), 300 / (now - t_last), behind, collectgarbage("count"), gfx.memory() / 1024,
           gfx.texture_memory() / 1024))
+        if call_counts then
+          local list = {}
+          for name, n in pairs(call_counts) do list[#list + 1] = {name, n / math.max(1, draws)} end
+          table.sort(list, function(p, q) return p[2] > q[2] end)
+          local out = {}
+          for i = 1, math.min(14, #list) do out[i] = string.format("%s %.1f", list[i][1], list[i][2]) end
+          log("calls per frame: " .. table.concat(out, ", "))
+          call_counts = {}
+        end
         t_up, t_draw, t_pres, t_last, draws, behind = 0, 0, 0, now, 0, 0
       end
       if check and frame >= check then stop = true break end
@@ -746,6 +756,19 @@ function love.run()
     -- and Keep 35 -> 60 fps); scripted runs keep the canvas, which screenshots need. YARD_DIRECT 0 turns it off.
     gfx.direct_test = os.getenv("YARD_DIRECT_TEST") == "1"
     gfx.text_cache = opt("YARD_TEXT_CACHE") == "1"
+    if os.getenv("YARD_COUNT") then
+      -- Count gfx calls (YARD_COUNT=1): the per-frame mean of each is logged with the stats.
+      call_counts = {}
+      for name, fn in pairs(gfx.api) do
+        if type(fn) == "function" then
+          gfx.api[name] = function(...) call_counts[name] = (call_counts[name] or 0) + 1 return fn(...) end
+        end
+      end
+    end
+    gfx.lazy_blend = opt("YARD_LAZY_BLEND") ~= "0"
+    gfx.stadium_lines = opt("YARD_STADIUM") ~= "0"
+    gfx.seg_k = tonumber(opt("YARD_SEG_K") or "")
+    gfx.label_cache = opt("YARD_LABELS") ~= "0"
     gfx.early_lights = opt("YARD_EARLY_LIGHTS") ~= "0"
     gfx.direct = gfx.direct_test or ((opt("YARD_DIRECT") or (input.scripted() and "0" or "1")) == "1" and not headless)
     gfx.load_font(0, love.filesystem.newFileData("fonts/Fredoka-SemiBold.ttf"))

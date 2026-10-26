@@ -93,7 +93,7 @@ function P.balloon(x, y, s, c)
   gfx.ellipse(x - 4 * s, y - 6 * s, 3 * s, 5 * s, alpha(0xffffff, 170))
 end
 
-local function cloud(x, y, s, squish)
+local function cloud_shapes(x, y, s, squish)
   local sq = 1 - squish * 0.3
   gfx.ellipse(x, y + 8 * s, 34 * s, 10 * s * sq, alpha(0xc8d8f8, 160))
   gfx.circle(x - 18 * s, y, 15 * s * sq, C.CREAM)
@@ -101,6 +101,18 @@ local function cloud(x, y, s, squish)
   gfx.circle(x, y - 8 * s * sq, 20 * s * sq, C.CREAM)
   gfx.ellipse(x, y + 6 * s, 30 * s, 9 * s * sq, C.CREAM)
   gfx.circle(x - 6 * s, y - 14 * s * sq, 7 * s, C.WHITE)
+end
+
+-- A cloud is six shapes, and a dozen fly by every frame: painted once (at two sizes, so a far cloud is not a
+-- big picture shrunk a lot) and drawn scaled. One being squished by the unicorn is drawn shape by shape.
+local CLOUD_W, CLOUD_H, CLOUD_CX, CLOUD_CY = 72, 50, 36, 30   -- at s = 1; the middle of the cloud at (CX, CY)
+local function cloud(x, y, s, squish)
+  -- The C runtime draws a scaled layer pixel by pixel with hard, dark edges: shapes look better there.
+  if squish > 0.01 or not game.gpu then cloud_shapes(x, y, s, squish) return end
+  local ref = s > 0.6 and 1.6 or 0.6
+  local w, h = math.ceil(CLOUD_W * ref), math.ceil(CLOUD_H * ref)
+  local l = bake("cloud:" .. ref, w, h, function() cloud_shapes(CLOUD_CX * ref, CLOUD_CY * ref, ref, 0) end)
+  gfx.draw(l, x, y, {scale = s / ref, ox = CLOUD_CX * ref / w, oy = CLOUD_CY * ref / h})
 end
 
 function P.castle(cx, base, s, door)

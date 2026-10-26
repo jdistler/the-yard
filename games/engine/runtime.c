@@ -829,6 +829,10 @@ static void open_game_table(lua_State *L, cart_t *c)
     lua_setfield(L, -2, "scripted");
     lua_pushboolean(L, getenv("YARD_DEV") != NULL);
     lua_setfield(L, -2, "dev");
+    /* game.gpu: false here, true on the GPU runtime (games/love), so a cart can choose a drawing that suits
+     * the renderer (Tea's clouds: painted once and scaled on the GPU, shape by shape here). */
+    lua_pushboolean(L, 0);
+    lua_setfield(L, -2, "gpu");
     /* <ID>_SELFTEST or YARD_SELFTEST: a cart's own quick self-check (test.py quick). */
     snprintf(sel, sizeof sel, "%s_SELFTEST", c->id);
     for (char *p = sel; *p; p++)

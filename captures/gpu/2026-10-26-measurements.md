@@ -41,3 +41,21 @@ SDL_KMSDRM_PIPELINE=1 (lock and flip at the next swap; falls back when no buffer
 
 Now CPU-bound: draw (Lua + LÖVE) 8.5-15 ms. Lamp's lights before the frame (YARD_EARLY_LIGHTS) cut its draw
 9.7 -> 7.7 ms; a Text-object cache for outlined text did not help (9 draws each instead of one batch) and is off.
+
+## Evening: CPU side and zram
+
+Profiles (LuaJIT jit.p, YARD_PROFILE): text 42% of the menu, glows 23% of Chest, lines and stars in Tea.
+Call counts per frame (YARD_COUNT): Tea ~115 circles, 95 lines (each +2 cap circles), 47 ellipses.
+
+| change | effect on the cabinet |
+| :--- | :--- |
+| outlined labels painted once (YARD_LABELS) | menu 56.5 -> 59.8 fps |
+| lazy blend (YARD_LAZY_BLEND) | Tea draw 17.0 -> 15.5 ms |
+| thick line = one stadium polygon (YARD_STADIUM) | Chest 57 -> 59, Tea 41 -> 44 |
+| Tea's clouds painted once, GPU only (game.gpu) | Tea 44 -> 47 |
+| circle segments 0.7 -> 0.5 (YARD_SEG_K) | Tea +0.3 ms only; left at 0.7 |
+
+zram: a zram.ko built the same way as the Wi-Fi modules loads and works (lz4 through the crypto API). With 48 MB
+of zram and the stock menu paused, its 46 MB compressed to 19 MB, but Tea still ran out of memory, so GPU yard
+keeps stopping the stock menu. Not shipped. (A 50 MB /tmp test also made the OOM killer take the stock menu:
+keep memory tests small.)
