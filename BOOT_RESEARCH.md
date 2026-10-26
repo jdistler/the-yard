@@ -427,3 +427,16 @@ the field agent's unfinished session (cut off by a quota limit mid-way through W
 
 **Concluded:** loadable modules for this kernel are practical: the config can be recovered from the binary
 well enough to verify struct layouts by code comparison. Wi-Fi is expected, not verified.
+
+### 2026-10-26 (later): round 2 written
+
+* The user asked whether the 143 non-identical functions were a bricking risk. Checked: none of the 141
+  symbols `cfg80211.ko` imports and none of the 193 `8821au.ko` imports is among them. A module also can't
+  touch `boot`/`rootfs`; its worst case is an oops or freeze until a power cycle (the stock menu is on the
+  read-only rootfs; `data` is ext2 and could need a `--repair` on the next deploy).
+* The user has no thumb drive. The microSD slot is still off in the device tree, so the card does nothing
+  in the slot; in a USB card reader on USB-A it works as yardnet's stick (ext2 mounts too).
+* Re-staged with `--wifi-conf` (DISTLER, hashed PSK): the same 136 block numbers, patched image
+  `32aa7d73…7639`. Same-session `diff` of the raw dump: none. `rk_restore.py restore` of the 136 blocks
+  (the user's written approval of that list): every page verified, 136 blocks "restored and verified".
+  `diff` against the patched image: none.
