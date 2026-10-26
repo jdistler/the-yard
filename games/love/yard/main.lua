@@ -15,6 +15,8 @@ local lg = love.graphics
 
 local CART_MAX_STEPS_FRAME, CART_MAX_STEPS_INIT = 150000000, 400000000
 local MEM_CAP = (tonumber(os.getenv("YARD_MEM_MB") or "") or 32) * 1024 * 1024
+-- What the GPU really holds for a cart's pictures (layers are K*K bigger here than in the C runtime).
+local TEX_CAP = (tonumber(os.getenv("YARD_TEX_MB") or "") or 64) * 1024 * 1024
 local headless = os.getenv("YARD_HEADLESS") == "1"
 -- Settings: an environment variable, else a "NAME value" line in YARD_GPU_CONF (on the cabinet
 -- /data/Games/gpu.conf, which can be changed over SSH between tries), else the default.
@@ -561,9 +563,10 @@ local function run(cart, resume_title)
       frame = frame + 1
       if stats and frame % 300 == 0 then
         local now = love.timer.getTime()
-        log(string.format("stats %s frame %d update %.2fms draw %.2fms present %.2fms (%.1f fps drawn, %.1f steps/s, %d behind) lua %dKB images %dKB",
+        log(string.format("stats %s frame %d update %.2fms draw %.2fms present %.2fms (%.1f fps drawn, %.1f steps/s, %d behind) lua %dKB images %dKB gpu %dKB",
           cart.id, frame, t_up / 300 * 1000, t_draw / math.max(1, draws) * 1000, t_pres / math.max(1, draws) * 1000,
-          draws / (now - t_last), 300 / (now - t_last), behind, collectgarbage("count"), gfx.memory() / 1024))
+          draws / (now - t_last), 300 / (now - t_last), behind, collectgarbage("count"), gfx.memory() / 1024,
+          gfx.texture_memory() / 1024))
         t_up, t_draw, t_pres, t_last, draws, behind = 0, 0, 0, now, 0, 0
       end
       if check and frame >= check then stop = true break end
@@ -583,11 +586,17 @@ local function run(cart, resume_title)
     present(cart, input.quit_progress())
     local t3 = love.timer.getTime()
     t_up, t_draw, t_pres, draws = t_up + (t1 - t0), t_draw + (t2 - t1), t_pres + (t3 - t2), draws + 1
-    if collectgarbage("count") * 1024 + gfx.memory() > MEM_CAP then
+    if collectgarbage("count") * 1024 + gfx.memory() > MEM_CAP or gfx.texture_memory() > TEX_CAP then
       collectgarbage()
       gfx.collect()
       if collectgarbage("count") * 1024 + gfx.memory() > MEM_CAP then
         cart.err = "the game used up its memory (" .. math.floor(MEM_CAP / 1048576) .. " MB). Is a list growing every frame?"
+        oops(cart, 5)
+        current = keep
+        return "stumbled"
+      end
+      if gfx.texture_memory() > TEX_CAP then
+        cart.err = "the game's pictures use more than " .. math.floor(TEX_CAP / 1048576) .. " MB on the GPU. Are layers made every frame?"
         oops(cart, 5)
         current = keep
         return "stumbled"

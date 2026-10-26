@@ -18,8 +18,12 @@ local shake_amt, flash_c, flash_left, flash_len = 0, 0, 0, 1
 local glow_tex, white
 local fonts, font_data = {}, {}
 local tint_shader, light_mul, light_add
-local image_bytes = 0
+-- Two counts. image_bytes is what the cart's 32 MB cap sees: each picture at the cart's own size, as the C
+-- runtime counts it, so a cart that passes cart check fits here too. texture_bytes is what the GPU really
+-- holds (a layer is K*K bigger: 3 MB for a full-screen one at K = 3.2), guarded separately (main.lua).
+local image_bytes, texture_bytes = 0, 0
 G.memory = function() return image_bytes end
+G.texture_memory = function() return texture_bytes end
 
 -- ------------------------------------------------------------------ colors
 
@@ -469,16 +473,17 @@ local function new_img(t) return setmetatable(t, Img) end
 G.is_img = function(v) return getmetatable(v) == Img end
 
 local live = setmetatable({}, {__mode = "k"})
-local function count(t, bytes)
-  t.bytes = bytes
+local function count(t, bytes, real)
+  t.bytes, t.real = bytes, real or bytes
   image_bytes = image_bytes + bytes
+  texture_bytes = texture_bytes + t.real
   live[t] = true
 end
 -- Released images give their bytes back (the cart's memory cap counts them).
 function G.collect()
-  local n = 0
-  for t in pairs(live) do n = n + t.bytes end
-  image_bytes = n
+  local n, r = 0, 0
+  for t in pairs(live) do n, r = n + t.bytes, r + t.real end
+  image_bytes, texture_bytes = n, r
 end
 
 function api.layer(w, h)
@@ -488,7 +493,7 @@ function api.layer(w, h)
   if cw > 2048 or ch > 2048 then k = 2048 / math.max(w, h) cw, ch = math.ceil(w * k), math.ceil(h * k) end
   local c = lg.newCanvas(cw, ch)
   local t = new_img({canvas = c, lw = w, lh = h, k = k})
-  count(t, cw * ch * 4)
+  count(t, w * h * 4, cw * ch * 4)
   return t
 end
 

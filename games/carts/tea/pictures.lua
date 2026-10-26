@@ -511,7 +511,12 @@ function P.draw_party()
   local hop = st.cheer_left > 0 and abs(sin(fr() * 0.3)) * 8 or 0
   local beat = st.song_mode and sin(fr() * 0.2) or 0
   local waving = input.quitting() > 0
-  backdrop("party:" .. st.photos, paint_party)
+  -- The party picture shows the photos on the wall, so it is painted again after each new photo; the old
+  -- one is let go (a full-screen layer is 3 MB on the GPU runtime, which ran out after a few, 2026-10-26).
+  local key = "party:" .. st.photos
+  if P.party_key and P.party_key ~= key then unbake(P.party_key) end
+  P.party_key = key
+  backdrop(key, paint_party)
   draw_decor(hop)
   local f = st.focus
   local fx, pulse = P.seat_x(f), 1 + 0.06 * sin(fr() * 0.12)
