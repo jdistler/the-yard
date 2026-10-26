@@ -466,3 +466,6 @@ well enough to verify struct layouts by code comparison. Wi-Fi is expected, not 
 * Gate: all carts pass; 131 passed, 0 failed. Staged from `c28f195b…8381` (same-session `diff` none):
   84 blocks; `yard`, `orb`, `yard.pak` in place, `love.tar.gz` (once more: the old one was not
   reproducible) and `yardnet` rewritten, the rest unchanged. Waiting for the user's approval.
+* **Written** (user's approval: "approved, write the 84 blocks in the round2_played plan"): loader device
+  6, same-session `diff` none, `rk_restore.py restore` 84 blocks, each "restored and verified"; `diff`
+  against the patched image afterwards: none.
