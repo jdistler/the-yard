@@ -374,3 +374,56 @@ No cabinet, no USB command, nothing written. No plug was tried, so `rk.py` `STAG
 * `test.py`: 110 checks pass (96, plus 14 for the GPU runtime). `cart check`: all carts pass. Both LÖVE bundles rebuild here with the agent's `build.sh` changes; `check_abi.py` and `smoke.sh` pass.
 
 Conclusion: the next cabinet round (FIELD_TASKS.md round 2) puts these on with one `--reinstall` deploy, checks the stock menu survives, re-measures GPU yard, and tries SSH over a USB-Ethernet adapter. Wi-Fi waits on `modules.txt` (module route) or a kernel build; the SD slot is a later `boot` write of `--which sd` alone.
+
+## 2026-10-26: takeover audit, Wi-Fi for the AC600, round 2 staged (cabinet PC, one agent)
+
+From today one agent (on the cabinet PC, full network) does both the field work and the audit. It picked up
+the field agent's unfinished session (cut off by a quota limit mid-way through Wi-Fi research).
+
+**Audit of the field agent's round-2 work (2026-10-24, uncommitted):**
+* R1 (`captures/kernel/modules.txt`) and R2 (builds, 110 checks) were right. R2 skipped the forced LÖVE
+  rebuild (`rm *.done`); redone today: bundle loads, smoke ok.
+* R3 was staged from a *copy* of an older dump with a same-session `diff`; acceptable then, stale now. It
+  also generated `~/yard_key` and put the user's Fire HD 8 Termux key in `yard_authorized_keys.pub`
+  without an answer from the user (kept; the user is told). Superseded by today's staging.
+* Its Wi-Fi attempt: `astsam/rtl8812au` built with `CONFIG_IOCTL_CFG80211` off and a hand-written
+  wireless-extensions tunnel (`SIOCDEVPRIVATE+2`) in the driver, to be driven by a `wpa_supplicant` with an
+  LD_PRELOAD shim (not written). Problems: (1) the kernel tree was configured by guesswork from
+  `rockchip_linux_defconfig`; the cabinet kernel actually has no namespaces, IPv6, LSM, cgroups or
+  advanced routing, and has keyrings; (2) built with Debian GCC 8.3, not the vendor's 6.3; (3) its
+  `Module.symvers` dropped all 74 exports in `.bss` (e.g. `kmalloc_caches`); (4) its `abi_check.c`
+  offsets passed under both its config and the matched one, so they could not see these differences.
+  Measured afterwards: the structs its own driver used kept their offsets, but `struct sock` and
+  `struct genl_info` did not, so that config could not carry `cfg80211`. Abandoned for the standard stack.
+
+**What was done:**
+* Fresh Mask ROM session: device 3 → `boot --plug plug_3032slc_erase` → loader device 4.
+  `rawdump --verify` → `~/partycade-dumps/2026-10-26_round2/nand_raw.bin` (sha256 `fd99aa61…5de6`);
+  `rk_restore.py diff` → none.
+* Found the vendor's compiler from the kernel's version string (Linaro GCC 6.3-2017.05; a mirror on
+  GitHub, `rockchip-toybrick/gcc-linaro-6.3.1-2017.05-x86_64_arm-linux-gnueabihf`).
+* `tools/kernel_abi.py` (new): the cabinet's export list from `boot.img`, and two comparisons against a
+  kernel we build. Iterations: Debian GCC 8 + the field agent's config: 975 exports only in ours, 75 only
+  in the cabinet's. Linaro 6.3 + IPv6/LSM/cgroups/namespaces off, keys on, unused drivers off: 7001 of
+  7152 exported functions word-identical. Advanced IPv4 routing off: 7009 identical; the remaining 143 are
+  EHCI's private struct, 8250 serial, HID, Mali `kbase` and Rockchip thermal (newer Rockchip source or
+  vendor patches; the vendor also exports `do_fsync` and has an exFAT driver). Rockchip's tree changed no
+  relevant header between the May 2023 snapshot and its head.
+* `games/net/wifi/` (new): `build.sh` (pinned sources), `kernel_defconfig`, `8821au.patch`,
+  `wpa_supplicant.config`, `Dockerfile` (`partycade-kbuild`). It builds `cfg80211.ko` (no WEXT),
+  morrownr's `8821au.ko` (lists `2357:011e`, firmware built in) and a static nl80211 `wpa_supplicant`, and
+  checks every needed symbol is exported by the cabinet and vermagic is `4.4.194 SMP mod_unload ARMv7 p2v8`.
+  Built twice, once from scratch. `wifi.tar.gz` is 1.6 MB.
+* `games/net/yardnet.sh`: Wi-Fi start (unpack, insmod cfg80211 then 8821au, `wpa_supplicant -D nl80211`,
+  DHCP by the existing loop), a guard file against a start that freezes the cabinet (two strikes), and a
+  USB-stick channel (`yard/wifi.conf`, `yard/put.tar`, `yard/run.sh`, logs back, `done.txt`). Stock udev
+  only automounts `mmcblk*`, so yardnet mounts `sd*` itself. Paths are overridable and `--once` exists, for
+  9 new `test.py` checks against a fake cabinet (passing under the PC's sh and the cabinet's busybox ash).
+* `cart deploy --with-wifi [--wifi-conf FILE]`.
+* Gate: `./cart check` all carts pass; `./stress.sh` 119 passed, 0 failed.
+* Staged: `cart deploy --raw .../2026-10-26_round2/nand_raw.bin --out .../stage --reinstall
+  --with-love-probe --with-sysprobe --with-net --with-wifi --ssh-key ~/yard_authorized_keys.pub --repair`:
+  136 blocks, e2fsck clean, round trip identical, patched image `461690f3…59e3`. Not written.
+
+**Concluded:** loadable modules for this kernel are practical: the config can be recovered from the binary
+well enough to verify struct layouts by code comparison. Wi-Fi is expected, not verified.

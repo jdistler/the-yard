@@ -36,6 +36,6 @@ At the end of each session:
 * Append a dated section to BOOT_RESEARCH.md with device numbers, commands, results, and what you concluded.
 * Update the `note` fields in `tools/rk.py` `STAGES` for any plug you tried.
 * Record any new firmware findings in FIRMWARE_ANALYSIS.md, and recovery findings (e.g. test ladder results) in RECOVERY.md.
-* Commit with git. The public remote is <https://github.com/jdistler/the-yard>. Do not push unless the user asks. Do not commit flash dumps, and do not force-push.
+* Commit with git. (Since 2026-10-26 one agent on the cabinet PC does everything; there is no cloud session to hand off to.) The public remote is <https://github.com/jdistler/the-yard>. Do not push unless the user asks. Do not commit flash dumps, and do not force-push.
 
 Say "verified" only for things observed on this cabinet. Anything from vendor docs or other boards is "expected" or "unverified".

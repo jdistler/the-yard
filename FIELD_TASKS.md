@@ -13,10 +13,10 @@ What this round settles:
 | Can a loadable module be built for this kernel (its vermagic, and whether it checks symbol versions)? | R1 |
 | Does the stock menu survive now: no "LOADING..." after The Yard or GPU yard? | R4 |
 | Is GPU yard smooth now: Lamp, Tea's music, Orb with its deck and sound? | R4 |
-| Does a USB-Ethernet adapter on USB-A work with the stock kernel, and does `yardnet` give SSH as root? | R5 |
+| Does the AC600 work with the stock kernel (our cfg80211 + 8821au modules), and does `yardnet` give SSH as root over Wi-Fi? | R5 |
 | With the stock menu stopped (`stock_menu stop`), how much memory does The Yard have, and does the stock menu come back cleanly? | R5 |
 
-**What the user needs on hand:** a USB-Ethernet adapter (a Realtek RTL8153 one is the likeliest to work, e.g. TP-Link UE300 or most "USB 3.0 gigabit" adapters; ASIX AX88772/AX88179 ones should work too), an Ethernet cable to their router, and the public SSH key they want to log in with (for example `~/.ssh/id_ed25519.pub` on their own computer).
+**What the user needs on hand (revised 2026-10-26):** the TP-Link AC600 (`2357:011e`), the home Wi-Fi name and password, and a FAT-formatted USB stick (for the settings, and for logs if Wi-Fi does not come up). The SSH key is `~/yard_key` on the PC (made 2026-10-24); `~/yard_authorized_keys.pub` also lets in the user's Fire HD 8 Termux key.
 
 ## R1: facts from the dump again (no cabinet)
 
@@ -45,7 +45,9 @@ cd games && ./build.sh cab && ./cart check && ./stress.sh  # "all carts pass", e
 
 ## R3: stage, then ask (cabinet plugged in, read-only until approval)
 
-Cold plug as round 1's 4a (both plugs out, switch OFF, Micro-USB only). Ask the user which public key to let in, and copy it to the PC (for example `~/yard_key.pub`). Then:
+**Revised 2026-10-26:** there is no USB-Ethernet adapter, so this round adds Wi-Fi for the user's TP-Link
+AC600 (`games/net/wifi/README.md`), and from now on one agent does both the PC work and the audit.
+Cold plug as round 1's 4a (both plugs out, switch OFF, Micro-USB only). Then:
 
 ```bash
 D=~/partycade-dumps/$(date +%F)_round2
@@ -54,17 +56,23 @@ tools/rk.py state                                   # mode=maskrom, fresh BootRO
 tools/rk.py boot --plug plug_3032slc_erase          # once; a timeout means a cold plug
 tools/rk.py rawdump -o $D/nand_raw.bin --verify
 tools/rk_restore.py diff $D/nand_raw.bin            # none
+games/net/wifi/build.sh                             # games/out/wifi/wifi.tar.gz
 cd games
 ./cart deploy --raw $D/nand_raw.bin --out $D/stage --reinstall --with-love-probe --with-sysprobe --with-net \
-  --ssh-key ~/yard_key.pub --repair
+  --with-wifi --ssh-key ~/yard_authorized_keys.pub --repair [--wifi-conf ~/wifi.conf]
 cat $D/stage/PLAN.md
 ```
 
 * `--reinstall` writes `yard`, `orb`, and `yard.pak` whole: the copies on the cabinet have holes (round 1's deploys), so they can't be updated in place. After this, later deploys are in place again.
-* `--with-net` adds `/data/Games/yardnet` (`games/net/yardnet.sh`; read it first) and `/data/Games/yardnet.keys`. It does nothing until The Yard starts it, and nothing it does survives a power-off.
+* `--with-net` adds `/data/Games/yardnet` (`games/net/yardnet.sh`; read it first) and `/data/Games/yardnet.keys`. `--with-wifi` adds `/data/Games/wifi.tar.gz`. `--wifi-conf` (optional) adds the home network's settings; without it they come on a USB stick as `yard/wifi.conf`.
 * If it stops with "no physical copy", try once without `--with-love-probe`, and report.
 
-Ask for approval as in round 1's 4c, adding: "It also adds a network helper that lets the SSH key in `yardnet.keys` log in as root over a wired adapter, until the cabinet is switched off." Write with the user's written approval of the exact list, then `diff` (`none`).
+Ask for approval as in round 1's 4c, adding: "It also adds a network helper that lets the SSH key in
+`yardnet.keys` log in as root over the network, until the cabinet is switched off; it loads a Wi-Fi driver
+built for this kernel when the AC600 is plugged in (a bad driver can freeze the cabinet until a power
+cycle; after two such starts it stops trying); and a FAT USB stick with a `yard/` folder can put files
+into `/data/Games` and run a script as root." Write with the user's written approval of the exact list,
+then `diff` (`none`).
 
 ## R4: the user plays (cabinet on its own)
 
@@ -77,21 +85,27 @@ Tell the user: "Micro-USB out, switch ON, power. Open Dig Dug II." Then:
 
 Write the user's words into the report.
 
-## R5: the network (cabinet on; adapter on USB-A)
+## R5: Wi-Fi (cabinet on; TP-Link AC600 on USB-A)
 
-1. The user plugs the USB-Ethernet adapter into USB-A, with a cable to their router, then switches on and opens Dig Dug II once (that starts `yardnet`), and leaves it on the menu for a minute.
-2. Find the cabinet's address: the router's list of devices, or `nmap -sn 192.168.1.0/24` (your network's range), or wait for step 4.
-3. From the PC: `ssh -i ~/yard_key root@ADDRESS` (the private half of the key given in R3). If it asks for a password, the key was not installed: say so and go to step 4.
-4. If SSH works, run and keep the output:
+1. The network settings, if not staged with `--wifi-conf`: on the PC, `wpa_passphrase "SSID" > wifi.conf`,
+   copy it to a FAT USB stick as `yard/wifi.conf`. The user plugs the stick into USB-A, switches on, opens
+   Dig Dug II, waits 30 s on The Yard's menu, pulls the stick (`yard/done.txt` on it shows it was read).
+2. The user plugs the AC600 into USB-A (switching off first is safest), switches on, opens Dig Dug II, and
+   leaves it on The Yard's menu for two minutes.
+3. Find the cabinet: `nmap -sn` over the home network's range, or the router's device list (a Realtek MAC).
+4. `ssh -i ~/yard_key root@ADDRESS`. If it works, run and keep:
    ```bash
-   cat /data/Games/net.log /data/Games/net-status.txt; uname -a; free; cat /proc/meminfo | head -5
-   ls -l /dev/rkflash*; mount; ps; dmesg | tail -40
+   cat /data/Games/net.log /data/Games/net-status.txt /data/Games/net/wpa.log | tail -80
+   cat /proc/modules; dmesg | tail -60; free; iwconfig 2>/dev/null; ip addr
    ```
-   Then copy the logs back over the network (no dump needed): `scp -i ~/yard_key root@ADDRESS:/data/Games/'*.log' captures/love/` and `scp ... :/data/Games/love-probe.txt ... :/data/Games/net*.txt captures/love/`.
+   and `scp -i ~/yard_key root@ADDRESS:/data/Games/'*.log' root@ADDRESS:/data/Games/net/'*.txt' captures/love/`.
 5. **The memory test, over SSH:** `echo "stock_menu stop" > /data/Games/yard.conf; sync`. The user opens Dig Dug II, plays Tea and GPU yard's Lamp for a minute each, and leaves. Does the stock menu come back (it restarts, so it may start from its first tile)? Then `grep -E "memory|stock menu" /data/Games/yard.log | tail` over SSH, and `rm /data/Games/yard.conf; sync` to go back to the default.
-6. If SSH never works: open the System probe with the adapter plugged in, then read `net.log` and the probe report back with a dump as in round 1's task 6. The adapter's `lsusb`-style line and any driver line in its dmesg are what the next session needs.
+6. If SSH never works: swap the AC600 for the stick (with an empty `yard/` folder) while The Yard is
+   running; the logs come back on it (`yard/logs/`: `net.log`, `net-wifi-dmesg.txt`, `net-wpa.log`,
+   `dmesg.txt`, `state.txt`). A fixed driver goes back the same way, as `yard/put.tar`, with no Mask ROM.
+   If the cabinet froze: power-cycle it; the guard counts it, and after two it leaves Wi-Fi alone.
 
-Report everything, commit `captures/` and the report, and ask the user to push. **Do not start the SD slot write**; that is round 3, after this is read.
+Report everything, commit `captures/` and the report. **Do not start the SD slot write**; that is round 3.
 
 ---
 

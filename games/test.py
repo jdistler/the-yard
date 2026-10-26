@@ -663,7 +663,95 @@ def system():
     for script_path in (("sysprobe", "sysprobe.sh"), ("net", "yardnet.sh"), ("love", "loveprobe.sh")):
         r = subprocess.run(["sh", "-n", os.path.join(HERE, *script_path)], capture_output=True, text=True)
         check(r.returncode == 0, f"the cabinet script {script_path[-1]} parses (sh -n)")
+    yardnet_checks()
     shutil.rmtree(shelf, ignore_errors=True)
+
+
+def yardnet_checks():
+    """games/net/yardnet.sh against a fake cabinet: a fake AC600, fake insmod/mount, a fake stick."""
+    d = tmpdir()
+    games, sysd, proc, tmp, fakebin, stick = (os.path.join(d, n) for n in ("Games", "sys", "proc", "tmp", "bin", "stick"))
+    for p in (games, os.path.join(sysd, "class", "net", "lo"), os.path.join(sysd, "bus", "usb", "devices", "1-1"),
+              os.path.join(proc, "sys", "kernel"), tmp, fakebin, os.path.join(stick, "yard")):
+        os.makedirs(p, exist_ok=True)
+    open(os.path.join(sysd, "bus", "usb", "devices", "1-1", "idVendor"), "w").write("2357\n")
+    open(os.path.join(sysd, "bus", "usb", "devices", "1-1", "idProduct"), "w").write("011e\n")
+    for n, t in (("uptime", "10.00 5.00\n"), ("modules", ""), ("mounts", ""), ("sys/kernel/panic_on_oops", "1\n")):
+        open(os.path.join(proc, n), "w").write(t)
+    calls = os.path.join(d, "calls.txt")
+    fakes = {
+        # insmod: "loads" a module, and the driver makes a Wi-Fi interface.
+        "insmod": f'echo "insmod $1" >> {calls}; m=$(basename "$1" .ko); echo "$m 1 0 - Live 0x0" >> {proc}/modules\n'
+                  f'[ "$m" = 8821au ] && mkdir -p {sysd}/class/net/wlan0/phy80211\nexit 0\n',
+        "mount": f'eval t=\\${{$#}}; cp -a {stick}/. "$t"/; echo "mount $*" >> {calls}\n',
+        "umount": f't="$1"; rm -rf {stick}; mkdir -p {stick}; cp -a "$t"/. {stick}/; rm -rf "$t"/*; echo umount >> {calls}\n',
+        "ip": f'[ -f {d}/addr ] && [ "$5" = wlan0 ] && echo "    inet 192.168.1.50/24 brd x scope global wlan0"\nexit 0\n',
+        "ifconfig": "exit 0\n", "udhcpc": f'echo "udhcpc $2" >> {calls}\n', "dmesg": "echo fake dmesg\n",
+        "sync": "exit 0\n", "lsusb": "exit 0\n", "free": "exit 0\n", "df": "exit 0\n", "sleep": "exit 0\n",
+    }
+    for n, body in fakes.items():
+        p = os.path.join(fakebin, n)
+        open(p, "w").write("#!/bin/sh\n" + body)
+        os.chmod(p, 0o755)
+    # The Wi-Fi bundle: two "modules", a wpa_supplicant that records how it was started, and the id list.
+    w = os.path.join(d, "w")
+    os.makedirs(w)
+    for n in ("cfg80211.ko", "8821au.ko"):
+        open(os.path.join(w, n), "w").write("x")
+    open(os.path.join(w, "wpa_supplicant"), "w").write(f'#!/bin/sh\necho "wpa $*" >> {calls}\n')
+    os.chmod(os.path.join(w, "wpa_supplicant"), 0o755)
+    open(os.path.join(w, "usb-ids.txt"), "w").write("2357:011e\n")
+    subprocess.run(["tar", "-czf", os.path.join(games, "wifi.tar.gz"), "-C", w, "."], check=True)
+    env = dict(os.environ, PATH=fakebin + ":" + os.environ["PATH"], YARDNET_GAMES=games, YARDNET_SYS=sysd,
+               YARDNET_PROC=proc, YARDNET_TMP=tmp)
+    script_path = os.path.join(HERE, "net", "yardnet.sh")
+
+    def once():
+        subprocess.run(["sh", script_path, "--once"], env=env, timeout=60, capture_output=True)
+        return read(games, "net.log") or "", (open(calls).read() if os.path.exists(calls) else "")
+
+    def reboot():   # /tmp and the loaded modules do not survive a power cycle; /data does
+        shutil.rmtree(tmp); os.makedirs(tmp)
+        open(os.path.join(proc, "modules"), "w").write("")
+        shutil.rmtree(os.path.join(sysd, "class", "net", "wlan0"), ignore_errors=True)
+
+    log, c = once()
+    check("no " in log and "wifi.conf" in log and "insmod" not in c,
+          "yardnet: the AC600 without a wifi.conf loads nothing and says what is missing")
+    # A stick: the Wi-Fi settings, a file to put in /data/Games, and a script; then the logs come back on it.
+    open(os.path.join(stick, "yard", "wifi.conf"), "w").write('network={\n ssid="home"\n psk=00\n}\n')
+    open(os.path.join(d, "hello.txt"), "w").write("hi\n")
+    subprocess.run(["tar", "-cf", os.path.join(stick, "yard", "put.tar"), "-C", d, "hello.txt"], check=True)
+    open(os.path.join(stick, "yard", "run.sh"), "w").write("echo ran-on-cabinet\n")
+    os.makedirs(os.path.join(sysd, "block", "sda"))
+    log, c = once()
+    check(read(os.path.join(games, "net"), "wifi.conf") is not None and read(games, "hello.txt") == "hi\n",
+          "yardnet: a stick's yard/wifi.conf and yard/put.tar go into /data/Games")
+    check(read(os.path.join(stick, "yard"), "run.log") == "ran-on-cabinet\n" and os.path.exists(os.path.join(stick, "yard", "done.txt"))
+          and os.path.exists(os.path.join(stick, "yard", "logs", "net.log")),
+          "yardnet: the stick's run.sh runs, and the logs and done.txt are written back to it")
+    check("insmod" in c and c.index("cfg80211.ko") < c.index("8821au.ko") and "wpa -B -i wlan0 -D nl80211" in c,
+          "yardnet: with a wifi.conf it loads cfg80211, then 8821au, then starts wpa_supplicant on wlan0")
+    check(read(os.path.join(proc, "sys", "kernel"), "panic_on_oops") == "0\n" and os.path.exists(os.path.join(games, "net", "wifi.trying")),
+          "yardnet: an oops is not made a panic, and the guard file is set during the start")
+    # The stick stays in: it is read once per insertion, not every pass.
+    n_mounts = c.count("mount ")
+    log, c = once()
+    check(c.count("mount ") == n_mounts, "yardnet: a stick left in is read only once")
+    # Two starts that never finished (a freeze or reset each time): the third boot leaves Wi-Fi alone.
+    shutil.rmtree(os.path.join(sysd, "block", "sda"))
+    reboot(); log, c = once()
+    check("did not finish" in log and "1 time" in log and c.count("insmod") == 4,
+          "yardnet: a start that did not finish is counted, and Wi-Fi is tried once more")
+    reboot(); open(calls, "w").write(""); log, c = once()
+    check("not trying again" in log and "insmod" not in c, "yardnet: after two failed starts it stops trying")
+    # A stick resets that; a clean start (an address, here) clears the guard.
+    os.makedirs(os.path.join(sysd, "block", "sda"))
+    reboot(); open(calls, "w").write(""); open(os.path.join(d, "addr"), "w").write("")
+    log, c = once()
+    log, c = once()
+    check("insmod" in c and "start finished cleanly" in log and not os.path.exists(os.path.join(games, "net", "wifi.trying")),
+          "yardnet: a stick clears the failed starts, and an address clears the guard file")
 
 
 # ---------------------------------------------------------------------------- love

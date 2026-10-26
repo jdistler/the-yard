@@ -1,0 +1,55 @@
+diff --git a/Makefile b/Makefile
+index 2d53df9..7d9bee5 100644
+--- a/Makefile
++++ b/Makefile
+@@ -24,7 +24,7 @@ ccflags-y += -Wno-implicit-fallthrough
+ #ccflags-y += -DCONFIG_CONCURRENT_MODE
+ 
+ # Sets wireless regulatory (REGD) sourse to OS
+-ccflags-y += -DCONFIG_REGD_SRC_FROM_OS
++#ccflags-y += -DCONFIG_REGD_SRC_FROM_OS
+ # May be needed to ensure all channels are scanned
+ ccflags-y += -DCONFIG_FORCE_SW_CHANNEL_PLAN
+ 
+@@ -85,7 +85,7 @@ CONFIG_SDIO_HCI = n
+ CONFIG_GSPI_HCI = n
+ ######################### Features ############################
+ CONFIG_AP_MODE = y
+-CONFIG_P2P = y
++CONFIG_P2P = n
+ CONFIG_MP_INCLUDED = n
+ CONFIG_POWER_SAVING = y
+ CONFIG_IPS_MODE = default
+@@ -97,7 +97,7 @@ CONFIG_WAPI_SUPPORT = n
+ CONFIG_EFUSE_CONFIG_FILE = n
+ CONFIG_EXT_CLK = n
+ CONFIG_TRAFFIC_PROTECT = n
+-CONFIG_LOAD_PHY_PARA_FROM_FILE = y
++CONFIG_LOAD_PHY_PARA_FROM_FILE = n
+ CONFIG_TXPWR_BY_RATE = y
+ CONFIG_TXPWR_BY_RATE_EN = n
+ CONFIG_TXPWR_LIMIT = y
+@@ -108,9 +108,9 @@ CONFIG_RTW_ADAPTIVITY_MODE = normal
+ CONFIG_SIGNAL_SCALE_MAPPING = n
+ CONFIG_80211W = y
+ CONFIG_REDUCE_TX_CPU_LOADING = n
+-CONFIG_BR_EXT = y
+-CONFIG_TDLS = y
+-CONFIG_WIFI_MONITOR = y
++CONFIG_BR_EXT = n
++CONFIG_TDLS = n
++CONFIG_WIFI_MONITOR = n
+ CONFIG_MCC_MODE = n
+ CONFIG_APPEND_VENDOR_IE_ENABLE = n
+ CONFIG_RTW_NAPI = y
+@@ -168,8 +168,8 @@ CONFIG_LAYER2_ROAMING = y
+ #bit0: ROAM_ON_EXPIRED, #bit1: ROAM_ON_RESUME, #bit2: ROAM_ACTIVE
+ CONFIG_ROAMING_FLAG = 0x3
+ ###################### Platform Related #######################
+-CONFIG_PLATFORM_AUTODETECT = y
+-CONFIG_PLATFORM_I386_PC = n
++CONFIG_PLATFORM_AUTODETECT = n
++CONFIG_PLATFORM_I386_PC = y
+ CONFIG_PLATFORM_ANDROID_X86 = n
+ CONFIG_PLATFORM_ANDROID_INTEL_X86 = n
+ CONFIG_PLATFORM_JB_X86 = n
