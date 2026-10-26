@@ -133,3 +133,12 @@ From `captures/system/` (the rootfs's scripts and rules), `captures/sysprobe/bef
 * **Kernel:** `4.4.194 #485 SMP`, built by `tyc@dell` with Linaro GCC 6.3.1 on May 11 2023. No `IKCONFIG`. `/proc/modules` exists (empty), so it can load modules; there is no `/lib/modules`. Its strings name USB-Ethernet drivers (`r8152`, `asix`, `ax88179`, `smsc95xx`, `cdc_ether`, `cdc_ncm`, `rndis_host`) and no Wi-Fi stack (expected from names; nothing was loaded or plugged in to prove a driver).
 * **Graphics leak:** each time a process quits SDL and starts it again (`SDL_Quit` then `SDL_Init` with KMSDRM on `libmali`), 6,144 KiB of DRM GEM shared memory stays allocated until the process exits (two 1024×768×4 buffers; `Shmem` grew to 43 MB). A process that exits gives it all back.
 * **Display:** KMSDRM, 1024×768 at 60 Hz, format XRGB8888 (`0x16362004`), renderer `opengles2` with 4096 textures. One joystick, `uart-keys`: 21 buttons, no axes or hats. Audio: ALSA at 44.1 kHz.
+
+## Stock menu input, by injection (2026-10-26, over SSH)
+
+The stock menu `/usr/bin/game` reads `/dev/input/event0` (`uart-keys`). Writing `struct input_event` records
+(16 bytes on this 32-bit kernel) to that node injects them; a press must be held (~150 ms) before the release
+or the menu ignores it. From a freshly started menu, 1-player starts the highlighted tile (`start.sh 0 0 1`,
+Pac-Man); the lower button did not. After returning from a game, stick presses and 1-player did not launch
+anything, so the menu has a page between tile and game (controls/settings) that blind input can land on.
+Settings files were unchanged. A "back to Dig Dug II" helper was dropped: it needs someone watching the screen.
