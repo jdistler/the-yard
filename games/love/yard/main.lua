@@ -716,7 +716,9 @@ function love.run()
     if seed then rng_seed(seed) elseif input.scripted() or os.getenv("CAB_AUTOPLAY") then rng_seed(1)
     else rng_seed(math.floor(os.time() * 2654435761 % 4294967296)) end
     gfx.msaa = tonumber(os.getenv("YARD_MSAA") or "4")
-    gfx.direct = opt("YARD_DIRECT") == "1" and not headless
+    -- Direct to the framebuffer is the default on the cabinet (try A, chosen by the user 2026-10-26: sharper,
+    -- and Keep 35 -> 60 fps); scripted runs keep the canvas, which screenshots need. YARD_DIRECT 0 turns it off.
+    gfx.direct = (opt("YARD_DIRECT") or (input.scripted() and "0" or "1")) == "1" and not headless
     gfx.load_font(0, love.filesystem.newFileData("fonts/Fredoka-SemiBold.ttf"))
     load_lib()
     scan()
