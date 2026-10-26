@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <time.h>
@@ -1296,9 +1297,40 @@ static pid_t find_proc(const char *path)
     return found;
 }
 
+static int conf_is(const char *key, const char *value);
+
+/* The stock menu plays /usr/local/share/minigui/res/images/logo.mp4 (ffplay) each time it starts: 15 s on the
+ * cabinet (2026-10-26), after every visit to The Yard. When The Yard starts it again, /dev/null is bound over
+ * the video first, so ffplay gives up at once (about 1 s). The mount lasts until power-off, so the boot still
+ * shows the logo; "intro keep" in yard.conf leaves it alone. Nothing on the flash changes. */
+#define STOCK_INTRO "/usr/local/share/minigui/res/images/logo.mp4"
+static void skip_stock_intro(void)
+{
+#ifdef CAB_CABINET
+    char line[512];
+    FILE *f;
+    int mounted = 0;
+    if (conf_is("intro", "keep") || access(STOCK_INTRO, F_OK) != 0)
+        return;
+    f = fopen("/proc/mounts", "r");
+    if (f) {
+        while (fgets(line, sizeof line, f))
+            if (strstr(line, " " STOCK_INTRO " "))
+                mounted = 1;
+        fclose(f);
+    }
+    if (!mounted)
+        cab_log(mount("/dev/null", STOCK_INTRO, NULL, MS_BIND, NULL) == 0
+                    ? "yard: the stock menu's intro video is skipped until power-off"
+                    : "yard: could not skip the stock menu's intro video");
+#endif
+}
+
 static void stock_menu_start(const char *path)
 {
-    pid_t pid = fork();
+    pid_t pid;
+    skip_stock_intro();
+    pid = fork();
     if (pid == 0) {
         /* As S50ui starts it: its own session, from /, with its two settings and nothing of ours. */
         char *envp[] = {"PATH=/sbin:/usr/sbin:/bin:/usr/bin", "HOME=/", "XDG_CONFIG_HOME=/userdata/",
