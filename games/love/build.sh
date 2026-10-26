@@ -51,6 +51,16 @@ fetch https://github.com/Konstanty/libmodplug.git modplug master
 fetch https://github.com/xiph/theora.git theora v1.1.1
 fetch https://github.com/freetype/freetype.git freetype VER-2-13-2
 fetch https://github.com/madler/zlib.git zlib v1.3.1
+# Our patches (games/love/patches): applied once; a source tree that already has one is left as it is.
+#   sdl-kmsdrm-pipeline.patch: SDL_KMSDRM_PIPELINE=1 lets the CPU build a frame while the Mali draws the last
+#   one (Lamp 30 -> 55 fps, Chest 37 -> 59, 2026-10-26), and SDL_KMSDRM_TIMING=1 times the swap.
+for p in "$HERE"/patches/sdl-*.patch; do
+  if git -C "$SRC/SDL" apply --check "$p" 2>/dev/null; then
+    git -C "$SRC/SDL" apply "$p" && rm -f "$W/build-$T/SDL.done" && echo "applied $(basename "$p")"
+  elif ! git -C "$SRC/SDL" apply --reverse --check "$p" 2>/dev/null; then
+    echo "$(basename "$p") does not apply to $SRC/SDL" >&2; exit 1
+  fi
+done
 # DRM, GBM, EGL, GLES, ALSA, and udev headers are in games/love/include (headers only; nothing links
 # against them; see the README there).
 HDR=$HERE/include
@@ -226,6 +236,8 @@ cat > "$OUT/run.sh" <<'EOF'
 D=$(cd "$(dirname "$0")" && pwd)
 export LD_LIBRARY_PATH="$D/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export SDL_VIDEODRIVER=${SDL_VIDEODRIVER:-kmsdrm}
+# The CPU builds the next frame while the GPU draws this one (patches/sdl-kmsdrm-pipeline.patch).
+export SDL_KMSDRM_PIPELINE=${SDL_KMSDRM_PIPELINE:-1}
 export LOVE_GRAPHICS_USE_OPENGLES=1
 export ALSOFT_CONF=${ALSOFT_CONF:-$D/alsoft.conf}
 exec "$D/love.bin" "$@"

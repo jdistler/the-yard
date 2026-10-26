@@ -1,0 +1,168 @@
+diff --git a/src/video/kmsdrm/SDL_kmsdrmopengles.c b/src/video/kmsdrm/SDL_kmsdrmopengles.c
+index cbf86c9..274ae6d 100644
+--- a/src/video/kmsdrm/SDL_kmsdrmopengles.c
++++ b/src/video/kmsdrm/SDL_kmsdrmopengles.c
+@@ -1,3 +1,4 @@
++#include <stdio.h>
+ /*
+   Simple DirectMedia Layer
+   Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
+@@ -86,8 +87,103 @@ SDL_EGL_CreateContext_impl(KMSDRM)
+     return 0;
+ }
+ 
++/* Partycade: SDL_KMSDRM_TIMING=1 prints, every 300 swaps, the mean time of each step below (ms). */
++static int tm_on = -1, tm_n;
++static double tm_wait, tm_swap, tm_lock, tm_flip;
++static double tm_now(void) { return (double)SDL_GetPerformanceCounter() * 1000.0 / (double)SDL_GetPerformanceFrequency(); }
++
++/* Partycade: SDL_KMSDRM_PIPELINE=1. On the Mali-400, gbm_surface_lock_front_buffer waits for the GPU to finish
++   the frame (10-18 ms), so the CPU idled while the GPU drew. Here a frame is handed to EGL and only locked and
++   flipped at the next swap, so the CPU builds frame N+1 while the GPU draws N. If the surface has no free buffer
++   left for the next frame, the frame is finished at once, as before. */
++static int pipe_on = -1;
++static SDL_bool pipe_pending;
++
++static int KMSDRM_GLES_FinishPending(_THIS, SDL_Window *window)
++{
++    SDL_WindowData *windata = ((SDL_WindowData *)window->driverdata);
++    SDL_DisplayData *dispdata = (SDL_DisplayData *)SDL_GetDisplayForWindow(window)->driverdata;
++    SDL_VideoData *viddata = ((SDL_VideoData *)_this->driverdata);
++    KMSDRM_FBInfo *fb_info;
++    struct gbm_bo *bo;
++    int ret;
++    pipe_pending = SDL_FALSE;
++    bo = KMSDRM_gbm_surface_lock_front_buffer(windata->gs);
++    if (!bo) {
++        SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not lock front buffer on GBM surface");
++        return 0;
++    }
++    fb_info = KMSDRM_FBFromBO(_this, bo);
++    if (!fb_info) {
++        return 0;
++    }
++    if (!KMSDRM_WaitPageflip(_this, windata)) {
++        return 0;
++    }
++    if (windata->bo) {
++        KMSDRM_gbm_surface_release_buffer(windata->gs, windata->bo);
++    }
++    windata->bo = windata->next_bo;
++    windata->next_bo = bo;
++    if (!windata->bo) {
++        ret = KMSDRM_drmModeSetCrtc(viddata->drm_fd, dispdata->crtc->crtc_id, fb_info->fb_id, 0, 0,
++                                    &dispdata->connector->connector_id, 1, &dispdata->mode);
++        if (ret) {
++            SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not set videomode on CRTC.");
++            return 0;
++        }
++    } else {
++        ret = KMSDRM_drmModePageFlip(viddata->drm_fd, dispdata->crtc->crtc_id, fb_info->fb_id,
++                                     DRM_MODE_PAGE_FLIP_EVENT, &windata->waiting_for_flip);
++        if (ret == 0) {
++            windata->waiting_for_flip = SDL_TRUE;
++        } else {
++            SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not queue pageflip: %d", ret);
++        }
++    }
++    return 1;
++}
++
++static int KMSDRM_GLES_SwapPipelined(_THIS, SDL_Window *window)
++{
++    SDL_WindowData *windata = ((SDL_WindowData *)window->driverdata);
++    double t0 = tm_on ? tm_now() : 0, t1, t2;
++    if (pipe_pending && !KMSDRM_GLES_FinishPending(_this, window)) {
++        return 0;
++    }
++    t1 = tm_on ? tm_now() : 0;
++    if (!(_this->egl_data->eglSwapBuffers(_this->egl_data->egl_display, windata->egl_surface))) {
++        SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "eglSwapBuffers failed");
++        return 0;
++    }
++    pipe_pending = SDL_TRUE;
++    if (!KMSDRM_gbm_surface_has_free_buffers || !KMSDRM_gbm_surface_has_free_buffers(windata->gs)) {
++        if (!KMSDRM_GLES_FinishPending(_this, window)) {
++            return 0;
++        }
++        tm_flip += 1; /* counts the frames that could not be pipelined */
++    }
++    t2 = tm_on ? tm_now() : 0;
++    if (tm_on) {
++        tm_lock += t1 - t0; tm_swap += t2 - t1;
++        if (++tm_n == 300) {
++            fprintf(stderr, "kmsdrm pipelined swap: finish-previous %.2f eglSwap %.2f ms, %d of 300 not pipelined\n",
++                    tm_lock / 300, tm_swap / 300, (int)tm_flip);
++            tm_n = 0; tm_wait = tm_swap = tm_lock = tm_flip = 0;
++        }
++    }
++    return 1;
++}
++
+ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+ {
++    double t0, t1, t2, t3, t4;
++    if (pipe_on < 0) pipe_on = SDL_getenv("SDL_KMSDRM_PIPELINE") != NULL && SDL_atoi(SDL_getenv("SDL_KMSDRM_PIPELINE")) != 0;
++    if (tm_on < 0) tm_on = SDL_getenv("SDL_KMSDRM_TIMING") != NULL;
++    if (pipe_on && ((SDL_WindowData *)window->driverdata)->egl_surface != EGL_NO_SURFACE &&
++        !((SDL_WindowData *)window->driverdata)->egl_surface_dirty) {
++        return KMSDRM_GLES_SwapPipelined(_this, window);
++    }
+     SDL_WindowData *windata = ((SDL_WindowData *)window->driverdata);
+     SDL_DisplayData *dispdata = (SDL_DisplayData *)SDL_GetDisplayForWindow(window)->driverdata;
+     SDL_VideoData *viddata = ((SDL_VideoData *)_this->driverdata);
+@@ -110,6 +206,8 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+         KMSDRM_CreateSurfaces(_this, window);
+     }
+ 
++    if (tm_on < 0) tm_on = SDL_getenv("SDL_KMSDRM_TIMING") != NULL;
++    t0 = tm_on ? tm_now() : 0;
+     /* Wait for confirmation that the next front buffer has been flipped, at which
+        point the previous front buffer can be released */
+     if (!KMSDRM_WaitPageflip(_this, windata)) {
+@@ -124,6 +222,7 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+     }
+ 
+     windata->bo = windata->next_bo;
++    t1 = tm_on ? tm_now() : 0;
+ 
+     /* Mark a buffer to become the next front buffer.
+        This won't happen until pagelip completes. */
+@@ -136,7 +235,9 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+     /* From the GBM surface, get the next BO to become the next front buffer,
+        and lock it so it can't be allocated as a back buffer (to prevent EGL
+        from drawing into it!) */
++    t2 = tm_on ? tm_now() : 0;
+     windata->next_bo = KMSDRM_gbm_surface_lock_front_buffer(windata->gs);
++    t3 = tm_on ? tm_now() : 0;
+     if (!windata->next_bo) {
+         SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not lock front buffer on GBM surface");
+         return 0;
+@@ -203,6 +304,15 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+             }
+         }
+     }
++    if (tm_on) {
++        t4 = tm_now();
++        tm_wait += t1 - t0; tm_swap += t2 - t1; tm_lock += t3 - t2; tm_flip += t4 - t3;
++        if (++tm_n == 300) {
++            fprintf(stderr, "kmsdrm swap: wait-flip %.2f eglSwap %.2f lock %.2f flip %.2f ms\n",
++                    tm_wait / 300, tm_swap / 300, tm_lock / 300, tm_flip / 300);
++            tm_n = 0; tm_wait = tm_swap = tm_lock = tm_flip = 0;
++        }
++    }
+ 
+     return 1;
+ }
+diff --git a/src/video/kmsdrm/SDL_kmsdrmsym.h b/src/video/kmsdrm/SDL_kmsdrmsym.h
+index df46212..de1ebbd 100644
+--- a/src/video/kmsdrm/SDL_kmsdrmsym.h
++++ b/src/video/kmsdrm/SDL_kmsdrmsym.h
+@@ -132,6 +132,7 @@ SDL_KMSDRM_SYM(struct gbm_surface *,gbm_surface_create,(struct gbm_device *gbm,
+ SDL_KMSDRM_SYM(void,gbm_surface_destroy,(struct gbm_surface *surf))
+ SDL_KMSDRM_SYM(struct gbm_bo *,gbm_surface_lock_front_buffer,(struct gbm_surface *surf))
+ SDL_KMSDRM_SYM(void,gbm_surface_release_buffer,(struct gbm_surface *surf, struct gbm_bo *bo))
++SDL_KMSDRM_SYM_OPT(int,gbm_surface_has_free_buffers,(struct gbm_surface *surf))
+ 
+ SDL_KMSDRM_SYM_OPT(uint64_t,gbm_bo_get_modifier,(struct gbm_bo *bo))
+ SDL_KMSDRM_SYM_OPT(int,gbm_bo_get_plane_count,(struct gbm_bo *bo))

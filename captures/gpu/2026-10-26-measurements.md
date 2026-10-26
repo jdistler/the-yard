@@ -19,3 +19,25 @@ One display mode only (HDMI 1024x768p60); GPU at its single 400 MHz step.
 
 CPU time issuing draws: 8-12 ms a frame (keep 2.7), not overlapped with the GPU's work.
 With the fixed timestep every cart steps at 60/s (true game speed and song tempo) in every mode.
+
+## Later the same day: where the frame goes, and pipelining
+
+A Pac-Man attract demo left running by a killed stock menu (tools/cab.sh now stops its start.sh children too)
+held every cart at 30 fps for a while; numbers below are from a clean cabinet.
+
+SDL swap timed (patches/sdl-kmsdrm-pipeline.patch, SDL_KMSDRM_TIMING=1): eglSwapBuffers 0.3-0.5 ms, but
+gbm_surface_lock_front_buffer 10-18 ms: it waits for the Mali to finish the frame, so CPU and GPU ran one after
+the other. GPU time per frame: keep 10, chest 14.4, menu 17.4, lamp 17.8, tea 15.5 ms.
+
+SDL_KMSDRM_PIPELINE=1 (lock and flip at the next swap; falls back when no buffer is free, never seen):
+
+| cart | before | pipelined |
+| :--- | :--- | :--- |
+| keep | 60 | 60 |
+| chest | 37 | 57-59 |
+| menu | 30 | 56-57 |
+| lamp | 30 | 55 |
+| tea | 25 | 44-45 |
+
+Now CPU-bound: draw (Lua + LÖVE) 8.5-15 ms. Lamp's lights before the frame (YARD_EARLY_LIGHTS) cut its draw
+9.7 -> 7.7 ms; a Text-object cache for outlined text did not help (9 draws each instead of one batch) and is off.

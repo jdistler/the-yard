@@ -18,6 +18,7 @@ local MEM_CAP = (tonumber(os.getenv("YARD_MEM_MB") or "") or 32) * 1024 * 1024
 -- What the GPU really holds for a cart's pictures (layers are K*K bigger here than in the C runtime).
 local TEX_CAP = (tonumber(os.getenv("YARD_TEX_MB") or "") or 64) * 1024 * 1024
 local headless = os.getenv("YARD_HEADLESS") == "1"
+local profiler                   -- jit.p while YARD_PROFILE runs
 -- Settings: an environment variable, else a "NAME value" line in YARD_GPU_CONF (on the cabinet
 -- /data/Games/gpu.conf, which can be changed over SSH between tries), else the default.
 local gpu_conf = {}
@@ -660,7 +661,24 @@ function present(cart, quitting)
   local shot = input.take_shot()
   local canvas = gfx.screen()
   if not canvas then
-    -- Direct mode: the frame is on the framebuffer already (screenshots need the canvas mode).
+    -- Direct mode: the frame is on the framebuffer already. (Reading the Mali's framebuffer back gives
+    -- zeros, so shots of the direct path come from YARD_DIRECT_TEST, where gfx.fb stands in for it.)
+    if gfx.fb then
+      if shot then
+        local data = gfx.fb:newImageData()
+        local w, h = data:getDimensions()
+        local up = love.image.newImageData(h, w)
+        up:mapPixel(function(x, y) return data:getPixel(y, h - 1 - x) end)
+        local f = io.open(shot, "wb")
+        if f then f:write(up:encode("png"):getString()) f:close() end
+      end
+      if not headless then
+        lg.setCanvas()
+        lg.origin()
+        lg.setColor(1, 1, 1, 1)
+        lg.draw(gfx.fb, 0, 0, 0, lg.getWidth() / 1024, lg.getHeight() / 768)
+      end
+    end
     if not headless then lg.present() end
     return
   end
@@ -704,6 +722,14 @@ function love.run()
     -- LÖVE leaves LuaJIT's compiler off on ARM. On the cabinet it runs Lua 3.4 times faster
     -- (love-probe, 2026-10-24); YARD_JIT=0 turns it back off.
     if jit and os.getenv("YARD_JIT") ~= "0" then jit.on() end
+    -- YARD_PROFILE=MODE[:FILE]: LuaJIT's sampling profiler (jit/p.lua, put beside the .love's files for a
+    -- profiling run), e.g. YARD_PROFILE=Fl3:/tmp/prof.txt. Stopped when the cart run ends.
+    local prof = os.getenv("YARD_PROFILE")
+    if prof and jit then
+      local mode, file = prof:match("^([^:]+):?(.*)$")
+      local ok, p = pcall(require, "jit.p")
+      if ok then p.start(mode, file ~= "" and file or nil) profiler = p else log("yard: no profiler: " .. tostring(p)) end
+    end
     -- Collect sooner than LuaJIT's default (heap doubling): the menu grew from 6 to 8 MB of garbage.
     collectgarbage("setpause", 150)
     returned_once = os.getenv("YARD_RETURNED")
@@ -718,7 +744,10 @@ function love.run()
     gfx.msaa = tonumber(os.getenv("YARD_MSAA") or "4")
     -- Direct to the framebuffer is the default on the cabinet (try A, chosen by the user 2026-10-26: sharper,
     -- and Keep 35 -> 60 fps); scripted runs keep the canvas, which screenshots need. YARD_DIRECT 0 turns it off.
-    gfx.direct = (opt("YARD_DIRECT") or (input.scripted() and "0" or "1")) == "1" and not headless
+    gfx.direct_test = os.getenv("YARD_DIRECT_TEST") == "1"
+    gfx.text_cache = opt("YARD_TEXT_CACHE") == "1"
+    gfx.early_lights = opt("YARD_EARLY_LIGHTS") ~= "0"
+    gfx.direct = gfx.direct_test or ((opt("YARD_DIRECT") or (input.scripted() and "0" or "1")) == "1" and not headless)
     gfx.load_font(0, love.filesystem.newFileData("fonts/Fredoka-SemiBold.ttf"))
     load_lib()
     scan()
@@ -727,6 +756,7 @@ function love.run()
       if not c then log("yard: no cart named " .. want) return 127 end
       if c.native then return 127 end
       local how = run(c)
+      if profiler then profiler.stop() end
       return how == "ok" and 0 or 3
     end
     for _, c in ipairs(carts) do

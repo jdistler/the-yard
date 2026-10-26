@@ -59,18 +59,28 @@ end
 
 local function set_target(canvas, k)
   target, target_k = canvas, k
-  if canvas == DIRECT then lg.setCanvas() else lg.setCanvas({canvas, stencil = true}) end
+  if canvas == DIRECT then
+    if G.fb then lg.setCanvas({G.fb, stencil = true}) else lg.setCanvas() end
+  else
+    lg.setCanvas({canvas, stencil = true})
+  end
   lg.setScissor()
   apply_transform()
 end
 
 function G.init(w, h, k)
   W, H, K = w, h, k
+  if G.reset_lights then G.reset_lights() end
   local cw, ch = math.floor(W * K + 0.5), math.floor(H * K + 0.5)
   if screen and screen ~= DIRECT then pcall(function() screen:release() end) end
   if G.direct then
     screen = DIRECT
     local ww, wh = lg.getDimensions()
+    if G.direct_test then
+      -- Tests: the "framebuffer" is a 1024x768 canvas, drawn by the same turned path (main.lua shoots it).
+      ww, wh = 1024, 768
+      if not G.fb then G.fb = lg.newCanvas(ww, wh) end
+    end
     base.ww, base.wh = ww, wh
     base.turn = ww > wh and os.getenv("YARD_UPRIGHT") ~= "1"
     base.s = base.turn and math.min(ww / ch, wh / cw) or math.min(ww / cw, wh / ch)
@@ -114,6 +124,7 @@ end
 
 function G.begin_frame()
   offx, offy = 0, 0
+  if screen == DIRECT and G.early_lights and G.lights_before_frame then G.lights_before_frame() end
   set_target(screen, K)
   if screen == DIRECT then lg.clear(0, 0, 0, 1) end
   lg.setBlendMode("alpha")
@@ -370,6 +381,35 @@ end
 
 local function align_of(a) return a == "center" and 1 or a == "right" and 2 or 0 end
 
+-- Laid-out text, kept: lg.print lays the string out again on every call, and an outlined label is printed
+-- nine times a frame (35% of the menu's CPU time on the cabinet, 2026-10-26). A Text object is laid out
+-- once and drawn as often as wanted. Kept per font and string, the oldest let go past TEXT_KEEP.
+local TEXT_KEEP = 400
+local texts, ntexts, text_tick = {}, 0, 0
+local function laid_out(f, s)
+  local byf = texts[f]
+  if not byf then byf = {} texts[f] = byf end
+  local e = byf[s]
+  text_tick = text_tick + 1
+  if e then e[2] = text_tick return e[1] end
+  if ntexts >= TEXT_KEEP then
+    -- Drop the half used least recently (rare: only when a game shows many different strings).
+    local all = {}
+    for ff, t in pairs(texts) do for ss, ee in pairs(t) do all[#all + 1] = {ff, ss, ee[2]} end end
+    table.sort(all, function(p, q) return p[3] < q[3] end)
+    for i = 1, math.floor(#all / 2) do
+      local t = texts[all[i][1]]
+      t[all[i][2]][1]:release()
+      t[all[i][2]] = nil
+    end
+    ntexts = #all - math.floor(#all / 2)
+  end
+  local t = lg.newText(f, s)
+  byf[s] = {t, text_tick}
+  ntexts = ntexts + 1
+  return t
+end
+
 function api.text(s, x, y, size, color, align, outline, fid)
   s = tostring(s)
   if type(size) == "table" then
@@ -382,17 +422,34 @@ function api.text(s, x, y, size, color, align, outline, fid)
   local w = f:getWidth(s) / k
   local al = align_of(align)
   local px = x - (al == 1 and w / 2 or al == 2 and w or 0)
-  lg.setFont(f)
+  local ik = 1 / k
+  if not G.text_cache then
+    lg.setFont(f)
+    if outline and outline ~= 0 then
+      local r = size >= 14 and math.floor((size + 6) / 12) or 1
+      local dy = size >= 18 and ik or 0
+      setc(outline)
+      for i = 0, 7 do
+        local a = i * math.pi / 4
+        lg.print(s, px + math.cos(a) * r, y + math.sin(a) * r + dy, 0, ik, ik)
+      end
+    end
+    setc(color or 0xffffff)
+    lg.print(s, px, y, 0, ik, ik)
+    return w
+  end
+  local t = laid_out(f, s)
   if outline and outline ~= 0 then
     local r = size >= 14 and math.floor((size + 6) / 12) or 1
+    local dy = size >= 18 and ik or 0
     setc(outline)
     for i = 0, 7 do
       local a = i * math.pi / 4
-      lg.print(s, px + math.cos(a) * r, y + math.sin(a) * r + (size >= 18 and 1 / k or 0), 0, 1 / k, 1 / k)
+      lg.draw(t, px + math.cos(a) * r, y + math.sin(a) * r + dy, 0, ik, ik)
     end
   end
   setc(color or 0xffffff)
-  lg.print(s, px, y, 0, 1 / k, 1 / k)
+  lg.draw(t, px, y, 0, ik, ik)
   return w
 end
 function api.textw(s, size, fid) return font(fid or 0, size or 16):getWidth(tostring(s)) / target_k end
@@ -617,31 +674,69 @@ function light.fill(k)
   queue[nq] = q
   q[1], q[2], q[3], q[4] = nil, nil, 0, k
 end
-function light.apply(tint)
-  if not lc then return end
-  local keep, keep_k = target, target_k
+local spare, pending_n = {}, 0   -- direct mode: last frame's lights, drawn into lc before the next frame
+local function fill_light_canvas(q, n, amb)
   lg.push("all")
   lg.origin()
   lg.setCanvas(lc)
-  lg.clear(l_amb, l_amb, l_amb, 1)
+  lg.clear(amb, amb, amb, 1)
   lg.setBlendMode("add")
-  for i = 1, nq do
-    local q = queue[i]
-    local v = q[4]
+  for i = 1, n do
+    local e = q[i]
+    local v = e[4]
     lg.setColor(v, v, v, 1)
-    if q[1] then
-      local r = q[3]
-      lg.draw(glow_tex, q[1] - r, q[2] - r, 0, 2 * r / 128, 2 * r / 128)
+    if e[1] then
+      local r = e[3]
+      lg.draw(glow_tex, e[1] - r, e[2] - r, 0, 2 * r / 128, 2 * r / 128)
     else
       lg.rectangle("fill", 0, 0, lw, lh)
     end
   end
+  lg.pop()
+end
+-- Direct mode, called by begin_frame before anything is drawn on the framebuffer: on the Mali-400 a switch
+-- to a canvas after the framebuffer has been drawn on costs a write-out and a read-back of the whole screen.
+-- So this frame shows last frame's light map (one frame late, invisible), and apply() only composites it.
+local l_amb_pending = 0.1
+local function lights_before_frame()
+  if pending_n > 0 and lc then fill_light_canvas(spare, pending_n, l_amb_pending) end
+end
+G.lights_before_frame = lights_before_frame
+function G.reset_lights() pending_n, nq = 0, 0 end
+function light.apply(tint)
+  if not lc then return end
+  local keep, keep_k = target, target_k
+  local r, g, b = rgba(tint or 0x00000e)
+  if keep == DIRECT and G.early_lights then
+    local first = pending_n == 0
+    if first then
+      -- No light map yet: make one now (only the first frame pays for the switch).
+      fill_light_canvas(queue, nq, l_amb)
+      set_target(keep, keep_k)
+    end
+    -- This frame's lights become next frame's map.
+    queue, spare = spare, queue
+    pending_n, nq, l_amb_pending = nq, 0, l_amb
+    lg.setColor(1, 1, 1, 1)
+    lg.setShader(light_mul)
+    lg.setBlendMode("multiply", "premultiplied")
+    lg.draw(lc, lx - offx, ly - offy)
+    light_add:send("tint", {r, g, b})
+    lg.setShader(light_add)
+    lg.setBlendMode("add")
+    lg.draw(lc, lx - offx, ly - offy)
+    lg.setShader()
+    lg.setBlendMode("alpha")
+    return
+  end
+  lg.push("all")
+  fill_light_canvas(queue, nq, l_amb)
+  lg.origin()
   lg.setColor(1, 1, 1, 1)
   lg.setBlendMode("replace")
   lg.setCanvas(lm)
   lg.setShader(light_mul)
   lg.draw(lc)
-  local r, g, b = rgba(tint or 0x00000e)
   light_add:send("tint", {r, g, b})
   lg.setCanvas(lt)
   lg.setShader(light_add)
