@@ -511,7 +511,12 @@ def cmd_deploy(a):
         if a.ssh_key:
             key = open(os.path.expanduser(a.ssh_key)).read()
             if not re.match(r"^(ssh-(rsa|ed25519|dss)|ecdsa-sha2-\S+) \S+", key.strip()):
-                die(f"{a.ssh_key} does not look like a public key (ssh-rsa/ssh-ed25519 ... ); give the .pub file")
+                die(f"{a.ssh_key} does not look like a public key (ssh-rsa/ecdsa-sha2-... ); give the .pub file")
+            # The cabinet's dropbear is 2019.78: no ed25519 (that came in 2020.79). Verified 2026-10-26: an
+            # ed25519 key was installed and refused. Use ECDSA or RSA (ssh-keygen -t ecdsa).
+            if any(l.startswith("ssh-ed25519") for l in key.splitlines()):
+                die(f"{a.ssh_key} has an ssh-ed25519 key, which the cabinet's dropbear 2019.78 refuses; "
+                    "use ssh-keygen -t ecdsa (or rsa)")
             keys = os.path.join(stage, "yardnet.keys")
             open(keys, "w").write(key.strip() + "\n")
             cmd += ["--put", f"{keys}:Games/yardnet.keys:600"]

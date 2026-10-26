@@ -1,0 +1,80 @@
+[    0.693221] FtlCheckVpc 5b = 40  0
+[    0.694636] rkflash[2] init success
+[    0.695286] rkflashd vendor storage init ok !
+[    0.755826] Alternate GPT is invalid, using primary GPT.
+[    0.755967]  rkflash0: p1 p2 p3 p4 p5
+[    0.758518] rkflash_dev_init device register as blk dev, ret= 0
+[    0.759843] usbcore: registered new interface driver snd-usb-audio
+[    0.760922] rk3036-codec-platform 20030000.acodec-ana: GPIO lookup for consumer spk-ctl
+[    0.760947] rk3036-codec-platform 20030000.acodec-ana: using device tree for GPIO lookup
+[    0.760984] of_get_named_gpiod_flags: parsed 'spk-ctl-gpios' property of node '/acodec-ana@20030000[0]' - status (0)
+[    0.775487] rk3036-codec-platform 20030000.acodec-ana: GPIO lookup for consumer hp-ctl
+[    0.775510] rk3036-codec-platform 20030000.acodec-ana: using device tree for GPIO lookup
+[    0.775550] of_get_named_gpiod_flags: parsed 'hp-ctl-gpios' property of node '/acodec-ana@20030000[0]' - status (0)
+[    0.795513] rk3036-codec-platform 20030000.acodec-ana: GPIO lookup for consumer hp-det
+[    0.795532] rk3036-codec-platform 20030000.acodec-ana: using device tree for GPIO lookup
+[    0.795567] of_get_named_gpiod_flags: parsed 'hp-det-gpios' property of node '/acodec-ana@20030000[0]' - status (0)
+[    0.799616] Initializing XFRM netlink socket
+[    0.799670] NET: Registered protocol family 17
+[    0.799739] NET: Registered protocol family 15
+[    0.799842] bridge: automatic filtering via arp/ip/ip6tables has been deprecated. Update your scripts to load br_netfilter if you need this.
+[    0.799867] 8021q: 802.1Q VLAN Support v1.8
+[    0.800768] ThumbEE CPU extension supported.
+[    0.800813] Registering SWP/SWPB emulation handler
+[    0.801182] flash vendor_init_thread!
+[    0.801197] flash vendor storage:20170308 ret = -1
+[    0.802543] pvtm list NULL
+[    0.803325] of_get_named_gpiod_flags: can't parse 'simple-audio-card,hp-det-gpio' property of node '/sound[0]'
+[    0.803348] of_get_named_gpiod_flags: can't parse 'simple-audio-card,mic-det-gpio' property of node '/sound[0]'
+[    0.809055] asoc-simple-card sound: rk3036-codec-dai <-> 10220000.i2s mapping ok
+[    0.822236] I : [File] : drivers/gpu/arm/mali400/mali/linux/mali_kernel_linux.c; [Line] : 417; [Func] : mali_module_init(); svn_rev_string_from_arm of this mali_ko is '', rk_ko_ver is '5', built at '09:25:33', on 'Nov  4 2021'.
+[    0.822649] mali-utgard 10091000.gpu: mali_platform_device->num_resources = 9
+[    0.822673] mali-utgard 10091000.gpu: resource[0].start = 0x0x10091000
+[    0.822686] mali-utgard 10091000.gpu: resource[1].start = 0x0x10090000
+[    0.822699] mali-utgard 10091000.gpu: resource[2].start = 0x0x10093000
+[    0.822714] mali-utgard 10091000.gpu: resource[3].start = 0x0x10098000
+[    0.822726] mali-utgard 10091000.gpu: resource[4].start = 0x0x10094000
+[    0.822740] mali-utgard 10091000.gpu: resource[5].start = 0x0x00000019
+[    0.822752] mali-utgard 10091000.gpu: resource[6].start = 0x0x0000001a
+[    0.822762] mali-utgard 10091000.gpu: resource[7].start = 0x0x0000001b
+[    0.822774] mali-utgard 10091000.gpu: resource[8].start = 0x0x0000001a
+[    0.822788] D : [File] : drivers/gpu/arm/mali400/mali/platform/rk/rk.c; [Line] : 623; [Func] : mali_platform_device_init(); to add platform_specific_data to platform_device_of_mali.
+[    0.822889] mali-utgard 10091000.gpu: Failed to get leakage
+[    0.822927] mali-utgard 10091000.gpu: Failed to get reg
+[    0.823157] mali-utgard 10091000.gpu: avs=0
+[    0.826287] Mali: Mali device driver loaded
+[    0.826489] ALSA device list:
+[    0.826502]   #0: rockchip,rk3032-codec
+[    0.826653] Warning: unable to open an initial console.
+[    0.883391] VFS: Mounted root (squashfs filesystem) readonly on device 31:4.
+[    0.912199] devtmpfs: mounted
+[    0.918363] devfreq 10091000.gpu: Couldn't update frequency transition information.
+[    0.920450] Freeing unused kernel memory: 1024K
+[    0.975543] usb 1-1: new high-speed USB device number 2 using dwc2
+[    1.176871] usb 1-1: New USB device found, idVendor=2357, idProduct=011e
+[    1.176904] usb 1-1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[    1.176944] usb 1-1: Product: 802.11ac WLAN Adapter 
+[    1.176971] usb 1-1: Manufacturer: Realtek 
+[    1.176993] usb 1-1: SerialNumber: 00e04c000001
+[    1.354576] udevd[82]: starting version 3.2.7
+[    1.357052] random: udevd: uninitialized urandom read (16 bytes read, 12 bits of entropy available)
+[    1.357532] random: udevd: uninitialized urandom read (16 bytes read, 12 bits of entropy available)
+[    1.357707] random: udevd: uninitialized urandom read (16 bytes read, 12 bits of entropy available)
+[    1.357885] random: udevd: uninitialized urandom read (16 bytes read, 12 bits of entropy available)
+[    1.397266] udevd[82]: specified group 'kvm' unknown
+[    1.418154] udevd[83]: starting eudev-3.2.7
+[    1.491954] random: udevd: uninitialized urandom read (16 bytes read, 13 bits of entropy available)
+[    1.606006] ttyS0 - failed to request DMA, use interrupt mode
+[    2.985806] lcd_work_func 368
+[    3.316443] random: dropbear: uninitialized urandom read (32 bytes read, 46 bits of entropy available)
+[    3.539420] file system registered
+[    3.612327] Mass Storage Function, version: 2009/09/11
+[    3.612361] LUN: removable file: (no medium)
+[    3.788429] read descriptors
+[    3.788472] read strings
+[    3.855572] vendor storage:20190527 ret = -1
+[   13.956459] random: nonblocking pool is initialized
+[   20.532628] sh (530): drop_caches: 3
+[   85.280360] cfg80211: loading out-of-tree module taints kernel.
+[   85.615711] usbcore: registered new interface driver rtl8821au
+[   91.254493] rockchip-vop 10118000.vop: [drm:vop_crtc_enable] Update mode to 1024x768p60, type: 11

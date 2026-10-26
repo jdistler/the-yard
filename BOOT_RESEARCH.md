@@ -469,3 +469,18 @@ well enough to verify struct layouts by code comparison. Wi-Fi is expected, not 
 * **Written** (user's approval: "approved, write the 84 blocks in the round2_played plan"): loader device
   6, same-session `diff` none, `rk_restore.py restore` 84 blocks, each "restored and verified"; `diff`
   against the patched image afterwards: none.
+
+### 2026-10-26 (night): Wi-Fi verified on the cabinet; SSH key type
+
+* The user: GPU yard now opens (a few seconds, a white flash), but Lamp and its music are slow, Keep
+  maybe too; Orb is normal. AC600 plugged in from boot.
+* **Wi-Fi verified:** the Omada controller showed a new client `20:e1:5d:b2:bc:24` at 192.168.1.225.
+  Read-back (Mask ROM device 8 → loader device 9, `2026-10-26_wifi_played/nand_raw.bin` `db0f09a3…0bd6`,
+  logs in `captures/wifi/`): `net.log`: unpacked into `/tmp/yardwifi`, `cfg80211 loaded`, `8821au loaded`,
+  `wlan0 up`, DHCP 192.168.1.225/24, "start finished cleanly". `wpa.log`: associated, WPA2 key negotiation
+  completed (CCMP), 2412 MHz. Our modules loaded and ran on the stock kernel.
+* **SSH refused our key:** the stock dropbear is 2019.78 (`SSH-2.0-dropbear_2019.78`), and ssh-ed25519
+  support came in 2020.79; it offers ssh-rsa and ecdsa. New key `~/yard_key_ecdsa` (ecdsa-sha2-nistp256);
+  `cart deploy --ssh-key` now refuses ed25519 keys. The Fire HD 8 Termux key is ed25519, so it is left out.
+* Staged from `db0f09a3…0bd6` (same-session `diff` none): 10 blocks, only `yardnet.keys` (plus metadata);
+  every other file identical and left alone.
