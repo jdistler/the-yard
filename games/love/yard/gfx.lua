@@ -34,15 +34,28 @@ local function setc(c) lg.setColor(rgba(c)) end
 
 -- ------------------------------------------------------------------ targets and transforms
 
+-- Direct mode (G.direct): the frame is drawn straight onto the panel's framebuffer, turned and scaled, with no
+-- full-size canvas. On the Mali-400 the canvas cost a whole extra pass each frame: Keep ran at 35 fps through
+-- the canvas and 60 without one (2026-10-26). DIRECT stands in for "the framebuffer" as a target.
+local DIRECT = {}
+local base = {ox = 0, oy = 0, s = 1, turn = true, ww = 1024, wh = 768}   -- framebuffer placement, set in init
+local shake_x, shake_y = 0, 0     -- direct mode: last frame's shake, applied to this frame (see finish_frame)
+
 local function apply_transform()
   lg.origin()
+  if target == DIRECT then
+    lg.translate(base.ww / 2 + shake_x * base.s, base.wh / 2 + shake_y * base.s)
+    if base.turn then lg.rotate(-math.pi / 2) end
+    lg.scale(base.s)
+    lg.translate(-W * K / 2, -H * K / 2)
+  end
   lg.scale(target_k)
   lg.translate(offx, offy)
 end
 
 local function set_target(canvas, k)
   target, target_k = canvas, k
-  lg.setCanvas({canvas, stencil = true})
+  if canvas == DIRECT then lg.setCanvas() else lg.setCanvas({canvas, stencil = true}) end
   lg.setScissor()
   apply_transform()
 end
@@ -50,9 +63,17 @@ end
 function G.init(w, h, k)
   W, H, K = w, h, k
   local cw, ch = math.floor(W * K + 0.5), math.floor(H * K + 0.5)
-  if screen then pcall(function() screen:release() end) end
-  local ok, c = pcall(lg.newCanvas, cw, ch, {msaa = G.msaa or 0})
-  screen = ok and c or lg.newCanvas(cw, ch)
+  if screen and screen ~= DIRECT then pcall(function() screen:release() end) end
+  if G.direct then
+    screen = DIRECT
+    local ww, wh = lg.getDimensions()
+    base.ww, base.wh = ww, wh
+    base.turn = ww > wh and os.getenv("YARD_UPRIGHT") ~= "1"
+    base.s = base.turn and math.min(ww / ch, wh / cw) or math.min(ww / cw, wh / ch)
+  else
+    local ok, c = pcall(lg.newCanvas, cw, ch, {msaa = G.msaa or 0})
+    screen = ok and c or lg.newCanvas(cw, ch)
+  end
   if not glow_tex then
     -- A soft round light: alpha (1 - d^2)^2, the falloff the software renderer's glow used.
     local n = 128
@@ -90,11 +111,12 @@ end
 function G.begin_frame()
   offx, offy = 0, 0
   set_target(screen, K)
+  if screen == DIRECT then lg.clear(0, 0, 0, 1) end
   lg.setBlendMode("alpha")
   lg.setLineJoin("bevel")
 end
 
-function G.screen() return screen end
+function G.screen() return screen ~= DIRECT and screen or nil end
 
 -- Shake, flash, and the quit meter are laid over the finished frame, as gfx_present did.
 function G.finish_frame(quitting)
@@ -136,6 +158,12 @@ function G.finish_frame(quitting)
     shake_amt = shake_amt * 0.85
   else
     shake_amt = 0
+  end
+  if screen == DIRECT then
+    -- The frame is already on the framebuffer: the shake moves the next one (one frame late, the same draws
+    -- from the generator in the same order).
+    shake_x, shake_y = sx * K, sy * K
+    return 0, 0
   end
   return sx * K, sy * K
 end
@@ -283,7 +311,18 @@ end
 function api.clip(x, y, w, h)
   if not x then lg.setScissor() return end
   local k = target_k
-  lg.setScissor(math.floor((x + offx) * k), math.floor((y + offy) * k), math.ceil(w * k), math.ceil(h * k))
+  local cx, cy, cw, ch = (x + offx) * k, (y + offy) * k, w * k, h * k
+  if target == DIRECT then
+    -- A scissor is in framebuffer pixels, not turned: map the canvas rectangle the way apply_transform does.
+    local s, hw, hh = base.s, W * K / 2, H * K / 2
+    local ox, oy = base.ww / 2 + shake_x * s, base.wh / 2 + shake_y * s
+    if base.turn then
+      cx, cy, cw, ch = ox + (cy - hh) * s, oy - (cx + cw - hw) * s, ch * s, cw * s
+    else
+      cx, cy, cw, ch = ox + (cx - hw) * s, oy + (cy - hh) * s, cw * s, ch * s
+    end
+  end
+  lg.setScissor(math.floor(cx), math.floor(cy), math.ceil(cw), math.ceil(ch))
 end
 function api.iris(x, y, r, c)
   lg.stencil(function() lg.circle("fill", x, y, math.max(0, r), 96) end, "replace", 1)

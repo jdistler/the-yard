@@ -1,0 +1,1728 @@
+== 116.29 freq=1008000 gpu=400000000  MemAvailable:      20604 kB
+Mem: 112368K used, 6300K free, 19684K shrd, 4844K buff, 31192K cached
+CPU:  43% usr   8% sys   0% nic  47% idle   0% io   0% irq   0% sirq
+Load average: 2.50 0.93 0.34 1/85 939
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 117.04 freq=1008000 gpu=400000000  MemAvailable:      20696 kB
+Mem: 112444K used, 6224K free, 19696K shrd, 4844K buff, 31192K cached
+CPU:  36% usr  36% sys   0% nic  27% idle   0% io   0% irq   0% sirq
+Load average: 2.50 0.93 0.34 2/85 959
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 117.78 freq=1008000 gpu=400000000  MemAvailable:      20672 kB
+Mem: 112296K used, 6372K free, 19696K shrd, 4844K buff, 31192K cached
+CPU:  37% usr  12% sys   0% nic  50% idle   0% io   0% irq   0% sirq
+Load average: 2.50 0.93 0.34 2/85 969
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+    4     2 root     SW       0   0%   4% [kworker/0:0]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 118.49 freq=1008000 gpu=400000000  MemAvailable:      20680 kB
+Mem: 112360K used, 6308K free, 19696K shrd, 4844K buff, 31192K cached
+CPU:  36% usr  13% sys   0% nic  50% idle   0% io   0% irq   0% sirq
+Load average: 2.50 0.93 0.34 2/85 978
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+   59     2 root     SW       0   0%   4% [kworker/u4:3]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 119.20 freq=1008000 gpu=400000000  MemAvailable:      20684 kB
+Mem: 112300K used, 6368K free, 19696K shrd, 4844K buff, 31192K cached
+CPU:  40% usr  16% sys   0% nic  44% idle   0% io   0% irq   0% sirq
+Load average: 2.50 0.93 0.34 2/85 988
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 119.90 freq=1008000 gpu=400000000  MemAvailable:      20752 kB
+Mem: 112316K used, 6352K free, 19696K shrd, 4844K buff, 31192K cached
+CPU:  22% usr  27% sys   4% nic  45% idle   0% io   0% irq   0% sirq
+Load average: 2.50 0.93 0.34 3/85 998
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 120.62 freq=1008000 gpu=400000000  MemAvailable:      20680 kB
+Mem: 112344K used, 6324K free, 19696K shrd, 4844K buff, 31192K cached
+CPU:  31% usr  10% sys   0% nic  57% idle   0% io   0% irq   0% sirq
+Load average: 2.70 1.00 0.37 2/85 1007
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 121.34 freq=1008000 gpu=400000000  MemAvailable:      20652 kB
+Mem: 112356K used, 6312K free, 19700K shrd, 4844K buff, 31196K cached
+CPU:  34% usr  23% sys   0% nic  42% idle   0% io   0% irq   0% sirq
+Load average: 2.70 1.00 0.37 2/85 1017
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+   58     2 root     SW       0   0%   4% [kworker/u4:2]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 122.06 freq=1008000 gpu=400000000  MemAvailable:      20628 kB
+Mem: 112392K used, 6276K free, 19700K shrd, 4844K buff, 31196K cached
+CPU:  37% usr  25% sys   0% nic  37% idle   0% io   0% irq   0% sirq
+Load average: 2.70 1.00 0.37 2/84 1032
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  556     1 root     S     2368   2%   4% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   59     2 root     SW       0   0%   4% [kworker/u4:3]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 122.80 freq=1008000 gpu=400000000  MemAvailable:      20644 kB
+Mem: 112380K used, 6288K free, 19700K shrd, 4844K buff, 31196K cached
+CPU:  34% usr  13% sys   0% nic  47% idle   0% io   0% irq   4% sirq
+Load average: 2.70 1.00 0.37 2/85 1047
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+    4     2 root     SW       0   0%   4% [kworker/0:0]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 123.52 freq=1008000 gpu=400000000  MemAvailable:      20672 kB
+Mem: 112360K used, 6308K free, 19700K shrd, 4844K buff, 31196K cached
+CPU:  35% usr  15% sys   0% nic  50% idle   0% io   0% irq   0% sirq
+Load average: 2.70 1.00 0.37 3/85 1056
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  437     1 root     S     118m 102%   0% /usr/bin/game
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 124.22 freq=1008000 gpu=400000000  MemAvailable:      20672 kB
+Mem: 112344K used, 6324K free, 19700K shrd, 4844K buff, 31196K cached
+CPU:  40% usr   4% sys   0% nic  50% idle   0% io   0% irq   4% sirq
+Load average: 2.70 1.00 0.37 2/85 1066
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  437     1 root     S     118m 102%   0% /usr/bin/game
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 124.96 freq=1008000 gpu=400000000  MemAvailable:      20644 kB
+Mem: 112380K used, 6288K free, 19704K shrd, 4844K buff, 31200K cached
+CPU:  40% usr  16% sys   0% nic  44% idle   0% io   0% irq   0% sirq
+Load average: 2.70 1.00 0.37 2/85 1076
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 125.67 freq=1008000 gpu=400000000  MemAvailable:      20668 kB
+Mem: 112368K used, 6300K free, 19704K shrd, 4844K buff, 31200K cached
+CPU:  35% usr  10% sys   0% nic  55% idle   0% io   0% irq   0% sirq
+Load average: 2.65 1.02 0.38 2/85 1086
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 126.39 freq=1008000 gpu=400000000  MemAvailable:      20580 kB
+Mem: 112412K used, 6256K free, 19704K shrd, 4844K buff, 31200K cached
+CPU:  31% usr  18% sys   0% nic  50% idle   0% io   0% irq   0% sirq
+Load average: 2.65 1.02 0.38 2/85 1095
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+   13     2 root     SW       0   0%   4% [ksoftirqd/1]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 127.12 freq=1008000 gpu=400000000  MemAvailable:      20632 kB
+Mem: 112396K used, 6272K free, 19704K shrd, 4844K buff, 31200K cached
+CPU:  35% usr  25% sys   0% nic  39% idle   0% io   0% irq   0% sirq
+Load average: 2.65 1.02 0.38 4/85 1107
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  556     1 root     S     2368   2%   4% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   59     2 root     SW       0   0%   4% [kworker/u4:3]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 127.86 freq=1008000 gpu=400000000  MemAvailable:      20624 kB
+Mem: 112344K used, 6324K free, 19704K shrd, 4844K buff, 31200K cached
+CPU:  31% usr   9% sys   0% nic  54% idle   0% io   0% irq   4% sirq
+Load average: 2.65 1.02 0.38 2/85 1125
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+    4     2 root     SW       0   0%   3% [kworker/0:0]
+    7     2 root     SW       0   0%   3% [rcu_sched]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+== 128.57 freq=1008000 gpu=400000000  MemAvailable:      20632 kB
+Mem: 112392K used, 6276K free, 19704K shrd, 4844K buff, 31200K cached
+CPU:  22% usr  27% sys   0% nic  50% idle   0% io   0% irq   0% sirq
+Load average: 2.65 1.02 0.38 4/85 1134
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+== 129.28 freq=1008000 gpu=400000000  MemAvailable:      20596 kB
+Mem: 112432K used, 6236K free, 19708K shrd, 4844K buff, 31204K cached
+CPU:  45% usr   4% sys   0% nic  50% idle   0% io   0% irq   0% sirq
+Load average: 2.65 1.02 0.38 2/85 1144
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+   51     2 root     SW       0   0%   4% [kworker/u4:1]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 130.02 freq=1008000 gpu=400000000  MemAvailable:      20688 kB
+Mem: 112368K used, 6300K free, 19708K shrd, 4844K buff, 31204K cached
+CPU:  33% usr  16% sys   0% nic  50% idle   0% io   0% irq   0% sirq
+Load average: 2.65 1.02 0.38 2/85 1154
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+== 130.72 freq=1008000 gpu=400000000  MemAvailable:      20688 kB
+Mem: 112360K used, 6308K free, 19708K shrd, 4844K buff, 31204K cached
+CPU:  42% usr   4% sys   0% nic  52% idle   0% io   0% irq   0% sirq
+Load average: 2.52 1.02 0.38 3/85 1164
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+== 131.45 freq=1008000 gpu=400000000  MemAvailable:      20744 kB
+Mem: 112332K used, 6336K free, 19708K shrd, 4844K buff, 31204K cached
+CPU:  47% usr   4% sys   0% nic  47% idle   0% io   0% irq   0% sirq
+Load average: 2.52 1.02 0.38 2/85 1173
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+== 132.16 freq=1008000 gpu=400000000  MemAvailable:      20604 kB
+Mem: 112424K used, 6244K free, 19708K shrd, 4844K buff, 31204K cached
+CPU:  42% usr   4% sys   0% nic  52% idle   0% io   0% irq   0% sirq
+Load average: 2.52 1.02 0.38 2/85 1183
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+   59     2 root     SW       0   0%   4% [kworker/u4:3]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 132.88 freq=1008000 gpu=400000000  MemAvailable:      20632 kB
+Mem: 112372K used, 6296K free, 19712K shrd, 4844K buff, 31208K cached
+CPU:  30% usr  15% sys   0% nic  55% idle   0% io   0% irq   0% sirq
+Load average: 2.52 1.02 0.38 2/85 1203
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+== 133.60 freq=1008000 gpu=400000000  MemAvailable:      20624 kB
+Mem: 112432K used, 6236K free, 19712K shrd, 4844K buff, 31208K cached
+CPU:  33% usr  20% sys   0% nic  45% idle   0% io   0% irq   0% sirq
+Load average: 2.52 1.02 0.38 2/85 1212
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+== 134.32 freq=1008000 gpu=400000000  MemAvailable:      20632 kB
+Mem: 112336K used, 6332K free, 19712K shrd, 4844K buff, 31208K cached
+CPU:  41% usr  12% sys   0% nic  45% idle   0% io   0% irq   0% sirq
+Load average: 2.52 1.02 0.38 4/85 1222
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+    4     2 root     RW       0   0%   4% [kworker/0:0]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+== 135.03 freq=1008000 gpu=400000000  MemAvailable:      20596 kB
+Mem: 112408K used, 6260K free, 19712K shrd, 4844K buff, 31208K cached
+CPU:  26% usr  15% sys   0% nic  57% idle   0% io   0% irq   0% sirq
+Load average: 2.52 1.02 0.38 1/85 1232
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+   53     2 root     DW       0   0%   4% [rkflash]
+    7     2 root     SW       0   0%   4% [rcu_sched]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+== 135.72 freq=1008000 gpu=400000000  MemAvailable:      29624 kB
+Mem: 103460K used, 15208K free, 13580K shrd, 4844K buff, 25076K cached
+CPU:   0% usr   5% sys   0% nic  94% idle   0% io   0% irq   0% sirq
+Load average: 2.39 1.02 0.38 1/78 1242
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 136.40 freq=1008000 gpu=400000000  MemAvailable:      29584 kB
+Mem: 103384K used, 15284K free, 13564K shrd, 4844K buff, 25064K cached
+CPU:   5% usr   5% sys   0% nic  90% idle   0% io   0% irq   0% sirq
+Load average: 2.39 1.02 0.38 1/78 1251
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+   53     2 root     DW       0   0%   3% [rkflash]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 137.07 freq=1008000 gpu=400000000  MemAvailable:      29628 kB
+Mem: 103384K used, 15284K free, 13568K shrd, 4844K buff, 25068K cached
+CPU:   5% usr   0% sys   0% nic  95% idle   0% io   0% irq   0% sirq
+Load average: 2.39 1.02 0.38 1/78 1261
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 137.74 freq=1008000 gpu=400000000  MemAvailable:      29668 kB
+Mem: 103352K used, 15316K free, 13568K shrd, 4844K buff, 25068K cached
+CPU:   4% usr   4% sys   0% nic  90% idle   0% io   0% irq   0% sirq
+Load average: 2.39 1.02 0.38 1/78 1281
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 138.41 freq=1008000 gpu=400000000  MemAvailable:      29656 kB
+Mem: 103384K used, 15284K free, 13572K shrd, 4844K buff, 25072K cached
+CPU:   0% usr   9% sys   0% nic  90% idle   0% io   0% irq   0% sirq
+Load average: 2.39 1.02 0.38 1/78 1290
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  437     1 root     S     118m 102%   0% /usr/bin/game
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 139.08 freq=1008000 gpu=400000000  MemAvailable:      91804 kB
+Mem: 43920K used, 74748K free, 4356K shrd, 4888K buff, 18676K cached
+CPU:  28% usr  47% sys   0% nic   0% idle  23% io   0% irq   0% sirq
+Load average: 2.39 1.02 0.38 3/77 1307
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 139.80 freq=1008000 gpu=400000000  MemAvailable:      91728 kB
+Mem: 49696K used, 68972K free, 4356K shrd, 5024K buff, 23384K cached
+CPU:  22% usr  31% sys   0% nic  22% idle  22% io   0% irq   0% sirq
+Load average: 2.39 1.02 0.38 2/74 1325
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+    4     2 root     SW       0   0%   4% [kworker/0:0]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+== 140.49 freq=1008000 gpu=400000000  MemAvailable:      90912 kB
+Mem: 53736K used, 64932K free, 4356K shrd, 5084K buff, 27012K cached
+CPU:   9% usr  23% sys   0% nic  61% idle   4% io   0% irq   0% sirq
+Load average: 2.36 1.03 0.39 2/74 1334
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 141.17 freq=1008000 gpu=400000000  MemAvailable:      81588 kB
+Mem: 67892K used, 50776K free, 7448K shrd, 5224K buff, 32428K cached
+CPU:  52% usr  13% sys   0% nic  34% idle   0% io   0% irq   0% sirq
+Load average: 2.36 1.03 0.39 2/80 1351
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+    3     2 root     SW       0   0%   4% [ksoftirqd/0]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+== 141.86 freq=1008000 gpu=400000000  MemAvailable:      64628 kB
+Mem: 85900K used, 32768K free, 10520K shrd, 5220K buff, 35508K cached
+CPU:  25% usr  20% sys   0% nic  54% idle   0% io   0% irq   0% sirq
+Load average: 2.36 1.03 0.39 2/80 1361
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 142.56 freq=1008000 gpu=400000000  MemAvailable:      60788 kB
+Mem: 86244K used, 32424K free, 10520K shrd, 5220K buff, 35508K cached
+CPU:  13% usr   4% sys   0% nic  81% idle   0% io   0% irq   0% sirq
+Load average: 2.36 1.03 0.39 3/80 1380
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 143.27 freq=1008000 gpu=400000000  MemAvailable:      60700 kB
+Mem: 86196K used, 32472K free, 10520K shrd, 5220K buff, 35508K cached
+CPU:  23% usr   4% sys   0% nic  71% idle   0% io   0% irq   0% sirq
+Load average: 2.36 1.03 0.39 1/80 1390
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 143.97 freq=1008000 gpu=400000000  MemAvailable:      60812 kB
+Mem: 86208K used, 32460K free, 10520K shrd, 5220K buff, 35508K cached
+CPU:  13% usr  13% sys   0% nic  73% idle   0% io   0% irq   0% sirq
+Load average: 2.36 1.03 0.39 1/80 1400
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 144.65 freq=1008000 gpu=400000000  MemAvailable:      60672 kB
+Mem: 86324K used, 32344K free, 10520K shrd, 5220K buff, 35508K cached
+CPU:  17% usr  13% sys   0% nic  69% idle   0% io   0% irq   0% sirq
+Load average: 2.36 1.03 0.39 2/80 1409
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 145.34 freq=1008000 gpu=400000000  MemAvailable:      60588 kB
+Mem: 86352K used, 32316K free, 10524K shrd, 5220K buff, 35512K cached
+CPU:  10% usr   5% sys   0% nic  85% idle   0% io   0% irq   0% sirq
+Load average: 2.25 1.03 0.40 2/80 1419
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 146.03 freq=1008000 gpu=400000000  MemAvailable:      60504 kB
+Mem: 86476K used, 32192K free, 10524K shrd, 5220K buff, 35512K cached
+CPU:  26% usr   4% sys   0% nic  69% idle   0% io   0% irq   0% sirq
+Load average: 2.25 1.03 0.40 1/80 1429
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 146.72 freq=1008000 gpu=400000000  MemAvailable:      60252 kB
+Mem: 86656K used, 32012K free, 10524K shrd, 5220K buff, 35512K cached
+CPU:  18% usr  13% sys   0% nic  68% idle   0% io   0% irq   0% sirq
+Load average: 2.25 1.03 0.40 4/80 1439
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     R     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 147.41 freq=1008000 gpu=400000000  MemAvailable:      60208 kB
+Mem: 86700K used, 31968K free, 10524K shrd, 5220K buff, 35512K cached
+CPU:  18% usr   4% sys   0% nic  77% idle   0% io   0% irq   0% sirq
+Load average: 2.25 1.03 0.40 1/80 1448
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 148.09 freq=1008000 gpu=400000000  MemAvailable:      60224 kB
+Mem: 86736K used, 31932K free, 10524K shrd, 5220K buff, 35512K cached
+CPU:  16% usr  12% sys   0% nic  72% idle   0% io   0% irq   0% sirq
+Load average: 2.25 1.03 0.40 1/80 1468
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 148.78 freq=1008000 gpu=400000000  MemAvailable:      60196 kB
+Mem: 86700K used, 31968K free, 10524K shrd, 5220K buff, 35512K cached
+CPU:  13% usr   9% sys   0% nic  77% idle   0% io   0% irq   0% sirq
+Load average: 2.25 1.03 0.40 1/80 1478
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 149.48 freq=1008000 gpu=400000000  MemAvailable:      60224 kB
+Mem: 86716K used, 31952K free, 10528K shrd, 5220K buff, 35516K cached
+CPU:  21% usr   4% sys   0% nic  73% idle   0% io   0% irq   0% sirq
+Load average: 2.25 1.03 0.40 1/80 1487
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 150.17 freq=1008000 gpu=400000000  MemAvailable:      60188 kB
+Mem: 86680K used, 31988K free, 10528K shrd, 5220K buff, 35516K cached
+CPU:  14% usr   9% sys   0% nic  76% idle   0% io   0% irq   0% sirq
+Load average: 2.25 1.03 0.40 1/80 1497
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 150.86 freq=1008000 gpu=400000000  MemAvailable:      60008 kB
+Mem: 86908K used, 31760K free, 10528K shrd, 5220K buff, 35516K cached
+CPU:  14% usr  19% sys   0% nic  66% idle   0% io   0% irq   0% sirq
+Load average: 2.15 1.03 0.40 2/80 1507
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 151.55 freq=1008000 gpu=400000000  MemAvailable:      59896 kB
+Mem: 87020K used, 31648K free, 10528K shrd, 5220K buff, 35516K cached
+CPU:  14% usr   4% sys   0% nic  80% idle   0% io   0% irq   0% sirq
+Load average: 2.15 1.03 0.40 1/80 1516
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 152.24 freq=1008000 gpu=400000000  MemAvailable:      51700 kB
+Mem: 95752K used, 22916K free, 10528K shrd, 5220K buff, 35516K cached
+CPU:  25% usr  10% sys   0% nic  65% idle   0% io   0% irq   0% sirq
+Load average: 2.15 1.03 0.40 1/80 1528
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 152.95 freq=1008000 gpu=400000000  MemAvailable:      51088 kB
+Mem: 95820K used, 22848K free, 10532K shrd, 5220K buff, 35520K cached
+CPU:  18% usr   4% sys   0% nic  77% idle   0% io   0% irq   0% sirq
+Load average: 2.15 1.03 0.40 1/80 1548
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 153.66 freq=1008000 gpu=400000000  MemAvailable:      47688 kB
+Mem: 99288K used, 19380K free, 10532K shrd, 5220K buff, 35520K cached
+CPU:  25% usr  16% sys   0% nic  58% idle   0% io   0% irq   0% sirq
+Load average: 2.15 1.03 0.40 1/80 1557
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  479     2 root     SW       0   0%   4% [kworker/1:2]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+== 154.36 freq=1008000 gpu=400000000  MemAvailable:      47468 kB
+Mem: 99468K used, 19200K free, 10532K shrd, 5220K buff, 35512K cached
+CPU:  16% usr  12% sys   0% nic  70% idle   0% io   0% irq   0% sirq
+Load average: 2.15 1.03 0.40 2/80 1567
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 155.06 freq=1008000 gpu=400000000  MemAvailable:      47416 kB
+Mem: 99472K used, 19196K free, 10532K shrd, 5220K buff, 35512K cached
+CPU:   8% usr  25% sys   0% nic  66% idle   0% io   0% irq   0% sirq
+Load average: 2.15 1.03 0.40 1/80 1577
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 155.77 freq=1008000 gpu=400000000  MemAvailable:      47440 kB
+Mem: 99492K used, 19176K free, 10532K shrd, 5220K buff, 35512K cached
+CPU:  14% usr   4% sys   0% nic  80% idle   0% io   0% irq   0% sirq
+Load average: 2.06 1.03 0.40 4/80 1587
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 156.47 freq=1008000 gpu=400000000  MemAvailable:      47448 kB
+Mem: 99496K used, 19172K free, 10532K shrd, 5220K buff, 35512K cached
+CPU:  15% usr   0% sys   0% nic  85% idle   0% io   0% irq   0% sirq
+Load average: 2.06 1.03 0.40 1/80 1596
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 157.18 freq=1008000 gpu=400000000  MemAvailable:      47376 kB
+Mem: 99520K used, 19148K free, 10536K shrd, 5220K buff, 35516K cached
+CPU:  16% usr  12% sys   0% nic  70% idle   0% io   0% irq   0% sirq
+Load average: 2.06 1.03 0.40 2/80 1606
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 157.88 freq=1008000 gpu=400000000  MemAvailable:      47412 kB
+Mem: 99496K used, 19172K free, 10544K shrd, 5220K buff, 35524K cached
+CPU:  14% usr   9% sys   0% nic  76% idle   0% io   0% irq   0% sirq
+Load average: 2.06 1.03 0.40 1/80 1626
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 158.60 freq=1008000 gpu=400000000  MemAvailable:      47392 kB
+Mem: 99524K used, 19144K free, 10544K shrd, 5220K buff, 35524K cached
+CPU:  10% usr  10% sys   0% nic  80% idle   0% io   0% irq   0% sirq
+Load average: 2.06 1.03 0.40 1/80 1635
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 159.29 freq=1008000 gpu=400000000  MemAvailable:      47384 kB
+Mem: 99540K used, 19128K free, 10544K shrd, 5220K buff, 35524K cached
+CPU:  20% usr   5% sys   0% nic  75% idle   0% io   0% irq   0% sirq
+Load average: 2.06 1.03 0.40 1/80 1645
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 160.00 freq=1008000 gpu=400000000  MemAvailable:      47412 kB
+Mem: 99532K used, 19136K free, 10544K shrd, 5220K buff, 35524K cached
+CPU:  26% usr   4% sys   0% nic  69% idle   0% io   0% irq   0% sirq
+Load average: 2.06 1.03 0.40 1/80 1655
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 160.70 freq=1008000 gpu=400000000  MemAvailable:      47244 kB
+Mem: 99664K used, 19004K free, 10544K shrd, 5220K buff, 35524K cached
+CPU:  19% usr   4% sys   0% nic  76% idle   0% io   0% irq   0% sirq
+Load average: 2.06 1.05 0.41 1/80 1664
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 161.41 freq=1008000 gpu=400000000  MemAvailable:      47132 kB
+Mem: 99792K used, 18876K free, 10548K shrd, 5220K buff, 35528K cached
+CPU:   9% usr  14% sys   0% nic  76% idle   0% io   0% irq   0% sirq
+Load average: 2.06 1.05 0.41 2/80 1674
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 162.11 freq=1008000 gpu=400000000  MemAvailable:      47056 kB
+Mem: 99860K used, 18808K free, 10548K shrd, 5220K buff, 35528K cached
+CPU:   9% usr   9% sys   0% nic  80% idle   0% io   0% irq   0% sirq
+Load average: 2.06 1.05 0.41 1/80 1684
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 162.82 freq=1008000 gpu=400000000  MemAvailable:      46948 kB
+Mem: 100084K used, 18584K free, 10548K shrd, 5220K buff, 35528K cached
+CPU:  33% usr  28% sys   0% nic  38% idle   0% io   0% irq   0% sirq
+Load average: 2.06 1.05 0.41 2/80 1704
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  611     2 root     SW       0   0%   5% [RTW_CMD_THREAD]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 163.54 freq=1008000 gpu=400000000  MemAvailable:      46936 kB
+Mem: 99988K used, 18680K free, 10548K shrd, 5220K buff, 35528K cached
+CPU:  21% usr   8% sys   0% nic  69% idle   0% io   0% irq   0% sirq
+Load average: 2.06 1.05 0.41 1/80 1713
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 164.24 freq=1008000 gpu=400000000  MemAvailable:      46852 kB
+Mem: 100088K used, 18580K free, 10548K shrd, 5220K buff, 35528K cached
+CPU:  21% usr  13% sys   0% nic  65% idle   0% io   0% irq   0% sirq
+Load average: 2.06 1.05 0.41 2/80 1723
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 164.95 freq=1008000 gpu=400000000  MemAvailable:      46860 kB
+Mem: 100084K used, 18584K free, 10552K shrd, 5220K buff, 35532K cached
+CPU:  13% usr  18% sys   0% nic  68% idle   0% io   0% irq   0% sirq
+Load average: 2.06 1.05 0.41 1/80 1733
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 165.65 freq=1008000 gpu=400000000  MemAvailable:      46796 kB
+Mem: 100108K used, 18560K free, 10552K shrd, 5220K buff, 35532K cached
+CPU:  13% usr  13% sys   0% nic  72% idle   0% io   0% irq   0% sirq
+Load average: 1.97 1.05 0.42 1/80 1742
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 166.36 freq=1008000 gpu=400000000  MemAvailable:      46776 kB
+Mem: 100112K used, 18556K free, 10552K shrd, 5220K buff, 35532K cached
+CPU:   9% usr   9% sys   0% nic  81% idle   0% io   0% irq   0% sirq
+Load average: 1.97 1.05 0.42 1/80 1752
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 167.06 freq=1008000 gpu=400000000  MemAvailable:      46776 kB
+Mem: 100140K used, 18528K free, 10552K shrd, 5220K buff, 35532K cached
+CPU:  29% usr   7% sys   0% nic  62% idle   0% io   0% irq   0% sirq
+Load average: 1.97 1.05 0.42 1/80 1762
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 167.76 freq=1008000 gpu=400000000  MemAvailable:      46628 kB
+Mem: 100368K used, 18300K free, 10552K shrd, 5220K buff, 35532K cached
+CPU:  19% usr   4% sys   0% nic  76% idle   0% io   0% irq   0% sirq
+Load average: 1.97 1.05 0.42 1/80 1771
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 168.47 freq=1008000 gpu=400000000  MemAvailable:      46556 kB
+Mem: 100352K used, 18316K free, 10552K shrd, 5220K buff, 35532K cached
+CPU:  18% usr   9% sys   0% nic  72% idle   0% io   0% irq   0% sirq
+Load average: 1.97 1.05 0.42 1/80 1791
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 169.17 freq=1008000 gpu=400000000  MemAvailable:      46468 kB
+Mem: 100420K used, 18248K free, 10556K shrd, 5220K buff, 35536K cached
+CPU:  14% usr  14% sys   0% nic  71% idle   0% io   0% irq   0% sirq
+Load average: 1.97 1.05 0.42 1/80 1801
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 169.87 freq=1008000 gpu=400000000  MemAvailable:      46512 kB
+Mem: 100476K used, 18192K free, 10556K shrd, 5220K buff, 35536K cached
+CPU:  24% usr  16% sys   0% nic  60% idle   0% io   0% irq   0% sirq
+Load average: 1.97 1.05 0.42 1/80 1811
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 170.57 freq=1008000 gpu=400000000  MemAvailable:      46376 kB
+Mem: 100556K used, 18112K free, 10556K shrd, 5220K buff, 35536K cached
+CPU:  20% usr   8% sys   0% nic  70% idle   0% io   0% irq   0% sirq
+Load average: 1.89 1.05 0.42 2/80 1820
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+   51     2 root     SW       0   0%   3% [kworker/u4:1]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+== 171.28 freq=1008000 gpu=400000000  MemAvailable:      46348 kB
+Mem: 100540K used, 18128K free, 10556K shrd, 5220K buff, 35536K cached
+CPU:  13% usr   4% sys   0% nic  81% idle   0% io   0% irq   0% sirq
+Load average: 1.89 1.05 0.42 2/80 1830
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 171.97 freq=1008000 gpu=400000000  MemAvailable:      46364 kB
+Mem: 100568K used, 18100K free, 10556K shrd, 5220K buff, 35536K cached
+CPU:  13% usr   4% sys   0% nic  81% idle   0% io   0% irq   0% sirq
+Load average: 1.89 1.05 0.42 1/80 1840
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 172.65 freq=1008000 gpu=400000000  MemAvailable:      46320 kB
+Mem: 100620K used, 18048K free, 10556K shrd, 5220K buff, 35536K cached
+CPU:  21% usr   4% sys   0% nic  73% idle   0% io   0% irq   0% sirq
+Load average: 1.89 1.05 0.42 1/80 1849
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 173.34 freq=1008000 gpu=400000000  MemAvailable:      46388 kB
+Mem: 100520K used, 18148K free, 10560K shrd, 5220K buff, 35540K cached
+CPU:  21% usr   8% sys   0% nic  69% idle   0% io   0% irq   0% sirq
+Load average: 1.89 1.05 0.42 2/80 1869
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 174.03 freq=1008000 gpu=400000000  MemAvailable:      46348 kB
+Mem: 100612K used, 18056K free, 10560K shrd, 5220K buff, 35540K cached
+CPU:  21% usr   8% sys   0% nic  69% idle   0% io   0% irq   0% sirq
+Load average: 1.89 1.05 0.42 5/80 1879
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 174.72 freq=1008000 gpu=400000000  MemAvailable:      46328 kB
+Mem: 100588K used, 18080K free, 10560K shrd, 5220K buff, 35540K cached
+CPU:  16% usr   8% sys   0% nic  75% idle   0% io   0% irq   0% sirq
+Load average: 1.89 1.05 0.42 1/80 1888
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 175.42 freq=1008000 gpu=400000000  MemAvailable:      43184 kB
+Mem: 103748K used, 14920K free, 10560K shrd, 5220K buff, 35540K cached
+CPU:  16% usr  12% sys   0% nic  70% idle   0% io   0% irq   0% sirq
+Load average: 1.82 1.04 0.42 1/80 1900
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+   62     2 root     SW       0   0%   4% [kworker/0:2]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+== 176.11 freq=1008000 gpu=400000000  MemAvailable:      43156 kB
+Mem: 103784K used, 14884K free, 10560K shrd, 5220K buff, 35540K cached
+CPU:   0% usr  15% sys   0% nic  85% idle   0% io   0% irq   0% sirq
+Load average: 1.82 1.04 0.42 1/80 1910
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 176.80 freq=1008000 gpu=400000000  MemAvailable:      43072 kB
+Mem: 103832K used, 14836K free, 10560K shrd, 5220K buff, 35540K cached
+CPU:   5% usr   5% sys   0% nic  88% idle   0% io   0% irq   0% sirq
+Load average: 1.82 1.04 0.42 1/80 1920
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 177.51 freq=1008000 gpu=400000000  MemAvailable:      43044 kB
+Mem: 103892K used, 14776K free, 10564K shrd, 5220K buff, 35544K cached
+CPU:   4% usr  22% sys   0% nic  72% idle   0% io   0% irq   0% sirq
+Load average: 1.82 1.04 0.42 1/80 1929
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 178.19 freq=1008000 gpu=400000000  MemAvailable:      42912 kB
+Mem: 104036K used, 14632K free, 10564K shrd, 5220K buff, 35544K cached
+CPU:   5% usr   0% sys   0% nic  94% idle   0% io   0% irq   0% sirq
+Load average: 1.82 1.04 0.42 1/80 1949
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 178.89 freq=1008000 gpu=400000000  MemAvailable:      42828 kB
+Mem: 104088K used, 14580K free, 10568K shrd, 5220K buff, 35548K cached
+CPU:  13% usr   9% sys   0% nic  77% idle   0% io   0% irq   0% sirq
+Load average: 1.82 1.04 0.42 1/80 1960
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 179.58 freq=1008000 gpu=400000000  MemAvailable:      42744 kB
+Mem: 104172K used, 14496K free, 10568K shrd, 5220K buff, 35548K cached
+CPU:   9% usr  13% sys   0% nic  77% idle   0% io   0% irq   0% sirq
+Load average: 1.82 1.04 0.42 1/80 1969
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 180.27 freq=1008000 gpu=400000000  MemAvailable:      42688 kB
+Mem: 104228K used, 14440K free, 10568K shrd, 5220K buff, 35548K cached
+CPU:   0% usr  10% sys   0% nic  89% idle   0% io   0% irq   0% sirq
+Load average: 1.82 1.04 0.42 1/80 1979
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 180.97 freq=1008000 gpu=400000000  MemAvailable:      42512 kB
+Mem: 104424K used, 14244K free, 10572K shrd, 5220K buff, 35552K cached
+CPU:   5% usr   5% sys   0% nic  88% idle   0% io   0% irq   0% sirq
+Load average: 1.75 1.04 0.43 4/80 1989
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 181.67 freq=1008000 gpu=400000000  MemAvailable:      42496 kB
+Mem: 104448K used, 14220K free, 10572K shrd, 5220K buff, 35552K cached
+CPU:   4% usr  14% sys   0% nic  80% idle   0% io   0% irq   0% sirq
+Load average: 1.75 1.04 0.43 1/80 1998
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 182.36 freq=1008000 gpu=400000000  MemAvailable:      42428 kB
+Mem: 104496K used, 14172K free, 10572K shrd, 5220K buff, 35552K cached
+CPU:   8% usr  13% sys   0% nic  78% idle   0% io   0% irq   0% sirq
+Load average: 1.75 1.04 0.43 2/80 2008
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+    1     0 root     S     2368   2%   0% init
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 183.06 freq=1008000 gpu=400000000  MemAvailable:      42288 kB
+Mem: 104720K used, 13948K free, 10572K shrd, 5220K buff, 35552K cached
+CPU:  30% usr  19% sys   0% nic  50% idle   0% io   0% irq   0% sirq
+Load average: 1.75 1.04 0.43 2/80 2024
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 183.76 freq=1008000 gpu=400000000  MemAvailable:      42268 kB
+Mem: 104708K used, 13960K free, 10572K shrd, 5220K buff, 35552K cached
+CPU:  17% usr   8% sys   0% nic  73% idle   0% io   0% irq   0% sirq
+Load average: 1.75 1.04 0.43 1/80 2037
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 184.46 freq=1008000 gpu=400000000  MemAvailable:      42072 kB
+Mem: 104868K used, 13800K free, 10576K shrd, 5220K buff, 35556K cached
+CPU:  17% usr   8% sys   0% nic  73% idle   0% io   0% irq   0% sirq
+Load average: 1.75 1.04 0.43 1/80 2047
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 185.15 freq=1008000 gpu=400000000  MemAvailable:      41980 kB
+Mem: 104984K used, 13684K free, 10576K shrd, 5220K buff, 35556K cached
+CPU:  14% usr   4% sys   0% nic  80% idle   0% io   0% irq   0% sirq
+Load average: 1.75 1.04 0.43 1/80 2057
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 185.85 freq=1008000 gpu=400000000  MemAvailable:      41812 kB
+Mem: 105104K used, 13564K free, 10576K shrd, 5220K buff, 35556K cached
+CPU:   8% usr  13% sys   0% nic  78% idle   0% io   0% irq   0% sirq
+Load average: 1.69 1.04 0.43 1/80 2067
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     D     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 186.54 freq=1008000 gpu=400000000  MemAvailable:      41700 kB
+Mem: 105272K used, 13396K free, 10576K shrd, 5220K buff, 35556K cached
+CPU:   5% usr  10% sys   0% nic  85% idle   0% io   0% irq   0% sirq
+Load average: 1.69 1.04 0.43 1/80 2076
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 187.22 freq=1008000 gpu=400000000  MemAvailable:      41604 kB
+Mem: 105336K used, 13332K free, 10576K shrd, 5220K buff, 35556K cached
+CPU:  21% usr   0% sys   0% nic  78% idle   0% io   0% irq   0% sirq
+Load average: 1.69 1.04 0.43 1/80 2086
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 187.91 freq=1008000 gpu=400000000  MemAvailable:      41476 kB
+Mem: 105496K used, 13172K free, 10576K shrd, 5220K buff, 35556K cached
+CPU:  10% usr  10% sys   0% nic  80% idle   0% io   0% irq   0% sirq
+Load average: 1.69 1.04 0.43 1/80 2096
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 188.60 freq=1008000 gpu=400000000  MemAvailable:      41336 kB
+Mem: 105580K used, 13088K free, 10576K shrd, 5220K buff, 35556K cached
+CPU:  13% usr   4% sys   0% nic  81% idle   0% io   0% irq   0% sirq
+Load average: 1.69 1.04 0.43 1/80 2115
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+   51     2 root     SW       0   0%   3% [kworker/u4:1]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+== 189.29 freq=1008000 gpu=400000000  MemAvailable:      41252 kB
+Mem: 105652K used, 13016K free, 10580K shrd, 5220K buff, 35560K cached
+CPU:   9% usr   9% sys   0% nic  81% idle   0% io   0% irq   0% sirq
+Load average: 1.69 1.04 0.43 1/80 2125
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 189.98 freq=1008000 gpu=400000000  MemAvailable:      41176 kB
+Mem: 105768K used, 12900K free, 10580K shrd, 5220K buff, 35560K cached
+CPU:  19% usr   4% sys   0% nic  76% idle   0% io   0% irq   0% sirq
+Load average: 1.69 1.04 0.43 1/80 2135
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 190.67 freq=1008000 gpu=400000000  MemAvailable:      41140 kB
+Mem: 105792K used, 12876K free, 10580K shrd, 5220K buff, 35560K cached
+CPU:   0% usr   5% sys   0% nic  94% idle   0% io   0% irq   0% sirq
+Load average: 1.64 1.04 0.43 1/80 2144
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 191.36 freq=1008000 gpu=400000000  MemAvailable:      41140 kB
+Mem: 105800K used, 12868K free, 10580K shrd, 5220K buff, 35560K cached
+CPU:  11% usr  19% sys   0% nic  69% idle   0% io   0% irq   0% sirq
+Load average: 1.64 1.04 0.43 1/80 2154
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 192.06 freq=1008000 gpu=400000000  MemAvailable:      41140 kB
+Mem: 105804K used, 12864K free, 10584K shrd, 5220K buff, 35564K cached
+CPU:  12% usr  12% sys   0% nic  75% idle   0% io   0% irq   0% sirq
+Load average: 1.64 1.04 0.43 1/80 2164
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 192.74 freq=1008000 gpu=400000000  MemAvailable:      41112 kB
+Mem: 105848K used, 12820K free, 10584K shrd, 5220K buff, 35564K cached
+CPU:  16% usr  12% sys   0% nic  72% idle   0% io   0% irq   0% sirq
+Load average: 1.64 1.04 0.43 1/80 2173
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 193.43 freq=1008000 gpu=400000000  MemAvailable:      41120 kB
+Mem: 105792K used, 12876K free, 10584K shrd, 5220K buff, 35564K cached
+CPU:  18% usr   4% sys   0% nic  77% idle   0% io   0% irq   0% sirq
+Load average: 1.64 1.04 0.43 1/80 2193
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 194.13 freq=1008000 gpu=400000000  MemAvailable:      41196 kB
+Mem: 105804K used, 12864K free, 10584K shrd, 5220K buff, 35564K cached
+CPU:  13% usr  13% sys   0% nic  73% idle   0% io   0% irq   0% sirq
+Load average: 1.64 1.04 0.43 1/80 2203
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 194.82 freq=1008000 gpu=400000000  MemAvailable:      41124 kB
+Mem: 105800K used, 12868K free, 10584K shrd, 5220K buff, 35564K cached
+CPU:  18% usr   4% sys   0% nic  77% idle   0% io   0% irq   0% sirq
+Load average: 1.64 1.04 0.43 2/80 2212
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+    7     2 root     SW       0   0%   4% [rcu_sched]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+== 195.51 freq=1008000 gpu=400000000  MemAvailable:      41112 kB
+Mem: 105792K used, 12876K free, 10584K shrd, 5220K buff, 35564K cached
+CPU:  13% usr   4% sys   0% nic  81% idle   0% io   0% irq   0% sirq
+Load average: 1.59 1.04 0.44 2/80 2222
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 196.20 freq=1008000 gpu=400000000  MemAvailable:      41168 kB
+Mem: 105824K used, 12844K free, 10588K shrd, 5220K buff, 35568K cached
+CPU:  14% usr   9% sys   0% nic  76% idle   0% io   0% irq   0% sirq
+Load average: 1.59 1.04 0.44 1/80 2232
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 196.90 freq=1008000 gpu=400000000  MemAvailable:      41084 kB
+Mem: 105804K used, 12864K free, 10588K shrd, 5220K buff, 35568K cached
+CPU:  20% usr   5% sys   0% nic  70% idle   0% io   0% irq   5% sirq
+Load average: 1.59 1.04 0.44 1/80 2242
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 197.58 freq=1008000 gpu=400000000  MemAvailable:      41168 kB
+Mem: 105916K used, 12752K free, 10588K shrd, 5220K buff, 35568K cached
+CPU:   0% usr  20% sys   0% nic  80% idle   0% io   0% irq   0% sirq
+Load average: 1.59 1.04 0.44 5/82 2253
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+    4     2 root     SW       0   0%   3% [kworker/0:0]
+   59     2 root     SW       0   0%   3% [kworker/u4:3]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+== 198.27 freq=1008000 gpu=400000000  MemAvailable:      58884 kB
+Mem: 91656K used, 27012K free, 10592K shrd, 5232K buff, 35880K cached
+CPU:  20% usr  33% sys   0% nic  43% idle   0% io   0% irq   3% sirq
+Load average: 1.59 1.04 0.44 1/80 2281
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+   14     2 root     SW       0   0%   3% [kworker/1:0]
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 199.02 freq=1008000 gpu=400000000  MemAvailable:      55632 kB
+Mem: 91572K used, 27096K free, 10580K shrd, 5232K buff, 35876K cached
+CPU:  13% usr  13% sys   0% nic  72% idle   0% io   0% irq   0% sirq
+Load average: 1.59 1.04 0.44 4/80 2291
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 199.72 freq=1008000 gpu=400000000  MemAvailable:      55664 kB
+Mem: 91588K used, 27080K free, 10580K shrd, 5232K buff, 35876K cached
+CPU:  26% usr   4% sys   0% nic  69% idle   0% io   0% irq   0% sirq
+Load average: 1.59 1.04 0.44 2/80 2300
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 200.43 freq=1008000 gpu=400000000  MemAvailable:      55696 kB
+Mem: 91588K used, 27080K free, 10584K shrd, 5232K buff, 35880K cached
+CPU:  15% usr  10% sys   0% nic  75% idle   0% io   0% irq   0% sirq
+Load average: 1.54 1.04 0.44 1/80 2310
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 201.13 freq=1008000 gpu=400000000  MemAvailable:      55660 kB
+Mem: 91648K used, 27020K free, 10588K shrd, 5232K buff, 35884K cached
+CPU:  16% usr  20% sys   0% nic  64% idle   0% io   0% irq   0% sirq
+Load average: 1.54 1.04 0.44 1/80 2320
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 201.85 freq=1008000 gpu=400000000  MemAvailable:      55696 kB
+Mem: 91600K used, 27068K free, 10588K shrd, 5232K buff, 35884K cached
+CPU:  32% usr   8% sys   0% nic  60% idle   0% io   0% irq   0% sirq
+Load average: 1.54 1.04 0.44 1/80 2329
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 202.56 freq=1008000 gpu=400000000  MemAvailable:      55620 kB
+Mem: 91600K used, 27068K free, 10588K shrd, 5232K buff, 35884K cached
+CPU:   9% usr  19% sys   0% nic  71% idle   0% io   0% irq   0% sirq
+Load average: 1.54 1.04 0.44 2/80 2339
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 203.27 freq=1008000 gpu=400000000  MemAvailable:      55640 kB
+Mem: 91616K used, 27052K free, 10588K shrd, 5232K buff, 35884K cached
+CPU:  17% usr   4% sys   0% nic  78% idle   0% io   0% irq   0% sirq
+Load average: 1.54 1.04 0.44 1/80 2349
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 203.98 freq=1008000 gpu=400000000  MemAvailable:      55624 kB
+Mem: 91688K used, 26980K free, 10592K shrd, 5232K buff, 35888K cached
+CPU:  20% usr   5% sys   0% nic  75% idle   0% io   0% irq   0% sirq
+Load average: 1.54 1.04 0.44 1/80 2369
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 204.68 freq=1008000 gpu=400000000  MemAvailable:      55612 kB
+Mem: 91600K used, 27068K free, 10592K shrd, 5232K buff, 35888K cached
+CPU:   9% usr  13% sys   0% nic  77% idle   0% io   0% irq   0% sirq
+Load average: 1.54 1.04 0.44 2/80 2378
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 205.37 freq=1008000 gpu=400000000  MemAvailable:      55632 kB
+Mem: 91644K used, 27024K free, 10592K shrd, 5232K buff, 35888K cached
+CPU:   5% usr  10% sys   0% nic  85% idle   0% io   0% irq   0% sirq
+Load average: 1.74 1.09 0.46 1/80 2388
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 206.06 freq=1008000 gpu=400000000  MemAvailable:      61912 kB
+Mem: 85572K used, 33096K free, 4440K shrd, 5232K buff, 29736K cached
+CPU:  23% usr   9% sys   0% nic  66% idle   0% io   0% irq   0% sirq
+Load average: 1.74 1.09 0.46 1/74 2403
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 206.73 freq=1008000 gpu=400000000  MemAvailable:      51364 kB
+Mem: 96052K used, 22616K free, 7520K shrd, 5232K buff, 32816K cached
+CPU:  47% usr   9% sys   0% nic  42% idle   0% io   0% irq   0% sirq
+Load average: 1.74 1.09 0.46 2/80 2419
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 207.41 freq=1008000 gpu=400000000  MemAvailable:      47220 kB
+Mem: 100100K used, 18568K free, 10608K shrd, 5232K buff, 35904K cached
+CPU:  16% usr   8% sys   0% nic  75% idle   0% io   0% irq   0% sirq
+Load average: 1.74 1.09 0.46 2/80 2429
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 208.10 freq=1008000 gpu=400000000  MemAvailable:      47124 kB
+Mem: 100156K used, 18512K free, 10604K shrd, 5232K buff, 35900K cached
+CPU:   9% usr  14% sys   0% nic  76% idle   0% io   0% irq   0% sirq
+Load average: 1.74 1.09 0.46 1/80 2439
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 208.79 freq=1008000 gpu=400000000  MemAvailable:      47028 kB
+Mem: 100240K used, 18428K free, 10604K shrd, 5232K buff, 35900K cached
+CPU:   9% usr  14% sys   0% nic  76% idle   0% io   0% irq   0% sirq
+Load average: 1.74 1.09 0.46 2/80 2458
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 209.49 freq=1008000 gpu=400000000  MemAvailable:      46944 kB
+Mem: 100332K used, 18336K free, 10604K shrd, 5232K buff, 35900K cached
+CPU:  23% usr   0% sys   0% nic  76% idle   0% io   0% irq   0% sirq
+Load average: 1.74 1.09 0.46 2/80 2468
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 210.18 freq=1008000 gpu=400000000  MemAvailable:      46948 kB
+Mem: 100352K used, 18316K free, 10604K shrd, 5232K buff, 35900K cached
+CPU:  22% usr   0% sys   0% nic  77% idle   0% io   0% irq   0% sirq
+Load average: 1.74 1.09 0.46 2/80 2478
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 210.87 freq=1008000 gpu=400000000  MemAvailable:      46872 kB
+Mem: 100420K used, 18248K free, 10604K shrd, 5232K buff, 35900K cached
+CPU:  14% usr   9% sys   0% nic  76% idle   0% io   0% irq   0% sirq
+Load average: 1.68 1.09 0.46 2/80 2487
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+== 211.56 freq=1008000 gpu=400000000  MemAvailable:      46776 kB
+Mem: 100560K used, 18108K free, 10604K shrd, 5232K buff, 35900K cached
+CPU:   9% usr   9% sys   0% nic  80% idle   0% io   0% irq   0% sirq
+Load average: 1.68 1.09 0.46 2/80 2497
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 212.24 freq=1008000 gpu=400000000  MemAvailable:      46624 kB
+Mem: 100632K used, 18036K free, 10608K shrd, 5232K buff, 35904K cached
+CPU:   8% usr  13% sys   0% nic  78% idle   0% io   0% irq   0% sirq
+Load average: 1.68 1.09 0.46 2/80 2507
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 212.95 freq=1008000 gpu=400000000  MemAvailable:      46604 kB
+Mem: 100660K used, 18008K free, 10608K shrd, 5232K buff, 35904K cached
+CPU:   9% usr  13% sys   0% nic  77% idle   0% io   0% irq   0% sirq
+Load average: 1.68 1.09 0.46 1/80 2517
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 213.65 freq=1008000 gpu=400000000  MemAvailable:      46584 kB
+Mem: 100704K used, 17964K free, 10608K shrd, 5232K buff, 35904K cached
+CPU:  13% usr  17% sys   0% nic  69% idle   0% io   0% irq   0% sirq
+Load average: 1.68 1.09 0.46 1/80 2536
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 214.36 freq=1008000 gpu=400000000  MemAvailable:      46568 kB
+Mem: 100696K used, 17972K free, 10608K shrd, 5232K buff, 35904K cached
+CPU:  26% usr   4% sys   0% nic  69% idle   0% io   0% irq   0% sirq
+Load average: 1.68 1.09 0.46 1/80 2546
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 215.05 freq=1008000 gpu=400000000  MemAvailable:      46568 kB
+Mem: 100700K used, 17968K free, 10608K shrd, 5232K buff, 35904K cached
+CPU:  14% usr   9% sys   0% nic  76% idle   0% io   0% irq   0% sirq
+Load average: 1.68 1.09 0.46 1/80 2556
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 215.74 freq=1008000 gpu=400000000  MemAvailable:      46512 kB
+Mem: 100956K used, 17712K free, 10608K shrd, 5232K buff, 35904K cached
+CPU:  15% usr   5% sys   0% nic  80% idle   0% io   0% irq   0% sirq
+Load average: 1.62 1.09 0.46 1/80 2565
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n
+   81     1 root     S     2368   2%   0% /sbin/klogd -n
+== 216.43 freq=1008000 gpu=400000000  MemAvailable:      46168 kB
+Mem: 101104K used, 17564K free, 10612K shrd, 5232K buff, 35908K cached
+CPU:  20% usr   5% sys   0% nic  75% idle   0% io   0% irq   0% sirq
+Load average: 1.62 1.09 0.46 2/81 2576
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+  478     1 root     S    30492  26%   0% /usr/bin/adbd
+  554   553 root     S     5068   4%   0% ./yard
+   84     1 root     S     2700   2%   0% /sbin/udevd -d
+  926     1 root     S     2368   2%   0% {rec.sh} /bin/sh /tmp/rec.sh
+    1     0 root     S     2368   2%   0% init
+  556     1 root     S     2368   2%   0% {yardnet} /bin/sh /userdata/Games/yardnet --run
+   79     1 root     S     2368   2%   0% /sbin/syslogd -n

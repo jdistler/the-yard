@@ -16,6 +16,20 @@ local lg = love.graphics
 local CART_MAX_STEPS_FRAME, CART_MAX_STEPS_INIT = 150000000, 400000000
 local MEM_CAP = (tonumber(os.getenv("YARD_MEM_MB") or "") or 32) * 1024 * 1024
 local headless = os.getenv("YARD_HEADLESS") == "1"
+-- Settings: an environment variable, else a "NAME value" line in YARD_GPU_CONF (on the cabinet
+-- /data/Games/gpu.conf, which can be changed over SSH between tries), else the default.
+local gpu_conf = {}
+do
+  local f = io.open(os.getenv("YARD_GPU_CONF") or "/data/Games/gpu.conf", "r")
+  if f then
+    for line in f:lines() do
+      local k, v = line:match("^%s*([%w_]+)%s+(%S+)")
+      if k then gpu_conf[k] = v end
+    end
+    f:close()
+  end
+end
+local function opt(name) return os.getenv(name) or gpu_conf[name] end
 local carts, by_id = {}, {}
 local Host_launch
 local returned_once  -- YARD_RETURNED, read once by yard.returned()
@@ -500,7 +514,7 @@ local function run(cart, resume_title)
   current = cart
   cart.want_quit = false
   gfx.badge = cart.system and not input.scripted()
-  gfx.init(cart.w, cart.h, 768 / cart.w)
+  gfx.init(cart.w, cart.h, (tonumber(opt("YARD_K") or "") or 768) / cart.w)
   gfx.particles.clear()
   audio.reset()
   input.begin(cart.title, false)
@@ -512,24 +526,63 @@ local function run(cart, resume_title)
   local frame = 0
   local stats = os.getenv("YARD_STATS") ~= nil
   local check = tonumber(os.getenv("YARD_CHECK_FRAMES") or "")
-  local t_up, t_draw = 0, 0
+  -- Games and music step 60 times a second of real time. When the GPU cannot draw every step (it ran Lamp
+  -- at 22 fps, 2026-10-26: slow walking, a song at a third of its tempo), up to MAX_STEPS steps run per
+  -- drawn frame. Scripts, tests and headless runs keep one step per frame, so a seed replays exactly.
+  local realtime = not headless and not input.scripted() and opt("YARD_FIXED") ~= "0"
+  local STEP, MAX_STEPS = 1 / 60, 4
+  local acc, t_prev = 0, love.timer.getTime()
+  local t_up, t_draw, t_pres, t_last, draws, behind = 0, 0, 0, t_prev, 0, 0
   while not cart.want_quit do
     love.event.pump()
     local quit = false
     for e in love.event.poll() do if e == "quit" then quit = true end end
-    if quit or not input.poll() then break end
-    cart.env.game.frame = frame
+    if quit then break end
+    local steps = 1
+    if realtime then
+      local now = love.timer.getTime()
+      acc = acc + (now - t_prev)
+      t_prev = now
+      -- Round to whole steps: at a steady 60 fps that is one step a frame, without jitter.
+      steps = math.floor(acc / STEP + 0.5)
+      if steps < 1 then steps = 1 end
+      if steps > MAX_STEPS then steps, behind = MAX_STEPS, behind + 1 end
+      acc = acc - steps * STEP
+      if acc < -STEP or acc > STEP then acc = 0 end
+    end
     local t0 = love.timer.getTime()
-    if not call(cart, "__yard_update", CART_MAX_STEPS_FRAME) then oops(cart, 5) current = keep return "stumbled" end
-    gfx.particles.update()
-    audio.update(1 / 60)
+    local stop = false
+    for _ = 1, steps do
+      if not input.poll() then stop = true break end
+      cart.env.game.frame = frame
+      if not call(cart, "__yard_update", CART_MAX_STEPS_FRAME) then oops(cart, 5) current = keep return "stumbled" end
+      gfx.particles.update()
+      audio.update(STEP)
+      frame = frame + 1
+      if stats and frame % 300 == 0 then
+        local now = love.timer.getTime()
+        log(string.format("stats %s frame %d update %.2fms draw %.2fms present %.2fms (%.1f fps drawn, %.1f steps/s, %d behind) lua %dKB images %dKB",
+          cart.id, frame, t_up / 300 * 1000, t_draw / math.max(1, draws) * 1000, t_pres / math.max(1, draws) * 1000,
+          draws / (now - t_last), 300 / (now - t_last), behind, collectgarbage("count"), gfx.memory() / 1024))
+        t_up, t_draw, t_pres, t_last, draws, behind = 0, 0, 0, now, 0, 0
+      end
+      if check and frame >= check then stop = true break end
+      if cart.want_quit then break end
+    end
+    if stop then break end
     local t1 = love.timer.getTime()
     gfx.begin_frame()
     if not call(cart, "__yard_draw", CART_MAX_STEPS_FRAME) then oops(cart, 5) current = keep return "stumbled" end
     local t2 = love.timer.getTime()
+    if stats and draws == 100 then
+      local st = lg.getStats()
+      log(string.format("gpu %s drawcalls %d batched %d canvasswitches %d shaderswitches %d texmem %dKB images %d",
+        cart.id, st.drawcalls, st.drawcallsbatched or 0, st.canvasswitches, st.shaderswitches,
+        st.texturememory / 1024, st.images))
+    end
     present(cart, input.quit_progress())
-    t_up, t_draw = t_up + (t1 - t0), t_draw + (t2 - t1)
-    frame = frame + 1
+    local t3 = love.timer.getTime()
+    t_up, t_draw, t_pres, draws = t_up + (t1 - t0), t_draw + (t2 - t1), t_pres + (t3 - t2), draws + 1
     if collectgarbage("count") * 1024 + gfx.memory() > MEM_CAP then
       collectgarbage()
       gfx.collect()
@@ -540,12 +593,6 @@ local function run(cart, resume_title)
         return "stumbled"
       end
     end
-    if stats and frame % 300 == 0 then
-      log(string.format("stats %s frame %d update %.2fms draw %.2fms lua %dKB images %dKB", cart.id, frame,
-        t_up / 300 * 1000, t_draw / 300 * 1000, collectgarbage("count"), gfx.memory() / 1024))
-      t_up, t_draw = 0, 0
-    end
-    if check and frame >= check then break end
   end
   call(cart, "__yard_quit", CART_MAX_STEPS_INIT)
   current = keep
@@ -576,7 +623,7 @@ Host_launch = function(id)
     else
       love.window.close()
       local ok = os.execute('"' .. path .. '"' .. (fast and " -fast" or ""))
-      love.window.setMode(0, 0, {fullscreen = not headless, fullscreentype = "desktop", vsync = 1})
+      love.window.setMode(0, 0, {fullscreen = not headless, fullscreentype = "desktop", vsync = tonumber(opt("YARD_VSYNC") or "1")})
       how = (ok == 0 or ok == true) and "ok" or "stumbled"
     end
   else
@@ -589,7 +636,7 @@ Host_launch = function(id)
   end
   -- Back to the menu: its window size, its section of the script.
   gfx.badge = menu.system and not input.scripted()
-  gfx.init(menu.w, menu.h, 768 / menu.w)
+  gfx.init(menu.w, menu.h, (tonumber(opt("YARD_K") or "") or 768) / menu.w)
   input.begin(menu.title, true)
   audio.reset()
   return how
@@ -603,6 +650,11 @@ function present(cart, quitting)
   local sx, sy = gfx.finish_frame(quitting)
   local shot = input.take_shot()
   local canvas = gfx.screen()
+  if not canvas then
+    -- Direct mode: the frame is on the framebuffer already (screenshots need the canvas mode).
+    if not headless then lg.present() end
+    return
+  end
   if shot then
     local data = canvas:newImageData()
     local png = data:encode("png")
@@ -655,6 +707,7 @@ function love.run()
     if seed then rng_seed(seed) elseif input.scripted() or os.getenv("CAB_AUTOPLAY") then rng_seed(1)
     else rng_seed(math.floor(os.time() * 2654435761 % 4294967296)) end
     gfx.msaa = tonumber(os.getenv("YARD_MSAA") or "4")
+    gfx.direct = opt("YARD_DIRECT") == "1" and not headless
     gfx.load_font(0, love.filesystem.newFileData("fonts/Fredoka-SemiBold.ttf"))
     load_lib()
     scan()

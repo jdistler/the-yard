@@ -1,0 +1,60 @@
+Post Color Buffer Success
+yard open lamp
+lamp night 1 (the Kite, 4 stars)
+lamp star 1/4
+yard open keep
+keep catch 1
+drmModeRmFB!!
+drmModeRmFB!!
+love exited 0
+loveprobe start Thu Jan  1 00:02:18 UTC 1970 138.93 157.49
+Filesystem           1K-blocks      Used Available Use% Mounted on
+/dev/rkflash0p5          29745     27038      1171  96% /userdata
+             total       used       free     shared    buffers     cached
+Mem:        118668      45064      73604       4356       4912      19996
+-/+ buffers/cache:      20156      98512
+Swap:            0          0          0
+Post Color Buffer Success
+yard open lamp
+lamp night 1 (the Kite, 4 stars)
+lamp star 1/4
+lamp star 2/4
+lamp star 3/4
+lamp star 4/4
+stats lamp frame 300 update 0.80ms draw 12.55ms lua 2218KB images 9216KB
+lamp night 1 done
+yard open keep
+keep catch 2
+stats keep frame 300 update 0.63ms draw 3.86ms lua 2743KB images 9216KB
+keep catch 3
+keep catch 4
+stats keep frame 600 update 0.39ms draw 3.36ms lua 2185KB images 9216KB
+keep catch 9
+stats yard frame 300 update 132.09ms draw 11.83ms lua 1919KB images 9216KB
+yard open orb
+drmModeRmFB!!
+drmModeRmFB!!
+love exited 0
+running orb
+GL OpenGL ES 2.0
+GL renderer Mali-400 MP
+GLSL OpenGL ES GLSL ES 1.00
+GL max texture 4096
+GL max vertex attribs 16
+GL max vertex uniform vectors 256
+GL max fragment uniform vectors 256
+GL max varying vectors 12
+GL max texture image units 8
+orb triangles 800
+orb well ready
+Post Color Buffer Success
+orb dive
+dive crash 830
+sdl get_audio_device: default
+drmModeRmFB!!
+orb: ok
+             total       used       free     shared    buffers     cached
+Mem:        118668      84160      34508       4460       5232      29756
+-/+ buffers/cache:      49172      69496
+Swap:            0          0          0
+Post Color Buffer Success
