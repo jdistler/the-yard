@@ -485,3 +485,34 @@ well enough to verify struct layouts by code comparison. Wi-Fi is expected, not 
 * Staged from `db0f09a3…0bd6` (same-session `diff` none): 10 blocks, only `yardnet.keys` (plus metadata);
   every other file identical and left alone.
 * **Written** (user approval "approved, write the 10 blocks in the wifi_played plan"): loader device 9, same-session `diff` none, 10 blocks restored and verified, `diff` against the patched image: none.
+
+## 2026-10-26 (evening and night): GPU yard to ~60 fps and made the default, over Wi-Fi only
+
+No Mask ROM writes after the 10-block key write; everything below was installed over SSH (`games/cart push`).
+
+* **GPU yard's slowness:** games and songs stepped once per drawn frame, and the GPU runtime drew 22-25 fps
+  (a 768x1024 canvas plus a turned copy; one full-screen layer costs ~11 ms on this Mali-400). Fixed timestep
+  (60 steps/s of real time, up to 4 per frame; scripts keep one per frame) and direct drawing to the
+  framebuffer. The user chose direct (try A: "sharper edges") over a 384x512 canvas (try B).
+* **CPU and GPU in series:** a timed SDL showed gbm_surface_lock_front_buffer waiting 10-18 ms for the Mali to
+  finish. `games/love/patches/sdl-kmsdrm-pipeline.patch` (SDL_KMSDRM_PIPELINE=1, on in run.sh) locks and flips
+  at the next swap, so the next frame is built meanwhile: Chest 37 -> 59, menu 30 -> 57, Lamp 30 -> 55,
+  Tea 25 -> 45 fps.
+* **CPU work:** LuaJIT's profiler (jit.p bundled for a profiling run) and per-frame call counts led to lazy blend
+  state, outlined labels painted once, thick lines as one polygon, Lamp's light map drawn before the frame, and
+  Tea's clouds painted once on the GPU (`game.gpu`, a new field: false on the C runtime). Now: Keep 60, menu 60,
+  Chest 59, Lamp 56, Tea 45-47 fps drawn, all at 60 steps/s. Details: `captures/gpu/2026-10-26-measurements.md`.
+* **Memory:** Tea leaked a 3 MB full-screen layer per photo (0.3 MB on the C runtime, so never seen); fixed in
+  the cart. The GPU runtime now counts layers at cart size for the 32 MB cap, plus a 64 MB guard on real GPU
+  memory. GPU yard stops the stock menu (it does not fit beside it); zram (a zram.ko built like the Wi-Fi
+  modules, lz4) works but frees too little (46 MB -> 19 MB) for Tea, so it is not shipped.
+* **Two of my own mistakes on the cabinet, both RAM-only:** a test run while the stock menu was up left the video
+  output off (panel test colours); and killing the stock menu left its attract-demo Pac-Man running over every
+  test (all carts at 30 fps; the user saw it). `tools/cab.sh run` now stops the stock menu with SIGKILL (it
+  ignores SIGTERM) and every start.sh it began, and restarts it after; a 50 MB /tmp test also made the OOM killer
+  take the stock menu.
+* **GPU yard is the default:** the supervisor opens GPU yard first; exit 0 leaves The Yard; the new "Classic
+  yard" row (exit 10) or any failure shows the C menu (and a failure sticks for the boot). The stock menu's
+  15 s intro (ffplay logo.mp4) is skipped when the supervisor restarts it: /dev/null bind-mounted over the
+  video until power-off. loveprobe.sh deletes love.tar.gz once unpacked (/userdata 96% -> 82%).
+* Gate: all carts pass; 138 passed, 0 failed.
