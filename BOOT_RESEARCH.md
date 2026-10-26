@@ -484,3 +484,4 @@ well enough to verify struct layouts by code comparison. Wi-Fi is expected, not 
   `cart deploy --ssh-key` now refuses ed25519 keys. The Fire HD 8 Termux key is ed25519, so it is left out.
 * Staged from `db0f09a3…0bd6` (same-session `diff` none): 10 blocks, only `yardnet.keys` (plus metadata);
   every other file identical and left alone.
+* **Written** (user approval "approved, write the 10 blocks in the wifi_played plan"): loader device 9, same-session `diff` none, 10 blocks restored and verified, `diff` against the patched image: none.

@@ -484,3 +484,16 @@
 {"ts": "2026-10-26T15:11:24-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "loader_up", "devnum": 9, "from_devnum": 8, "plug": "plug_3032slc_erase", "sha": "53574f36b7637f55701f6a0e9aae7aec991fc3c2d326e9e9899956cd4ee8df91"}
 {"ts": "2026-10-26T15:12:32-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "rawdump", "devnum": 9, "start": 0, "count": 262144, "out": "/home/joseph/partycade-dumps/2026-10-26_wifi_played/nand_raw.bin", "sha256": "db0f09a33cbe0386d0148fc26e4a088213b5988150237771115a50953bfa0bd6", "verified": true}
 {"ts": "2026-10-26T15:13:54-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "restore_diff", "devnum": 9, "image_sha256": "db0f09a33cbe0386d0148fc26e4a088213b5988150237771115a50953bfa0bd6", "blocks": "0-1023", "differ": []}
+{"ts": "2026-10-26T15:15:41-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "restore_diff", "devnum": 9, "image_sha256": "db0f09a33cbe0386d0148fc26e4a088213b5988150237771115a50953bfa0bd6", "blocks": "0-1023", "differ": []}
+{"ts": "2026-10-26T15:15:41-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "restore_start", "devnum": 9, "image_sha256": "b399fe96b8acebe83001707c8378012ebe2215494f14831346392e9e4bfdd8d9", "blocks": "310,311,322,323,372,373,840,841,852,853", "approval": "approved, write the 10 blocks in the wifi_played plan (user, 2026-10-26)"}
+{"ts": "2026-10-26T15:15:42-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "restore_block", "devnum": 9, "block": 310, "ok": true}
+{"ts": "2026-10-26T15:15:42-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "restore_block", "devnum": 9, "block": 311, "ok": true}
+{"ts": "2026-10-26T15:15:42-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "restore_block", "devnum": 9, "block": 322, "ok": true}
+{"ts": "2026-10-26T15:15:42-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "restore_block", "devnum": 9, "block": 323, "ok": true}
+{"ts": "2026-10-26T15:15:42-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "restore_block", "devnum": 9, "block": 372, "ok": true}
+{"ts": "2026-10-26T15:15:43-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "restore_block", "devnum": 9, "block": 373, "ok": true}
+{"ts": "2026-10-26T15:15:43-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "restore_block", "devnum": 9, "block": 840, "ok": true}
+{"ts": "2026-10-26T15:15:43-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "restore_block", "devnum": 9, "block": 841, "ok": true}
+{"ts": "2026-10-26T15:15:43-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "restore_block", "devnum": 9, "block": 852, "ok": true}
+{"ts": "2026-10-26T15:15:44-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "restore_block", "devnum": 9, "block": 853, "ok": true}
+{"ts": "2026-10-26T15:16:19-05:00", "boot_id": "9a3300c0-5070-41e6-af3e-1893fe419cad", "action": "restore_diff", "devnum": 9, "image_sha256": "b399fe96b8acebe83001707c8378012ebe2215494f14831346392e9e4bfdd8d9", "blocks": "0-1023", "differ": []}
