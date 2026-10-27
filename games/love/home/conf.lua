@@ -13,5 +13,5 @@ function love.conf(t)
   t.window.vsync = headless and 0 or 1
   t.modules.physics = false
   t.modules.video = false
-  t.modules.thread = false
+  t.modules.thread = true     -- worker.lua makes the music and decodes the logos off the frame
 end

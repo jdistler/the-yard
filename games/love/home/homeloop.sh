@@ -6,6 +6,10 @@
 # If Home itself fails twice in a row, the original menu takes over (or, in preview, The Yard).
 H=/data/home
 REQ=/tmp/home-req
+# The welcome-back picture: Home renders it once per boot (it is 3 MB, in /tmp, which is RAM); it goes on the
+# screen the moment a game ends, until Home's first frame (EXPERIENCE.md).
+BACK=/tmp/home-back.fb
+back_picture() { [ -s "$BACK" ] && cat "$BACK" > /dev/fb0 2>/dev/null; }
 LOG=$H/home.log
 mkdir -p "$H"
 [ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt 131072 ] && mv "$LOG" "$LOG.1"
@@ -41,7 +45,8 @@ classic() {
 }
 while :; do
   rm -f "$REQ"
-  HOME_REQ=$REQ HOME_STATE=$H/state HOME_LOG=$LOG HOME_ART=$H/art HOME_GAMES=/data/Games HOME_MODE=$MODE \
+  log "home: starting LOVE"
+  HOME_REQ=$REQ HOME_BACK=$BACK HOME_STATE=$H/state HOME_LOG=$LOG HOME_ART=$H/art HOME_GAMES=/data/Games HOME_MODE=$MODE \
     /data/love/run.sh $H/home.love
   CODE=$?
   if [ ! -s "$REQ" ]; then
@@ -76,6 +81,7 @@ while :; do
     *) log "bad request: $WHAT" ;;
   esac
   RC=$?
+  back_picture
   T1=$(cut -d. -f1 /proc/uptime)
   log "$WHAT returned $RC after $((T1 - T0)) s"
   # Home shows a note when a game did not start: an error within 5 s (a game's own exit code on a normal

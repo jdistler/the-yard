@@ -433,6 +433,17 @@ def home_pack(out=None):
     return zip_files(out, files)
 
 
+def home_picture(kind, out, art):
+    """Home renders one of its pictures for /dev/fb0 (HOME_RENDER=kind:out) on the PC's LÖVE."""
+    hl = home_pack(os.path.join(os.path.dirname(out), "home-render.love"))
+    env = dict(os.environ, HOME_RENDER=f"{kind}:{out}", HOME_HEADLESS="1", HOME_ART=art, SDL_VIDEODRIVER="offscreen",
+               SDL_AUDIODRIVER="dummy", ALSOFT_DRIVERS="null")
+    subprocess.run([LOVE_X86, hl], env=env, check=True, capture_output=True, timeout=120)
+    if not os.path.exists(out):
+        die(f"Home did not render {kind}")
+    return out
+
+
 def cmd_love_pack(a):
     print(love_pack(a.out))
 
@@ -632,11 +643,15 @@ def cmd_push(a):
     files["/data/home/homeloop"] = (os.path.join(HERE, "love", "home", "homeloop.sh"), False)
     files["/data/Games/homepreview"] = (os.path.join(HERE, "love", "home", "homepreview.sh"), False)
     art = os.path.join(HERE, "out", "home-art")
-    if not os.path.isdir(art):
+    tool = os.path.join(ROOT, "tools", "home_art.py")
+    stamp = os.path.join(art, "classic_0.png")
+    if not os.path.exists(stamp) or os.path.getmtime(stamp) < os.path.getmtime(tool):
         rootfs = os.path.expanduser("~/partycade-dumps/2026-10-23_raw_plug3032slc/rootfs")
-        subprocess.check_call([sys.executable, os.path.join(ROOT, "tools", "home_art.py"), rootfs, art])
+        subprocess.check_call([sys.executable, tool, rootfs, art], stdout=subprocess.DEVNULL)
     for f in sorted(os.listdir(art)):
         files[f"/data/home/art/{f}"] = (os.path.join(art, f), False)
+    # The power-on picture (stage2 puts it in /dev/fb0 at ~2.5 s): rendered by Home itself, on the PC.
+    files["/data/home/boot.fb.gz"] = (home_picture("boot", os.path.join(stage, "boot.fb.gz"), art), False)
     for extra_file in a.also or []:
         src, dst = extra_file.split(":", 1)
         files[dst] = (os.path.abspath(src), False)

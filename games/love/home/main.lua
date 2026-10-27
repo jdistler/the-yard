@@ -1,6 +1,6 @@
 -- Partycade Home: the front end. Neon arcade: a dark sky over a synthwave grid, a glowing marquee, and a
 -- carousel of every game on the cabinet: the twelve classics (with their own logos, cut from the stock menu's
--- pictures by tools/home_art.py), our games, and the way to the original menu.
+-- pictures by tools/home_art.py), our games, and the way to the original menu. EXPERIENCE.md is the design.
 --
 -- Home never runs a game itself. It writes what to run into HOME_REQ and quits; homeloop.sh runs it with the
 -- whole machine and starts Home again, on the same card. Requests:
@@ -10,8 +10,17 @@
 --   yard                                           GPU yard, the whole Yard menu
 --   stock                                          the original menu
 -- The classics' speed and smoothing are the stock menu's own settings (Speed.cfg, Smoothing.cfg: a byte per game).
+--
+-- Before it quits for a game, Home paints that game's "get ready" picture into /dev/fb0 (splash.lua), which
+-- the cabinet shows while the game loads; and, once per boot, the "welcome back" picture homeloop shows when
+-- the game ends (HOME_BACK). HOME_RENDER=boot:PATH only renders the power-on picture to PATH (gzip) and quits
+-- (cart home-pack runs it on the PC).
 
 local lg = love.graphics
+local sound = require("sound")
+local fx = require("fx")
+local splash = require("splash")
+
 local W, H = 768, 1024                       -- the upright picture; the panel shows the framebuffer turned
 local headless = os.getenv("HOME_HEADLESS") == "1"
 local ART = os.getenv("HOME_ART") or "/data/home/art"
@@ -19,7 +28,12 @@ local GAMES = os.getenv("HOME_GAMES") or "/data/Games"
 local REQ = os.getenv("HOME_REQ")
 local STATE = os.getenv("HOME_STATE")
 local LOGF = os.getenv("HOME_LOG")
-local IDLE_ATTRACT = tonumber(os.getenv("HOME_IDLE") or "") or 45   -- seconds without a press
+local BACK = os.getenv("HOME_BACK")                                  -- the welcome-back picture (homeloop)
+local VOLUME_FILE = os.getenv("HOME_VOLUME") or "/data/spk_volume"
+local RENDER = os.getenv("HOME_RENDER")
+local IDLE_ATTRACT = tonumber(os.getenv("HOME_IDLE") or "") or 45    -- seconds without a press
+local IDLE_NIGHT = tonumber(os.getenv("HOME_NIGHT") or "") or 180
+local HORIZON = 760
 
 local function log(...)
   local s = table.concat({...}, " ")
@@ -31,6 +45,17 @@ local function log(...)
   end
 end
 
+-- Startup marks (seconds since boot, /proc/uptime): logged once at the first frame. homeloop logs when it
+-- started LÖVE, so the log shows where the wait goes.
+local function uptime()
+  local f = io.open("/proc/uptime", "r")
+  local u = f and tonumber(f:read("*l"):match("^(%S+)"))
+  if f then f:close() end
+  return u or 0
+end
+local marks = {{"main.lua", uptime()}}
+local function mark(name) marks[#marks + 1] = {name, uptime()} end
+
 local function read_file(path)
   local f = io.open(path, "rb")
   if not f then return nil end
@@ -41,19 +66,20 @@ end
 
 -- ------------------------------------------------------------------ the games
 
+-- tint: each classic's own colour (its card's glow and frame), from its logo.
 local CLASSICS = {
-  {title = "PAC-MAN", year = 1980, blurb = "Eat the dots. Mind the ghosts."},
-  {title = "PAC & PAL", year = 1983, blurb = "Flip the cards, find the treats."},
-  {title = "SUPER PAC-MAN", year = 1982, blurb = "Keys, doors, and a super-size power pellet."},
-  {title = "PAC-MAN PLUS", year = 1982, blurb = "Pac-Man, with tricks in the maze."},
-  {title = "PAC-LAND", year = 1984, blurb = "Run the whole town back to Fairyland."},
-  {title = "PAC-MANIA", year = 1987, blurb = "Jump the ghosts in rolling 3-D mazes."},
-  {title = "GALAGA", year = 1981, blurb = "Win your captured fighter back. Fly two."},
-  {title = "GALAXIAN", year = 1979, blurb = "The swarm dives. Stay sharp."},
-  {title = "MAPPY", year = 1983, blurb = "A police mouse, a mansion, trampolines."},
-  {title = "DIG DUG", year = 1982, blurb = "Dig, pump, and drop the rocks."},
-  {title = "DIG DUG II", year = 1985, blurb = "Sink the island under the monsters."},
-  {title = "ROMPERS", year = 1989, blurb = "Push the walls down on the monsters."},
+  {title = "PAC-MAN", year = 1980, tint = 0xffd23f, blurb = "Eat the dots. Mind the ghosts."},
+  {title = "PAC & PAL", year = 1983, tint = 0xff9a3c, blurb = "Flip the cards, find the treats."},
+  {title = "SUPER PAC-MAN", year = 1982, tint = 0xff8a4c, blurb = "Keys, doors, and a super-size power pellet."},
+  {title = "PAC-MAN PLUS", year = 1982, tint = 0xff5aa8, blurb = "Pac-Man, with tricks in the maze."},
+  {title = "PAC-LAND", year = 1984, tint = 0x5fd16a, blurb = "Run the whole town back to Fairyland."},
+  {title = "PAC-MANIA", year = 1987, tint = 0x6aa8ff, blurb = "Jump the ghosts in rolling 3-D mazes."},
+  {title = "GALAGA", year = 1981, tint = 0x3fd6c0, blurb = "Win your captured fighter back. Fly two."},
+  {title = "GALAXIAN", year = 1979, tint = 0x4fe0a0, blurb = "The swarm dives. Stay sharp."},
+  {title = "MAPPY", year = 1983, tint = 0x5ab8ff, blurb = "A police mouse, a mansion, trampolines."},
+  {title = "DIG DUG", year = 1982, tint = 0xff7a4a, blurb = "Dig, pump, and drop the rocks."},
+  {title = "DIG DUG II", year = 1985, tint = 0x9ad65a, blurb = "Sink the island under the monsters."},
+  {title = "ROMPERS", year = 1989, tint = 0xff6a7a, blurb = "Push the walls down on the monsters."},
 }
 local OURS = {
   {id = "keep", title = "KEEP", tint = 0xff7a59, blurb = "Catch the falling fruit."},
@@ -67,18 +93,26 @@ local SECTIONS = {
   {name = "THE YARD", tint = 0x6ef0c8},
   {name = "MORE", tint = 0x8ab4ff},
 }
+-- How to come back to Home from each kind of game (said on the info panel and on the "get ready" picture).
+local LEAVE = {
+  classic = {"HOLD  1-PLAYER  FOR 5 SECONDS", "to come back to Home (your high score is saved)"},
+  cart = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
+  native = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
+  yard = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
+}
 
+local PREVIEW = os.getenv("HOME_MODE") == "preview"
 local items = {}
 for i, c in ipairs(CLASSICS) do
   items[#items + 1] = {kind = "classic", index = i - 1, section = 1, title = c.title,
-                       sub = c.year .. "  NAMCO", blurb = c.blurb, tint = 0xffd23f}
+                       sub = c.year .. "  NAMCO", blurb = c.blurb, tint = c.tint}
 end
 for _, g in ipairs(OURS) do
   items[#items + 1] = {kind = g.native and "native" or "cart", id = g.id, native = g.native, section = 2,
                        title = g.title, sub = "THE YARD", blurb = g.blurb, tint = g.tint}
 end
 -- HOME_MODE=preview (opened from a Yard row to try Home): the last card goes back to The Yard.
-if os.getenv("HOME_MODE") == "preview" then
+if PREVIEW then
   items[#items + 1] = {kind = "stock", section = 3, title = "BACK TO THE YARD", sub = "HOME PREVIEW",
                        blurb = "Home is a preview for now: this goes back to The Yard.", tint = 0xff9c5a}
 else
@@ -138,7 +172,6 @@ local function neon(s, x, y, px, c, glow, align, width)
     end
     lg.setBlendMode("alpha")
   end
-  lg.setColor(1, 1, 1, 1)
   lg.setColor(r * 0.35 + 0.65, g * 0.35 + 0.65, b * 0.35 + 0.65, 1)   -- the hot white core of a neon tube
   lg.printf(s, x, y, width or W, align or "center")
 end
@@ -147,8 +180,10 @@ local function rrect(mode, x, y, w, h, r) lg.rectangle(mode, x, y, w, h, r, r, 1
 
 -- Neon labels painted once into a picture (glow included): drawing one is a single quad. Live neon() was 17
 -- prints a label, and Home ran at 48-55 fps on the cabinet (2026-10-27). All are painted in love.load, before
--- the first frame (a canvas switch mid-frame is costly on the Mali).
+-- the first frame (a canvas switch mid-frame is costly on the Mali). Made with no scissor (see gfx.lua's
+-- new_canvas: a clip carried onto a canvas left it unpainted).
 local neon_cache = {}
+local label_jobs = {}
 local function neon_img(s, px, c, glow)
   local key = s .. "|" .. px .. "|" .. c .. "|" .. (glow or 1)
   local e = neon_cache[key]
@@ -156,8 +191,9 @@ local function neon_img(s, px, c, glow)
   local f = font(px)
   local pad = 10
   local cw, ch = f:getWidth(s) + pad * 2, f:getHeight() + pad * 2
-  local cv = lg.newCanvas(math.max(1, cw), math.max(1, ch))
   lg.push("all")
+  lg.setScissor()
+  local cv = lg.newCanvas(math.max(1, cw), math.max(1, ch))
   lg.origin()
   lg.setCanvas(cv)
   lg.clear(0, 0, 0, 0)
@@ -181,72 +217,18 @@ local function neon_draw(s, x, y, px, c, glow, align, width, alpha, sc)
   lg.setBlendMode("alpha")
 end
 
--- ------------------------------------------------------------------ sound: a tiny chiptune synth
-
-local RATE = 22050
-local function note_hz(n) return 440 * 2 ^ ((n - 69) / 12) end
-local function synth(notes, dur, wave, vol)
-  -- notes: {{midi, start_s, len_s}, ...}; square or triangle, a short attack and a decay.
-  local n = math.floor(dur * RATE)
-  local sd = love.sound.newSoundData(n, RATE, 16, 1)
-  local buf = {}
-  for i = 0, n - 1 do buf[i] = 0 end
-  for _, nt in ipairs(notes) do
-    local hz, s0, len = note_hz(nt[1]), math.floor(nt[2] * RATE), math.floor(nt[3] * RATE)
-    local per = RATE / hz
-    for i = 0, len - 1 do
-      local k = s0 + i
-      if k >= n then break end
-      local ph = (i % per) / per
-      local v
-      if (nt[4] or wave) == "tri" then v = ph < 0.5 and (ph * 4 - 1) or (3 - ph * 4) else v = ph < 0.5 and 1 or -1 end
-      local env = math.min(1, i / 200) * (1 - i / len) ^ 1.6
-      buf[k] = buf[k] + v * env * (nt[5] or vol)
-    end
-  end
-  for i = 0, n - 1 do sd:setSample(i, math.max(-1, math.min(1, buf[i]))) end
-  return love.audio.newSource(sd, "static")
-end
-local sfx = {}
-local music
-local function make_sounds()
-  sfx.move = synth({{84, 0, 0.05}}, 0.06, "sq", 0.12)
-  sfx.section = synth({{79, 0, 0.05}, {86, 0.05, 0.07}}, 0.13, "sq", 0.12)
-  sfx.toggle = synth({{76, 0, 0.04}, {72, 0.04, 0.06}}, 0.11, "sq", 0.12)
-  sfx.launch = synth({{72, 0, 0.08}, {76, 0.07, 0.08}, {79, 0.14, 0.08}, {84, 0.21, 0.30}}, 0.55, "sq", 0.14)
-  -- The intro sting: an arpeggio up to a held chord.
-  sfx.intro = synth({{60, 0, 0.12}, {64, 0.1, 0.12}, {67, 0.2, 0.12}, {72, 0.3, 0.12}, {76, 0.4, 0.12},
-                     {79, 0.5, 0.9}, {72, 0.5, 0.9, "tri", 0.18}, {48, 0.5, 0.9, "tri", 0.22}}, 1.5, "sq", 0.11)
-  -- Menu music: eight soft bars, bass and an arpeggio, looping.
-  local notes, beat = {}, 60 / 112
-  local prog = {{45, 57, 60, 64}, {41, 53, 57, 60}, {43, 55, 59, 62}, {40, 52, 55, 59}}
-  for bar = 0, 7 do
-    local ch = prog[bar % 4 + 1]
-    for b8 = 0, 7 do
-      local t = (bar * 8 + b8) * beat / 2
-      if b8 % 2 == 0 then notes[#notes + 1] = {ch[1], t, beat * 0.45, "tri", 0.16} end
-      notes[#notes + 1] = {ch[2 + b8 % 3] + 12, t, beat * 0.4, "sq", 0.035}
-    end
-  end
-  music = synth(notes, 8 * 4 * beat, "sq", 0.04)
-  music:setLooping(true)
-  music:setVolume(0.55)
-end
-local function play(name)
-  local s = sfx[name]
-  if s then s:stop() s:play() end
-end
+local play = sound.play
 
 -- ------------------------------------------------------------------ input
 
--- The cabinet's deck through SDL (games/love/yard/input.lua has the same map), and keys on a PC.
+-- The cabinet's deck through SDL (games/love/yard/input.lua has the same map), and keys on a PC. Buttons 20
+-- and 21 are volume down and up: the kernel changes the volume itself (volctrl.sh); Home only shows it.
 local JOY = {[1] = "low", [2] = "tl", [4] = "tr", [7] = "1p", [8] = "2p", [16] = "up", [17] = "left", [18] = "right",
-             [19] = "down"}
+             [19] = "down", [20] = "voldown", [21] = "volup"}
 local KEYS = {up = "up", down = "down", left = "left", right = "right", z = "low", x = "tl", c = "tr",
-              ["1"] = "1p", ["2"] = "2p", ["return"] = "low", space = "low"}
+              ["1"] = "1p", ["2"] = "2p", ["return"] = "low", space = "low", ["-"] = "voldown", ["="] = "volup"}
 -- Holding 1-player + 2-player for a second leaves the preview (The Yard's convention, with its meter), so 1P
 -- launches on release, and only when 2P was not pressed with it.
-local PREVIEW = os.getenv("HOME_MODE") == "preview"
 local HOLD_SECS = 1
 local pressed_q, down, both_seen, hold_t = {}, {}, false, 0
 local function press(name) pressed_q[#pressed_q + 1] = name end
@@ -285,17 +267,18 @@ end
 
 local sel, pos = 1, 1
 local t, frame = 0, 0
-local scene = "intro"
+local scene = "intro"           -- intro, menu, attract, night
 local intro_t = 0
 local idle = 0
 local attract_t = 0
 local launch_t, launch_item = 0, nil
 local note, note_t = nil, 0
-local art = {}
 local stars = {}
 local direct = not headless and os.getenv("HOME_CANVAS") ~= "1"
 local canvas
 local shot_req
+local vol_level, vol_t, vol_read = nil, 0, nil
+local night_t = 0
 
 local function load_state()
   local s = STATE and read_file(STATE)
@@ -309,14 +292,28 @@ local function save_state(extra)
   if f then f:write("sel " .. sel .. "\n" .. (extra or "")) f:close() end
 end
 
+-- The classics' logos (cut from the stock menu by tools/home_art.py, on the cabinet only). The cards in view
+-- are loaded at once; the rest are decoded by the worker and arrive over the first frames.
+local worker
+local function art_image(data)
+  local ok, img = pcall(lg.newImage, data, {mipmaps = true})
+  if not ok then return nil end
+  img:setFilter("linear", "linear")
+  img:setMipmapFilter("linear")
+  return img
+end
+local function art_path(it) return ART .. "/classic_" .. it.index .. ".png" end
 local function load_art()
-  for _, it in ipairs(items) do
+  for k, it in ipairs(items) do
     if it.kind == "classic" then
-      -- The classics' logos: cut from the stock menu by tools/home_art.py, on the cabinet only.
-      local b = read_file(ART .. "/classic_" .. it.index .. ".png")
-      if b then
-        local ok, img = pcall(lg.newImage, love.filesystem.newFileData(b, "c.png"))
-        if ok then img:setFilter("linear", "linear") it.art = img end
+      if math.abs(k - sel) <= 2 or not worker then
+        local b = read_file(art_path(it))
+        if b then
+          local ok, data = pcall(love.image.newImageData, love.filesystem.newFileData(b, "c.png"))
+          if ok then it.art = art_image(data) end
+        end
+      else
+        love.thread.getChannel("home_work"):push({"art", k, art_path(it)})
       end
     elseif it.id and love.filesystem.getInfo("art/" .. it.id .. ".png") then
       -- Our games: a frame of the game itself (cart shots), packed into home.love.
@@ -328,58 +325,64 @@ end
 
 -- ------------------------------------------------------------------ drawing
 
-local function draw_background()
-  -- The sky: deep violet to black, a slow color drift.
+local sky
+local function draw_background(dim)
+  -- The sky: deep violet to black, a slow color drift (one mesh, its colours updated).
   local drift = math.sin(t * 0.07) * 0.5 + 0.5
-  local top = {0.05 + 0.03 * drift, 0.02, 0.12 + 0.04 * (1 - drift)}
-  local mid = {0.20, 0.03 + 0.03 * drift, 0.28}
+  local tr, tg, tb = 0.05 + 0.03 * drift, 0.02, 0.12 + 0.04 * (1 - drift)
+  local mr, mg, mb = 0.20, 0.03 + 0.03 * drift, 0.28
+  if not sky then
+    sky = lg.newMesh(4, "fan", "dynamic")
+  end
+  sky:setVertices({{0, 0, 0, 0, tr, tg, tb, 1}, {W, 0, 0, 0, tr, tg, tb, 1},
+                   {W, HORIZON, 0, 0, mr, mg, mb, 1}, {0, HORIZON, 0, 0, mr, mg, mb, 1}})
   lg.setColor(1, 1, 1, 1)
-  local m = lg.newMesh({{0, 0, 0, 0, top[1], top[2], top[3], 1}, {W, 0, 0, 0, top[1], top[2], top[3], 1},
-                        {W, 760, 0, 0, mid[1], mid[2], mid[3], 1}, {0, 760, 0, 0, mid[1], mid[2], mid[3], 1}},
-                       "fan", "stream")
-  lg.draw(m)
-  m:release()
+  lg.draw(sky)
   lg.setColor(0.02, 0.0, 0.05, 1)
-  lg.rectangle("fill", 0, 760, W, H - 760)
+  lg.rectangle("fill", 0, HORIZON, W, H - HORIZON)
   -- Stars.
   for _, s in ipairs(stars) do
     local tw = 0.45 + 0.55 * math.abs(math.sin(t * s[4] + s[3]))
     lg.setColor(1, 0.9, 1, tw * s[5])
     lg.rectangle("fill", s[1], s[2], s[6], s[6])
   end
-  -- The sun on the horizon, striped.
-  local cx, cy, r = W / 2, 760, 150
+  fx.draw_shooting()
+  -- The sun on the horizon, striped, with a warm haze.
+  local cx, cy, r = W / 2, HORIZON, 150
+  fx.glow(cx, cy - 30, 250, 130, 1, 0.3, 0.55, 0.22 * (1 - dim))
   for i = 0, 14 do
     local y0 = cy - r + i * 11
     local k = i / 14
     if y0 < cy then
       local hw = math.sqrt(math.max(0, r * r - (cy - y0 - 4) ^ 2))
-      lg.setColor(1, 0.35 + 0.45 * (1 - k), 0.35 + 0.25 * k, 0.55)
+      lg.setColor(1, 0.35 + 0.45 * (1 - k), 0.35 + 0.25 * k, 0.55 * (1 - dim * 0.6))
       lg.rectangle("fill", cx - hw, y0, hw * 2, 11 - k * 6)
     end
   end
   -- The grid floor, rushing toward us.
   lg.setLineWidth(2)
+  local ga = 1 - dim * 0.6
   for i = -12, 12 do
-    lg.setColor(1, 0.2, 0.75, 0.55)
-    lg.line(W / 2 + i * 22, 760, W / 2 + i * 150, H)
+    lg.setColor(1, 0.2, 0.75, 0.55 * ga)
+    lg.line(W / 2 + i * 22, HORIZON, W / 2 + i * 150, H)
   end
   local scroll = (t * 0.8) % 1
   for i = 0, 9 do
     local k = (i + scroll) / 10
-    local y = 760 + (H - 760) * k * k
-    lg.setColor(1, 0.25, 0.8, 0.15 + 0.6 * k)
+    local y = HORIZON + (H - HORIZON) * k * k
+    lg.setColor(1, 0.25, 0.8, (0.15 + 0.6 * k) * ga)
     lg.line(0, y, W, y)
   end
-  lg.setColor(1, 0.4, 0.9, 0.8)
-  lg.line(0, 760, W, 760)
+  lg.setColor(1, 0.4, 0.9, 0.8 * ga)
+  lg.line(0, HORIZON, W, HORIZON)
 end
 
 local function draw_marquee(alpha_k)
-  local flick = (math.sin(t * 13) > 0.97) and 0.6 or 1
+  -- A neon sign: now and then a tube stutters.
+  local flick = (math.sin(t * 13) > 0.97 or math.sin(t * 2.3 + 1) > 0.995) and 0.55 or 1
   lg.setColor(1, 1, 1, 1)
   neon_draw("PARTYCADE", 0, 34, 92, 0xff4fd8, 1.6, "center", W, flick * (alpha_k or 1))
-  neon_draw("HOME", 0, 132, 26, 0x6ef0c8, 0.8, "center", W)
+  neon_draw("HOME", 0, 132, 26, 0x6ef0c8, 0.8, "center", W, alpha_k)
 end
 
 local function draw_tabs(cur)
@@ -418,13 +421,20 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
     end
     lg.setBlendMode("alpha")
   end
-  lg.setColor(0.07, 0.03, 0.14, 0.88 * alpha)
+  lg.setColor(0.07, 0.03, 0.14, 0.9 * alpha)
   rrect("fill", x, y, cw, ch, 22)
   if it.art then
+    -- A classic: its logo on a soft light of its own colour, gently breathing when chosen.
     local iw, ih = it.art:getDimensions()
-    local s = math.min((cw - 24) / iw, (ch - 24) / ih)
+    local s = math.min((cw - 56) / iw, (ch - 46) / ih)
+    local breathe = 1 + 0.015 * focus * math.sin(t * 2.2)
+    if focus > 0.05 then fx.glow(cx, cy, cw * 0.4, ch * 0.36, r, g, b, 0.3 * focus * alpha) end
     lg.setColor(1, 1, 1, alpha)
-    lg.draw(it.art, cx, cy, 0, s, s, iw / 2, ih / 2)
+    lg.draw(it.art, cx, cy, 0, s * breathe, s * breathe, iw / 2, ih / 2)
+  elseif it.kind == "classic" then
+    -- No logo on this machine (a PC test): the name in neon.
+    local px = math.floor(cw * (#it.title > 9 and 0.09 or 0.12))
+    neon_draw(it.title, x, cy - px * 0.62, 64, it.tint, 1.2, "center", cw, alpha, px / 64)
   elseif it.shot then
     -- A portrait frame of the game on the left, the name in neon on the right.
     local iw, ih = it.shot:getDimensions()
@@ -436,6 +446,7 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
     lg.rectangle("line", x + 12, y + 10, iw * s, ih * s)
     local tx = x + 24 + iw * s
     local px = math.floor(cw * 0.12)
+    if focus > 0.05 then fx.glow((tx + x + cw) / 2, cy, (x + cw - tx) * 0.5, ch * 0.35, r, g, b, 0.12 * focus * alpha) end
     neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", x + cw - tx, alpha, px / 64)
     lg.setFont(font(math.max(12, math.floor(cw * 0.034))))
     lg.setColor(0.9, 0.88, 1, 0.85 * alpha * focus)   -- the chosen card only: the panel below repeats it
@@ -460,11 +471,12 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
     local px = math.floor(cw * 0.12)
     neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", x + cw - tx, alpha, px / 64)
     lg.setFont(font(math.max(12, math.floor(cw * 0.034))))
-    lg.setColor(0.9, 0.88, 1, 0.85 * alpha * focus)   -- the chosen card only: the panel below repeats it
+    lg.setColor(0.9, 0.88, 1, 0.85 * alpha * focus)
     lg.printf(it.blurb, tx + 8, cy + px * 0.55, x + cw - tx - 16, "center")
   else
     lg.setColor(1, 1, 1, alpha)
     local px = math.floor(cw * (#it.title > 9 and 0.11 or 0.15))
+    if focus > 0.05 then fx.glow(cx, cy, cw * 0.42, ch * 0.3, r, g, b, 0.12 * focus * alpha) end
     neon_draw(it.title, x, cy - px * 0.62, 64, it.tint, 1.2, "center", cw, alpha, px / 64)
   end
   lg.setColor(r, g, b, (0.35 + 0.65 * focus) * alpha)
@@ -500,7 +512,7 @@ end
 local function draw_info()
   local it = items[sel]
   local y = 800
-  lg.setColor(0.04, 0.0, 0.10, 0.82)
+  lg.setColor(0.04, 0.0, 0.10, 0.84)
   rrect("fill", 40, y, W - 80, 196, 24)
   lg.setColor(rgb(it.tint, 0.8))
   lg.setLineWidth(2)
@@ -514,7 +526,7 @@ local function draw_info()
   lg.printf(it.blurb, 60, y + 100, W - 120, "left")
   if it.kind == "classic" then
     local i = it.index + 1
-    local chips = {{"SPEED", speed[i] == 1 and "FAST" or "NORMAL", "LEFT TOP"}, {"SMOOTH", smooth[i] == 1 and "ON" or "OFF", "RIGHT TOP"}}
+    local chips = {{"SPEED", speed[i] == 1 and "FAST" or "NORMAL"}, {"SMOOTH", smooth[i] == 1 and "ON" or "OFF"}}
     local x = 60
     for _, c in ipairs(chips) do
       lg.setFont(font(19))
@@ -533,11 +545,22 @@ local function draw_info()
   end
 end
 
-local function draw_hint(s, y, blink)
-  local a = blink and (0.55 + 0.45 * math.sin(t * 5)) or 0.9
-  lg.setFont(font(22))
-  lg.setColor(0.85, 0.8, 1, a)
+local function draw_hint(s, y, alpha)
+  lg.setFont(font(20))
+  lg.setColor(0.85, 0.8, 1, alpha or 0.9)
   lg.printf(s, 0, y, W, "center")
+end
+
+-- The bottom line: how to play, and, for the chosen game, how to come back from it.
+local function draw_footer()
+  local it = items[sel]
+  local leave = LEAVE[it.kind]
+  if leave and math.floor(t / 4) % 2 == 1 then
+    draw_hint(it.kind == "classic" and "in the game:  hold 1-PLAYER for 5 seconds to come back"
+              or "in the game:  hold 1-PLAYER + 2-PLAYER to come back", 999, 0.9)
+  else
+    draw_hint("STICK  choose  ·  LEFT/RIGHT  section  ·  LOWER BUTTON  play", 999, 0.9)
+  end
 end
 
 local function draw_note()
@@ -568,8 +591,48 @@ local function draw_hold()
   lg.printf("back to The Yard...", bx, by + 12, bw, "center")
 end
 
+-- The volume meter: fifteen neon bars under the tabs, for a moment after a volume button.
+local function draw_volume()
+  if vol_t <= 0 or not vol_level then return end
+  local a = math.min(1, vol_t * 3)
+  local bw, bh = 520, 70
+  local bx, by = (W - bw) / 2, 226
+  lg.setColor(0.04, 0.0, 0.1, 0.9 * a)
+  rrect("fill", bx, by, bw, bh, 20)
+  lg.setColor(0.43, 0.94, 0.78, a)
+  lg.setLineWidth(2)
+  rrect("line", bx, by, bw, bh, 20)
+  lg.setFont(font(22))
+  lg.print(vol_level == 0 and "MUTED" or "VOLUME", bx + 20, by + 22)
+  for i = 1, 15 do
+    local on = i <= vol_level
+    local h = 14 + i * 2
+    local x = bx + 150 + (i - 1) * 23
+    lg.setColor(0.43, 0.94, 0.78, (on and 1 or 0.18) * a)
+    rrect("fill", x, by + bh / 2 + 22 - h, 14, h, 4)
+  end
+end
+
+-- The night scene (idle a few minutes): the sky dims, the sign sleeps, a chase runs along the horizon.
+local function draw_night()
+  lg.setColor(0, 0, 0.02, 0.45)
+  lg.rectangle("fill", 0, 0, W, H)
+  neon_draw("PARTYCADE", 0, 34, 92, 0xff4fd8, 1.6, "center", W, 0.35)
+  -- Three z's drifting up from the sign.
+  for i = 0, 2 do
+    local k = ((night_t * 0.35) + i / 3) % 1
+    local zx, zy = W / 2 + 250 + k * 50 + math.sin(k * 6) * 8, 110 - k * 80
+    lg.setFont(font(24 + i * 8))
+    lg.setColor(0.43, 0.94, 0.78, math.sin(k * math.pi) * 0.9)
+    lg.print("z", zx, zy)
+  end
+  fx.draw_chase(night_t, HORIZON - 26, 1)
+  draw_hint("press any button", 930, 0.35 + 0.25 * math.sin(t * 2))
+end
+
 local function draw_scene()
-  draw_background()
+  local dim = scene == "night" and 1 or 0
+  draw_background(dim)
   if scene == "intro" then
     -- The marquee lights up letter by letter, with a stutter, then the menu fades in.
     local k = math.min(1, intro_t / 1.2)
@@ -577,12 +640,17 @@ local function draw_scene()
     local n = math.floor(k * #word + 0.001)
     local shown = word:sub(1, n)
     if math.sin(intro_t * 40) > 0.6 and n < #word then shown = word:sub(1, math.max(0, n - 1)) end
+    fx.glow(W / 2, 460, 380, 120, 1, 0.3, 0.85, 0.15 * k)
     neon(shown, 0, 400, 104, 0xff4fd8, 1.8)
     if intro_t > 1.3 then
       local a = math.min(1, (intro_t - 1.3) / 0.4)
       lg.setColor(1, 1, 1, a)
       neon("ARCADE  HOME", 0, 530, 34, 0x6ef0c8, a)
     end
+    return
+  end
+  if scene == "night" then
+    draw_night()
     return
   end
   draw_marquee()
@@ -592,22 +660,93 @@ local function draw_scene()
     lg.setColor(0, 0, 0, 0.25)
     lg.rectangle("fill", 0, 780, W, H - 780)
     neon_draw("PRESS ANY BUTTON", 0, 860, 44, 0xffd23f, 1, "center", W, 0.6 + 0.4 * math.sin(t * 4))
-    draw_hint("12 CLASSICS  +  THE YARD", 930, false)
+    draw_hint("12 CLASSICS  +  THE YARD", 930, 0.9)
   else
     draw_info()
-    draw_hint("STICK  up/down choose  ·  left/right section  ·  LOWER BUTTON play", 1000 - 2, false)
+    draw_footer()
   end
+  draw_volume()
   draw_note()
   draw_hold()
   if launch_item then
-    lg.setColor(1, 1, 1, math.max(0, math.min(1, (launch_t - 0.25) / 0.3)))
+    local r, g, b = rgb(launch_item.tint)
+    local k = math.max(0, math.min(1, (launch_t - 0.25) / 0.3))
+    lg.setColor(r * 0.16, g * 0.08, b * 0.2, k)        -- into a dark glow of the game's colour
     lg.rectangle("fill", 0, 0, W, H)
   end
 end
 
+-- ------------------------------------------------------------------ the pictures between programs
+
+-- The backdrop of every picture: the sky, the grid and the sign, still.
+local function backdrop()
+  draw_background(0.3)
+  neon_draw("PARTYCADE", 0, 34, 92, 0xff4fd8, 1.6, "center", W)
+end
+
+-- "Get ready": the game's logo (or name) big, and how to come back.
+local function picture_launch(it)
+  backdrop()
+  local r, g, b = rgb(it.tint)
+  fx.glow(W / 2, 430, 420, 240, r, g, b, 0.35)
+  if it.art then
+    local iw, ih = it.art:getDimensions()
+    local s = math.min(620 / iw, 300 / ih)
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(it.art, W / 2, 430, 0, s, s, iw / 2, ih / 2)
+  else
+    neon_draw(it.title, 0, 380, 64, it.tint, 1.2, "center", W, 1, #it.title > 9 and 1.1 or 1.5)
+  end
+  neon_draw("GET READY!", 0, 620, 44, 0xffd23f, 1, "center", W)
+  local leave = LEAVE[it.kind]
+  if leave then
+    lg.setColor(0.04, 0.0, 0.10, 0.85)
+    rrect("fill", 60, 800, W - 120, 130, 24)
+    lg.setColor(r, g, b, 0.9)
+    lg.setLineWidth(2)
+    rrect("line", 60, 800, W - 120, 130, 24)
+    neon_draw(leave[1], 0, 822, 34, it.tint, 0.8, "center", W)
+    lg.setFont(font(24))
+    lg.setColor(0.9, 0.88, 1, 1)
+    lg.printf(leave[2], 60, 880, W - 120, "center")
+  end
+end
+
+-- "Welcome back": Home's own sky with the sign and the tabs, as the menu will look in a moment.
+local function picture_back()
+  backdrop()
+  neon_draw("HOME", 0, 132, 26, 0x6ef0c8, 0.8, "center", W)
+  draw_tabs(items[sel].section)
+end
+
+-- Power-on: the sign, warming up.
+local function picture_boot()
+  backdrop()
+  neon_draw("HOME", 0, 132, 26, 0x6ef0c8, 0.8, "center", W)
+  lg.setFont(font(26))
+  lg.setColor(0.85, 0.8, 1, 0.8)
+  lg.printf("warming up the neon...", 0, 520, W, "center")
+end
+
+local function file_exists(p) local f = p and io.open(p, "rb") if f then f:close() return true end return false end
+
+-- Just before quitting for a game: its picture on the screen, and the welcome-back picture for homeloop
+-- (once per boot: it lives in /tmp).
+local function pictures_for(it)
+  local t0 = uptime()
+  local ok, bytes = pcall(splash.render, function() picture_launch(it) end)
+  if ok then splash.show(bytes) end
+  if BACK and not file_exists(BACK) then
+    local ok2, back = pcall(splash.render, picture_back)
+    if ok2 then splash.save(back, BACK) end
+  end
+  log(string.format("pictures %s in %.2f s", ok and "shown" or ("failed: " .. tostring(bytes)), uptime() - t0))
+end
+
 -- ------------------------------------------------------------------ actions
 
-local function request(s)
+local function request(s, it)
+  if it and (not headless or os.getenv("HOME_FB")) then pictures_for(it) end
   log("launch " .. s)
   save_state()
   if REQ then
@@ -643,7 +782,20 @@ local function jump_section(d)
   play("section")
 end
 
+local function read_volume()
+  local s = read_file(VOLUME_FILE)
+  local n = s and tonumber(s:match("%d+"))
+  if n then vol_level = math.max(0, math.min(15, n)) end
+end
+
 local function handle(name)
+  if name == "volup" or name == "voldown" then
+    -- The kernel has changed it (volctrl.sh saves it); read it a moment later and show it.
+    read_volume()
+    vol_t, vol_read = 1.8, 0.2
+    if scene ~= "night" then play("volume") end
+    return
+  end
   idle = 0
   if scene == "intro" then
     scene = "menu"
@@ -651,6 +803,13 @@ local function handle(name)
   end
   if scene == "attract" then
     scene = "menu"
+    return
+  end
+  if scene == "night" then
+    -- The first press only wakes it.
+    scene = "menu"
+    play("wake")
+    if sound.music then sound.music:setVolume(0.55) end
     return
   end
   if launch_item then return end
@@ -674,27 +833,44 @@ end
 -- ------------------------------------------------------------------ the loop
 
 function love.load()
+  mark("love.load")
   love.mouse.setVisible(false)
   local fd = love.filesystem.getInfo("fonts/Fredoka-SemiBold.ttf") and love.filesystem.newFileData("fonts/Fredoka-SemiBold.ttf")
   font_data = fd
-  -- A black frame at once (the framebuffer showed white while loading, in GPU yard).
-  if not headless then lg.clear(0, 0, 0, 1) lg.present() end
-  math.randomseed(os.time())
+  math.randomseed(RENDER and 1 or os.time())   -- the PC-rendered picture is the same every build
   for i = 1, 90 do
     stars[i] = {math.random() * W, math.random() * 700, math.random() * 6, 0.5 + math.random() * 2,
                 0.4 + math.random() * 0.6, math.random() < 0.15 and 3 or 2}
   end
+  fx.load()
+  if RENDER then
+    -- Render a picture and quit (the PC build of the power-on picture): "boot:PATH".
+    local kind, path = RENDER:match("^(%a+):(.+)$")
+    local bytes = splash.render(kind == "back" and picture_back or picture_boot)
+    splash.save(bytes, path, path:match("%.gz$") ~= nil)
+    love.event.quit(0)
+    return
+  end
+  load_state()
+  if love.thread then
+    worker = love.thread.newThread("worker.lua")
+    worker:start()
+    if not headless then love.thread.getChannel("home_work"):push({"music"}) end
+  end
   load_art()
-  -- Paint every label now (see neon_img).
+  mark("art")
+  -- The labels in view now; the rest a few a frame, before the frame's drawing starts (see neon_img).
   neon_img("PARTYCADE", 92, 0xff4fd8, 1.6)
   neon_img("HOME", 26, 0x6ef0c8, 0.8)
-  neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1)
-  for _, it in ipairs(items) do
-    neon_img(it.title, 64, it.tint, 1.2)
-    neon_img(it.title, 44, it.tint, 0.9)
+  for k, it in ipairs(items) do
+    local job = function() neon_img(it.title, 64, it.tint, 1.2) neon_img(it.title, 44, it.tint, 0.9) end
+    if math.abs(k - sel) <= 2 then job() else label_jobs[#label_jobs + 1] = job end
   end
+  label_jobs[#label_jobs + 1] = function() neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1) end
   lg.setCanvas()
-  make_sounds()
+  mark("labels")
+  sound.load()
+  mark("sounds")
   local returned = load_state()
   if returned and returned:match("failed") then
     note, note_t = "That one didn't start. Pick another?", 4
@@ -704,12 +880,19 @@ function love.load()
   else
     play("intro")
   end
-  if not headless then music:play() end
+  read_volume()
   if headless or not direct then canvas = lg.newCanvas(W, H) end
   log("home start, " .. #items .. " items, scene " .. scene)
 end
 
+-- The worker waits for jobs: tell it to stop, so LÖVE's exit does not wait on it.
+function love.quit()
+  if worker then love.thread.getChannel("home_work"):push({"quit"}) end
+  return false
+end
+
 local fps_t, fps_n = 0, 0
+local last_letters = 0
 function love.update(dt)
   fps_t, fps_n = fps_t + dt, fps_n + 1
   if fps_n == 300 then
@@ -719,6 +902,20 @@ function love.update(dt)
   dt = math.min(dt, 0.1)
   t = t + dt
   frame = frame + 1
+  -- The music, made once the first frames are up (its 17 s of samples are the one slow thing to make).
+  if worker then
+    local msg = love.thread.getChannel("home_done"):pop()
+    while msg do
+      if msg[1] == "art" and msg[3] then items[msg[2]].art = art_image(msg[3])
+      elseif msg[1] == "music" and not headless then
+        sound.music_from(msg[2], scene == "night" and 0.12 or 0.55):play()
+        log("music ready")
+      end
+      msg = love.thread.getChannel("home_done"):pop()
+    end
+    local err = worker:getError()
+    if err then log("worker: " .. err) worker = nil end
+  end
   for _, c in ipairs(script) do
     if c[1] == frame then
       if c[2] == "press" then control_down(c[3]) control_up(c[3])
@@ -739,6 +936,8 @@ function love.update(dt)
   end
   if scene == "intro" then
     intro_t = intro_t + dt
+    local letters = math.floor(math.min(1, intro_t / 1.2) * 9 + 0.001)
+    if letters > last_letters then last_letters = letters play("tick") end
     if intro_t > 2.4 then scene = "menu" end
   end
   idle = idle + dt
@@ -746,20 +945,46 @@ function love.update(dt)
   if scene == "attract" then
     attract_t = attract_t + dt
     if attract_t > 3.5 then attract_t = 0 sel = sel % #items + 1 end
+    if idle > IDLE_NIGHT then
+      scene = "night"
+      night_t = 0
+      if sound.music then sound.music:setVolume(0.12) end
+    end
+  end
+  if scene == "night" then night_t = night_t + dt end
+  fx.update(dt, scene == "menu" or scene == "attract" or scene == "night")
+  if vol_t > 0 then vol_t = vol_t - dt end
+  if vol_read then
+    vol_read = vol_read - dt
+    if vol_read <= 0 then vol_read = nil read_volume() end
   end
   pos = pos + (sel - pos) * math.min(1, dt * 11)
   if note then note_t = note_t - dt if note_t <= 0 then note = nil end end
   if launch_item then
     launch_t = launch_t + dt
     if launch_t > 0.6 then
-      local s = launch(launch_item)
+      local it = launch_item
+      local s = launch(it)
       launch_item = nil
-      request(s)
+      request(s, it)
     end
   end
 end
 
+local first_drawn = false
 function love.draw()
+  -- Labels still to paint: two a frame, before anything is drawn on the screen.
+  for _ = 1, 2 do
+    local job = table.remove(label_jobs, 1)
+    if job then job() lg.setCanvas() end
+  end
+  if not first_drawn then
+    first_drawn = true
+    mark("first frame")
+    local parts = {}
+    for i, m in ipairs(marks) do parts[i] = string.format("%s %.2f", m[1], m[2]) end
+    log("startup: " .. table.concat(parts, ", "))
+  end
   if canvas then
     lg.setCanvas(canvas)
     lg.clear(0, 0, 0, 1)

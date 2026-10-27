@@ -1,5 +1,5 @@
 diff --git a/src/video/kmsdrm/SDL_kmsdrmopengles.c b/src/video/kmsdrm/SDL_kmsdrmopengles.c
-index cbf86c9..274ae6d 100644
+index cbf86c9..cfdc4f4 100644
 --- a/src/video/kmsdrm/SDL_kmsdrmopengles.c
 +++ b/src/video/kmsdrm/SDL_kmsdrmopengles.c
 @@ -1,3 +1,4 @@
@@ -7,7 +7,7 @@ index cbf86c9..274ae6d 100644
  /*
    Simple DirectMedia Layer
    Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
-@@ -86,8 +87,103 @@ SDL_EGL_CreateContext_impl(KMSDRM)
+@@ -86,8 +87,128 @@ SDL_EGL_CreateContext_impl(KMSDRM)
      return 0;
  }
  
@@ -22,6 +22,25 @@ index cbf86c9..274ae6d 100644
 +   left for the next frame, the frame is finished at once, as before. */
 +static int pipe_on = -1;
 +static SDL_bool pipe_pending;
++
++/* Partycade: the first frame goes on the screen with drmModeSetCrtc, and on the Mali the buffer could still be
++   unfinished then: the screen showed black for one frame before the first picture (filmed with tools/cabview,
++   2026-10-27), a blink between the picture in /dev/fb0 and the program. Wait for the GPU, before that first
++   drmModeSetCrtc only (both swap paths). */
++static void kmsdrm_first_frame_finish(void)
++{
++    static void (*gl_finish)(void);
++    if (!gl_finish) {
++        gl_finish = (void (*)(void))SDL_GL_GetProcAddress("glFinish");
++    }
++    if (gl_finish) {
++        double a = tm_now();
++        gl_finish();
++        if (SDL_getenv("SDL_KMSDRM_DEBUG")) fprintf(stderr, "kmsdrm: first frame, glFinish waited %.2f ms\n", tm_now() - a);
++    } else if (SDL_getenv("SDL_KMSDRM_DEBUG")) {
++        fprintf(stderr, "kmsdrm: first frame, no glFinish\n");
++    }
++}
 +
 +static int KMSDRM_GLES_FinishPending(_THIS, SDL_Window *window)
 +{
@@ -50,6 +69,7 @@ index cbf86c9..274ae6d 100644
 +    windata->bo = windata->next_bo;
 +    windata->next_bo = bo;
 +    if (!windata->bo) {
++        kmsdrm_first_frame_finish();
 +        ret = KMSDRM_drmModeSetCrtc(viddata->drm_fd, dispdata->crtc->crtc_id, fb_info->fb_id, 0, 0,
 +                                    &dispdata->connector->connector_id, 1, &dispdata->mode);
 +        if (ret) {
@@ -104,6 +124,11 @@ index cbf86c9..274ae6d 100644
 +    double t0, t1, t2, t3, t4;
 +    if (pipe_on < 0) pipe_on = SDL_getenv("SDL_KMSDRM_PIPELINE") != NULL && SDL_atoi(SDL_getenv("SDL_KMSDRM_PIPELINE")) != 0;
 +    if (tm_on < 0) tm_on = SDL_getenv("SDL_KMSDRM_TIMING") != NULL;
++    if (SDL_getenv("SDL_KMSDRM_DEBUG")) {
++        static int n;
++        if (n++ < 4) fprintf(stderr, "kmsdrm: swap %d, dirty %d, bo %p\n", n, ((SDL_WindowData *)window->driverdata)->egl_surface_dirty,
++                             (void *)((SDL_WindowData *)window->driverdata)->bo);
++    }
 +    if (pipe_on && ((SDL_WindowData *)window->driverdata)->egl_surface != EGL_NO_SURFACE &&
 +        !((SDL_WindowData *)window->driverdata)->egl_surface_dirty) {
 +        return KMSDRM_GLES_SwapPipelined(_this, window);
@@ -111,8 +136,16 @@ index cbf86c9..274ae6d 100644
      SDL_WindowData *windata = ((SDL_WindowData *)window->driverdata);
      SDL_DisplayData *dispdata = (SDL_DisplayData *)SDL_GetDisplayForWindow(window)->driverdata;
      SDL_VideoData *viddata = ((SDL_VideoData *)_this->driverdata);
-@@ -110,6 +206,8 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+@@ -108,8 +229,16 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+     /* Recreate the GBM / EGL surfaces if the display mode has changed */
+     if (windata->egl_surface_dirty) {
          KMSDRM_CreateSurfaces(_this, window);
++        if (SDL_getenv("SDL_KMSDRM_DEBUG")) fprintf(stderr, "kmsdrm: surfaces recreated at a swap: not shown\n");
++        /* Partycade: the frame being swapped was drawn on the old surface and is lost; swapping now would put
++           the new surface's empty (black) buffer on the screen. LÖVE makes its window fullscreen right after
++           creating it, so this was every program's first frame: a black blink after the picture in /dev/fb0
++           (filmed with tools/cabview, 2026-10-27). Show nothing until the next frame. */
++        return 1;
      }
  
 +    if (tm_on < 0) tm_on = SDL_getenv("SDL_KMSDRM_TIMING") != NULL;
@@ -120,7 +153,7 @@ index cbf86c9..274ae6d 100644
      /* Wait for confirmation that the next front buffer has been flipped, at which
         point the previous front buffer can be released */
      if (!KMSDRM_WaitPageflip(_this, windata)) {
-@@ -124,6 +222,7 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+@@ -124,6 +253,7 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
      }
  
      windata->bo = windata->next_bo;
@@ -128,7 +161,7 @@ index cbf86c9..274ae6d 100644
  
      /* Mark a buffer to become the next front buffer.
         This won't happen until pagelip completes. */
-@@ -136,7 +235,9 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+@@ -136,7 +266,9 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
      /* From the GBM surface, get the next BO to become the next front buffer,
         and lock it so it can't be allocated as a back buffer (to prevent EGL
         from drawing into it!) */
@@ -138,7 +171,15 @@ index cbf86c9..274ae6d 100644
      if (!windata->next_bo) {
          SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not lock front buffer on GBM surface");
          return 0;
-@@ -203,6 +304,15 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+@@ -153,6 +285,7 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+         /* On the first swap, immediately present the new front buffer. Before
+            drmModePageFlip can be used the CRTC has to be configured to use
+            the current connector and mode with drmModeSetCrtc */
++        kmsdrm_first_frame_finish();
+         ret = KMSDRM_drmModeSetCrtc(viddata->drm_fd,
+                                     dispdata->crtc->crtc_id, fb_info->fb_id, 0, 0,
+                                     &dispdata->connector->connector_id, 1, &dispdata->mode);
+@@ -203,6 +336,15 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
              }
          }
      }

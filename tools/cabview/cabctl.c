@@ -4,6 +4,8 @@
  *   cabctl press NAME [MS]      press and release a control (default 150 ms held)
  *   cabctl hold NAME... MS      hold several controls together for MS, then release all
  *   cabctl watch [SECONDS]      print the controls as they are pressed (real players or injected)
+ *   cabctl record S MS DIV      a grab every MS ms for S seconds, each 1/DIV size, as PPMs on stdout (each with
+ *                               "# t SECONDS fb ID master PID" in its header): transitions, as a film
  * Names: up down left right 1p 2p low tl tr volup voldown, or a code like 0x136.
  * The grab reads what the display controller scans out (DRM GETFB + dumb map, or PRIME), not what a program
  * thinks it drew, so a black screen grabs black. Static, no libdrm: the kernel's own uapi headers. */
@@ -174,6 +176,54 @@ static int grab(uint32_t want)
     return 0;
 }
 
+/* The pid holding the display (DRM master), from debugfs; 0 if none. */
+static int drm_master_pid(void)
+{
+    FILE *f = fopen("/sys/kernel/debug/dri/0/clients", "r");
+    char line[256], cmd[64];
+    int pid = 0, p, dev;
+    char master;
+    if (!f) return 0;
+    while (fgets(line, sizeof line, f))
+        if (sscanf(line, " %63s %d %d %c", cmd, &p, &dev, &master) == 4 && master == 'y') pid = p;
+    fclose(f);
+    return pid;
+}
+
+static int record(int secs, int ms, int div)
+{
+    int fd = card();
+    struct timespec t0, now;
+    clock_gettime(CLOCK_MONOTONIC, &t0);
+    if (div < 1) div = 1;
+    for (;;) {
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        double el = (now.tv_sec - t0.tv_sec) + (now.tv_nsec - t0.tv_nsec) / 1e9;
+        if (el >= secs) break;
+        uint32_t id = scanout_fb(fd, 0);
+        struct drm_mode_fb_cmd fb;
+        void *map = id ? map_fb(fd, id, &fb) : MAP_FAILED;
+        uint32_t w = 1024 / div, h = 768 / div;
+        uint8_t *row = malloc((size_t)w * 3);
+        printf("P6\n# t %.3f fb %u master %d\n%u %u\n255\n", el, id, drm_master_pid(), w, h);
+        for (uint32_t y = 0; y < h; y++) {
+            for (uint32_t x = 0; x < w; x++) {
+                uint8_t *d = row + x * 3;
+                if (map == MAP_FAILED || fb.bpp != 32) { d[0] = d[1] = d[2] = 0; continue; }
+                uint8_t *sp = (uint8_t *)map + (size_t)(y * div) * fb.pitch + (size_t)(x * div) * 4;
+                d[0] = sp[2]; d[1] = sp[1]; d[2] = sp[0];
+            }
+            fwrite(row, 3, w, stdout);
+        }
+        fflush(stdout);
+        free(row);
+        if (map != MAP_FAILED) munmap(map, (size_t)fb.pitch * fb.height);
+        struct timespec ts = { ms / 1000, (ms % 1000) * 1000000L };
+        nanosleep(&ts, 0);
+    }
+    return 0;
+}
+
 static const struct { const char *name; int code; } names[] = {
     {"up", KEY_UP}, {"down", KEY_DOWN}, {"left", KEY_LEFT}, {"right", KEY_RIGHT},
     {"1p", 0x136}, {"2p", 0x137}, {"low", 0x130}, {"tl", 0x131}, {"tr", 0x133},
@@ -254,6 +304,7 @@ int main(int argc, char **argv)
     if (argc >= 3 && !strcmp(argv[1], "press")) return hold(1, argv + 2, argc > 3 ? atoi(argv[3]) : 150);
     if (argc >= 4 && !strcmp(argv[1], "hold")) return hold(argc - 3, argv + 2, atoi(argv[argc - 1]));
     if (argc >= 2 && !strcmp(argv[1], "watch")) return watch(argc > 2 ? atoi(argv[2]) : 0);
-    fprintf(stderr, "usage: cabctl info | grab [FB] | press NAME [MS] | hold NAME... MS | watch [S]\n");
+    if (argc >= 5 && !strcmp(argv[1], "record")) return record(atoi(argv[2]), atoi(argv[3]), atoi(argv[4]));
+    fprintf(stderr, "usage: cabctl info | grab [FB] | press NAME [MS] | hold NAME... MS | watch [S] | record S MS DIV\n");
     return 1;
 }
