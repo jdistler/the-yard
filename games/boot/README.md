@@ -1,5 +1,9 @@
 # Boot customization over the air: tinyinit + stage2
 
+**On the cabinet since 2026-10-26 20:52 (verified):** boot partition sha256 `94172b67…3704`, written over Wi-Fi by
+`tools/ota_boot.sh`; first boot: initramfs unpacked at 0.34 s, `yardinit: start` 0.77 s, stage2 at 2.4 s, Wi-Fi and
+SSH 42 s after the reboot with no one at the cabinet, the health mark at 66 s (`boot/tries` back to 0).
+
 **Goal:** change what the cabinet does at power-on (intro, menu, idle screen, Wi-Fi at boot) from files in
 `/data`, over Wi-Fi, with no Micro-USB. Written 2026-10-26.
 

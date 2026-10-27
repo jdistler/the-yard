@@ -516,3 +516,19 @@ No Mask ROM writes after the 10-block key write; everything below was installed 
   15 s intro (ffplay logo.mp4) is skipped when the supervisor restarts it: /dev/null bind-mounted over the
   video until power-off. loveprobe.sh deletes love.tar.gz once unpacked (/userdata 96% -> 82%).
 * Gate: all carts pass; 138 passed, 0 failed.
+
+## 2026-10-26 (late night): the boot partition written over Wi-Fi; a boot hook on /data
+
+* Findings: every partition is writable from Linux (`/dev/rkflash0p1..5`, ro=0, the kernel's own SFTL); the
+  boot partition is idle once the kernel runs; the system image (squashfs, gzip, 59 MB in 64 MB) is in use, and
+  a repack is not byte-identical past 374 KB (a full rewrite, so never from the running system). The boot image
+  has 14 KB free; the kernel takes an initramfs; U-Boot's env_fixup moves ramdisk_addr_r to 0x64000000 on 128 MB
+  boards (Rockchip next-dev source; the cabinet's U-Boot has the strings); no kexec. The U-Boot splash is
+  `logo.bmp` (40x264, 24-bit: "LOADING...") in the boot image's resource section. U-Boot's distro fallback
+  scans the SD card first (`boot_targets=mmc1 ...`).
+* Built: `games/boot/tinyinit.c` (3.7 KB, no libc) in a 4.6 KB cpio; `tools/bootimg.py` (kernel and resource
+  byte for byte, header ID recomputed); `qemu_test.py` (the cabinet's own system image and data partition, 10
+  scenarios, all pass); keytest on the cabinet (real button device, injected events); SD rescue entry.
+* Written over Wi-Fi with the user's approval ("approved, write boot-yard.img (94172b67…) over Wi-Fi"):
+  `tools/ota_boot.sh write`, read-back verified, reboot. First boot: initramfs at 0.34 s, yardinit 0.77 s,
+  stage2 2.4 s, SSH 42 s after the reboot, health mark at 66 s.
