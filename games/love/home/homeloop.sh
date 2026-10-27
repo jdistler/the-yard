@@ -15,10 +15,16 @@ mkdir -p "$H"
 [ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt 131072 ] && mv "$LOG" "$LOG.1"
 MODE=${1:-boot}
 FAILS=0
+# At power-on, Home plays its intro once (its state file says "coming back from a game" otherwise).
+INTRO=0
+[ "$MODE" = boot ] && INTRO=1
 log() { echo "$(cut -d' ' -f1 /proc/uptime) $*" >> "$LOG"; }
 stock() {
   log "the original menu"
   rm -f /tmp/.minigui_freeze   # left by a menu killed mid-game, it keeps a new one from drawing
+  # Its 15 s intro video, skipped (as The Yard does): /dev/null over it until power-off.
+  V=/usr/local/share/minigui/res/images/logo.mp4
+  grep -q " $V " /proc/mounts || mount -o bind /dev/null "$V" 2>/dev/null
   cd / && exec env -i PATH=/sbin:/usr/sbin:/bin:/usr/bin HOME=/ XDG_CONFIG_HOME=/userdata/ MG_CFG_PATH=/etc /usr/bin/game
 }
 # A stock game, as the stock menu's start.sh runs it (index, smoothing 0|1, speed 0|1). Index 10 is Dig Dug II:
@@ -46,9 +52,10 @@ classic() {
 while :; do
   rm -f "$REQ"
   log "home: starting LOVE"
-  HOME_REQ=$REQ HOME_BACK=$BACK HOME_STATE=$H/state HOME_LOG=$LOG HOME_ART=$H/art HOME_GAMES=/data/Games HOME_MODE=$MODE \
+  HOME_INTRO=$INTRO HOME_REQ=$REQ HOME_BACK=$BACK HOME_STATE=$H/state HOME_LOG=$LOG HOME_ART=$H/art HOME_GAMES=/data/Games HOME_MODE=$MODE \
     /data/love/run.sh $H/home.love
   CODE=$?
+  INTRO=0
   if [ ! -s "$REQ" ]; then
     FAILS=$((FAILS + 1))
     log "Home quit without a choice (code $CODE), $FAILS time(s)"
@@ -60,6 +67,14 @@ while :; do
   set -- $(head -n 1 "$REQ")
   WHAT=$1
   T0=$(cut -d. -f1 /proc/uptime)
+  # The first launch of each game after power-on keeps its "get ready" picture (Home put it in /dev/fb0: how to
+  # come back, which the stock games never say) up for 1.5 s; later launches go straight in. Pac-Man covered it
+  # with its own black screen after half a second (filmed, 2026-10-27).
+  SEEN=/tmp/home-seen
+  if ! grep -qx "$WHAT $2" "$SEEN" 2>/dev/null; then
+    echo "$WHAT $2" >> "$SEEN"
+    case "$WHAT" in classic|cart|native|yard) sleep 1.5 ;; esac
+  fi
   case "$WHAT" in
     classic) classic "$2" "$3" "$4" ;;
     cart)

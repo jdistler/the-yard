@@ -650,18 +650,45 @@ def cmd_push(a):
         subprocess.check_call([sys.executable, tool, rootfs, art], stdout=subprocess.DEVNULL)
     for f in sorted(os.listdir(art)):
         files[f"/data/home/art/{f}"] = (os.path.join(art, f), False)
+    # Home at power-on: stage2 (v2) binds games/boot/S50ui over the stock one (games/boot/README.md).
+    files["/data/boot/stage2.sh"] = (os.path.join(HERE, "boot", "stage2.sh"), False)
+    files["/data/boot/S50ui"] = (os.path.join(HERE, "boot", "S50ui"), False)
     # The power-on picture (stage2 puts it in /dev/fb0 at ~2.5 s): rendered by Home itself, on the PC.
     files["/data/home/boot.fb.gz"] = (home_picture("boot", os.path.join(stage, "boot.fb.gz"), art), False)
     for extra_file in a.also or []:
         src, dst = extra_file.split(":", 1)
         files[dst] = (os.path.abspath(src), False)
-    r = ssh("pidof yard love.bin >/dev/null && echo busy; sha256sum " + " ".join(files))
+    # Someone playing: The Yard, a LÖVE program other than Home, or a game started from /data/Games (a classic,
+    # Orb). Home on its own (the front end since 2026-10-27) is stopped for the install and started again.
+    busy_check = ("pidof yard >/dev/null && echo busy; "
+                  "for p in $(pidof love.bin); do grep -q home.love /proc/$p/cmdline || echo busy; done; "
+                  "for d in /proc/[0-9]*; do [ \"$(readlink $d/cwd 2>/dev/null)\" = /userdata/Games ] && echo busy; done; "
+                  "pidof homeloop >/dev/null && echo home; ")
+    r = ssh(busy_check + "sha256sum " + " ".join(files))
     if r.returncode not in (0, 1) and not r.stdout:
         die(f"cannot reach the cabinet at {host}: {r.stderr.strip()} (is The Yard opened once since boot, for Wi-Fi?)")
-    if "busy" in r.stdout:
-        die("The Yard or GPU yard is running on the cabinet: leave it first, nothing was changed")
+    if "busy" in r.stdout.split():
+        die("a game, The Yard or GPU yard is running on the cabinet: leave it first, nothing was changed")
+    home_up = "home" in r.stdout.split()
+    if home_up:
+        print("   Home is on the screen: stopped for the install, started again after")
+        ssh("for p in $(pidof homeloop) $(pidof love.bin); do kill -9 $p; done; sleep 0.5")
     have = {l.split()[1]: l.split()[0] for l in r.stdout.splitlines() if len(l.split()) == 2}
     print("2. Installing")
+    changed = 0
+    try:
+        changed = push_files(files, have, host, sshopt, ssh)
+    finally:
+        if home_up:
+            ssh("(setsid /data/home/homeloop </dev/null >/dev/null 2>&1 &)")
+            print("   Home started again")
+    shutil.rmtree(stage, ignore_errors=True)
+    print(f"{changed} file(s) changed. A Mask ROM deploy must start from a fresh dump now (STATUS.md).")
+
+
+def push_files(files, have, host, sshopt, ssh):
+    """cmd_push's install step: each changed file copied, checked by sha256, put in place."""
+    import hashlib
     changed = 0
     for dst, (src, slot) in files.items():
         want = hashlib.sha256(open(src, "rb").read()).hexdigest()
@@ -682,8 +709,7 @@ def cmd_push(a):
             die(f"{dst}: the copy did not check out ({r.stdout.strip()} {r.stderr.strip()})")
         print(f"   {dst}: installed ({want[:12]})")
         changed += 1
-    shutil.rmtree(stage, ignore_errors=True)
-    print(f"{changed} file(s) changed. A Mask ROM deploy must start from a fresh dump now (STATUS.md).")
+    return changed
 
 
 def main():

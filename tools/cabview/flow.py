@@ -4,6 +4,8 @@
     tools/cabview/flow.py yard       stock menu -> Dig Dug II -> GPU yard -> hold 1P+2P -> stock menu again
     tools/cabview/flow.py home       stock menu -> Dig Dug II -> GPU yard -> Home preview
     tools/cabview/flow.py classic    stock menu -> Pac-Man -> hold 1P 5 s (the stock exit) -> stock menu again
+    tools/cabview/flow.py front      Home as the front end (power-on): Pac-Man and back (hold 1P 5 s), Keep and
+                                     back (hold 1P + 2P), each launch's "get ready" picture checked
 
 Every step saves a screenshot (captures/screen/flow-<name>-<time>/NN-step.png, the player's view) and checks
 it: not black, no magenta blocks (unpainted GPU memory, 2026-10-27), and the step's own expectation. It uses
@@ -209,9 +211,58 @@ def flow_classic():
     return f
 
 
+def home_look(lit, magenta, mean):
+    return mean[0] > 25 and mean[2] > 35 and mean[2] > mean[1]   # Home: violet sky, pink grid
+
+
+def home_state_sel(n):
+    cab("ssh", f"echo 'sel {n}' > /data/home/state")
+
+
+def front_home(f, sel):
+    """Home started fresh on card `sel` (1 = Pac-Man), as at power-on but without the intro."""
+    cab("stop")
+    home_state_sel(sel)
+    cab("ssh", "rm -f /tmp/home-seen")   # each launch is a first one: its picture is held 1.5 s
+    cab("ssh", "(setsid /data/home/homeloop </dev/null >/dev/null 2>&1 &)")
+    wait_screen(f, f"home-card-{sel}", home_look, 30, "Home is on the screen")
+    time.sleep(3)
+
+
+def flow_front():
+    f = Flow("front")
+    # A classic: launch, its picture while it loads, play a moment, hold 1P (the stock exit), back to Home.
+    front_home(f, 1)
+    cab("key", "low")
+    time.sleep(1.0)
+    look(f, "pac-man-get-ready")
+    f.check(wait_for(lambda: "PacMan" in cab("ssh", "ps | grep [P]acMan"), 10), "Pac-Man started from Home")
+    time.sleep(5)
+    look(f, "pac-man")
+    t0 = time.time()
+    cab("hold", "1p", "5500")
+    f.check(wait_for(lambda: "PacMan" not in cab("ssh", "ps | grep [P]acMan"), 10),
+            f"Pac-Man quit on the 5.5 s 1P hold ({time.time() - t0:.1f} s)")
+    wait_screen(f, "home-after-pac-man", home_look, 15, "back in Home")
+    # One of ours: Keep (card 13), hold 1P + 2P to leave.
+    front_home(f, 13)
+    cab("key", "low")
+    time.sleep(1.0)
+    look(f, "keep-get-ready")
+    f.check(wait_for(lambda: "yard.love" in cab("ssh", "ps | grep [y]ard.love"), 10), "Keep started from Home")
+    time.sleep(5)
+    look(f, "keep")
+    cab("hold", "1p", "2p", "2500")
+    f.check(wait_for(lambda: "yard.love" not in cab("ssh", "ps | grep [y]ard.love"), 10), "Keep quit on 1P + 2P")
+    wait_screen(f, "home-after-keep", home_look, 15, "back in Home")
+    log = cab("ssh", "tail -12 /data/home/home.log")
+    print(log)
+    return f
+
+
 def main():
     which = sys.argv[1] if len(sys.argv) > 1 else "yard"
-    f = {"yard": flow_yard, "home": flow_home, "classic": flow_classic}[which]()
+    f = {"yard": flow_yard, "home": flow_home, "classic": flow_classic, "front": flow_front}[which]()
     print(f"screens: {f.dir}")
     print(f"== {len(failures)} failed ==")
     sys.exit(1 if failures else 0)

@@ -1,0 +1,39 @@
+#!/bin/sh
+# Partycade: /etc/init.d/S50ui while Home is on. stage2.sh copies this to /dev/.partycade and binds it over the
+# stock one at every power-on (the stock one is untouched on the system image; FIRMWARE_ANALYSIS.md). As the
+# stock one: the saved volume, and the factory test mode. Then Partycade Home instead of the stock menu, with a
+# watchdog: if neither Home's loop nor the stock menu is running 30 s later, the stock menu is started.
+LOG=/userdata/boot/boot.log
+case "$1" in
+  start)
+    printf "Starting ui (Partycade Home): "
+    export XDG_CONFIG_HOME=/userdata/
+    export MG_CFG_PATH=/etc
+    /usr/bin/spk-init.sh &
+    if [ "$(cat /sys/devices/platform/uart-keys/test_mode 2>/dev/null)" = 1 ]; then
+      /usr/bin/aplay -q /usr/local/share/minigui/res/music/select_ding_low.wav
+      /usr/bin/PCBA_TEST &
+    elif [ -x /userdata/home/homeloop ] && sh -n /userdata/home/homeloop 2>/dev/null; then
+      echo "S50ui: Home at $(cut -d' ' -f1 /proc/uptime) s" >> $LOG
+      setsid /userdata/home/homeloop </dev/null >/dev/null 2>&1 &
+      (
+        sleep 30
+        if ! pidof homeloop >/dev/null && ! pidof game >/dev/null; then
+          echo "S50ui: no Home and no menu after 30 s: the stock menu" >> $LOG
+          cd / && setsid /usr/bin/game </dev/null >/dev/null 2>&1 &
+        fi
+      ) </dev/null >/dev/null 2>&1 &
+    else
+      echo "S50ui: Home missing or broken: the stock menu" >> $LOG
+      /usr/bin/game &
+    fi
+    ;;
+  stop)
+    killall homeloop love.bin game &
+    printf "ui stop finished"
+    ;;
+  *)
+    echo "Usage: $0 {start|stop}"
+    exit 1
+    ;;
+esac

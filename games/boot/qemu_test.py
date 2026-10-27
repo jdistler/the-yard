@@ -169,11 +169,47 @@ def main():
     fresh(open(os.path.join(HERE, "stage2.sh")).read())
     out = boot(a, data, STOCK, after=5)
     log = cat(data, "boot/boot.log")
-    check("yardinit: stage2 done" in out and STOCK in out and "stage2 v1 at" in log and "at ? s" not in log
+    check("yardinit: stage2 done" in out and STOCK in out and "stage2 v2 at" in log and "at ? s" not in log
           and "stage2: waiting for the stock boot" in out,
           "games/boot/stage2.sh runs, logs, leaves its waiting job, and the stock system boots")
     # The rest (yardnet, the health mark) needs the stock boot to mount /userdata, which it does by partition
     # name (udev, the cabinet's flash): not in QEMU. Verified on the cabinet's first boot instead.
+
+    def with_home(off=False):
+        fresh(open(os.path.join(HERE, "stage2.sh")).read())
+        games = os.path.dirname(HERE)
+        files = {"boot/S50ui": os.path.join(HERE, "S50ui"),
+                 "home/homeloop": os.path.join(games, "love", "home", "homeloop.sh")}
+        love = os.path.join(a.work, "home.love")
+        open(love, "w").write("stand-in")
+        files["home/home.love"] = love
+        cmds = ["mkdir home"]
+        for dst, src in files.items():
+            cmds.append(f"write {src} {dst}")
+            if dst != "home/home.love":
+                cmds.append(f"set_inode_field {dst} mode 0100755")
+        if off:
+            open(os.path.join(a.work, "x"), "w").write("")
+            cmds.append(f"write {os.path.join(a.work, 'x')} boot/home-off")
+        debugfs(data, *cmds)
+
+    print("== Home at power-on (stage2 v2 binds S50ui)", flush=True)
+    with_home()
+    out = boot(a, data, "Starting ui", after=4)
+    log = cat(data, "boot/boot.log")
+    check("Home at power-on" in out and "Starting ui (Partycade Home)" in out and "S50ui bound" in log,
+          "stage2 binds games/boot/S50ui over the stock one, and the stock rcS runs it")
+    check("Kernel panic" not in out and STOCK in out, "the rest of the stock boot is unchanged")
+    print("== Home switched off (boot/home-off)", flush=True)
+    with_home(off=True)
+    out = boot(a, data, "Starting ui", after=3)
+    check("Starting ui: " in out and "Partycade Home" not in out and "stage2 v2 at" in cat(data, "boot/boot.log"),
+          "with boot/home-off, stage2 still runs and the stock S50ui starts the stock menu")
+    print("== safe-mode keys with Home installed", flush=True)
+    with_home()
+    out = boot(a, data, "Starting ui", keys=True, after=3)
+    check("held: the stock boot" in out and "Partycade Home" not in out and "Starting ui: " in out,
+          "holding the two keys at power-on gives the stock menu, Home or not")
     print(f"== {passes} passed, {len(fails)} failed ==")
     for f in fails:
         print("  FAIL", f)

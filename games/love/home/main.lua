@@ -279,11 +279,15 @@ local canvas
 local shot_req
 local vol_level, vol_t, vol_read = nil, 0, nil
 local night_t = 0
+local menu_in = 0                 -- the menu fading in after the intro (seconds left)
+local attract_sel                 -- the card before the attract tour: given back on waking
 
 local function load_state()
   local s = STATE and read_file(STATE)
   local n = s and tonumber(s:match("sel (%d+)"))
   if n and items[n] then sel, pos = n, n end
+  -- At power-on, never on the original menu's card (the last choice made before the power went off).
+  if os.getenv("HOME_INTRO") == "1" and items[sel].kind == "stock" then sel, pos = 1, 1 end
   return s and s:match("returned (.+)")
 end
 local function save_state(extra)
@@ -617,36 +621,73 @@ end
 local function draw_night()
   lg.setColor(0, 0, 0.02, 0.45)
   lg.rectangle("fill", 0, 0, W, H)
-  neon_draw("PARTYCADE", 0, 34, 92, 0xff4fd8, 1.6, "center", W, 0.35)
-  -- Three z's drifting up from the sign.
+  -- The sign asleep: it breathes, slowly.
+  local breath = 0.3 + 0.12 * math.sin(night_t * 1.1)
+  fx.glow(W / 2, 80, 330, 60, 1, 0.3, 0.85, breath * 0.25)
+  neon_draw("PARTYCADE", 0, 34, 92, 0xff4fd8, 1.6, "center", W, breath)
+  -- A moon, and z's drifting up from the sign.
+  fx.glow(620, 300, 90, 90, 0.8, 0.85, 1, 0.18)
+  lg.setColor(0.95, 0.93, 0.8, 0.9)
+  lg.circle("fill", 620, 300, 34, 40)
+  lg.setColor(0.07, 0.03, 0.14, 1)
+  lg.circle("fill", 634, 292, 30, 40)
   for i = 0, 2 do
-    local k = ((night_t * 0.35) + i / 3) % 1
-    local zx, zy = W / 2 + 250 + k * 50 + math.sin(k * 6) * 8, 110 - k * 80
-    lg.setFont(font(24 + i * 8))
-    lg.setColor(0.43, 0.94, 0.78, math.sin(k * math.pi) * 0.9)
+    local k = ((night_t * 0.3) + i / 3) % 1
+    local zx, zy = W / 2 + 260 + k * 60 + math.sin(k * 6) * 10, 120 - k * 110
+    lg.setFont(font(math.floor(30 + k * 26)))
+    lg.setColor(0.43, 0.94, 0.78, math.sin(k * math.pi) * 0.85)
     lg.print("z", zx, zy)
   end
   fx.draw_chase(night_t, HORIZON - 26, 1)
   draw_hint("press any button", 930, 0.35 + 0.25 * math.sin(t * 2))
 end
 
+-- The sign, unlit: the tubes dark, as on the power-on picture.
+local SIGN_Y, SIGN_PX = 400, 104
+local function sign_x()
+  return math.floor((W - font(SIGN_PX):getWidth("PARTYCADE")) / 2)
+end
+local function draw_unlit_sign(a)
+  lg.setFont(font(SIGN_PX))
+  lg.setColor(0.32, 0.1, 0.3, a or 1)
+  lg.print("PARTYCADE", sign_x(), SIGN_Y)
+end
+
+-- Power-on: the unlit sign lights letter by letter where it stands (with a stutter), "ARCADE HOME" comes
+-- on, then the sign glides up into the marquee while the menu fades in (draw_scene's menu_in).
+local INTRO_LEN = 2.6
+local function draw_intro()
+  local word = "PARTYCADE"
+  if intro_t < 1.9 then
+    local k = math.min(1, intro_t / 1.2)
+    local n = math.floor(k * #word + 0.001)
+    if math.sin(intro_t * 40) > 0.6 and n < #word then n = math.max(0, n - 1) end
+    draw_unlit_sign()
+    fx.glow(W / 2, SIGN_Y + 60, 380, 120, 1, 0.3, 0.85, 0.15 * k)
+    if n > 0 then neon(word:sub(1, n), sign_x(), SIGN_Y, SIGN_PX, 0xff4fd8, 1.8, "left", W) end
+    if intro_t > 1.3 then
+      local a = math.min(1, (intro_t - 1.3) / 0.4)
+      neon("ARCADE  HOME", 0, 530, 34, 0x6ef0c8, a)
+    end
+  else
+    -- The glide: from the middle (104 px) to the marquee (92 px, y 34), easing out.
+    local k = math.min(1, (intro_t - 1.9) / (INTRO_LEN - 1.9))
+    local e = 1 - (1 - k) ^ 3
+    local y = SIGN_Y + (34 - SIGN_Y) * e
+    local sc = (SIGN_PX + (92 - SIGN_PX) * e) / 92
+    fx.glow(W / 2, y + 60 * sc, 380, 120, 1, 0.3, 0.85, 0.15 * (1 - e))
+    neon_draw("PARTYCADE", 0, y, 92, 0xff4fd8, 1.6, "center", W, 1, sc)
+    if e < 1 then
+      neon_draw("ARCADE  HOME", 0, 530 - 400 * e, 34, 0x6ef0c8, 0.8, "center", W, 1 - e)
+    end
+  end
+end
+
 local function draw_scene()
   local dim = scene == "night" and 1 or 0
   draw_background(dim)
   if scene == "intro" then
-    -- The marquee lights up letter by letter, with a stutter, then the menu fades in.
-    local k = math.min(1, intro_t / 1.2)
-    local word = "PARTYCADE"
-    local n = math.floor(k * #word + 0.001)
-    local shown = word:sub(1, n)
-    if math.sin(intro_t * 40) > 0.6 and n < #word then shown = word:sub(1, math.max(0, n - 1)) end
-    fx.glow(W / 2, 460, 380, 120, 1, 0.3, 0.85, 0.15 * k)
-    neon(shown, 0, 400, 104, 0xff4fd8, 1.8)
-    if intro_t > 1.3 then
-      local a = math.min(1, (intro_t - 1.3) / 0.4)
-      lg.setColor(1, 1, 1, a)
-      neon("ARCADE  HOME", 0, 530, 34, 0x6ef0c8, a)
-    end
+    draw_intro()
     return
   end
   if scene == "night" then
@@ -664,6 +705,11 @@ local function draw_scene()
   else
     draw_info()
     draw_footer()
+  end
+  if menu_in > 0 then
+    -- After the intro: the menu comes up under the sign.
+    lg.setColor(0.02, 0.0, 0.05, menu_in / 0.45)
+    lg.rectangle("fill", 0, 120, W, H - 120)
   end
   draw_volume()
   draw_note()
@@ -721,11 +767,11 @@ end
 
 -- Power-on: the sign, warming up.
 local function picture_boot()
-  backdrop()
-  neon_draw("HOME", 0, 132, 26, 0x6ef0c8, 0.8, "center", W)
+  draw_background(0)
+  draw_unlit_sign()
   lg.setFont(font(26))
-  lg.setColor(0.85, 0.8, 1, 0.8)
-  lg.printf("warming up the neon...", 0, 520, W, "center")
+  lg.setColor(0.85, 0.8, 1, 0.75)
+  lg.printf("warming up the neon...", 0, 545, W, "center")
 end
 
 local function file_exists(p) local f = p and io.open(p, "rb") if f then f:close() return true end return false end
@@ -799,15 +845,18 @@ local function handle(name)
   idle = 0
   if scene == "intro" then
     scene = "menu"
+    menu_in = 0.3
     return
   end
   if scene == "attract" then
     scene = "menu"
+    if attract_sel then sel = attract_sel end
     return
   end
   if scene == "night" then
     -- The first press only wakes it.
     scene = "menu"
+    if attract_sel then sel, pos = attract_sel, attract_sel end
     play("wake")
     if sound.music then sound.music:setVolume(0.55) end
     return
@@ -862,6 +911,7 @@ function love.load()
   -- The labels in view now; the rest a few a frame, before the frame's drawing starts (see neon_img).
   neon_img("PARTYCADE", 92, 0xff4fd8, 1.6)
   neon_img("HOME", 26, 0x6ef0c8, 0.8)
+  if scene == "intro" or os.getenv("HOME_INTRO") == "1" then neon_img("ARCADE  HOME", 34, 0x6ef0c8, 0.8) end
   for k, it in ipairs(items) do
     local job = function() neon_img(it.title, 64, it.tint, 1.2) neon_img(it.title, 44, it.tint, 0.9) end
     if math.abs(k - sel) <= 2 then job() else label_jobs[#label_jobs + 1] = job end
@@ -875,7 +925,7 @@ function love.load()
   if returned and returned:match("failed") then
     note, note_t = "That one didn't start. Pick another?", 4
   end
-  if os.getenv("HOME_SKIP_INTRO") == "1" or (STATE and read_file(STATE)) then
+  if os.getenv("HOME_INTRO") ~= "1" and (os.getenv("HOME_SKIP_INTRO") == "1" or (STATE and read_file(STATE))) then
     scene = "menu"       -- the intro is for power-on; coming back from a game goes straight to the menu
   else
     play("intro")
@@ -938,10 +988,10 @@ function love.update(dt)
     intro_t = intro_t + dt
     local letters = math.floor(math.min(1, intro_t / 1.2) * 9 + 0.001)
     if letters > last_letters then last_letters = letters play("tick") end
-    if intro_t > 2.4 then scene = "menu" end
+    if intro_t > INTRO_LEN then scene = "menu" menu_in = 0.45 end
   end
   idle = idle + dt
-  if scene == "menu" and idle > IDLE_ATTRACT then scene = "attract" attract_t = 0 end
+  if scene == "menu" and idle > IDLE_ATTRACT then scene = "attract" attract_t = 0 attract_sel = sel end
   if scene == "attract" then
     attract_t = attract_t + dt
     if attract_t > 3.5 then attract_t = 0 sel = sel % #items + 1 end
@@ -954,6 +1004,7 @@ function love.update(dt)
   if scene == "night" then night_t = night_t + dt end
   fx.update(dt, scene == "menu" or scene == "attract" or scene == "night")
   if vol_t > 0 then vol_t = vol_t - dt end
+  if menu_in > 0 then menu_in = math.max(0, menu_in - dt) end
   if vol_read then
     vol_read = vol_read - dt
     if vol_read <= 0 then vol_read = nil read_volume() end

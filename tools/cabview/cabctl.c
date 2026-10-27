@@ -12,6 +12,7 @@
 #include <drm/drm.h>
 #include <drm/drm_mode.h>
 #include <errno.h>
+#include <signal.h>
 #include <fcntl.h>
 #include <linux/input.h>
 #include <stdint.h>
@@ -35,6 +36,9 @@ static int card(void)
 {
     int fd = open("/dev/dri/card0", O_RDWR | O_CLOEXEC);
     if (fd < 0) { perror("/dev/dri/card0"); exit(1); }
+    /* The first program to open the display becomes its master. At power-on (bootfilm) that was cabctl, and a
+       watcher must never hold the display: give it up at once (an error just means it was not master). */
+    ioctl(fd, DRM_IOCTL_DROP_MASTER, 0);
     return fd;
 }
 
@@ -192,6 +196,11 @@ static int drm_master_pid(void)
 
 static int record(int secs, int ms, int div)
 {
+    /* At power-on (bootfilm) something in the stock boot sends SIGUSR2 that killed the recorder at ~4 s
+       (2026-10-27): a watcher ignores it, and SIGUSR1 and SIGHUP. */
+    signal(SIGUSR1, SIG_IGN);
+    signal(SIGUSR2, SIG_IGN);
+    signal(SIGHUP, SIG_IGN);
     int fd = card();
     struct timespec t0, now;
     clock_gettime(CLOCK_MONOTONIC, &t0);
