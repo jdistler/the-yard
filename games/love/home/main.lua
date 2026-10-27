@@ -460,7 +460,8 @@ end
 
 local function draw_marquee(alpha_k)
   -- A neon sign: now and then a tube stutters.
-  local flick = (math.sin(t * 13) > 0.97 or math.sin(t * 2.3 + 1) > 0.995) and 0.55 or 1
+  -- A steady sign that breathes very slowly (the old tube stutter felt like a strobe light to the user).
+  local flick = 0.92 + 0.08 * math.sin(t * 0.8)
   lg.setColor(1, 1, 1, 1)
   neon_draw("PARTYCADE", 0, 34, 92, 0xff4fd8, 1.6, "center", W, flick * (alpha_k or 1))
   neon_draw("HOME", 0, 132, 26, 0x6ef0c8, 0.8, "center", W, alpha_k)
@@ -684,7 +685,7 @@ local function draw_celebration()
   lg.setLineWidth(4)
   rrect("line", 44, by, W - 88, bh, 28)
   if not c.big then
-    neon_draw("NEW HIGH SCORE!", 0, by + 22, 44, 0xffd23f, 1, "center", W, fade * (0.8 + 0.2 * math.sin(c.t * 10)), 1)
+    neon_draw("NEW HIGH SCORE!", 0, by + 22, 44, 0xffd23f, 1, "center", W, fade * (0.9 + 0.1 * math.sin(c.t * 2.5)), 1)
   end
   lg.setFont(font(math.floor((c.big and 64 or 72) * pop)))
   if c.big then lg.setColor(hue(c.t * 0.8, fade)) else lg.setColor(1, 1, 1, fade) end
@@ -809,7 +810,6 @@ local function draw_intro()
   if intro_t < 1.9 then
     local k = math.min(1, intro_t / 1.2)
     local n = math.floor(k * #word + 0.001)
-    if math.sin(intro_t * 40) > 0.6 and n < #word then n = math.max(0, n - 1) end
     draw_unlit_sign()
     fx.glow(W / 2, SIGN_Y + 60, 380, 120, 1, 0.3, 0.85, 0.15 * k)
     if n > 0 then neon(word:sub(1, n), sign_x(), SIGN_Y, SIGN_PX, 0xff4fd8, 1.8, "left", W) end
