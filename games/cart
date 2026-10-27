@@ -411,6 +411,27 @@ def love_pack(out=None):
     return zip_files(out, files)
 
 
+# Partycade Home's card pictures for our games: a frame of each (./cart shots); the classics' logos are cut
+# from the stock menu on the cabinet only (tools/home_art.py).
+HOME_SHOTS = {"keep": "keep-900.png", "lamp": "lamp-300.png", "tea": "tea-900.png", "chest": "chest-300.png"}
+
+
+def home_pack(out=None):
+    """games/love/home + the round font + a frame of each of our games -> home.love."""
+    out = out or os.path.join(HERE, "out", "home.love")
+    src = os.path.join(HERE, "love", "home")
+    files = [(os.path.join(src, f), f) for f in os.listdir(src) if f.endswith(".lua")]
+    files.append((os.path.join(HERE, "engine", "fonts", "Fredoka-SemiBold.ttf"), "fonts/Fredoka-SemiBold.ttf"))
+    for cid, shot in HOME_SHOTS.items():
+        p = os.path.join(HERE, "out", "shots", cid, shot)
+        if not os.path.exists(p):
+            subprocess.check_call([os.path.join(HERE, "cart"), "shots", cid, "--auto"], cwd=HERE,
+                                  stdout=subprocess.DEVNULL)
+        if os.path.exists(p):
+            files.append((p, f"art/{cid}.png"))
+    return zip_files(out, files)
+
+
 def cmd_love_pack(a):
     print(love_pack(a.out))
 
