@@ -82,12 +82,13 @@ local CLASSICS = {
   {title = "DIG DUG II", year = 1985, tint = 0x9ad65a, blurb = "Sink the island under the monsters."},
   {title = "ROMPERS", year = 1989, tint = 0xff6a7a, blurb = "Push the walls down on the monsters."},
 }
+-- stat: the save key The Yard shows, and how (games/carts/*/info.lua).
 local OURS = {
-  {id = "keep", title = "KEEP", tint = 0xff7a59, blurb = "Catch the falling fruit."},
-  {id = "lamp", title = "LAMP", tint = 0xffc94a, blurb = "Wake the sleeping stars."},
-  {id = "orb", title = "ORB", tint = 0xa98bff, blurb = "Dive down the glowing well.", native = "orb"},
-  {id = "tea", title = "TEA", tint = 0xff9ccf, blurb = "Tea with the cats."},
-  {id = "chest", title = "CHEST", tint = 0x7fd6a0, blurb = "The key, the chest, Zam."},
+  {id = "keep", title = "KEEP", tint = 0xff7a59, blurb = "Catch the falling fruit.", stat = {"best", "BEST %d"}},
+  {id = "lamp", title = "LAMP", tint = 0xffc94a, blurb = "Wake the sleeping stars.", stat = {"best", "%d NIGHTS", "1 NIGHT"}},
+  {id = "orb", title = "ORB", tint = 0xa98bff, blurb = "Dive down the glowing well.", native = "orb", stat = {"best", "BEST %d"}},
+  {id = "tea", title = "TEA", tint = 0xff9ccf, blurb = "Tea with the cats.", stat = {"visits", "%d VISITS", "1 VISIT"}},
+  {id = "chest", title = "CHEST", tint = 0x7fd6a0, blurb = "The key, the chest, Zam.", stat = {"gems", "%d GEMS", "1 GEM"}},
 }
 local SECTIONS = {
   {name = "CLASSICS", tint = 0xffd23f},
@@ -110,7 +111,7 @@ for i, c in ipairs(CLASSICS) do
 end
 for _, g in ipairs(OURS) do
   items[#items + 1] = {kind = g.native and "native" or "cart", id = g.id, native = g.native, section = 2,
-                       title = g.title, sub = "THE YARD", blurb = g.blurb, tint = g.tint}
+                       title = g.title, sub = "THE YARD", blurb = g.blurb, tint = g.tint, statdef = g.stat}
 end
 -- HOME_MODE=preview (opened from a Yard row to try Home): the last card goes back to The Yard.
 if PREVIEW then
@@ -610,10 +611,10 @@ local function draw_info()
   lg.setFont(font(20))
   lg.setColor(0.75, 0.7, 0.95, 1)
   lg.printf(it.sub, 60, y + 72, W - 120, "left")
-  if it.score then
+  if it.score or it.stat then
     lg.setFont(font(22))
     lg.setColor(1, 0.85, 0.3, 1)
-    lg.printf("HIGH SCORE  " .. it.score, 60, y + 22, W - 120, "right")
+    lg.printf(it.score and ("HIGH SCORE  " .. it.score) or it.stat, 60, y + 22, W - 120, "right")
   end
   lg.setFont(font(24))
   lg.setColor(0.95, 0.93, 1, 1)
@@ -1144,6 +1145,15 @@ function love.load()
     end
   end
   log("high scores: " .. table.concat(sc, " "))
+  -- Our games: their save's number, as The Yard shows it.
+  for _, it in ipairs(items) do
+    local d = it.statdef
+    local sv = d and read_file(GAMES .. "/" .. it.id .. ".sav")
+    local n = sv and tonumber(sv:match(d[1] .. " (%d+)"))
+    if n and n > 0 then it.stat = (n == 1 and d[3]) or string.format(d[2], n) end
+  end
+  -- Back from a game: a soft welcome (the celebration has its own fanfare).
+  if returning and not celebrate then play("back") end
   if headless or not direct then canvas = lg.newCanvas(W, H) end
   log("home start, " .. #items .. " items, scene " .. scene)
 end
