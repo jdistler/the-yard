@@ -40,11 +40,12 @@ SSH="ssh $OPTS -o ConnectTimeout=8 root@$H"
 MENU='pidof game >/dev/null || { rm -f /tmp/.minigui_freeze; cd / && env -i PATH=/sbin:/usr/sbin:/bin:/usr/bin HOME=/ XDG_CONFIG_HOME=/userdata/ MG_CFG_PATH=/etc setsid /usr/bin/game </dev/null >/dev/null 2>&1 & sleep 3; }; echo "video: $(cat /sys/class/drm/card0-HDMI-A-1/enabled)"'
 # /tmp/.minigui_freeze: the stock menu makes it while a game runs and draws nothing while it exists; one left
 # by a killed menu keeps the next one black (2026-10-27), so MENU removes it.
-# Also Home (homeloop) and LÖVE, ours, which a test may have left running.
+# Also Home (homeloop), LÖVE, holdwatch, and every game Home started (they outlive a killed homeloop and
+# ignore SIGTERM; 2026-10-27 two orphaned Pac-Mans took Home to 22 fps).
 # Everything the stock menu runs: itself (ignores SIGTERM), its intro video, and every start.sh with the game
 # it started, which includes its idle attract demo (PacMan -fast). Killing only the menu left that demo
 # drawing over our tests (2026-10-26: every cart stuck at 30 fps, the user saw Pac-Man over The Yard).
-STOP='for p in $(pidof homeloop) $(pidof loveyard) $(pidof love.bin); do kill -9 $p 2>/dev/null; done; for s in $(pidof start.sh); do for d in /proc/[0-9]*; do [ "$(cut -d" " -f4 $d/stat 2>/dev/null)" = "$s" ] && kill -9 ${d#/proc/} 2>/dev/null; done; kill -9 $s; done; kill -9 $(pidof game) $(pidof ffplay) 2>/dev/null; sleep 1'
+STOP='for p in $(pidof homeloop) $(pidof loveyard) $(pidof love.bin) $(pidof holdwatch) $(pidof PacMan SuperPacMan PacLand NS1 Galaga Galaxian Mappy DigDug orb yard); do kill -9 $p 2>/dev/null; done; for s in $(pidof start.sh); do for d in /proc/[0-9]*; do [ "$(cut -d" " -f4 $d/stat 2>/dev/null)" = "$s" ] && kill -9 ${d#/proc/} 2>/dev/null; done; kill -9 $s; done; kill -9 $(pidof game) $(pidof ffplay) 2>/dev/null; sleep 1'
 HERE=$(cd "$(dirname "$0")" && pwd)
 CABCTL=/data/tools/cabctl
 need_cabctl() {

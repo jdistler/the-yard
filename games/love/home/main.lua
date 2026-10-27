@@ -232,14 +232,20 @@ local KEYS = {up = "up", down = "down", left = "left", right = "right", z = "low
 local HOLD_SECS = 1
 local pressed_q, down, both_seen, hold_t = {}, {}, false, 0
 local function press(name) pressed_q[#pressed_q + 1] = name end
+local down_at = {}
 local function control_down(name)
   down[name] = true
+  down_at[name] = love.timer.getTime()
   if (name == "1p" and down["2p"]) or (name == "2p" and down["1p"]) then both_seen = true end
   if name ~= "1p" and name ~= "2p" then press(name) end
 end
 local function control_up(name)
+  -- A 1-player tap starts the game: only a press Home saw begin, and short. (Leaving a classic is a 5 s
+  -- 1-player hold; let go after Home is back, and Home saw only the release: it started the game again,
+  -- filmed 2026-10-27.)
+  local seen = down[name] and down_at[name] and love.timer.getTime() - down_at[name] < 0.8
   down[name] = nil
-  if name == "1p" and not both_seen then press("1p") end
+  if name == "1p" and seen and not both_seen then press("1p") end
   if not down["1p"] and not down["2p"] then both_seen = false end
 end
 function love.joystickpressed(_, b) if JOY[b] then control_down(JOY[b]) end end
@@ -281,6 +287,7 @@ local vol_level, vol_t, vol_read = nil, 0, nil
 local night_t = 0
 local menu_in = 0                 -- the menu fading in after the intro (seconds left)
 local attract_sel                 -- the card before the attract tour: given back on waking
+local returning = false           -- Home started again after a game (not at power-on)
 
 local function load_state()
   local s = STATE and read_file(STATE)
@@ -872,6 +879,9 @@ local function handle(name)
     if name == "tl" then speed[i] = 1 - speed[i] cfg_write("Speed.cfg", speed)
     else smooth[i] = 1 - smooth[i] cfg_write("Smoothing.cfg", smooth) end
     play("toggle")
+  elseif (name == "low" or name == "1p") and returning and t < 0.6 then
+    -- Just back from a game: a button still being mashed there (fire is the lower button) is not a choice.
+    return
   elseif name == "low" or name == "1p" then
     launch_item = it
     launch_t = 0
@@ -927,6 +937,7 @@ function love.load()
   end
   if os.getenv("HOME_INTRO") ~= "1" and (os.getenv("HOME_SKIP_INTRO") == "1" or (STATE and read_file(STATE))) then
     scene = "menu"       -- the intro is for power-on; coming back from a game goes straight to the menu
+    returning = STATE ~= nil and read_file(STATE) ~= nil and os.getenv("HOME_INTRO") ~= "1"
   else
     play("intro")
   end

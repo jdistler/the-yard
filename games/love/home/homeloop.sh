@@ -47,7 +47,20 @@ classic() {
   esac
   F=; [ "$3" = 1 ] && F=-fast
   log "classic $1: $G $F (smoothing $2)"
-  ( cd /data/Games && XDG_CONFIG_HOME=/data XDG_RUNTIME_DIR=/data SDL_RENDER_SCALE_QUALITY="$2" ./$G $F )
+  # The game's sound through ALSA's dmix (alsa.conf), so holdwatch's ticks can sound over it while 1-player is
+  # held for the stock exit (5 s, nothing on the screen). /data/home/no-mix: the stock sound path, no ticks.
+  MIX=
+  if [ ! -f $H/no-mix ] && [ -f $H/alsa.conf ] && [ -x $H/holdwatch ]; then
+    MIX=$H/alsa.conf
+    ALSA_CONFIG_PATH=$MIX $H/holdwatch $H/sfx </dev/null >/dev/null 2>&1 &
+    WATCH=$!
+  fi
+  ( cd /data/Games || exit 127
+    [ -n "$MIX" ] && export ALSA_CONFIG_PATH=$MIX
+    XDG_CONFIG_HOME=/data XDG_RUNTIME_DIR=/data SDL_RENDER_SCALE_QUALITY="$2" ./$G $F )
+  RCG=$?
+  [ -n "$MIX" ] && kill $WATCH 2>/dev/null
+  return $RCG
 }
 while :; do
   rm -f "$REQ"

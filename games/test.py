@@ -990,6 +990,10 @@ def home():
     check(req == "", f"Home preview: a short 1P + 2P press does nothing ({req!r})")
     req = home_run(["30 down 1p", "33 down 2p", "1500 up 1p", "1500 up 2p"])
     check(req == "", f"Home at power-on: the 1P + 2P hold does not leave the front end ({req!r})")
+    req = home_run(["40 up 1p"])
+    check(req == "", f"Home: a 1-player release it never saw pressed (the end of a game's exit hold) starts nothing ({req!r})")
+    req = home_run(["30 down 1p", "1500 up 1p"])
+    check(req == "", f"Home: a long 1-player hold is not a tap ({req!r})")
 
 
 def main():

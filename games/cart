@@ -651,6 +651,19 @@ def cmd_push(a):
         subprocess.check_call([sys.executable, tool, rootfs, art], stdout=subprocess.DEVNULL)
     for f in sorted(os.listdir(art)):
         files[f"/data/home/art/{f}"] = (os.path.join(art, f), False)
+    # holdwatch (ticks while a classic's exit button is held), its sounds, and the dmix config it needs.
+    hw = os.path.join(HERE, "out", "cab", "holdwatch")
+    hsrc = os.path.join(HERE, "love", "home", "holdwatch.c")
+    if not os.path.exists(hw) or os.path.getmtime(hw) < os.path.getmtime(hsrc):
+        subprocess.check_call(["docker", "run", "--rm", "-u", f"{os.getuid()}:{os.getgid()}", "-v", f"{HERE}:/src",
+                               "-w", "/src", "partycade-armhf", "arm-linux-gnueabihf-gcc", "-O2", "-static", "-Wall",
+                               "-o", "out/cab/holdwatch", "love/home/holdwatch.c"])
+    files["/data/home/holdwatch"] = (hw, False)
+    files["/data/home/alsa.conf"] = (os.path.join(HERE, "love", "home", "alsa.conf"), False)
+    sfx = os.path.join(stage, "sfx")
+    subprocess.check_call([sys.executable, os.path.join(ROOT, "tools", "home_sfx.py"), sfx], stdout=subprocess.DEVNULL)
+    for f in sorted(os.listdir(sfx)):
+        files[f"/data/home/sfx/{f}"] = (os.path.join(sfx, f), False)
     # Home at power-on: stage2 (v2) binds games/boot/S50ui over the stock one (games/boot/README.md).
     files["/data/boot/stage2.sh"] = (os.path.join(HERE, "boot", "stage2.sh"), False)
     files["/data/boot/S50ui"] = (os.path.join(HERE, "boot", "S50ui"), False)
@@ -663,7 +676,7 @@ def cmd_push(a):
     # Orb). Home on its own (the front end since 2026-10-27) is stopped for the install and started again.
     busy_check = ("pidof yard >/dev/null && echo busy; "
                   "for p in $(pidof love.bin); do grep -q home.love /proc/$p/cmdline || echo busy; done; "
-                  "for d in /proc/[0-9]*; do [ \"$(readlink $d/cwd 2>/dev/null)\" = /userdata/Games ] && echo busy; done; "
+                  "pidof PacMan SuperPacMan PacLand NS1 Galaga Galaxian Mappy DigDug orb start.sh >/dev/null && echo busy; "
                   "pidof homeloop >/dev/null && echo home; ")
     r = ssh(busy_check + "sha256sum " + " ".join(files))
     if r.returncode not in (0, 1) and not r.stdout:
@@ -702,7 +715,7 @@ def push_files(files, have, host, sshopt, ssh):
             how = f"dd if={tmp} of={dst} bs=65536 conv=notrunc,fsync 2>/dev/null"
         else:
             # A new file renamed over the old one: a running script (yardnet) keeps reading its old copy.
-            mode = "644" if dst.endswith((".love", ".pak", ".keys", ".txt", ".conf", ".png")) else "755"
+            mode = "644" if dst.endswith((".love", ".pak", ".keys", ".txt", ".conf", ".png", ".wav")) else "755"
             how = (f"mkdir -p {os.path.dirname(dst)} && cp {tmp} {dst}.new && chmod {mode} {dst}.new && "
                    f"mv -f {dst}.new {dst}")
         r = ssh(f"[ \"$(sha256sum {tmp} | cut -d' ' -f1)\" = {want} ] && {how} && sync && rm -f {tmp} && sha256sum {dst}")
