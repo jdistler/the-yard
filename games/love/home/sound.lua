@@ -67,6 +67,9 @@ function S.load()
   sfx.volume = src({{81, 0, 0.05, "tri", 0.25}}, 0.06, "sq", 0.1)
   -- Waking from the night scene: a yawn up.
   sfx.wake = src({{67, 0, 0.1, "tri", 0.2}, {72, 0.08, 0.1, "tri", 0.2}, {79, 0.16, 0.25, "tri", 0.2}}, 0.45, "sq", 0.1)
+  -- A new high score: a little fanfare.
+  sfx.fanfare = src({{72, 0, 0.1}, {72, 0.12, 0.1}, {72, 0.24, 0.1}, {77, 0.36, 0.5}, {65, 0.36, 0.5, "tri", 0.2},
+                     {81, 0.9, 0.12}, {84, 1.02, 0.6}, {69, 1.02, 0.6, "tri", 0.2}}, 1.7, "sq", 0.11)
   -- The night scene's power pellet.
   sfx.pellet = src({{60, 0, 0.08}, {67, 0.06, 0.08}, {72, 0.12, 0.08}, {79, 0.18, 0.16}}, 0.36, "sq", 0.05)
 end

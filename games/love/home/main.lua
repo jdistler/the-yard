@@ -139,6 +139,54 @@ local function cfg_write(name, t)
 end
 local speed, smooth = cfg_read("Speed.cfg"), cfg_read("Smoothing.cfg")
 
+-- The classics' high scores, from the boards' own save memory (each game its own layout). Every decoding was
+-- checked against the score the game shows on its attract screen (2026-10-27, tools/cabview screenshots).
+local function bcd(b) return math.floor(b / 16) * 10 + b % 16 end
+local function bcd_be(s, at, n) local v = 0 for i = 0, n - 1 do v = v * 100 + bcd(s:byte(at + i) or 0) end return v end
+local function bcd_le(s, at, n) local v = 0 for i = n - 1, 0, -1 do v = v * 100 + bcd(s:byte(at + i) or 0) end return v end
+local function digits(s, at, n, low_first)
+  local v = 0
+  for i = 0, n - 1 do
+    local d = s:byte(low_first and (at + n - 1 - i) or (at + i)) or 0
+    if d > 9 then d = 0 end                 -- a blank
+    v = v * 10 + d
+  end
+  return v
+end
+local function be32(s, at) local a, b, c, d = s:byte(at, at + 3) return ((a * 256 + b) * 256 + c) * 256 + d end
+local function best(s, first, stride, count, f)
+  local m = 0
+  for k = 0, count - 1 do
+    local at = first + k * stride
+    if at + stride - 1 <= #s then m = math.max(m, f(s, at)) end
+  end
+  return m
+end
+-- index -> {save file, decoder}; "fast" games keep a second save (PacManFast.sav).
+local SCORES = {
+  [0] = {"PacMan", function(s) return bcd_le(s, 1, 3) end, fast = "PacManFast"},
+  [1] = {"PacandPal", function(s) return best(s, 1, 8, 5, function(t, a) return bcd_be(t, a, 3) * 10 end) end},
+  [2] = {"SuperPacMan", function(s) return best(s, 1, 8, 5, function(t, a) return bcd_be(t, a, 3) * 10 end) end},
+  [3] = {"PacManPlus", function(s) return bcd_le(s, 1, 3) end, fast = "PacManPlusFast"},
+  [4] = {"PacLand", function(s) return best(s, 1, 16, 5, function(t, a) return digits(t, a, 5) * 10 end) end},
+  [5] = {"PacMania", function(s) return best(s, 2049, 8, 10, function(t, a) return bcd_be(t, a, 4) * 10 end) end},
+  [6] = {"Galaga", function(s) return best(s, 1, 6, 5, function(t, a) return digits(t, a, 6, true) end) end},
+  [7] = {"Galaxian", function(s) return bcd_le(s, 1, 3) end},
+  [8] = {"Mappy", function(s) return best(s, 1, 8, 5, function(t, a) return bcd_be(t, a, 3) * 10 end) end},
+  [9] = {"DigDug", function(s) return best(s, 1, 3, 5, function(t, a) return bcd_be(t, a, 3) end) end},
+  [10] = {"DigDugII", function(s) return best(s, 1, 16, 5, function(t, a) return digits(t, a, 6) * 10 end) end},
+  [11] = {"Rompers", function(s) return best(s, 2049, 4, 5, function(t, a) return be32(t, a) * 10 end) end},
+}
+local function high_score(index)
+  local e = SCORES[index]
+  if not e then return nil end
+  local s = speed[index + 1] == 1 and e.fast and read_file(GAMES .. "/" .. e.fast .. ".sav")
+  s = s or read_file(GAMES .. "/" .. e[1] .. ".sav")
+  if not s or #s < 3 then return nil end
+  local ok, v = pcall(e[2], s)
+  return ok and v > 0 and v < 100000000 and v or nil
+end
+
 -- ------------------------------------------------------------------ colors and drawing
 
 local function rgb(c, a)
@@ -288,6 +336,7 @@ local night_t = 0
 local menu_in = 0                 -- the menu fading in after the intro (seconds left)
 local attract_sel                 -- the card before the attract tour: given back on waking
 local returning = false           -- Home started again after a game (not at power-on)
+local celebrate                   -- {score, title, tint, t}: back from a classic with a new high score
 
 local function load_state()
   local s = STATE and read_file(STATE)
@@ -532,6 +581,11 @@ local function draw_info()
   lg.setFont(font(20))
   lg.setColor(0.75, 0.7, 0.95, 1)
   lg.printf(it.sub, 60, y + 72, W - 120, "left")
+  if it.score then
+    lg.setFont(font(22))
+    lg.setColor(1, 0.85, 0.3, 1)
+    lg.printf("HIGH SCORE  " .. it.score, 60, y + 22, W - 120, "right")
+  end
   lg.setFont(font(24))
   lg.setColor(0.95, 0.93, 1, 1)
   lg.printf(it.blurb, 60, y + 100, W - 120, "left")
@@ -571,6 +625,53 @@ local function draw_footer()
               or "in the game:  hold 1-PLAYER + 2-PLAYER to come back", 999, 0.9)
   else
     draw_hint("STICK  choose  ·  LEFT/RIGHT  section  ·  LOWER BUTTON  play", 999, 0.9)
+  end
+end
+
+-- NEW HIGH SCORE: a banner and confetti in the game's colour and its friends, for 5 s (any press keeps going).
+local confetti
+local function draw_celebration()
+  if not celebrate then return end
+  local c = celebrate
+  if not confetti then
+    confetti = {}
+    local cols = {{rgb(c.tint)}, {1, 0.31, 0.85}, {0.43, 0.94, 0.78}, {1, 0.82, 0.25}, {0.55, 0.7, 1}}
+    for i = 1, 140 do
+      confetti[i] = {x = math.random() * W, y = -40 - math.random() * 900, vy = 260 + math.random() * 260,
+                     sway = math.random() * 6, ph = math.random() * 6, w = 6 + math.random() * 8,
+                     col = cols[math.random(#cols)]}
+    end
+  end
+  local fade = math.min(1, c.t * 4, (5 - c.t) * 2)
+  local pop = 1 + 0.15 * math.max(0, 1 - c.t * 3)
+  local r, g, b = rgb(c.tint)
+  -- The banner, over the chosen card.
+  local by, bh = 395, 220
+  fx.glow(W / 2, by + bh / 2, 380, 170, r, g, b, 0.35 * fade)
+  lg.setColor(0.04, 0.0, 0.10, fade)
+  rrect("fill", 44, by, W - 88, bh, 28)
+  lg.setColor(r, g, b, fade)
+  lg.setLineWidth(4)
+  rrect("line", 44, by, W - 88, bh, 28)
+  neon_draw("NEW HIGH SCORE!", 0, by + 22, 44, 0xffd23f, 1, "center", W, fade * (0.8 + 0.2 * math.sin(c.t * 10)), 1)
+  lg.setFont(font(math.floor(72 * pop)))
+  lg.setColor(1, 1, 1, fade)
+  lg.printf(tostring(c.score), 0, by + 80 - 36 * (pop - 1), W, "center")
+  lg.setFont(font(24))
+  lg.setColor(0.85, 0.8, 1, fade)
+  lg.printf(c.title, 0, by + 172, W, "center")
+  -- Confetti, over everything.
+  for _, p in ipairs(confetti) do
+    local y = p.y + p.vy * c.t
+    if y < H + 20 then
+      local x = p.x + math.sin(c.t * 3 + p.ph) * 30 * p.sway / 6
+      lg.setColor(p.col[1], p.col[2], p.col[3], fade)
+      lg.push()
+      lg.translate(x, y)
+      lg.rotate(c.t * 4 + p.ph)
+      lg.rectangle("fill", -p.w / 2, -p.w / 4, p.w, p.w / 2)
+      lg.pop()
+    end
   end
 end
 
@@ -719,6 +820,7 @@ local function draw_scene()
     lg.rectangle("fill", 0, 120, W, H - 120)
   end
   draw_volume()
+  draw_celebration()
   draw_note()
   draw_hold()
   if launch_item then
@@ -801,7 +903,8 @@ end
 local function request(s, it)
   if it and (not headless or os.getenv("HOME_FB")) then pictures_for(it) end
   log("launch " .. s)
-  save_state()
+  -- The classic's high score as it was: on the way back, a higher one is celebrated.
+  save_state(it and it.kind == "classic" and ("score " .. it.index .. " " .. (high_score(it.index) or 0) .. "\n") or nil)
   if REQ then
     local f = io.open(REQ, "w")
     if f then f:write(s .. "\n") f:close() end
@@ -876,7 +979,10 @@ local function handle(name)
   elseif name == "right" then jump_section(1)
   elseif (name == "tl" or name == "tr") and it.kind == "classic" then
     local i = it.index + 1
-    if name == "tl" then speed[i] = 1 - speed[i] cfg_write("Speed.cfg", speed)
+    if name == "tl" then
+      speed[i] = 1 - speed[i]
+      cfg_write("Speed.cfg", speed)
+      it.score = high_score(it.index)      -- fast Pac-Man keeps its own high score
     else smooth[i] = 1 - smooth[i] cfg_write("Smoothing.cfg", smooth) end
     play("toggle")
   elseif (name == "low" or name == "1p") and returning and t < 0.6 then
@@ -927,6 +1033,7 @@ function love.load()
     if math.abs(k - sel) <= 2 then job() else label_jobs[#label_jobs + 1] = job end
   end
   label_jobs[#label_jobs + 1] = function() neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1) end
+  label_jobs[#label_jobs + 1] = function() neon_img("NEW HIGH SCORE!", 44, 0xffd23f, 1) end
   lg.setCanvas()
   mark("labels")
   sound.load()
@@ -935,6 +1042,16 @@ function love.load()
   if returned and returned:match("failed") then
     note, note_t = "That one didn't start. Pick another?", 4
   end
+  do
+    local st = STATE and read_file(STATE) or ""
+    local idx, before = st:match("score (%d+) (%d+)")
+    idx, before = tonumber(idx), tonumber(before)
+    local now = idx and high_score(idx)
+    if now and before and now > before and os.getenv("HOME_INTRO") ~= "1" then
+      celebrate = {score = now, title = CLASSICS[idx + 1].title, tint = CLASSICS[idx + 1].tint, t = 0}
+      log("new high score " .. idx .. " " .. before .. " -> " .. now)
+    end
+  end
   if os.getenv("HOME_INTRO") ~= "1" and (os.getenv("HOME_SKIP_INTRO") == "1" or (STATE and read_file(STATE))) then
     scene = "menu"       -- the intro is for power-on; coming back from a game goes straight to the menu
     returning = STATE ~= nil and read_file(STATE) ~= nil and os.getenv("HOME_INTRO") ~= "1"
@@ -942,6 +1059,14 @@ function love.load()
     play("intro")
   end
   read_volume()
+  local sc = {}
+  for _, it in ipairs(items) do
+    if it.kind == "classic" then
+      it.score = high_score(it.index)
+      sc[#sc + 1] = it.index .. "=" .. tostring(it.score)
+    end
+  end
+  log("high scores: " .. table.concat(sc, " "))
   if headless or not direct then canvas = lg.newCanvas(W, H) end
   log("home start, " .. #items .. " items, scene " .. scene)
 end
@@ -1016,6 +1141,11 @@ function love.update(dt)
   fx.update(dt, scene == "menu" or scene == "attract" or scene == "night")
   if vol_t > 0 then vol_t = vol_t - dt end
   if menu_in > 0 then menu_in = math.max(0, menu_in - dt) end
+  if celebrate then
+    if celebrate.t == 0 then play("fanfare") end
+    celebrate.t = celebrate.t + dt
+    if celebrate.t > 5 then celebrate = nil end
+  end
   if vol_read then
     vol_read = vol_read - dt
     if vol_read <= 0 then vol_read = nil read_volume() end
