@@ -48,6 +48,9 @@ Done and verified on the cabinet: 1–5 and 7 below (with `flow.py front`, `cab.
 6 tried (a read-ahead in stage2): no gain, left in. 8: U-Boot's and the kernel's logos replaced and written (approved);
 high scores not started. The night scene and attract were checked with short timers.
 
+Added after the plan (the user: "delight me and never frustrate me"): exit-hold ticks for the classics, high
+scores and their celebration, LAST PLAYED, a way back from the original menu, deep sleep, party mode.
+
 ## Work, in order (each one checked on the cabinet, committed)
 
 1. Logos from the settings pages (done: `tools/home_art.py`); cards redrawn for transparent logos.

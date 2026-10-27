@@ -33,6 +33,7 @@ local VOLUME_FILE = os.getenv("HOME_VOLUME") or "/data/spk_volume"
 local RENDER = os.getenv("HOME_RENDER")
 local IDLE_ATTRACT = tonumber(os.getenv("HOME_IDLE") or "") or 45    -- seconds without a press
 local IDLE_NIGHT = tonumber(os.getenv("HOME_NIGHT") or "") or 180
+local DEEP_SLEEP = tonumber(os.getenv("HOME_DEEP") or "") or 900    -- seconds into the night scene
 local HORIZON = 760
 
 local function log(...)
@@ -778,6 +779,14 @@ local function draw_night()
   end
   fx.draw_chase(night_t, HORIZON - 26, 1)
   draw_hint("press any button", 930, 0.35 + 0.25 * math.sin(t * 2))
+  -- Deep sleep (15 minutes into the night): nearly black, only the sign breathing faintly; kind to the panel
+  -- when the cabinet is left on.
+  local deep = math.max(0, math.min(1, (night_t - DEEP_SLEEP) / 20))
+  if deep > 0 then
+    lg.setColor(0, 0, 0, 0.93 * deep)
+    lg.rectangle("fill", 0, 0, W, H)
+    neon_draw("PARTYCADE", 0, 34, 92, 0xff4fd8, 1.6, "center", W, deep * (0.08 + 0.06 * math.sin(night_t * 0.7)))
+  end
 end
 
 -- The sign, unlit: the tubes dark, as on the power-on picture.
@@ -1205,7 +1214,10 @@ function love.update(dt)
       if sound.music then sound.music:setVolume(0.12) end
     end
   end
-  if scene == "night" then night_t = night_t + dt end
+  if scene == "night" then
+    night_t = night_t + dt
+    if sound.music and night_t > DEEP_SLEEP then sound.music:setVolume(0.12 * math.max(0, 1 - (night_t - DEEP_SLEEP) / 20)) end
+  end
   fx.update(dt, scene == "menu" or scene == "attract" or scene == "night")
   if vol_t > 0 then vol_t = vol_t - dt end
   if menu_in > 0 then menu_in = math.max(0, menu_in - dt) end
