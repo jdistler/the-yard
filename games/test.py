@@ -1007,6 +1007,21 @@ def home():
         subprocess.run([LOVE_RUN, hl], cwd=w, env=env, capture_output=True, timeout=120)
         hit = "new high score 7" in (read(w, "log") or "")
         check(hit == want, f"Home: back from a classic, a new high score is celebrated only when it is new (was {before})")
+    # The secret code: party mode, and it changes nothing (the card, the classics' settings, no launch).
+    w2 = tmpdir()
+    g2 = os.path.join(w2, "games")
+    os.makedirs(g2)
+    open(os.path.join(g2, "Speed.cfg"), "wb").write(bytes([1] + [0] * 11))
+    code = ["up", "up", "down", "down", "left", "right", "left", "right", "tl", "low"]
+    open(os.path.join(w2, "script"), "w").write(
+        "".join(f"{30 + 3 * i} press {k}\n" for i, k in enumerate(code)) + "2000 quit\n")
+    open(os.path.join(w2, "state"), "w").write("sel 1\n")
+    env2 = dict(env, HOME_GAMES=g2, HOME_SCRIPT=os.path.join(w2, "script"), HOME_STATE=os.path.join(w2, "state"),
+                HOME_LOG=os.path.join(w2, "log"), HOME_REQ=os.path.join(w2, "req"))
+    subprocess.run([LOVE_RUN, hl], cwd=w2, env=env2, capture_output=True, timeout=120)
+    check("party mode" in (read(w2, "log") or "") and not os.path.exists(os.path.join(w2, "req"))
+          and open(os.path.join(g2, "Speed.cfg"), "rb").read() == bytes([1] + [0] * 11),
+          "Home: the secret code starts party mode, launches nothing, and leaves the classics' settings as they were")
     req = home_run(["30 press low"])
     check(req.startswith("classic 0 "), f"Home: the lower button on the first card asks for Pac-Man ({req!r})")
     req = home_run(["30 press 1p"])

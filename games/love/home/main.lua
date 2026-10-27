@@ -337,19 +337,29 @@ local menu_in = 0                 -- the menu fading in after the intro (seconds
 local attract_sel                 -- the card before the attract tour: given back on waking
 local returning = false           -- Home started again after a game (not at power-on)
 local celebrate                   -- {score, title, tint, t}: back from a classic with a new high score
+local party = 0                   -- party mode (the secret code): seconds left
+local code_buf = {}
+local CODE = {"up", "up", "down", "down", "left", "right", "left", "right", "tl", "low"}
+local last_played                 -- the card of the last game played (state file)
 
 local function load_state()
   local s = STATE and read_file(STATE)
   local n = s and tonumber(s:match("sel (%d+)"))
   if n and items[n] then sel, pos = n, n end
+  local lp = s and tonumber(s:match("played (%d+)"))
+  if lp and items[lp] then last_played = items[lp] end
   -- At power-on, never on the original menu's card (the last choice made before the power went off).
   if os.getenv("HOME_INTRO") == "1" and items[sel].kind == "stock" then sel, pos = 1, 1 end
   return s and s:match("returned (.+)")
 end
-local function save_state(extra)
+local function save_state(extra, played)
   if not STATE then return end
+  local lp = played
+  if not lp and last_played then
+    for k, it in ipairs(items) do if it == last_played then lp = k end end
+  end
   local f = io.open(STATE, "w")
-  if f then f:write("sel " .. sel .. "\n" .. (extra or "")) f:close() end
+  if f then f:write("sel " .. sel .. "\n" .. (lp and ("played " .. lp .. "\n") or "") .. (extra or "")) f:close() end
 end
 
 -- The classics' logos (cut from the stock menu by tools/home_art.py, on the cabinet only). The cards in view
@@ -385,6 +395,15 @@ end
 
 -- ------------------------------------------------------------------ drawing
 
+-- A colour from the rainbow (0..1 around the wheel), as r, g, b for party mode.
+local function hue(h)
+  h = (h % 1) * 6
+  local x = 1 - math.abs(h % 2 - 1)
+  if h < 1 then return 1, x, 0.2 elseif h < 2 then return x, 1, 0.2 elseif h < 3 then return 0.2, 1, x
+  elseif h < 4 then return 0.2, x, 1 elseif h < 5 then return x, 0.2, 1 else return 1, 0.2, x end
+end
+local hue_rgb = hue
+hue = function(h, a) local r, g, b = hue_rgb(h) return r, g, b, a end
 local sky
 local function draw_background(dim)
   -- The sky: deep violet to black, a slow color drift (one mesh, its colours updated).
@@ -423,14 +442,14 @@ local function draw_background(dim)
   lg.setLineWidth(2)
   local ga = 1 - dim * 0.6
   for i = -12, 12 do
-    lg.setColor(1, 0.2, 0.75, 0.55 * ga)
+    if party > 0 then lg.setColor(hue(i / 25 + t * 0.4, 0.7 * ga)) else lg.setColor(1, 0.2, 0.75, 0.55 * ga) end
     lg.line(W / 2 + i * 22, HORIZON, W / 2 + i * 150, H)
   end
   local scroll = (t * 0.8) % 1
   for i = 0, 9 do
     local k = (i + scroll) / 10
     local y = HORIZON + (H - HORIZON) * k * k
-    lg.setColor(1, 0.25, 0.8, (0.15 + 0.6 * k) * ga)
+    if party > 0 then lg.setColor(hue(k + t * 0.6, (0.2 + 0.7 * k) * ga)) else lg.setColor(1, 0.25, 0.8, (0.15 + 0.6 * k) * ga) end
     lg.line(0, y, W, y)
   end
   lg.setColor(1, 0.4, 0.9, 0.8 * ga)
@@ -542,6 +561,15 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
   lg.setColor(r, g, b, (0.35 + 0.65 * focus) * alpha)
   lg.setLineWidth(focus > 0 and 3 or 2)
   rrect("line", x, y, cw, ch, 22)
+  if it == last_played and focus > 0.3 then
+    -- The game played last: a little tab on the card's top edge.
+    lg.setFont(font(16))
+    local tw = font(16):getWidth("LAST PLAYED") + 22
+    lg.setColor(r, g, b, alpha)
+    rrect("fill", cx - tw / 2, y - 13, tw, 26, 13)
+    lg.setColor(0.06, 0.02, 0.12, alpha)
+    lg.printf("LAST PLAYED", cx - tw / 2, y - 9, tw, "center")
+  end
 end
 
 local function draw_carousel()
@@ -653,10 +681,12 @@ local function draw_celebration()
   lg.setColor(r, g, b, fade)
   lg.setLineWidth(4)
   rrect("line", 44, by, W - 88, bh, 28)
-  neon_draw("NEW HIGH SCORE!", 0, by + 22, 44, 0xffd23f, 1, "center", W, fade * (0.8 + 0.2 * math.sin(c.t * 10)), 1)
-  lg.setFont(font(math.floor(72 * pop)))
-  lg.setColor(1, 1, 1, fade)
-  lg.printf(tostring(c.score), 0, by + 80 - 36 * (pop - 1), W, "center")
+  if not c.big then
+    neon_draw("NEW HIGH SCORE!", 0, by + 22, 44, 0xffd23f, 1, "center", W, fade * (0.8 + 0.2 * math.sin(c.t * 10)), 1)
+  end
+  lg.setFont(font(math.floor((c.big and 64 or 72) * pop)))
+  if c.big then lg.setColor(hue(c.t * 0.8, fade)) else lg.setColor(1, 1, 1, fade) end
+  lg.printf(tostring(c.score), 0, by + (c.big and 50 or 80) - 36 * (pop - 1), W, "center")
   lg.setFont(font(24))
   lg.setColor(0.85, 0.8, 1, fade)
   lg.printf(c.title, 0, by + 172, W, "center")
@@ -809,7 +839,12 @@ local function draw_scene()
     lg.setColor(0, 0, 0, 0.25)
     lg.rectangle("fill", 0, 780, W, H - 780)
     neon_draw("PRESS ANY BUTTON", 0, 860, 44, 0xffd23f, 1, "center", W, 0.6 + 0.4 * math.sin(t * 4))
-    draw_hint("12 CLASSICS  +  THE YARD", 930, 0.9)
+    local it = items[sel]
+    if it.score then
+      draw_hint("HIGH SCORE  " .. it.score .. "  —  can you beat it?", 930, 0.9)
+    else
+      draw_hint("12 CLASSICS  +  THE YARD", 930, 0.9)
+    end
   else
     draw_info()
     draw_footer()
@@ -904,7 +939,10 @@ local function request(s, it)
   if it and (not headless or os.getenv("HOME_FB")) then pictures_for(it) end
   log("launch " .. s)
   -- The classic's high score as it was: on the way back, a higher one is celebrated.
-  save_state(it and it.kind == "classic" and ("score " .. it.index .. " " .. (high_score(it.index) or 0) .. "\n") or nil)
+  local played = nil
+  if it and it.kind ~= "stock" then played = sel end
+  save_state(it and it.kind == "classic" and ("score " .. it.index .. " " .. (high_score(it.index) or 0) .. "\n") or nil,
+             played)
   if REQ then
     local f = io.open(REQ, "w")
     if f then f:write(s .. "\n") f:close() end
@@ -944,6 +982,28 @@ local function read_volume()
   if n then vol_level = math.max(0, math.min(15, n)) end
 end
 
+-- The secret code: up up down down left right left right, top-left (B), lower (A).
+local code_before = {}            -- the card and settings before each press: the code's moves are undone
+local function secret(name)
+  code_buf[#code_buf + 1] = name
+  code_before[#code_before + 1] = {sel = sel, speed = {unpack(speed)}, smooth = {unpack(smooth)}}
+  if #code_buf > #CODE then table.remove(code_buf, 1) table.remove(code_before, 1) end
+  if #code_buf < #CODE then return false end
+  for i = 1, #CODE do if code_buf[i] ~= CODE[i] then return false end end
+  local b = code_before[1]
+  sel = b.sel
+  for i = 1, 12 do
+    if speed[i] ~= b.speed[i] or smooth[i] ~= b.smooth[i] then
+      speed, smooth = b.speed, b.smooth
+      cfg_write("Speed.cfg", speed)
+      cfg_write("Smoothing.cfg", smooth)
+      break
+    end
+  end
+  code_buf, code_before = {}, {}
+  return true
+end
+
 local function handle(name)
   if name == "volup" or name == "voldown" then
     -- The kernel has changed it (volctrl.sh saves it); read it a moment later and show it.
@@ -972,6 +1032,14 @@ local function handle(name)
     return
   end
   if launch_item then return end
+  if secret(name) then
+    -- (the code's presses moved the cards and maybe a setting: put back as they were)
+    for _, it in ipairs(items) do if it.kind == "classic" then it.score = high_score(it.index) end end
+    party = 20
+    celebrate = {score = "PARTY MODE", title = "you found the secret", tint = 0xff4fd8, t = 0, big = true}
+    log("party mode")
+    return
+  end
   local it = items[sel]
   if name == "up" then move(-1)
   elseif name == "down" then move(1)
@@ -1141,8 +1209,9 @@ function love.update(dt)
   fx.update(dt, scene == "menu" or scene == "attract" or scene == "night")
   if vol_t > 0 then vol_t = vol_t - dt end
   if menu_in > 0 then menu_in = math.max(0, menu_in - dt) end
+  if party > 0 then party = math.max(0, party - dt) end
   if celebrate then
-    if celebrate.t == 0 then play("fanfare") end
+    if celebrate.t == 0 then play("fanfare") confetti = nil end
     celebrate.t = celebrate.t + dt
     if celebrate.t > 5 then celebrate = nil end
   end
