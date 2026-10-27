@@ -116,7 +116,7 @@ if PREVIEW then
   items[#items + 1] = {kind = "stock", section = 3, title = "BACK TO THE YARD", sub = "HOME PREVIEW",
                        blurb = "Home is a preview for now: this goes back to The Yard.", tint = 0xff9c5a}
 else
-  items[#items + 1] = {kind = "yard", section = 3, title = "GPU YARD", sub = "THE WHOLE YARD",
+  items[#items + 1] = {kind = "yard", section = 3, title = "YARD MENU", sub = "THE WHOLE YARD",
                        blurb = "Every Yard game, in its own menu.", tint = 0x7fe8ff}
   items[#items + 1] = {kind = "stock", section = 3, title = "ORIGINAL MENU", sub = "ARCADE1UP",
                        blurb = "The cabinet's menu, as it came. Home is back at the next power-on.", tint = 0xff9c5a}

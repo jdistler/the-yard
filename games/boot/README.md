@@ -4,6 +4,18 @@
 `tools/ota_boot.sh`; first boot: initramfs unpacked at 0.34 s, `yardinit: start` 0.77 s, stage2 at 2.4 s, Wi-Fi and
 SSH 42 s after the reboot with no one at the cabinet, the health mark at 66 s (`boot/tries` back to 0).
 
+**Since 2026-10-27, Partycade Home is the front end at power-on (verified over several reboots).** stage2 v2 puts
+Home's power-on picture (`/userdata/home/boot.fb.gz`, rendered on the PC by `cart push`) into `/dev/fb0` at
+~2.7 s and binds `S50ui` (this folder) over the stock `/etc/init.d/S50ui` from a copy in `/dev`; the stock rcS
+then runs it at ~5.2 s: the saved volume and the factory test mode as stock, then `homeloop` (syntax-checked),
+with a 30 s watchdog that starts the stock menu if neither Home nor the menu is up. Home's first frame ~9 s.
+`boot/home-off` keeps stage2 and boots the stock menu; 1P + 2P at power-on gives the whole stock boot.
+`tools/cab.sh bootfilm` films the next power-on (stage2 records into RAM; the stock boot sends a SIGUSR2 that
+`cabctl record` ignores). Staged, not written: `out/boot-yard-logo.img` (sha256 `df00e303…a04b`), this image
+with U-Boot's "LOADING..." logo (40x264, the first ~2.7 s) replaced by a small neon PARTYCADE, pixels only
+(`tools/bootimg.py logo`, `logocheck`: only the logo's 31,680 pixel bytes and the ID differ). It needs the
+user's written approval for that sha, as every flash write does.
+
 **Goal:** change what the cabinet does at power-on (intro, menu, idle screen, Wi-Fi at boot) from files in
 `/data`, over Wi-Fi, with no Micro-USB. Written 2026-10-26.
 
@@ -41,7 +53,8 @@ SSH 42 s after the reboot with no one at the cabinet, the health mark at 66 s (`
 `qemu_test.py` boots the cabinet's own system image and data partition in QEMU (vexpress-a15, a 4.4 kernel
 from Rockchip's tree with virtio) through `tinyinit-qemu` (the same code, virtio disk names): no stage2,
 stage2, a failing stage2, a hanging stage2, the counter, `disabled`, the safe-mode keys, an unmountable data
-partition, and the real `stage2.sh`. The stock rcS runs (udev, network, dropbear, ui) in every case.
+partition, the real `stage2.sh`, Home bound (S50ui runs), `home-off`, and the safe-mode keys with Home installed
+(14 scenarios). The stock rcS runs (udev, network, dropbear, ui) in every case.
 
 ## Files
 
@@ -50,5 +63,6 @@ partition, and the real `stage2.sh`. The stock rcS runs (udev, network, dropbear
 | `tinyinit.c`, `build.sh` | the init (`out/tinyinit`, and `out/tinyinit-qemu` for the test) |
 | `mkinitramfs.py` | the 4 KB cpio |
 | `../../tools/bootimg.py` | `info`, `ramdisk` (build `boot-yard.img`), `check` |
-| `stage2.sh` | v1: a boot log, Wi-Fi and SSH right after power-on, the health mark |
+| `stage2.sh` | v2: a boot log, Home at power-on (picture, S50ui), Wi-Fi and SSH right after power-on, the health mark, `boot/film` |
+| `S50ui` | bound over the stock one while Home is on: volume, test mode, homeloop, watchdog |
 | `qemu_test.py` | the test |

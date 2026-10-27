@@ -624,7 +624,8 @@ def cmd_push(a):
     stage = tempfile.mkdtemp(prefix="cart-push-")
     print("1. Building for the cabinet")
     subprocess.check_call(["./build.sh", "cab"], cwd=HERE, stdout=subprocess.DEVNULL)
-    extra = [os.path.join(HERE, "love", "label", n) for n in ("loveprobe", "loveyard", "classic", "homepreview")]
+    # (The "Home preview" row went when Home became the front end, 2026-10-27: it would open Home inside Home.)
+    extra = [os.path.join(HERE, "love", "label", n) for n in ("loveprobe", "loveyard", "classic")]
     extra.append(os.path.join(HERE, "sysprobe", "label", "sysprobe"))
     cmd_pack(argparse.Namespace(out=os.path.join(stage, "yard.pak.raw"), extra=extra))
     files = {}

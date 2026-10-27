@@ -88,8 +88,10 @@ while :; do
       ( cd /data/Games && "./$2" ) ;;
     yard)
       [ "$MODE" = preview ] && exit 0
-      log "GPU yard"
-      /data/Games/loveyard ;;
+      # The whole Yard, as Dig Dug II opens it (GPU yard first, its "Classic yard" row, Orb), but with no stock
+      # menu to stop or start again (YARD_STOCK_MENU not a path: games/engine/runtime.c stock_menu).
+      log "The Yard"
+      ( cd /data/Games && YARD_STOCK_MENU=none ./yard ) ;;
     stock)
       [ "$MODE" = preview ] && exit 0
       stock ;;

@@ -146,6 +146,21 @@ From `captures/system/` (the rootfs's scripts and rules), `captures/sysprobe/bef
 * The controls page: "Hold 1P (5 seconds) to return to menu and to save a high score; hold 1P+2P (5 seconds)
   to reset game."
 
+## Boot, volume, idle, and the logo (2026-10-27)
+
+* **Volume** is the kernel's: `uart-keys` runs `/usr/bin/volctrl.sh` on a volume key (it sets the mixer and
+  saves `/data/spk_volume`, 0-15); `spk-init.sh` (from S50ui) restores it at boot. No menu is needed for it.
+  Injected key events do not reach it (the driver acts on the serial line, before the input event).
+* **Idle:** after a few minutes the stock menu runs its attract demo as a game: `start.sh 0 0 1` (Pac-Man fast).
+* **Between programs** the display shows `/dev/fb0` (the fbdev console buffer: the kernel's "LOADING..."); it is
+  1024x768 XRGB8888 and writable (20 ms for a full picture).
+* **SDL KMSDRM on this board:** LÖVE's fullscreen switch recreates the GBM/EGL surfaces at the first swap, and
+  stock SDL showed the new surface's empty buffer: a black frame at every program start (our SDL patch skips it).
+* **The stock boot sends a SIGUSR2** to processes started early (a recorder from stage2 died of it at ~4 s).
+* **U-Boot's logo** is `logo.bmp` in the boot image's resource section (RSCE: header, a table of 512-byte ENTR
+  blocks, entry count at byte 12; two entries, `rk-kernel.dtb` and `logo.bmp`, no hashes): 40x264, 24-bit,
+  top-down, a sideways white "LOADING...", drawn centred.
+
 ## Stock menu input, by injection (2026-10-26, over SSH)
 
 The stock menu `/usr/bin/game` reads `/dev/input/event0` (`uart-keys`). Writing `struct input_event` records

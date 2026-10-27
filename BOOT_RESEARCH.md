@@ -532,3 +532,19 @@ No Mask ROM writes after the 10-block key write; everything below was installed 
 * Written over Wi-Fi with the user's approval ("approved, write boot-yard.img (94172b67…) over Wi-Fi"):
   `tools/ota_boot.sh write`, read-back verified, reboot. First boot: initramfs at 0.34 s, yardinit 0.77 s,
   stage2 2.4 s, SSH 42 s after the reboot, health mark at 66 s.
+
+## 2026-10-27: Partycade Home at power-on; seeing the screen; no Micro-USB
+
+* **Tooling:** `tools/cabview` (`cabctl`: grab the scanned-out framebuffer, inject presses, film transitions
+  with the DRM master per frame); `flow.py yard|home|classic|front` drive the cabinet like a player and check
+  every screenshot. Found with it: the black stock menu after GPU yard (`/tmp/.minigui_freeze` left by a menu
+  killed mid-game), GPU yard's magenta titles (labels painted inside a scissor), a black frame at every LÖVE
+  start (SDL surface recreated at the first swap).
+* **Home revamp:** logos from the settings pages; `/dev/fb0` pictures for launch, return and power-on; start
+  4.1 s -> 1.0 s warm (FFI synth, worker thread, lazy labels); intro, attract, night scene, volume meter.
+* **Boot:** stage2 v2 + `games/boot/S50ui` (QEMU 14/14; then real reboots: stage2 2.7 s, S50ui 5.2 s, Home's
+  first frame ~9 s, healthy at 66 s every time). Prefetching LÖVE's libraries in stage2 did not shorten Home's
+  first start (2.7 s inside LÖVE at boot, vs 0.6 s warm): left in, cheap; the cost is elsewhere (CPU shared
+  with the rest of the boot, the Mali driver's first start).
+* **Not written:** `games/boot/out/boot-yard-logo.img` (U-Boot's logo replaced, pixels only), awaiting the
+  user's approval for sha256 `df00e303…a04b`.

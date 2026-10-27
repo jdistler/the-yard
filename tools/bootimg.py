@@ -6,6 +6,9 @@ Rockchip resource image ("second": the device tree and U-Boot's logo.bmp), and n
   bootimg.py ramdisk IMG CPIO OUT [--size N]  IMG with CPIO as its ramdisk; everything else byte for byte,
                                               the header's ID (SHA-1) recomputed; padded to N (the partition)
   bootimg.py check ORIG NEW                   NEW is ORIG plus a ramdisk and nothing else
+  bootimg.py logo IMG BMP OUT                 IMG with U-Boot's logo.bmp pixels replaced by BMP's (same header:
+                                              the resource image's layout does not move); the ID recomputed
+  bootimg.py logocheck ORIG NEW               NEW differs from ORIG only in logo.bmp's pixels and the ID
 
 U-Boot (2017.09, Rockchip) loads the ramdisk at ramdisk_addr_r, which env_fixup sets to ramdisk_addr1_r
 (0x64000000) on boards with 128 MB or less (games/boot/README.md). Offline only.
@@ -38,6 +41,33 @@ def image_id(k, r, s):
     return x.digest()
 
 
+def resource_entries(res):
+    """The Rockchip resource image (RSCE): {name: (offset, size)} in bytes."""
+    if res[:4] != b"RSCE":
+        raise SystemExit("the second section is not a resource image")
+    tbl, esz, n = res[9], res[10], struct.unpack_from("<I", res, 12)[0]   # RSCE, versions, sizes, count
+    out = {}
+    for i in range(n):
+        e = res[(tbl + i * esz) * 512:(tbl + i * esz + 1) * 512]
+        if e[:4] != b"ENTR":
+            raise SystemExit(f"resource entry {i}: not ENTR")
+        name = e[4:260].split(b"\0")[0].decode()
+        off, size = struct.unpack_from("<II", e, 260)
+        out[name] = (off * 512, size)
+    return out
+
+
+def logo_pixels(bmp):
+    """(header, pixel bytes) of an uncompressed 24-bit BMP."""
+    if bmp[:2] != b"BM":
+        raise SystemExit("not a BMP")
+    data_off, w, h, planes, bpp, comp = struct.unpack_from("<I", bmp, 10)[0], *struct.unpack_from("<iiHHI", bmp, 18)
+    if bpp != 24 or comp != 0:
+        raise SystemExit(f"logo: {bpp} bpp, compression {comp}: only 24-bit uncompressed")
+    row = (w * 3 + 3) // 4 * 4
+    return bmp[:data_off], data_off, row * abs(h)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -45,7 +75,46 @@ def main():
     p = sub.add_parser("ramdisk"); p.add_argument("img"); p.add_argument("cpio"); p.add_argument("out")
     p.add_argument("--size", type=int, default=PART)
     p = sub.add_parser("check"); p.add_argument("orig"); p.add_argument("new")
+    p = sub.add_parser("logo"); p.add_argument("img"); p.add_argument("bmp"); p.add_argument("out")
+    p = sub.add_parser("logocheck"); p.add_argument("orig"); p.add_argument("new")
     a = ap.parse_args()
+    if a.cmd in ("logo", "logocheck"):
+        d = open(a.img if a.cmd == "logo" else a.orig, "rb").read()
+        h = parse(d)
+        ps = h["page"]
+        soff = ps + (h["ksz"] + ps - 1) // ps * ps + (h["rsz"] + ps - 1) // ps * ps
+        loff, lsize = resource_entries(h["second"])["logo.bmp"]
+        old = h["second"][loff:loff + lsize]
+        ohdr, odata, olen = logo_pixels(old)
+        if a.cmd == "logo":
+            new = open(a.bmp, "rb").read()
+            nhdr, ndata, nlen = logo_pixels(new)
+            if nhdr != ohdr or nlen != olen:
+                raise SystemExit("the new logo's header differs from the stock one (size, depth, layout): refused")
+            out = bytearray(d)
+            start = soff + loff + odata
+            out[start:start + olen] = new[ndata:ndata + nlen]
+            nh = parse(bytes(out))
+            out[576:608] = image_id(nh["kernel"], nh["ramdisk"], nh["second"]) + b"\0" * 12
+            open(a.out, "wb").write(bytes(out))
+            print(f"{a.out}: logo.bmp pixels replaced ({olen} bytes at {start}), id recomputed")
+            return
+        nd = open(a.new, "rb").read()
+        n = parse(nd)
+        lo, hi = soff + loff + odata, soff + loff + odata + olen
+        diff = [i for i in range(len(d)) if d[i] != nd[i]] if len(d) == len(nd) else None
+        checks = {
+            "same length": diff is not None,
+            "only the logo's pixels and the id differ": diff is not None and all(lo <= i < hi or 576 <= i < 608 for i in diff),
+            "kernel and ramdisk identical": h["kernel"] == n["kernel"] and h["ramdisk"] == n["ramdisk"],
+            "the device tree identical": resource_entries(n["second"])["rk-kernel.dtb"] == resource_entries(h["second"])["rk-kernel.dtb"]
+                                          and n["second"][:loff] == h["second"][:loff],
+            "id matches the new sections": n["id"][:20] == image_id(n["kernel"], n["ramdisk"], n["second"]),
+        }
+        for k, v in checks.items():
+            print(("ok   " if v else "FAIL ") + k)
+        print(f"{len(diff or [])} bytes differ")
+        sys.exit(0 if all(checks.values()) else 1)
     if a.cmd == "info":
         d = open(a.img, "rb").read()
         h = parse(d)

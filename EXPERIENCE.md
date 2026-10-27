@@ -42,6 +42,12 @@ the stock menu. The classics' `.sav` files are their boards' high-score memory (
    ghosts turn blue after a power pellet. The first press wakes it and is not used as a choice.
 7. **The original menu** stays a card under More (with the freeze-file fix and the intro skipped).
 
+## Status (2026-10-27, end of the session)
+
+Done and verified on the cabinet: 1–5 and 7 below (with `flow.py front`, `cab.sh film`, `cab.sh bootfilm`).
+6 tried (a read-ahead in stage2): no gain, left in. 8: U-Boot's logo staged, waiting for the user's approval;
+high scores not started. The night scene and attract were checked with short timers.
+
 ## Work, in order (each one checked on the cabinet, committed)
 
 1. Logos from the settings pages (done: `tools/home_art.py`); cards redrawn for transparent logos.
