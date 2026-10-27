@@ -68,18 +68,20 @@ end
 
 local GHOSTS = {{1, 0.18, 0.2}, {1, 0.55, 0.85}, {0.25, 0.95, 1}, {1, 0.65, 0.2}}
 
-local function chomper(x, y, r, dir, t)
+local function chomper(x, y, r, dir, t, al)
+  al = al or 1
   local open = (0.15 + 0.85 * math.abs(math.sin(t * 14))) * 0.42
   local a0 = dir > 0 and 0 or math.pi
-  lg.setColor(1, 0.86, 0.15, 1)
+  lg.setColor(1, 0.86, 0.15, al)
   lg.arc("fill", "pie", x, y, r, a0 + open, a0 + 2 * math.pi - open, 28)
-  lg.setColor(0.1, 0.05, 0.1, 1)
+  lg.setColor(0.1, 0.05, 0.1, al)
   lg.circle("fill", x + r * 0.1 * (dir > 0 and 1 or -1), y - r * 0.5, r * 0.11, 8)
 end
 
-local function ghost(x, y, r, c, dir, t, scared, blink)
+local function ghost(x, y, r, c, dir, t, scared, blink, al)
+  al = al or 1
   local body = scared and (blink and {0.95, 0.95, 1} or {0.2, 0.3, 1}) or c
-  lg.setColor(body[1], body[2], body[3], 1)
+  lg.setColor(body[1], body[2], body[3], al)
   lg.arc("fill", "pie", x, y, r, math.pi, 2 * math.pi, 24)
   lg.rectangle("fill", x - r, y, r * 2, r * 0.75)
   -- The wavy hem: three bumps that shuffle as it runs.
@@ -89,7 +91,7 @@ local function ghost(x, y, r, c, dir, t, scared, blink)
     lg.circle("fill", bx, y + r * 0.75, r / 3 + (wob == i % 2 and 1 or -1), 10)
   end
   if scared then
-    lg.setColor(1, 0.85, 0.75, 1)
+    lg.setColor(1, 0.85, 0.75, al)
     lg.circle("fill", x - r * 0.35, y - r * 0.2, r * 0.13, 8)
     lg.circle("fill", x + r * 0.35, y - r * 0.2, r * 0.13, 8)
     lg.setLineWidth(2)
@@ -98,9 +100,9 @@ local function ghost(x, y, r, c, dir, t, scared, blink)
     lg.line(pts)
   else
     for s = -1, 1, 2 do
-      lg.setColor(1, 1, 1, 1)
+      lg.setColor(1, 1, 1, al)
       lg.ellipse("fill", x + s * r * 0.38, y - r * 0.15, r * 0.26, r * 0.32, 12)
-      lg.setColor(0.15, 0.25, 0.9, 1)
+      lg.setColor(0.15, 0.25, 0.9, al)
       lg.circle("fill", x + s * r * 0.38 + dir * r * 0.12, y - r * 0.12, r * 0.13, 8)
     end
   end
@@ -127,19 +129,21 @@ function F.draw_chase(t, y, alpha)
       lg.setColor(1, 0.85, 0.7, alpha)
       lg.circle("fill", W - 30, y, 8, 12)
     end
-    chomper(x, y, r, 1, t)
-    for i, c in ipairs(GHOSTS) do ghost(x - 70 - i * 52, y, r, c, 1, t + i, false) end
+    chomper(x, y, r, 1, t, alpha)
+    for i, c in ipairs(GHOSTS) do ghost(x - 70 - i * 52, y, r, c, 1, t + i, false, false, alpha) end
   else
     local k = (p - 0.5) / 0.5
     local x = W + 340 - (W + 680) * k
     for i, c in ipairs(GHOSTS) do
       local blink = k > 0.7 and math.floor(t * 6) % 2 == 0
-      ghost(x - 90 - (5 - i) * 52 + 40, y, r, c, -1, t + i, true, blink)
+      ghost(x - 90 - (5 - i) * 52 + 40, y, r, c, -1, t + i, true, blink, alpha)
     end
-    chomper(x, y, r, -1, t)
+    chomper(x, y, r, -1, t, alpha)
   end
   lg.pop()
   return pellet
 end
 
+F.ghost = ghost
+F.chomper = chomper
 return F

@@ -1022,6 +1022,30 @@ def home():
     check("party mode" in (read(w2, "log") or "") and not os.path.exists(os.path.join(w2, "req"))
           and open(os.path.join(g2, "Speed.cfg"), "rb").read() == bytes([1] + [0] * 11),
           "Home: the secret code starts party mode, launches nothing, and leaves the classics' settings as they were")
+    # The night show's schedule: every night ends and is full (2026-10-27: a night whose last gap was shorter
+    # than a scene spun for ever and froze Home).
+    nd = tmpdir()
+    shutil.copy(os.path.join(HERE, "love", "home", "night.lua"), nd)
+    open(os.path.join(nd, "conf.lua"), "w").write("function love.conf(t) t.window = false t.modules.audio = false end\n")
+    open(os.path.join(nd, "main.lua"), "w").write(
+        'local N = require("night")\n'
+        'function love.load()\n'
+        '  local fewest = 1e9\n'
+        '  for night = 0, 1999 do\n'
+        '    local seen, n = {}, 0\n'
+        '    for at = 0, N.CYCLE - 1, 60 do\n'
+        '      local _, e = N.scene_at(night * N.CYCLE + at)\n'
+        '      if e and not seen[e.t0] then seen[e.t0] = true n = n + 1 end\n'
+        '    end\n'
+        '    fewest = math.min(fewest, n)\n'
+        '  end\n'
+        '  print("fewest scenes in a night " .. fewest)\n'
+        '  love.event.quit()\n'
+        'end\n')
+    r = subprocess.run([LOVE_RUN, nd], env=dict(os.environ, SDL_VIDEODRIVER="offscreen"), capture_output=True,
+                       text=True, timeout=60)
+    m = re.search(r"fewest scenes in a night (\d+)", r.stdout)
+    check(m and int(m.group(1)) >= 20, f"Home: the night show's schedule ends for 2000 nights, each full ({r.stdout.strip()})")
     req = home_run(["30 press low"])
     check(req.startswith("classic 0 "), f"Home: the lower button on the first card asks for Pac-Man ({req!r})")
     req = home_run(["30 press 1p"])

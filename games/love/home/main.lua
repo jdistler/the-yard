@@ -20,6 +20,7 @@ local lg = love.graphics
 local sound = require("sound")
 local fx = require("fx")
 local splash = require("splash")
+local night = require("night")
 
 local W, H = 768, 1024                       -- the upright picture; the panel shows the framebuffer turned
 local headless = os.getenv("HOME_HEADLESS") == "1"
@@ -33,7 +34,7 @@ local VOLUME_FILE = os.getenv("HOME_VOLUME") or "/data/spk_volume"
 local RENDER = os.getenv("HOME_RENDER")
 local IDLE_ATTRACT = tonumber(os.getenv("HOME_IDLE") or "") or 45    -- seconds without a press
 local IDLE_NIGHT = tonumber(os.getenv("HOME_NIGHT") or "") or 180
-local DEEP_SLEEP = tonumber(os.getenv("HOME_DEEP") or "") or 900    -- seconds into the night scene
+local NIGHT_SPEED = tonumber(os.getenv("HOME_NIGHT_SPEED") or "") or 1   -- tests: the night fast-forwarded
 local HORIZON = 760
 
 local function log(...)
@@ -760,35 +761,22 @@ end
 
 -- The night scene (idle a few minutes): the sky dims, the sign sleeps, a chase runs along the horizon.
 local function draw_night()
-  lg.setColor(0, 0, 0.02, 0.45)
-  lg.rectangle("fill", 0, 0, W, H)
-  -- The sign asleep: it breathes, slowly.
-  local breath = 0.3 + 0.12 * math.sin(night_t * 1.1)
+  -- The show (night.lua): the sky through a whole night, the moon, and the scenes.
+  local nt = night_t * NIGHT_SPEED
+  night.draw(nt)
+  -- The sign asleep: it breathes, slowly (dimmer in the rest stretch before dawn).
+  local rest = night.scene_at(nt) == "rest" and 0.35 or 1
+  local breath = (0.3 + 0.12 * math.sin(night_t * 1.1)) * rest
   fx.glow(W / 2, 80, 330, 60, 1, 0.3, 0.85, breath * 0.25)
   neon_draw("PARTYCADE", 0, 34, 92, 0xff4fd8, 1.6, "center", W, breath)
-  -- A moon, and z's drifting up from the sign.
-  fx.glow(620, 300, 90, 90, 0.8, 0.85, 1, 0.18)
-  lg.setColor(0.95, 0.93, 0.8, 0.9)
-  lg.circle("fill", 620, 300, 34, 40)
-  lg.setColor(0.07, 0.03, 0.14, 1)
-  lg.circle("fill", 634, 292, 30, 40)
   for i = 0, 2 do
     local k = ((night_t * 0.3) + i / 3) % 1
     local zx, zy = W / 2 + 260 + k * 60 + math.sin(k * 6) * 10, 120 - k * 110
     lg.setFont(font(math.floor(30 + k * 26)))
-    lg.setColor(0.43, 0.94, 0.78, math.sin(k * math.pi) * 0.85)
+    lg.setColor(0.43, 0.94, 0.78, math.sin(k * math.pi) * 0.85 * rest)
     lg.print("z", zx, zy)
   end
-  fx.draw_chase(night_t, HORIZON - 26, 1)
-  draw_hint("press any button", 930, 0.35 + 0.25 * math.sin(t * 2))
-  -- Deep sleep (15 minutes into the night): nearly black, only the sign breathing faintly; kind to the panel
-  -- when the cabinet is left on.
-  local deep = math.max(0, math.min(1, (night_t - DEEP_SLEEP) / 20))
-  if deep > 0 then
-    lg.setColor(0, 0, 0, 0.93 * deep)
-    lg.rectangle("fill", 0, 0, W, H)
-    neon_draw("PARTYCADE", 0, 34, 92, 0xff4fd8, 1.6, "center", W, deep * (0.08 + 0.06 * math.sin(night_t * 0.7)))
-  end
+  draw_hint("press any button", 930, (0.35 + 0.25 * math.sin(t * 2)) * rest)
 end
 
 -- The sign, unlit: the tubes dark, as on the power-on picture.
@@ -1086,6 +1074,7 @@ function love.load()
                 0.4 + math.random() * 0.6, math.random() < 0.15 and 3 or 2}
   end
   fx.load()
+  night.load({W = W, H = H, HORIZON = HORIZON, font = font, neon_draw = neon_draw, fx = fx, log = log})
   if RENDER then
     -- Render a picture and quit (the PC build of the power-on picture): "boot:PATH".
     local kind, path = RENDER:match("^(%a+):(.+)$")
@@ -1226,7 +1215,13 @@ function love.update(dt)
   end
   if scene == "night" then
     night_t = night_t + dt
-    if sound.music and night_t > DEEP_SLEEP then sound.music:setVolume(0.12 * math.max(0, 1 - (night_t - DEEP_SLEEP) / 20)) end
+    -- The music: soft all night, silent in the rest stretch before dawn.
+    if sound.music then
+      local sc = night.scene_at(night_t * NIGHT_SPEED)
+      local want = sc == "rest" and 0 or 0.12
+      local v = sound.music:getVolume()
+      sound.music:setVolume(v + (want - v) * math.min(1, dt * 0.5))
+    end
   end
   fx.update(dt, scene == "menu" or scene == "attract" or scene == "night")
   if vol_t > 0 then vol_t = vol_t - dt end

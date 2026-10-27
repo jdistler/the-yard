@@ -51,6 +51,13 @@ high scores not started. The night scene and attract were checked with short tim
 Added after the plan (the user: "delight me and never frustrate me"): exit-hold ticks for the classics, high
 scores and their celebration, LAST PLAYED, a way back from the original menu, deep sleep, party mode.
 
+**The night show (2026-10-27, games/love/home/night.lua):** idle 3 minutes, then a three-hour night that
+loops: dusk (10 min), ~28 scenes of 3-5 minutes in a new order each night with quiet sky between (the chase,
+an alien swarm with dive-bombers, constellations drawing arcade shapes, fireflies spelling words, an aurora, a
+meteor shower, a neon city with a blimp, a UFO taking a ghost, a digger tunnelling under the grid, the sign's
+dreams), a 15-minute rest stretch (dark, a few fireflies, music silent), and dawn. A moon crosses the sky. All
+ten at 60 fps on the cabinet. HOME_NIGHT_SPEED fast-forwards it, HOME_NIGHT_SCENE shows one scene.
+
 ## Work, in order (each one checked on the cabinet, committed)
 
 1. Logos from the settings pages (done: `tools/home_art.py`); cards redrawn for transparent logos.
