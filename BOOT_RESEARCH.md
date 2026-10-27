@@ -548,3 +548,7 @@ No Mask ROM writes after the 10-block key write; everything below was installed 
   with the rest of the boot, the Mali driver's first start).
 * **Not written:** `games/boot/out/boot-yard-logo.img` (U-Boot's logo replaced, pixels only), awaiting the
   user's approval for sha256 `df00e303…a04b`.
+* **Later the same day, approved by the user:** boot partition written twice over Wi-Fi (`tools/ota_boot.sh`):
+  `df00e303…a04b` (U-Boot's logo.bmp pixels), then `de23d410…b5c3` (also the kernel's compiled-in logo: the
+  white "LOADING..." the boot film still showed at 2.7 s came from the kernel, a CLUT224 `linux_logo` 40x264;
+  `tools/kernel_logo.py`). Both booted normally (healthy at 66 s); the boot film's first frame is now pink.

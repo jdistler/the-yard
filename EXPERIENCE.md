@@ -45,7 +45,7 @@ the stock menu. The classics' `.sav` files are their boards' high-score memory (
 ## Status (2026-10-27, end of the session)
 
 Done and verified on the cabinet: 1–5 and 7 below (with `flow.py front`, `cab.sh film`, `cab.sh bootfilm`).
-6 tried (a read-ahead in stage2): no gain, left in. 8: U-Boot's logo staged, waiting for the user's approval;
+6 tried (a read-ahead in stage2): no gain, left in. 8: U-Boot's and the kernel's logos replaced and written (approved);
 high scores not started. The night scene and attract were checked with short timers.
 
 ## Work, in order (each one checked on the cabinet, committed)

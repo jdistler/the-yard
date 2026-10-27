@@ -1,6 +1,6 @@
 # Boot customization over the air: tinyinit + stage2
 
-**On the cabinet since 2026-10-26 20:52 (verified):** boot partition sha256 `94172b67…3704`, written over Wi-Fi by
+**First written 2026-10-26 20:52 (verified):** boot partition sha256 `94172b67…3704` (now `de23d410…b5c3`, below), written over Wi-Fi by
 `tools/ota_boot.sh`; first boot: initramfs unpacked at 0.34 s, `yardinit: start` 0.77 s, stage2 at 2.4 s, Wi-Fi and
 SSH 42 s after the reboot with no one at the cabinet, the health mark at 66 s (`boot/tries` back to 0).
 
@@ -11,10 +11,13 @@ then runs it at ~5.2 s: the saved volume and the factory test mode as stock, the
 with a 30 s watchdog that starts the stock menu if neither Home nor the menu is up. Home's first frame ~9 s.
 `boot/home-off` keeps stage2 and boots the stock menu; 1P + 2P at power-on gives the whole stock boot.
 `tools/cab.sh bootfilm` films the next power-on (stage2 records into RAM; the stock boot sends a SIGUSR2 that
-`cabctl record` ignores). Staged, not written: `out/boot-yard-logo.img` (sha256 `df00e303…a04b`), this image
-with U-Boot's "LOADING..." logo (40x264, the first ~2.7 s) replaced by a small neon PARTYCADE, pixels only
-(`tools/bootimg.py logo`, `logocheck`: only the logo's 31,680 pixel bytes and the ID differ). It needs the
-user's written approval for that sha, as every flash write does.
+`cabctl record` ignores). **No "LOADING..." at power-on any more (2026-10-27, written with the user's approval, verified):** the boot partition
+holds `out/boot-yard-klogo.img`, sha256 `de23d410…b5c3`: `boot-yard.img` with U-Boot's `logo.bmp` (40x264,
+pixels only, `tools/bootimg.py logo`) and the kernel's compiled-in boot logo (`tools/kernel_logo.py`: a 142-colour
+`linux_logo` in the inflated kernel, recompressed with zopfli into the same span) both replaced by `logo.png`
+(a small neon PARTYCADE). Steps on the way: `boot-yard-logo.img` (`df00e303…a04b`, U-Boot's logo only). The boot
+film's first frame (stage2, 2.7 s) shows the pink logo. Back to any earlier image: `tools/ota_boot.sh write
+IMG <sha now>`; to stock: `tools/ota_boot.sh restore`.
 
 **Goal:** change what the cabinet does at power-on (intro, menu, idle screen, Wi-Fi at boot) from files in
 `/data`, over Wi-Fi, with no Micro-USB. Written 2026-10-26.
