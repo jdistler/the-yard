@@ -161,6 +161,17 @@ From `captures/system/` (the rootfs's scripts and rules), `captures/sysprobe/bef
   blocks, entry count at byte 12; two entries, `rk-kernel.dtb` and `logo.bmp`, no hashes): 40x264, 24-bit,
   top-down, a sideways white "LOADING...", drawn centred.
 
+## Video decoding (2026-10-27, measured on the cabinet)
+
+* **Software (the stock ffmpeg 4.1, NEON, both cores, `-c:v h264`; the default picks `h264_v4l2m2m`, which
+  fails):** H.264 test clips decode at SD 576p25 2.1x realtime, 540p25 1.7x, 720p25 1.16x (1.56x with
+  `-skip_loop_filter all`), 720p50 0.70x (0.99x), 1080p25 0.66x (0.89x).
+* **Hardware: the VPU works.** The kernel's `vcodec_service` exposes `/dev/vpu-service` (H.264, VDPU1) and
+  `/dev/hevc-service`; the device tree says `rockchip,rk3032-dongle`, `rockchip,rk3036`, which Rockchip's MPP
+  (github rockchip-linux/mpp, built for armhf hard-float: CMAKE_SYSTEM_PROCESSOR `armv7-a_hardfp`) matches as
+  RK3036. MPP's `mpi_dec_test`: 720p50 at 131 fps (2.6x realtime, ~8% CPU), 1080p25 at 55 fps (2.2x), 9-20 MB.
+  Its frames match a software decode of the same clip (mean difference ~1/255).
+
 ## Stock menu input, by injection (2026-10-26, over SSH)
 
 The stock menu `/usr/bin/game` reads `/dev/input/event0` (`uart-keys`). Writing `struct input_event` records
