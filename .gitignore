@@ -18,3 +18,7 @@ games/boot/out/
 tools/cabview/out/
 captures/screen/
 games/tv/proto/tvproto
+games/tv/proto/avioread
+games/tv/proto/avprobe
+games/tv/proto/avprobe_mpp
+games/tv/proto/avprobe_sdl
