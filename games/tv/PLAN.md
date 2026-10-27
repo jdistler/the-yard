@@ -1,0 +1,147 @@
+# Partycade TV: the plan (2026-10-27)
+
+Live TV on the cabinet from the user's Xtream account (fullent), with the channel curation they already do in
+Skywave. Every claim below was measured on this cabinet or against the real panel on 2026-10-27, unless marked.
+An earlier handoff from another agent was checked line by line; where it was wrong, this says so.
+
+## What was measured
+
+### Decoding: the VPU works (the big one)
+
+The kernel's `vcodec_service` exposes `/dev/vpu-service` (H.264) and `/dev/hevc-service` (HEVC). The stock system
+never used them (its ffmpeg is built `--disable-rkmpp`). Rockchip's MPP (github rockchip-linux/mpp), built here
+for armhf hard-float (`~/mppbuild`; CMake processor `armv7-a_hardfp`), recognises the chip as RK3036 (the device
+tree says `rockchip,rk3032-dongle`, `rockchip,rk3036`) with no patching. The VPU clock is already at its rated
+maximum (297 MHz; Rockchip's DT: "RK3036's vpu could not run higher than 300M"), so no overclocking.
+
+Real channels (15 s samples from fullent), hardware decode alone (`mpi_dec_test`):
+
+| Sample | Decode | Realtime |
+| :--- | :--- | :--- |
+| H.264 720p59.94 (most US channels) | 100 fps | 1.7x |
+| H.264 1080i (25 frames) | 48 fps | 1.9x |
+| H.264 1080p50 | 47 fps | 0.94x |
+| H.264 1080p59.94 | 49 fps | 0.82x |
+| HEVC 1080p23.98 (24/7 movies) | 60 fps | 2.5x |
+| HEVC 1080p50 | 50 fps | 1.0x |
+
+Broadcast streams are 49-74 % non-reference pictures, so a player that skips a non-reference picture when it
+is behind keeps 1080p50/60 in realtime (tested: the decoder takes the gapped stream with no errors and clean
+pictures). Software decoding (the stock ffmpeg, NEON, both cores) manages only SD-540p (2.1x / 1.7x); 720p25 is
+marginal and 720p50+ impossible. **So: hardware decoding, software only as a fallback for SD.**
+
+### Display: zero-copy GPU path works
+
+The Mali's EGL has `EGL_EXT_image_dma_buf_import` and `GL_OES_EGL_image_external`. MPP decodes into DRM buffers;
+each is imported as an EGLImage (NV12, two planes from one dma-buf) and sampled by a `samplerExternalOES`
+shader (the GPU does YUV to RGB), drawn turned upright and letterboxed (768 x 432 in the portrait view), shown
+through our SDL (KMSDRM). Prototype: `games/tv/proto/tvproto.c`. Played from the real samples, paced on the
+stream clock, skipping non-reference pictures only when behind (screenshots in the session: correct
+orientation, colours, no mirroring):
+
+| Sample | Shown | Skipped | CPU (one core) |
+| :--- | :--- | :--- | :--- |
+| H.264 720p60 | 59.7 fps (pipelined swap) | 0.1 % | 23 % |
+| H.264 1080p50 | 41 fps | 17 % | 15-18 % |
+| H.264 1080p60 | 42 fps | 27 % | 15-17 % |
+| HEVC 1080p50 | 46 fps | 7 % | 18-21 % |
+| HEVC 1080p24 | 24 fps | 0 | 10 % |
+| H.264 1080i | 25 fps | 0 | 12 % |
+
+Interlaced 1080i shows no visible combing at this size (1080 lines become ~430; the scaler blends fields). A
+field-blend shader is a later option. 4K (HEVC Main 10, 2160p) is beyond the decoder: such channels are hidden.
+
+### Audio
+
+The stock libavcodec decodes AAC / AC3 / EAC3 5.1 / MP2; EAC3 5.1 to stereo 44.1 kHz runs at 7.2x realtime
+(~14 % of a core, 22 MB). Output: ALSA `default` through Home's dmix (`games/love/home/alsa.conf`), 44.1 kHz s16
+stereo. Volume stays the kernel's (volctrl.sh).
+
+### Memory (118 MB, no swap)
+
+Playing HEVC 1080p50 with Home stopped: graphics buffers (Shmem) +54 MB, the player 19 MB, ~18 MB left (with an
+11 MB test file in /tmp that streaming will not have). Tight but fine; cap MPP's buffer group
+(`mpp_buffer_group_limit_config`) to the DPB plus a few output frames to buy back ~15 MB. Home must have quit
+(homeloop already does this for every program).
+
+### Network and the panel
+
+* **fullent redirects every HTTP request to HTTPS** (API, logos, streams). The handoff's "plain HTTP" is wrong.
+  The cabinet's libavformat (FFmpeg 4.1, OpenSSL 1.0.2) does HTTPS with redirects fine; busybox wget has no TLS
+  and cannot be used. TLS + demux of an 8 Mbps stream: ~11 % of a core.
+* Wi-Fi (AC600): 28-29 Mbps sustained from the panel; the server bursts its backlog (40 s of an 8 Mbps channel
+  arrived in 20.7 s), so start-up buffering is quick.
+* **max_connections is 2, not 1** (one in use at the time, the user's phone was idle).
+* Panel `Date` header present: set the clock from it (the cabinet starts at 1970).
+* 73 categories, 4,444 channels. The whole list is 1.7 MB of JSON (too much for the cabinet to parse often);
+  per category it is 15-122 KB (36-327 channels) in under a second. `get_short_epg&limit=2`: ~1 KB, 0.4 s,
+  UTC `start_timestamp` / `stop_timestamp`, base64 titles. Logos: HTTPS PNGs from the panel.
+* Of 26 sampled channels, 8 were dead event slots (no video). Common formats: H.264 720p59.94 (US), H.264
+  1080p50/59.94 (UK/CA sports, news), HEVC 1080p (some UK sports, all 24/7 movies), 1080i/576i (news, older
+  channels); audio AAC, AC3/EAC3 5.1, MP2.
+
+### Curation: Skywave's syndication proxy already does it
+
+`server/sync/supabase/functions/xtream-proxy` (deployed, answering at
+`https://dzyacpjfwaqwiqaxgqmf.supabase.co/functions/v1/xtream-proxy`) serves an Xtream API with the user's
+hidden groups, hidden channels, group order and custom groups applied, and redirects streams to the panel.
+**The cabinet uses the proxy as its panel**: curated categories and channels with no export step and no file to
+copy; Skywave stays the only editor. Video still comes from the panel (the proxy only redirects). The cabinet
+keeps a copy of the last curated lists, so it works when Supabase is down (falls back to fullent directly if
+there is no copy). Needs the proxy login from Skywave's Syndication screen (not on this PC).
+
+### What the cabinet cannot do
+
+No socket module in our LÖVE build; busybox wget has no TLS. So network I/O is native (libavformat's AVIO).
+
+## Design
+
+Three pieces, each where it fits best:
+
+1. **`tvguide` (LÖVE, Lua, in the Home stack)**: the screens. Categories list, then channels with logo, name,
+   what's on now and a progress bar; held stick repeats (~6 rows/s); lower button opens / plays; 2P back;
+   hold 1P + 2P (1 s, The Yard's meter) to Home. Fredoka, the neon palette, the "get ready" / welcome-back
+   pictures, the volume meter, tools/cabview tests. It never touches the network itself.
+2. **`tvnet` (native, small)**: fetches for the guide through libavformat AVIO (HTTPS, redirects): the panel
+   handshake (sets the clock from `Date`), categories, one category's channels, short EPG for a list of
+   channels, logos (downscaled to 64 px PNGs). Writes results to files the guide reads (in /tmp, RAM; the
+   curated lists also to /data/tv, small). Run by the guide from a worker thread, a request at a time.
+3. **`tvplay` (native)**: plays one channel. libavformat demuxes the HTTPS MPEG-TS; video packets go to MPP
+   (H.264 / HEVC; others fall back to libavcodec software for SD), frames are shown zero-copy (tvproto's path);
+   audio decoded by libavcodec, resampled by libswresample to 44.1 kHz stereo, played through ALSA dmix. Audio
+   is the master clock; video pictures are shown on their PTS, non-reference pictures skipped when behind.
+   Start-up buffer ~1.5 s. Stick up/down: previous / next channel in the same category (debounced 0.4 s, the
+   new channel's name shown over the bars); 2P: back to the list on that channel; hold 1P + 2P: back to Home.
+   Exits with a code the guide reads (back / channel N / home). Dead channels (no video in 6 s, the panel's
+   black placeholder, HTTP errors): back to the list, the row dimmed and remembered.
+
+Home starts `tvguide` from a card (a `cart`-like LÖVE program, or `native tv` with a launcher script);
+homeloop's pictures cover every switch, so the screen never flashes the console. Leaving the player shows the
+welcome-back picture until the guide's first frame.
+
+### Data on the cabinet
+
+`/data/tv/` (NAND, kept small, ~50 KB): `account.conf` (proxy URL, username, password; mode 600, never in git),
+the last curated category list and per-category channel lists (a copy for when the network is down),
+`dead.txt`. Logos and EPG: in RAM (/tmp/tv), refetched per boot. The SD card is not needed for TV; enabling the
+slot (a device-tree change in the boot image now on the cabinet, `de23d410…`, not the stock one) is a separate
+project.
+
+## Build order (each step checked on the cabinet with tools/cabview)
+
+1. **tvplay from a file, then from a URL**: tvproto plus demuxing (libavformat), audio (libavcodec,
+   libswresample, ALSA), PTS pacing with audio as the clock, MPP buffer cap, exit codes, 1P + 2P. Needs FFmpeg
+   4.1 headers matching the cabinet's libraries (avcodec 58.35, avformat 58.20, avutil 56.22, swresample).
+   Test: 10 minutes each of a 720p60, a 1080p50 and an HEVC channel: frames shown, skipped, A/V drift, memory.
+2. **tvnet**: handshake + clock, categories, channels, short EPG, logos; against the proxy and fullent.
+3. **tvguide**: the two lists, logos, now/next, held-stick repeat, launching tvplay, coming back to the row.
+4. **Home card** under THE YARD or its own section ("TV"), with how to come back.
+5. **Polish**: channel up/down in the player, dead-channel dimming, failure messages ("No network yet: the
+   list is from <time>", "That channel isn't on right now", "Your other device is using the account"),
+   interlace blend, an on-screen clock.
+
+## Decisions for the user
+
+* The Syndication login from Skywave (Server URL, Username, Password) to put on the cabinet.
+* 1080p50/60 channels play at ~41-46 fps (720p and 24-30 fps content is perfect). Acceptable?
+* Where TV lives in Home: its own section (CLASSICS / THE YARD / TV / MORE) is the natural fit.
