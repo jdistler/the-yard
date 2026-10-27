@@ -110,7 +110,9 @@ Three pieces, each where it fits best:
    (H.264 / HEVC; others fall back to libavcodec software for SD), frames are shown zero-copy (tvproto's path);
    audio decoded by libavcodec, resampled by libswresample to 44.1 kHz stereo, played through ALSA dmix. Audio
    is the master clock; video pictures are shown on their PTS, non-reference pictures skipped when behind.
-   Start-up buffer ~1.5 s. Stick up/down: previous / next channel in the same category (debounced 0.4 s, the
+   Start-up cushion 3 s (Skywave's), 2 s after running dry: fullent's delivery swings between ~4 and ~20 Mbps
+   from its side, and 1.5 s ran dry three times in 50 s on 1080p60; at 3 s a 720p60 channel played 60 fps,
+   0 drops, 0 rebuffers. Stick up/down: previous / next channel in the same category (debounced 0.4 s, the
    new channel's name shown over the bars); 2P: back to the list on that channel; hold 1P + 2P: back to Home.
    Exits with a code the guide reads (back / channel N / home). Dead channels (no video in 6 s, the panel's
    black placeholder, HTTP errors): back to the list, the row dimmed and remembered.
@@ -119,9 +121,24 @@ Home starts `tvguide` from a card (a `cart`-like LÖVE program, or `native tv` w
 homeloop's pictures cover every switch, so the screen never flashes the console. Leaving the player shows the
 welcome-back picture until the guide's first frame.
 
+### Two playlists, TiviMate style
+
+The guide shows both syndicated playlists one after another, each with its groups as rows: **fullent** (10
+curated groups: US Sports, News, Big Four Locals, Football, Basketball, Hockey, Baseball, Soccer, ESPN+, Live
+PPV Events) and then **Strong** (6: CBS Good, Ecuador, Sports, SEC Network+, NCAAF, Disney + PPV). Each is its
+own Skywave proxy login; tvnet fetches each separately and a failing one shows "couldn't reach" in its own
+header while the other still works. Strong's earlier HTTP 500 was transient (5/5 handshakes fine afterwards);
+Supabase's log API (old endpoint 410, new one has no edge-function tables) could not show why.
+
+### Rockchip's FFmpeg 4.1.3 is not stock 4.1
+
+`AVStream.codecpar` sits 8 bytes later than in stock 4.1 headers, and AVCodecParameters' width / height / SAR
+read as garbage; only codec_id is trustworthy. tvplay finds codecpar by checking codec_id at both offsets and
+takes size and aspect from MPP's decoded frame instead. Never write AVFormatContext fields directly; use options.
+
 ### Data on the cabinet
 
-`/data/tv/` (NAND, kept small, ~50 KB): `account.conf` (proxy URL, username, password; mode 600, never in git),
+`/data/tv/` (NAND, kept small, ~50 KB): `account.conf` (both proxies: name, URL, username, password; mode 600, never in git),
 the last curated category list and per-category channel lists (a copy for when the network is down),
 `dead.txt`. Logos and EPG: in RAM (/tmp/tv), refetched per boot. The SD card is not needed for TV; enabling the
 slot (a device-tree change in the boot image now on the cabinet, `de23d410…`, not the stock one) is a separate
@@ -140,8 +157,8 @@ project.
    list is from <time>", "That channel isn't on right now", "Your other device is using the account"),
    interlace blend, an on-screen clock.
 
-## Decisions for the user
+## Decided
 
-* The Syndication login from Skywave (Server URL, Username, Password) to put on the cabinet.
-* 1080p50/60 channels play at ~41-46 fps (720p and 24-30 fps content is perfect). Acceptable?
-* Where TV lives in Home: its own section (CLASSICS / THE YARD / TV / MORE) is the natural fit.
+* Logins: both syndicated proxies, read from Skywave's Supabase (never in git).
+* 1080p50/60 at ~41-46 fps: fine.
+* TV is its own Home tab: CLASSICS / THE YARD / TV / MORE.
