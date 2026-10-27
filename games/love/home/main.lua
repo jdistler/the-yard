@@ -119,7 +119,7 @@ else
   items[#items + 1] = {kind = "yard", section = 3, title = "YARD MENU", sub = "THE WHOLE YARD",
                        blurb = "Every Yard game, in its own menu.", tint = 0x7fe8ff}
   items[#items + 1] = {kind = "stock", section = 3, title = "ORIGINAL MENU", sub = "ARCADE1UP",
-                       blurb = "The cabinet's menu, as it came. Home is back at the next power-on.", tint = 0xff9c5a}
+                       blurb = "The menu as it came. On it, hold 1-PLAYER + 2-PLAYER to come back.", tint = 0xff9c5a}
 end
 
 -- The stock menu's settings: one byte per classic.

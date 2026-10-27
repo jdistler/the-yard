@@ -25,8 +25,26 @@ stock() {
   # Its 15 s intro video, skipped (as The Yard does): /dev/null over it until power-off.
   V=/usr/local/share/minigui/res/images/logo.mp4
   grep -q " $V " /proc/mounts || mount -o bind /dev/null "$V" 2>/dev/null
-  cd / && exec env -i PATH=/sbin:/usr/sbin:/bin:/usr/bin HOME=/ XDG_CONFIG_HOME=/userdata/ MG_CFG_PATH=/etc /usr/bin/game
+  if [ "$MODE" != boot ] || [ ! -x $H/holdwatch ]; then
+    cd / && exec env -i PATH=/sbin:/usr/sbin:/bin:/usr/bin HOME=/ XDG_CONFIG_HOME=/userdata/ MG_CFG_PATH=/etc /usr/bin/game
+  fi
+  # From Home at power-on: the menu runs beside holdwatch --back, and 1-player + 2-player held 3 s on its own
+  # screen (not in a game: there that is the stock reset) brings Home back. Its sound goes through dmix too, so
+  # the ticks can play over it.
+  ( cd / && exec env -i PATH=/sbin:/usr/sbin:/bin:/usr/bin HOME=/ XDG_CONFIG_HOME=/userdata/ MG_CFG_PATH=/etc \
+      ALSA_CONFIG_PATH=$H/alsa.conf /usr/bin/game ) </dev/null >/dev/null 2>&1 &
+  MENU=$!
+  ALSA_CONFIG_PATH=$H/alsa.conf $H/holdwatch --back $H/sfx </dev/null >/dev/null 2>&1
+  log "back to Home from the original menu"
+  for s in $(pidof start.sh); do
+    for d in /proc/[0-9]*; do [ "$(cut -d' ' -f4 $d/stat 2>/dev/null)" = "$s" ] && kill -9 ${d#/proc/} 2>/dev/null; done
+    kill -9 $s 2>/dev/null
+  done
+  kill -9 $MENU $(pidof game) $(pidof ffplay) 2>/dev/null
+  rm -f /tmp/.minigui_freeze
+  back_picture
 }
+
 # A stock game, as the stock menu's start.sh runs it (index, smoothing 0|1, speed 0|1). Index 10 is Dig Dug II:
 # start.sh's tile 10 now opens The Yard, so the emulator is run directly here.
 classic() {
@@ -107,7 +125,8 @@ while :; do
       ( cd /data/Games && YARD_STOCK_MENU=none ./yard ) ;;
     stock)
       [ "$MODE" = preview ] && exit 0
-      stock ;;
+      stock
+      continue ;;
     *) log "bad request: $WHAT" ;;
   esac
   RC=$?
