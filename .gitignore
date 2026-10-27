@@ -13,3 +13,5 @@ __pycache__/
 # Game build outputs; recreate with games/build.sh
 games/out/
 *.log
+# Boot images built from the cabinet's own kernel (vendor binary): never commit
+games/boot/out/
