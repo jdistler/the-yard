@@ -77,10 +77,16 @@ for _, g in ipairs(OURS) do
   items[#items + 1] = {kind = g.native and "native" or "cart", id = g.id, native = g.native, section = 2,
                        title = g.title, sub = "THE YARD", blurb = g.blurb, tint = g.tint}
 end
-items[#items + 1] = {kind = "yard", section = 3, title = "GPU YARD", sub = "THE WHOLE YARD",
-                     blurb = "Every Yard game, in its own menu.", tint = 0x7fe8ff}
-items[#items + 1] = {kind = "stock", section = 3, title = "ORIGINAL MENU", sub = "ARCADE1UP",
-                     blurb = "The cabinet's menu, as it came. Home is back at the next power-on.", tint = 0xff9c5a}
+-- HOME_MODE=preview (opened from a Yard row to try Home): the last card goes back to The Yard.
+if os.getenv("HOME_MODE") == "preview" then
+  items[#items + 1] = {kind = "stock", section = 3, title = "BACK TO THE YARD", sub = "HOME PREVIEW",
+                       blurb = "Home is a preview for now: this goes back to The Yard.", tint = 0xff9c5a}
+else
+  items[#items + 1] = {kind = "yard", section = 3, title = "GPU YARD", sub = "THE WHOLE YARD",
+                       blurb = "Every Yard game, in its own menu.", tint = 0x7fe8ff}
+  items[#items + 1] = {kind = "stock", section = 3, title = "ORIGINAL MENU", sub = "ARCADE1UP",
+                       blurb = "The cabinet's menu, as it came. Home is back at the next power-on.", tint = 0xff9c5a}
+end
 
 -- The stock menu's settings: one byte per classic.
 local function cfg_read(name)
@@ -138,6 +144,42 @@ local function neon(s, x, y, px, c, glow, align, width)
 end
 
 local function rrect(mode, x, y, w, h, r) lg.rectangle(mode, x, y, w, h, r, r, 16) end
+
+-- Neon labels painted once into a picture (glow included): drawing one is a single quad. Live neon() was 17
+-- prints a label, and Home ran at 48-55 fps on the cabinet (2026-10-27). All are painted in love.load, before
+-- the first frame (a canvas switch mid-frame is costly on the Mali).
+local neon_cache = {}
+local function neon_img(s, px, c, glow)
+  local key = s .. "|" .. px .. "|" .. c .. "|" .. (glow or 1)
+  local e = neon_cache[key]
+  if e then return e end
+  local f = font(px)
+  local pad = 10
+  local cw, ch = f:getWidth(s) + pad * 2, f:getHeight() + pad * 2
+  local cv = lg.newCanvas(math.max(1, cw), math.max(1, ch))
+  lg.push("all")
+  lg.origin()
+  lg.setCanvas(cv)
+  lg.clear(0, 0, 0, 0)
+  neon(s, pad, pad, px, c, glow, "left", cw)
+  lg.pop()
+  cv:setFilter("linear", "linear")
+  e = {img = cv, w = cw, h = ch, pad = pad}
+  neon_cache[key] = e
+  return e
+end
+-- Draw a painted label: like neon(s, x, y, ...) with align over width; sc scales it about its top left.
+local function neon_draw(s, x, y, px, c, glow, align, width, alpha, sc)
+  local e = neon_img(s, px, c, glow)
+  sc = sc or 1
+  local w = e.w * sc
+  local dx = align == "left" and 0 or align == "right" and (width - w + e.pad * sc * 2) or ((width or W) - w) / 2 + e.pad * sc
+  local a = alpha or 1
+  lg.setBlendMode("alpha", "premultiplied")
+  lg.setColor(a, a, a, a)
+  lg.draw(e.img, x + dx - e.pad * sc, y - e.pad * sc, 0, sc, sc)
+  lg.setBlendMode("alpha")
+end
 
 -- ------------------------------------------------------------------ sound: a tiny chiptune synth
 
@@ -319,8 +361,8 @@ end
 local function draw_marquee(alpha_k)
   local flick = (math.sin(t * 13) > 0.97) and 0.6 or 1
   lg.setColor(1, 1, 1, 1)
-  neon("PARTYCADE", 0, 34, 92, 0xff4fd8, 1.6 * flick * (alpha_k or 1))
-  neon("HOME", 0, 132, 26, 0x6ef0c8, 0.8)
+  neon_draw("PARTYCADE", 0, 34, 92, 0xff4fd8, 1.6, "center", W, flick * (alpha_k or 1))
+  neon_draw("HOME", 0, 132, 26, 0x6ef0c8, 0.8, "center", W)
 end
 
 local function draw_tabs(cur)
@@ -377,14 +419,36 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
     lg.rectangle("line", x + 12, y + 10, iw * s, ih * s)
     local tx = x + 24 + iw * s
     local px = math.floor(cw * 0.12)
-    neon(it.title, tx, cy - px * 0.75, px, it.tint, 1.2 * alpha, "center", x + cw - tx)
+    neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", x + cw - tx, alpha, px / 64)
+    lg.setFont(font(math.max(12, math.floor(cw * 0.034))))
+    lg.setColor(0.9, 0.88, 1, 0.85 * alpha)
+    lg.printf(it.blurb, tx + 8, cy + px * 0.55, x + cw - tx - 16, "center")
+  elseif it.id == "orb" then
+    -- Orb: the glowing well, rings shrinking into the dark, a pilot falling in.
+    local wx, wr = x + ch * 0.55, ch * 0.42
+    lg.setBlendMode("add")
+    for k = 0, 7 do
+      local ph = ((t * 0.5 + k / 8) % 1)
+      local rr = wr * (1 - ph)
+      lg.setColor(0.66, 0.55, 1, 0.35 * ph * alpha)
+      lg.setLineWidth(3)
+      lg.circle("line", wx, cy, rr, 48)
+    end
+    lg.setColor(0.6, 0.5, 1, 0.25 * alpha)
+    lg.circle("fill", wx, cy, wr * 0.25, 32)
+    lg.setBlendMode("alpha")
+    lg.setColor(1, 0.9, 0.5, alpha)
+    lg.circle("fill", wx + math.sin(t * 2) * wr * 0.3, cy + math.cos(t * 1.3) * wr * 0.3, 5, 12)
+    local tx = x + ch * 1.05
+    local px = math.floor(cw * 0.12)
+    neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", x + cw - tx, alpha, px / 64)
     lg.setFont(font(math.max(12, math.floor(cw * 0.034))))
     lg.setColor(0.9, 0.88, 1, 0.85 * alpha)
     lg.printf(it.blurb, tx + 8, cy + px * 0.55, x + cw - tx - 16, "center")
   else
     lg.setColor(1, 1, 1, alpha)
     local px = math.floor(cw * (#it.title > 9 and 0.11 or 0.15))
-    neon(it.title, x, cy - px * 0.62, px, it.tint, 1.2 * alpha, "center", cw)
+    neon_draw(it.title, x, cy - px * 0.62, 64, it.tint, 1.2, "center", cw, alpha, px / 64)
   end
   lg.setColor(r, g, b, (0.35 + 0.65 * focus) * alpha)
   lg.setLineWidth(focus > 0 and 3 or 2)
@@ -407,6 +471,8 @@ local function draw_carousel()
       local cw = 540 * (1 - math.min(a, 1.6) * 0.30)
       local cy = 505 + off * 225 * (1 - 0.18 * math.min(a, 1))
       local alpha = math.max(0, 1 - a * 0.42) * math.min(1, (1.9 - a) * 2)
+      -- Fade out before reaching the marquee and the tabs (a card scrolling up slid under them).
+      alpha = alpha * math.max(0, math.min(1, (cy - cw * 0.29 - 200) / 70))
       local focus = math.max(0, 1 - a * 2)
       if launch_item == it then cw = cw * (1 + 0.25 * math.min(1, launch_t / 0.5)) end
       draw_card(it, W / 2, cy, cw, focus, alpha)
@@ -422,7 +488,7 @@ local function draw_info()
   lg.setColor(rgb(it.tint, 0.8))
   lg.setLineWidth(2)
   rrect("line", 40, y, W - 80, 196, 24)
-  neon(it.title, 60, y + 14, 44, it.tint, 0.9, "left", W - 120)
+  neon_draw(it.title, 60, y + 14, 44, it.tint, 0.9, "left", W - 120)
   lg.setFont(font(20))
   lg.setColor(0.75, 0.7, 0.95, 1)
   lg.printf(it.sub, 60, y + 72, W - 120, "left")
@@ -491,7 +557,7 @@ local function draw_scene()
   if scene == "attract" then
     lg.setColor(0, 0, 0, 0.25)
     lg.rectangle("fill", 0, 780, W, H - 780)
-    neon("PRESS ANY BUTTON", 0, 860, 44, 0xffd23f, 0.6 + 0.4 * math.sin(t * 4))
+    neon_draw("PRESS ANY BUTTON", 0, 860, 44, 0xffd23f, 1, "center", W, 0.6 + 0.4 * math.sin(t * 4))
     draw_hint("12 CLASSICS  +  THE YARD", 930, false)
   else
     draw_info()
@@ -584,6 +650,15 @@ function love.load()
                 0.4 + math.random() * 0.6, math.random() < 0.15 and 3 or 2}
   end
   load_art()
+  -- Paint every label now (see neon_img).
+  neon_img("PARTYCADE", 92, 0xff4fd8, 1.6)
+  neon_img("HOME", 26, 0x6ef0c8, 0.8)
+  neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1)
+  for _, it in ipairs(items) do
+    neon_img(it.title, 64, it.tint, 1.2)
+    neon_img(it.title, 44, it.tint, 0.9)
+  end
+  lg.setCanvas()
   make_sounds()
   local returned = load_state()
   if returned and returned:match("failed") then
@@ -599,7 +674,13 @@ function love.load()
   log("home start, " .. #items .. " items, scene " .. scene)
 end
 
+local fps_t, fps_n = 0, 0
 function love.update(dt)
+  fps_t, fps_n = fps_t + dt, fps_n + 1
+  if fps_n == 300 then
+    log(string.format("frames: %.1f fps (%.2f ms), scene %s", fps_n / fps_t, fps_t / fps_n * 1000, scene))
+    fps_t, fps_n = 0, 0
+  end
   dt = math.min(dt, 0.1)
   t = t + dt
   frame = frame + 1

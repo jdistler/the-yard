@@ -608,7 +608,7 @@ def cmd_push(a):
     stage = tempfile.mkdtemp(prefix="cart-push-")
     print("1. Building for the cabinet")
     subprocess.check_call(["./build.sh", "cab"], cwd=HERE, stdout=subprocess.DEVNULL)
-    extra = [os.path.join(HERE, "love", "label", n) for n in ("loveprobe", "loveyard", "classic")]
+    extra = [os.path.join(HERE, "love", "label", n) for n in ("loveprobe", "loveyard", "classic", "homepreview")]
     extra.append(os.path.join(HERE, "sysprobe", "label", "sysprobe"))
     cmd_pack(argparse.Namespace(out=os.path.join(stage, "yard.pak.raw"), extra=extra))
     files = {}
@@ -621,6 +621,17 @@ def cmd_push(a):
     for n in ("loveyard", "loveprobe"):
         files[f"/data/Games/{n}"] = (os.path.join(HERE, "love", "loveprobe.sh"), False)
     files["/data/Games/yardnet"] = (os.path.join(HERE, "net", "yardnet.sh"), False)
+    # Partycade Home: the app, its loop, the Yard's preview row, and the classics' logo cards (cut from the stock
+    # menu's pictures on the PC by tools/home_art.py from the rootfs dump; they never go into git).
+    files["/data/home/home.love"] = (home_pack(os.path.join(stage, "home.love")), False)
+    files["/data/home/homeloop"] = (os.path.join(HERE, "love", "home", "homeloop.sh"), False)
+    files["/data/Games/homepreview"] = (os.path.join(HERE, "love", "home", "homepreview.sh"), False)
+    art = os.path.join(HERE, "out", "home-art")
+    if not os.path.isdir(art):
+        rootfs = os.path.expanduser("~/partycade-dumps/2026-10-23_raw_plug3032slc/rootfs")
+        subprocess.check_call([sys.executable, os.path.join(ROOT, "tools", "home_art.py"), rootfs, art])
+    for f in sorted(os.listdir(art)):
+        files[f"/data/home/art/{f}"] = (os.path.join(art, f), False)
     for extra_file in a.also or []:
         src, dst = extra_file.split(":", 1)
         files[dst] = (os.path.abspath(src), False)
@@ -643,8 +654,9 @@ def cmd_push(a):
             how = f"dd if={tmp} of={dst} bs=65536 conv=notrunc,fsync 2>/dev/null"
         else:
             # A new file renamed over the old one: a running script (yardnet) keeps reading its old copy.
-            mode = "644" if dst.endswith((".love", ".pak", ".keys", ".txt", ".conf")) else "755"
-            how = f"cp {tmp} {dst}.new && chmod {mode} {dst}.new && mv -f {dst}.new {dst}"
+            mode = "644" if dst.endswith((".love", ".pak", ".keys", ".txt", ".conf", ".png")) else "755"
+            how = (f"mkdir -p {os.path.dirname(dst)} && cp {tmp} {dst}.new && chmod {mode} {dst}.new && "
+                   f"mv -f {dst}.new {dst}")
         r = ssh(f"[ \"$(sha256sum {tmp} | cut -d' ' -f1)\" = {want} ] && {how} && sync && rm -f {tmp} && sha256sum {dst}")
         if want not in r.stdout:
             die(f"{dst}: the copy did not check out ({r.stdout.strip()} {r.stderr.strip()})")
