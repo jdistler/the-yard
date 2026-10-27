@@ -15,6 +15,7 @@ built-in player the attract mode uses), and a CAB_SCRIPT presses the deck's butt
 where a test needs exact presses. Pictures land in out/play/ and out/stress/.
 """
 import os
+import re
 import shutil
 import struct
 import subprocess
@@ -673,7 +674,11 @@ def system():
     def gpu_first(code):
         open(os.path.join(nd, "loveyard"), "w").write(f"#!/bin/sh\necho ran >> {nd}/ran\nexit {code}\n")
         os.chmod(os.path.join(nd, "loveyard"), 0o755)
-        return run_sup({"YARD_NATIVE_DIR": nd, "YARD_GPU_FAILED": failed}, wait=20, keep_running=True)
+        return run_sup({"YARD_NATIVE_DIR": nd, "YARD_GPU_FAILED": failed, "YARD_STOCK_FREEZE": freeze},
+                       wait=20, keep_running=True)
+    # The stock menu leaves this file when it is stopped mid-game; a menu started with it there stays black.
+    freeze = os.path.join(sup, "minigui_freeze")
+    open(freeze, "w").close()
     for f in os.listdir(sup):
         if f.endswith(".sav"):
             os.remove(os.path.join(sup, f))
@@ -684,6 +689,8 @@ def system():
     check("GPU yard returned 0" in log_text and "start the menu" not in log_text and "stopped the stock menu" in log_text
           and len(now) == 1 and now[0] != first.pid,
           "supervisor: The Yard opens on GPU yard, and leaving it leaves The Yard (stock menu back)")
+    check(not os.path.exists(freeze) and "leftover" in log_text,
+          "supervisor: the stock menu's leftover freeze file is removed before it starts again (else it stays black)")
     stop_fakes()
     log_text = gpu_first(10)
     check("GPU yard returned 10" in log_text and "classic Yard was asked for" in log_text and "start the menu" in log_text
@@ -927,6 +934,62 @@ def love():
     _, k_err = run("yard", k_dir, sc, dict(base, YARD_CARTS=lc, CAB_MAX_FRAMES="600"), timeout=180)
     check("yard open loveyard" in k_err and "classic" not in k_err.split("yard open")[-1][:20],
           "classic menu: the last row is 'GPU yard', and 'Classic yard' is not shown")
+    # 5. Outlined labels painted inside a clip (the menu's row titles) hold their text. 2026-10-27: the clip
+    # carried onto the label's canvas, nothing was painted, and the cabinet showed magenta blocks.
+    # The list clips only with more rows than fit, as on the cabinet (its test rows): every cart and label.
+    d_dir, rows_dir = tmpdir(), tmpdir()
+    for base_dir in (os.path.join(HERE, "carts"), os.path.join(HERE, "love", "label")):
+        for n in os.listdir(base_dir):
+            if os.path.isfile(os.path.join(base_dir, n, "info.lua")) and not os.path.exists(os.path.join(rows_dir, n)):
+                shutil.copytree(os.path.join(base_dir, n), os.path.join(rows_dir, n))
+    _, err = run("love", d_dir, "title=The Yard\n60 quit\n", dict(lenv, YARD_LABEL_DEBUG="1", YARD_CARTS=rows_dir),
+                 args=(yl,), timeout=300, binary=LOVE_RUN)
+    painted = re.findall(r'label "([^"]+)" \d+x\d+ covered (\d+) of', err)
+    rows = [n for n, c in painted if n in ("Keep", "Lamp", "Tea", "Chest")]
+    empty = [n for n, c in painted if int(c) == 0]
+    check(len(rows) >= 3 and not empty,
+          f"GPU menu: every outlined label holds its text, row titles in the clip too ({len(painted)} painted, empty: {empty})")
+
+
+# ---------------------------------------------------------------------------- home
+
+def home():
+    say("== home: Partycade Home's choices (headless, scripted)")
+    if not os.path.exists(LOVE_RUN):
+        say("  skip: no out/love-x86 (games/love/build.sh x86)")
+        return
+    d = tmpdir()
+    hl = os.path.join(d, "home.love")
+    subprocess.run([os.path.join(HERE, "cart"), "home-pack", "--out", hl], check=True, capture_output=True)
+
+    def home_run(lines, mode=None):
+        w = tmpdir()
+        sc = os.path.join(w, "script")
+        # Frames, uncapped (~600/s on the PC): a launch writes its request after a 0.6 s flash.
+        last = max(int(l.split()[0]) for l in lines)
+        open(sc, "w").write("\n".join(lines + [f"{last + 2000} quit"]) + "\n")
+        env = dict(os.environ, SDL_AUDIODRIVER="dummy", SDL_VIDEODRIVER="offscreen", ALSOFT_DRIVERS="null",
+                   HOME_HEADLESS="1", HOME_SKIP_INTRO="1", HOME_SCRIPT=sc, HOME_REQ=os.path.join(w, "req"),
+                   HOME_STATE=os.path.join(w, "state"), HOME_LOG=os.path.join(w, "log"),
+                   HOME_GAMES=os.path.join(w, "games"), HOME_ART=os.path.join(w, "art"))
+        if mode:
+            env["HOME_MODE"] = mode
+        r = subprocess.run([LOVE_RUN, hl], cwd=w, env=env, capture_output=True, text=True, timeout=120)
+        if os.environ.get("HOME_TEST_DEBUG"):
+            say(r.stdout + r.stderr + (read(w, "log") or ""))
+        return (read(w, "req") or "").strip()
+
+    req = home_run(["30 press low"])
+    check(req.startswith("classic 0 "), f"Home: the lower button on the first card asks for Pac-Man ({req!r})")
+    req = home_run(["30 press 1p"])
+    check(req.startswith("classic 0 "), f"Home: a 1-player tap starts the game too ({req!r})")
+    # Headless runs uncapped (~600 fps on the PC) and the hold is in seconds: 1500 frames is over a second.
+    req = home_run(["30 down 1p", "33 down 2p", "1500 up 1p", "1500 up 2p"], mode="preview")
+    check(req == "yard", f"Home preview: holding 1P + 2P goes back to The Yard and starts nothing ({req!r})")
+    req = home_run(["30 down 1p", "33 down 2p", "45 up 2p", "46 up 1p"], mode="preview")
+    check(req == "", f"Home preview: a short 1P + 2P press does nothing ({req!r})")
+    req = home_run(["30 down 1p", "33 down 2p", "1500 up 1p", "1500 up 2p"])
+    check(req == "", f"Home at power-on: the 1P + 2P hold does not leave the front end ({req!r})")
 
 
 def main():
@@ -942,6 +1005,8 @@ def main():
         system()
     if which in ("love", "all"):
         love()
+    if which in ("home", "all"):
+        home()
     say(f"== {passes} passed, {len(failures)} failed ==")
     for f in failures:
         say(f"  FAIL {f}")

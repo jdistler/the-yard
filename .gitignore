@@ -15,3 +15,5 @@ games/out/
 *.log
 # Boot images built from the cabinet's own kernel (vendor binary): never commit
 games/boot/out/
+tools/cabview/out/
+captures/screen/

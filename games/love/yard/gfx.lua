@@ -462,6 +462,20 @@ local function laid_out(f, s)
   return t
 end
 
+-- A new canvas, made with no scissor set. LÖVE keeps the scissor (api.clip) across canvas switches, and its
+-- clear of a new canvas obeys it; made inside a clip, a canvas kept whatever the GPU memory held (2026-10-27,
+-- on the cabinet: magenta blocks for the menu's row titles, which are drawn inside the list's clip; on the PC
+-- the memory was zero, so the titles were only missing).
+local function new_canvas(w, h, opts)
+  local sx, sy, sw, sh = lg.getScissor()
+  if sx then lg.setScissor() end
+  local ok, c = pcall(lg.newCanvas, w, h, opts)
+  if sx then lg.setScissor(sx, sy, sw, sh) end
+  if not ok then error(c, 0) end
+  return c
+end
+G.new_canvas = new_canvas
+
 -- Outlined labels as pictures: an outlined label is nine prints, each laid out again every frame (42% of the
 -- menu's CPU time on the cabinet, 2026-10-26). Painted once into a small canvas, it is one quad after that.
 -- Kept per font, string, colors; the least recently used go past LABEL_KEEP. A frame paints at most
@@ -495,9 +509,10 @@ local function label(f, s, size, color, outline, k)
   local pad = math.ceil((r + 1) * k)
   local cw, ch = math.ceil(f:getWidth(s)) + 2 * pad, math.ceil(f:getHeight()) + 2 * pad + dy
   if cw > 2048 or ch > 2048 or cw < 1 then return nil end
-  local c = lg.newCanvas(cw, ch)
+  local c = new_canvas(cw, ch)
   lg.push("all")
   lg.origin()
+  lg.setScissor()   -- the label is often made inside a clip (the menu's list); pop restores it
   lg.setCanvas(c)
   lg.clear(0, 0, 0, 0)
   lg.setBlendMode("alpha")
@@ -511,6 +526,19 @@ local function label(f, s, size, color, outline, k)
   lg.print(s, pad, pad)
   lg.pop()
   blend_unknown()
+  if G.label_debug then
+    -- Read the label back: how many pixels the paint covered, and the corner pixel (should be 0,0,0,0).
+    local d = c:newImageData()
+    local cover = 0
+    for yy = 0, ch - 1, 2 do for xx = 0, cw - 1, 2 do
+      local _, _, _, a = d:getPixel(xx, yy)
+      if a > 0 then cover = cover + 1 end
+    end end
+    local r0, g0, b0, a0 = d:getPixel(0, 0)
+    G.log(string.format("label %q %dx%d covered %d of %d, corner %.2f %.2f %.2f %.2f, canvas %s",
+      s, cw, ch, cover, math.ceil(cw / 2) * math.ceil(ch / 2), r0, g0, b0, a0, tostring(lg.getCanvas())))
+    d:release()
+  end
   byf[key] = {c, pad, label_tick}
   nlabels = nlabels + 1
   return c, pad
@@ -629,6 +657,7 @@ function Img:h() return self.lh end
 function Img:paint(fn, color)
   if not self.canvas then error("only a layer can be painted into", 2) end
   local keep, keep_k, kx, ky = target, target_k, offx, offy
+  local sx, sy, sw, sh = lg.getScissor()
   offx, offy = 0, 0
   set_target(self.canvas, self.k)
   if color then
@@ -640,6 +669,7 @@ function Img:paint(fn, color)
   local ok, err = pcall(fn)
   offx, offy = kx, ky
   set_target(keep, keep_k)
+  if sx then lg.setScissor(sx, sy, sw, sh) end   -- a paint inside a clip keeps the clip
   if not ok then error(err, 0) end
 end
 
@@ -665,7 +695,7 @@ function api.layer(w, h)
   local k = K
   local cw, ch = math.ceil(w * k), math.ceil(h * k)
   if cw > 2048 or ch > 2048 then k = 2048 / math.max(w, h) cw, ch = math.ceil(w * k), math.ceil(h * k) end
-  local c = lg.newCanvas(cw, ch)
+  local c = new_canvas(cw, ch)
   local t = new_img({canvas = c, lw = w, lh = h, k = k})
   count(t, w * h * 4, cw * ch * 4)
   return t
@@ -774,7 +804,7 @@ local lc, lm, lt, lx, ly, lw, lh, l_amb
 local queue, nq = {}, 0
 local function small_canvas(c, w, h)
   if c and c:getWidth() == w and c:getHeight() == h then return c end
-  c = lg.newCanvas(w, h)
+  c = new_canvas(w, h)
   c:setFilter("linear", "linear")
   return c
 end

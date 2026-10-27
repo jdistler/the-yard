@@ -775,6 +775,8 @@ function love.run()
     gfx.stadium_lines = opt("YARD_STADIUM") ~= "0"
     gfx.seg_k = tonumber(opt("YARD_SEG_K") or "")
     gfx.label_cache = opt("YARD_LABELS") ~= "0"
+    gfx.label_debug = os.getenv("YARD_LABEL_DEBUG") == "1"
+    gfx.log = log
     gfx.early_lights = opt("YARD_EARLY_LIGHTS") ~= "0"
     gfx.direct = gfx.direct_test or ((opt("YARD_DIRECT") or (input.scripted() and "0" or "1")) == "1" and not headless)
     gfx.load_font(0, love.filesystem.newFileData("fonts/Fredoka-SemiBold.ttf"))

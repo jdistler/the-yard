@@ -14,6 +14,7 @@
                 [--with-sysprobe]                 ... plus the read-only "System probe" row (FIELD_TASKS.md)
   ./cart love [ID]                                play on LÖVE, the GPU runtime (games/love/build.sh x86 first)
   ./cart love-pack [--out FILE]                   build yard.love: the LÖVE runtime, library, and font
+  ./cart home-pack [--out FILE]                   build home.love: Partycade Home (games/love/home)
 
 A cart is a folder in carts/: info.lua (the label: title, blurb, icon, stat) and main.lua (the game),
 plus any other .lua it imports, .png pictures, and .txt data. CARTS.md is the API. GAMEDEV.md the rules.
@@ -436,6 +437,10 @@ def cmd_love_pack(a):
     print(love_pack(a.out))
 
 
+def cmd_home_pack(a):
+    print(home_pack(a.out))
+
+
 def cmd_love(a):
     if not os.path.exists(LOVE_X86):
         die("build LÖVE for this PC first: games/love/build.sh x86")
@@ -692,6 +697,8 @@ def main():
     p.add_argument("--out")
     p = sub.add_parser("love-pack")
     p.add_argument("--out")
+    p = sub.add_parser("home-pack")
+    p.add_argument("--out")
     p = sub.add_parser("love")
     p.add_argument("id", nargs="?")
     p = sub.add_parser("push", help="install over Wi-Fi (SSH), no Mask ROM")
@@ -722,7 +729,8 @@ def main():
                    help="pass --repair to data_patch.py (fixes a power-cut dirty data filesystem copy before editing)")
     a = ap.parse_args()
     {"new": cmd_new, "list": cmd_list, "run": cmd_run, "check": cmd_check, "shots": cmd_shots, "perf": cmd_perf,
-     "pack": cmd_pack, "deploy": cmd_deploy, "push": cmd_push, "love-pack": cmd_love_pack, "love": cmd_love}[a.cmd](a)
+     "pack": cmd_pack, "deploy": cmd_deploy, "push": cmd_push, "love-pack": cmd_love_pack, "home-pack": cmd_home_pack,
+     "love": cmd_love}[a.cmd](a)
 
 
 if __name__ == "__main__":

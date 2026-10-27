@@ -244,15 +244,32 @@ local JOY = {[1] = "low", [2] = "tl", [4] = "tr", [7] = "1p", [8] = "2p", [16] =
              [19] = "down"}
 local KEYS = {up = "up", down = "down", left = "left", right = "right", z = "low", x = "tl", c = "tr",
               ["1"] = "1p", ["2"] = "2p", ["return"] = "low", space = "low"}
-local pressed_q = {}
+-- Holding 1-player + 2-player for a second leaves the preview (The Yard's convention, with its meter), so 1P
+-- launches on release, and only when 2P was not pressed with it.
+local PREVIEW = os.getenv("HOME_MODE") == "preview"
+local HOLD_SECS = 1
+local pressed_q, down, both_seen, hold_t = {}, {}, false, 0
 local function press(name) pressed_q[#pressed_q + 1] = name end
-function love.joystickpressed(_, b) if JOY[b] then press(JOY[b]) end end
+local function control_down(name)
+  down[name] = true
+  if (name == "1p" and down["2p"]) or (name == "2p" and down["1p"]) then both_seen = true end
+  if name ~= "1p" and name ~= "2p" then press(name) end
+end
+local function control_up(name)
+  down[name] = nil
+  if name == "1p" and not both_seen then press("1p") end
+  if not down["1p"] and not down["2p"] then both_seen = false end
+end
+function love.joystickpressed(_, b) if JOY[b] then control_down(JOY[b]) end end
+function love.joystickreleased(_, b) if JOY[b] then control_up(JOY[b]) end end
 function love.keypressed(k)
   if k == "escape" then love.event.quit(0) end
-  if KEYS[k] then press(KEYS[k]) end
+  if KEYS[k] then control_down(KEYS[k]) end
 end
+function love.keyreleased(k) if KEYS[k] then control_up(KEYS[k]) end end
 
--- HOME_SCRIPT (tests): lines "<frame> press NAME", "<frame> shot PATH", "<frame> quit".
+-- HOME_SCRIPT (tests): lines "<frame> press NAME", "<frame> down NAME", "<frame> up NAME", "<frame> shot PATH",
+-- "<frame> quit".
 local script = {}
 do
   local s = os.getenv("HOME_SCRIPT") and read_file(os.getenv("HOME_SCRIPT"))
@@ -421,7 +438,7 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
     local px = math.floor(cw * 0.12)
     neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", x + cw - tx, alpha, px / 64)
     lg.setFont(font(math.max(12, math.floor(cw * 0.034))))
-    lg.setColor(0.9, 0.88, 1, 0.85 * alpha)
+    lg.setColor(0.9, 0.88, 1, 0.85 * alpha * focus)   -- the chosen card only: the panel below repeats it
     lg.printf(it.blurb, tx + 8, cy + px * 0.55, x + cw - tx - 16, "center")
   elseif it.id == "orb" then
     -- Orb: the glowing well, rings shrinking into the dark, a pilot falling in.
@@ -443,7 +460,7 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
     local px = math.floor(cw * 0.12)
     neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", x + cw - tx, alpha, px / 64)
     lg.setFont(font(math.max(12, math.floor(cw * 0.034))))
-    lg.setColor(0.9, 0.88, 1, 0.85 * alpha)
+    lg.setColor(0.9, 0.88, 1, 0.85 * alpha * focus)   -- the chosen card only: the panel below repeats it
     lg.printf(it.blurb, tx + 8, cy + px * 0.55, x + cw - tx - 16, "center")
   else
     lg.setColor(1, 1, 1, alpha)
@@ -470,7 +487,7 @@ local function draw_carousel()
     if a < 1.9 then
       local cw = 540 * (1 - math.min(a, 1.6) * 0.30)
       local cy = 505 + off * 225 * (1 - 0.18 * math.min(a, 1))
-      local alpha = math.max(0, 1 - a * 0.42) * math.min(1, (1.9 - a) * 2)
+      local alpha = math.max(0, 1 - a * 0.5) * math.min(1, (1.9 - a) * 2)
       -- Fade out before reaching the marquee and the tabs (a card scrolling up slid under them).
       alpha = alpha * math.max(0, math.min(1, (cy - cw * 0.29 - 200) / 70))
       local focus = math.max(0, 1 - a * 2)
@@ -534,6 +551,23 @@ local function draw_note()
   lg.printf(note, 70, 256, W - 140, "center")
 end
 
+-- The hold meter, as The Yard draws it: a panel in the middle, a bar filling over the hold.
+local function draw_hold()
+  if hold_t <= 0 then return end
+  local k = math.min(1, hold_t / HOLD_SECS)
+  local bw, bh = W * 3 / 4, 110
+  local bx, by = (W - bw) / 2, H / 2 - bh / 2
+  lg.setColor(8 / 255, 6 / 255, 16 / 255, 0.9)
+  rrect("fill", bx - 6, by - 6, bw + 12, bh + 12, 24)
+  lg.setColor(40 / 255, 34 / 255, 64 / 255, 0.95)
+  rrect("fill", bx, by, bw, bh, 20)
+  lg.setColor(1, 200 / 255, 90 / 255)
+  rrect("fill", bx + 10, by + bh - 34, (bw - 20) * k, 24, 10)
+  lg.setColor(1, 246 / 255, 234 / 255)
+  lg.setFont(font(40))
+  lg.printf("back to The Yard...", bx, by + 12, bw, "center")
+end
+
 local function draw_scene()
   draw_background()
   if scene == "intro" then
@@ -564,6 +598,7 @@ local function draw_scene()
     draw_hint("STICK  up/down choose  ·  left/right section  ·  LOWER BUTTON play", 1000 - 2, false)
   end
   draw_note()
+  draw_hold()
   if launch_item then
     lg.setColor(1, 1, 1, math.max(0, math.min(1, (launch_t - 0.25) / 0.3)))
     lg.rectangle("fill", 0, 0, W, H)
@@ -686,13 +721,22 @@ function love.update(dt)
   frame = frame + 1
   for _, c in ipairs(script) do
     if c[1] == frame then
-      if c[2] == "press" then press(c[3])
+      if c[2] == "press" then control_down(c[3]) control_up(c[3])
+      elseif c[2] == "down" then control_down(c[3])
+      elseif c[2] == "up" then control_up(c[3])
       elseif c[2] == "shot" then shot_req = c[3]
       elseif c[2] == "quit" then love.event.quit(0) end
     end
   end
   for _, n in ipairs(pressed_q) do handle(n) end
   pressed_q = {}
+  if PREVIEW and down["1p"] and down["2p"] and not launch_item then
+    hold_t = hold_t + dt
+    idle = 0
+    if hold_t >= HOLD_SECS then hold_t = 0 request("yard") end
+  else
+    hold_t = 0
+  end
   if scene == "intro" then
     intro_t = intro_t + dt
     if intro_t > 2.4 then scene = "menu" end

@@ -1326,10 +1326,19 @@ static void skip_stock_intro(void)
 #endif
 }
 
+/* The stock menu touches /tmp/.minigui_freeze before it runs a game and removes it when the game returns;
+ * while the file exists, its MiniGUI draws nothing. Stopped mid-game (GPU yard frees its memory), it leaves
+ * the file behind, and a menu started again stays black while it still takes input and plays its sounds
+ * (found 2026-10-27 with tools/cabview: the scanned-out buffer was all zero until the file went). */
 static void stock_menu_start(const char *path)
 {
     pid_t pid;
+    const char *freeze = getenv("YARD_STOCK_FREEZE"); /* tests */
+    if (!freeze || !freeze[0])
+        freeze = "/tmp/.minigui_freeze";
     skip_stock_intro();
+    if (unlink(freeze) == 0)
+        cab_log("yard: removed the stock menu's leftover %s", freeze);
     pid = fork();
     if (pid == 0) {
         /* As S50ui starts it: its own session, from /, with its two settings and nothing of ours. */

@@ -134,6 +134,18 @@ From `captures/system/` (the rootfs's scripts and rules), `captures/sysprobe/bef
 * **Graphics leak:** each time a process quits SDL and starts it again (`SDL_Quit` then `SDL_Init` with KMSDRM on `libmali`), 6,144 KiB of DRM GEM shared memory stays allocated until the process exits (two 1024×768×4 buffers; `Shmem` grew to 43 MB). A process that exits gives it all back.
 * **Display:** KMSDRM, 1024×768 at 60 Hz, format XRGB8888 (`0x16362004`), renderer `opengles2` with 4096 textures. One joystick, `uart-keys`: 21 buttons, no axes or hats. Audio: ALSA at 44.1 kHz.
 
+## The stock menu's freeze file, and its exits (2026-10-27, seen on the screen)
+
+* `/usr/bin/game` runs a game as `touch /tmp/.minigui_freeze; /data/start.sh N S F; rm /tmp/.minigui_freeze`
+  (its strings). While the file exists, its MiniGUI (`gal_engine=shadow` over `drmcon`) draws nothing; input and
+  sounds still work. A menu killed during a game leaves the file, and the next menu stays black.
+* The menu draws with three DRM dumb buffers of its own; `/dev/fb0` (the kernel console's "LOADING...") shows only
+  when no program holds the display.
+* After a fresh start: the intro video (15 s), then a copyright page, then the menu. Presses before the menu
+  are lost. The lower button (A) opens a game's controls page; 1-player there starts it.
+* The controls page: "Hold 1P (5 seconds) to return to menu and to save a high score; hold 1P+2P (5 seconds)
+  to reset game."
+
 ## Stock menu input, by injection (2026-10-26, over SSH)
 
 The stock menu `/usr/bin/game` reads `/dev/input/event0` (`uart-keys`). Writing `struct input_event` records

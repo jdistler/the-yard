@@ -14,6 +14,7 @@ FAILS=0
 log() { echo "$(cut -d' ' -f1 /proc/uptime) $*" >> "$LOG"; }
 stock() {
   log "the original menu"
+  rm -f /tmp/.minigui_freeze   # left by a menu killed mid-game, it keeps a new one from drawing
   cd / && exec env -i PATH=/sbin:/usr/sbin:/bin:/usr/bin HOME=/ XDG_CONFIG_HOME=/userdata/ MG_CFG_PATH=/etc /usr/bin/game
 }
 # A stock game, as the stock menu's start.sh runs it (index, smoothing 0|1, speed 0|1). Index 10 is Dig Dug II:
