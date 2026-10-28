@@ -552,3 +552,25 @@ No Mask ROM writes after the 10-block key write; everything below was installed 
   `df00e303…a04b` (U-Boot's logo.bmp pixels), then `de23d410…b5c3` (also the kernel's compiled-in logo: the
   white "LOADING..." the boot film still showed at 2.7 s came from the kernel, a CLUT224 `linux_logo` 40x264;
   `tools/kernel_logo.py`). Both booted normally (healthy at 66 s); the boot film's first frame is now pink.
+
+## 2026-10-27 (evening): the SD-slot boot write, and the cabinet stopped starting
+
+* Image: `games/boot/out/boot-yard-sd.img`, sha256 `a890eb2f922dc1a83db75e5b82919bd80cea708d1da2e81228ce2d23c1ba7ce6`.
+  `boot-yard-klogo.img` (`de23d410…b5c3`, the image on the cabinet before) with `enable_storage.py patch --which sd`
+  (`/dwmmc@10214000` status `disabled` -> `okay`, 8 bytes at 0x46f000) and the header ID recomputed; nothing else
+  differs. The user had asked for the SD card to be unlocked.
+* Written over Wi-Fi with `tools/ota_boot.sh write … de23d410…`: read-back matched, then reboot (~21:45 UTC).
+* **The cabinet never came back.** No SSH, not in the Omada client list. The user: with the switch ON, the screen
+  stays completely dark, **no backlight**, with or without the SD card (the card had contents from SDCARD.md's
+  steps). No backlight means it stops before U-Boot's logo: most likely U-Boot (which can use the kernel's device
+  tree from the resource image) hangs bringing up the newly enabled dw-mmc controller. Unverified: no UART.
+* The kernel tree's SD pins (GPIO1_B7, C0, C2–C5, function 1) overlap only uart2 (disabled). No other node uses
+  them; the board's real wiring of those pads is unknown.
+* **Mask ROM does not enumerate.** Cold plug as INTERFACING_AND_MODES.md (12V out, USB out, switch OFF, 12V in,
+  USB in), several times, the user's known-good cable and port: the PC's kernel log shows **no USB event at all**
+  (watched live with `dmesg -w`), not even a descriptor error. PC ports all enabled, no over-current. Mask ROM runs
+  from the SoC's ROM with pins reset, so a flash change alone should not stop it; unexplained so far.
+* Open: board LEDs with USB in? another cable? Next: UART console (U-Boot, 115200, pads in the shield), or path D
+  (external SPI NAND programmer, RECOVERY.md) to put back `de23d410…` / the dumps.
+* Lesson: a boot-tree change that U-Boot also reads must be tested for its U-Boot effect (or with a UART attached)
+  before writing; the OTA path has no fallback below the kernel.
