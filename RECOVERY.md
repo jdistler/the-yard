@@ -141,6 +141,17 @@ Some Rockchip U-Boot rockusb builds return `0xCC` for reads past 32 MB (`RKUSB_R
 
 The factory U-Boot boots a Rockchip-format microSD first (RUNBOOK.md Phase 4). If U-Boot works but the rest of the flash doesn't, a card made from `logical_rebuilt.img` brings the cabinet up from the card. That gives a working Linux to diagnose from. It doesn't restore the NAND by itself. Whether the RK3032 BootROM can boot an SD card directly (with the NAND boot block dead) is unknown.
 
+### Path E: U-Boot's serial console through the microSD slot (verified 2026-11-01, the first one to try)
+
+If U-Boot runs but Linux does not start (dark screen, no backlight, no Wi-Fi), U-Boot's console is reachable with
+the shield on: a microSD test/sniffer board in the card slot, wired to a 3.3 V USB-serial adapter: board GND → GND,
+board D1 → adapter RXD, board D0 → adapter TXD; 115200 8N1. `tools/cabconsole.py` logs it and sends text written to
+its `.in` FIFO. Board needs 12V (barrel fully in) and the **front power switch ON**; slide switch ON. A failed boot
+ends at the `=>` prompt (Ctrl+C at power-on also stops autoboot). From there: `rksfc read ADDR LBA COUNT` into RAM
+(0x62000000 is free), compare with `crc32`, fix with `mw.b`, `rksfc write ADDR LBA COUNT` only the sectors that
+differ (written approval of that sector list), read back and `crc32`, then `reset`. Writes go through U-Boot's own
+SFTL, so no map or block-list work. Worked example: BOOT_RESEARCH.md 2026-11-01.
+
 ### Path D: external SPI NAND programmer (for Mask ROM failure or a dead chip)
 
 * Chip: Winbond **W25N01GV**, 3.3 V SPI NAND. Check the package on the board: WSON-8 (8×6 mm) is the usual one, SOIC-16 is possible. A clip rarely works on WSON, so plan on hot-air removal and a WSON-8 socket adapter.

@@ -574,3 +574,29 @@ No Mask ROM writes after the 10-block key write; everything below was installed 
   (external SPI NAND programmer, RECOVERY.md) to put back `de23d410…` / the dumps.
 * Lesson: a boot-tree change that U-Boot also reads must be tested for its U-Boot effect (or with a UART attached)
   before writing; the OTA path has no fallback below the kernel.
+
+## 2026-11-01: recovered over U-Boot's serial console (cause: a stale DTB hash, not the SD slot)
+
+* **Cause (verified, console log):** U-Boot printed `Found DTB in boot part` / `DTB: rk-kernel.dtb` / **`Get a bad hash
+  of DTB !`**, then `Failed to load android image`, fell through every boot target (rknand, pxe) and stopped at the
+  `=>` prompt. The Rockchip resource image keeps a hash per entry; `enable_storage.py` changed rk-kernel.dtb's bytes
+  (and `boot-yard-sd.img` got a new header ID) but not that entry hash. The SD controller itself was never reached.
+  The dark screen was U-Boot at its prompt (it never enabled the panel). **Fix before any new DTB change:**
+  `enable_storage.py` must recompute the resource entry's hash, and the image must pass a U-Boot-style check offline.
+* **The console is on the microSD slot (verified):** uart2 (U-Boot's console, 115200 8N1, 3.3 V) shares the slot's
+  pins. A microSD test board ("PinQiongZhe Micro SD Card Test Board") in the slot, wired to an FTDI FT232R
+  (DSD TECH SH-U09C2, 3V3 jumper, TXD/RXD loopback jumper removed): **board GND → GND, board D1 → RXD, board
+  D0 → TXD** (the first try, D0 → RXD, was silent). `tools/cabconsole.py` logs it and takes typed input through a
+  FIFO. The shield stays on, no soldering.
+* **Repair, all from the `=>` prompt (user approved in writing: "approved, write sectors 0x801 and 0x2B78"):**
+  `rksfc read 0x62000000 0x800 0x2400`, `crc32` = d650cd72 (the sd image, as expected); 28 `mw.b` putting back
+  the klogo image's bytes (ID at 0x240..0x253, DT status at 0x46f000..0x46f007); `crc32` = 40131ba5 (= klogo);
+  `rksfc write 0x62000200 0x801 1` and `rksfc write 0x6246f000 0x2b78 1` (both "1 blocks written: OK"); a full
+  read-back's `crc32` = 40131ba5; `reset`: `HASH: OK(s)`, `Starting kernel ...`, PARTYCADE logo and Home on the
+  screen. The boot partition is `de23d410…b5c3` again. Writes went through U-Boot's own SFTL (5.0.55, the factory's).
+* Useful U-Boot commands here: `rksfc part 0` / `part list spinand 0` (boot = LBA 0x800..0x2bff), `rksfc read|write`,
+  `crc32`, `md`, `mw`, `download` (rockusb/bootrom), `ums` (fails: "Not found usb_otg device" with U-Boot's own tree).
+* **Also found on the way:** the board (GBX82A-V01, 2021_05_07; not GBX70) needs the **front power switch ON** to
+  run at all: its TPS54335 12V→5V buck is off otherwise, and USB VBUS does **not** back-power it (the old notes said
+  it did). The barrel plug can sit loose and power nothing. Mask ROM never enumerated in any attempt (unexplained:
+  some attempts had no power, but not all); the console path made it unnecessary.
