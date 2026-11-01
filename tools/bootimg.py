@@ -9,6 +9,8 @@ Rockchip resource image ("second": the device tree and U-Boot's logo.bmp), and n
   bootimg.py logo IMG BMP OUT                 IMG with U-Boot's logo.bmp pixels replaced by BMP's (same header:
                                               the resource image's layout does not move); the ID recomputed
   bootimg.py logocheck ORIG NEW               NEW differs from ORIG only in logo.bmp's pixels and the ID
+  bootimg.py verify IMG                       the checks U-Boot makes before starting the kernel (header ID,
+                                              each resource file's hash): run it on every image before writing
 
 U-Boot (2017.09, Rockchip) loads the ramdisk at ramdisk_addr_r, which env_fixup sets to ramdisk_addr1_r
 (0x64000000) on boards with 128 MB or less (games/boot/README.md). Offline only.
@@ -41,20 +43,74 @@ def image_id(k, r, s):
     return x.digest()
 
 
-def resource_entries(res):
-    """The Rockchip resource image (RSCE): {name: (offset, size)} in bytes."""
+# A resource entry (Rockchip resource_tool v2, the layout this U-Boot reads): "ENTR", name[220], hash[32],
+# hash_size (u32), offset in 512-byte blocks (u32), size in bytes (u32). U-Boot checks rk-kernel.dtb against its
+# hash ("HASH: OK(s)"; a stale one is "Get a bad hash of DTB !" and no boot: the 2026-10-27 SD-slot image).
+ENTRY_NAME, ENTRY_HASH, ENTRY_HASH_SIZE, ENTRY_OFFSET = 4, 224, 256, 260
+
+
+def resource_table(res):
+    """[(entry byte offset in res, name, file offset, size, hash_size, stored hash)]."""
     if res[:4] != b"RSCE":
         raise SystemExit("the second section is not a resource image")
     tbl, esz, n = res[9], res[10], struct.unpack_from("<I", res, 12)[0]   # RSCE, versions, sizes, count
-    out = {}
+    out = []
     for i in range(n):
-        e = res[(tbl + i * esz) * 512:(tbl + i * esz + 1) * 512]
+        at = (tbl + i * esz) * 512
+        e = res[at:at + 512]
         if e[:4] != b"ENTR":
             raise SystemExit(f"resource entry {i}: not ENTR")
-        name = e[4:260].split(b"\0")[0].decode()
-        off, size = struct.unpack_from("<II", e, 260)
-        out[name] = (off * 512, size)
+        name = e[ENTRY_NAME:ENTRY_HASH].split(b"\0")[0].decode()
+        hs = struct.unpack_from("<I", e, ENTRY_HASH_SIZE)[0]
+        off, size = struct.unpack_from("<II", e, ENTRY_OFFSET)
+        out.append((at, name, off * 512, size, hs, e[ENTRY_HASH:ENTRY_HASH + hs]))
     return out
+
+
+def resource_entries(res):
+    """The Rockchip resource image (RSCE): {name: (offset, size)} in bytes."""
+    return {name: (off, size) for _, name, off, size, _, _ in resource_table(res)}
+
+
+def file_hash(data, size):
+    if size == 20:
+        return hashlib.sha1(data).digest()
+    if size == 32:
+        return hashlib.sha256(data).digest()
+    raise SystemExit(f"resource hash of {size} bytes: unknown kind")
+
+
+def second_offset(h):
+    ps = h["page"]
+    return ps + (h["ksz"] + ps - 1) // ps * ps + (h["rsz"] + ps - 1) // ps * ps
+
+
+def seal(img):
+    """IMG (bytes) with every resource entry's hash and the header ID made to match the contents: the last step
+    of any change to the boot image (a DTB or logo edit)."""
+    out = bytearray(img)
+    h = parse(img)
+    soff = second_offset(h)
+    for at, name, off, size, hs, _ in resource_table(h["second"]):
+        if hs:
+            out[soff + at + ENTRY_HASH:soff + at + ENTRY_HASH + hs] = file_hash(h["second"][off:off + size], hs)
+    nh = parse(bytes(out))
+    out[576:608] = image_id(nh["kernel"], nh["ramdisk"], nh["second"]) + b"\0" * 12
+    return bytes(out)
+
+
+def verify(img):
+    """The checks U-Boot makes before it starts the kernel, as {description: ok}."""
+    h = parse(img)
+    checks = {"header ID matches kernel, ramdisk and second": h["id"][:20] == image_id(h["kernel"], h["ramdisk"], h["second"])}
+    for _, name, off, size, hs, stored in resource_table(h["second"]):
+        data = h["second"][off:off + size]
+        if hs:
+            checks[f"{name}: hash matches ({hs * 8} bits)"] = stored == file_hash(data, hs)
+        if name.endswith(".dtb"):
+            checks[f"{name}: device tree header and size"] = (data[:4] == b"\xd0\x0d\xfe\xed"
+                                                              and struct.unpack(">I", data[4:8])[0] <= size)
+    return checks
 
 
 def logo_pixels(bmp):
@@ -77,7 +133,13 @@ def main():
     p = sub.add_parser("check"); p.add_argument("orig"); p.add_argument("new")
     p = sub.add_parser("logo"); p.add_argument("img"); p.add_argument("bmp"); p.add_argument("out")
     p = sub.add_parser("logocheck"); p.add_argument("orig"); p.add_argument("new")
+    p = sub.add_parser("verify"); p.add_argument("img")
     a = ap.parse_args()
+    if a.cmd == "verify":
+        checks = verify(open(a.img, "rb").read())
+        for k, v in checks.items():
+            print(("ok   " if v else "FAIL ") + k)
+        sys.exit(0 if all(checks.values()) else 1)
     if a.cmd in ("logo", "logocheck"):
         d = open(a.img if a.cmd == "logo" else a.orig, "rb").read()
         h = parse(d)
@@ -94,10 +156,9 @@ def main():
             out = bytearray(d)
             start = soff + loff + odata
             out[start:start + olen] = new[ndata:ndata + nlen]
-            nh = parse(bytes(out))
-            out[576:608] = image_id(nh["kernel"], nh["ramdisk"], nh["second"]) + b"\0" * 12
-            open(a.out, "wb").write(bytes(out))
-            print(f"{a.out}: logo.bmp pixels replaced ({olen} bytes at {start}), id recomputed")
+            out = seal(bytes(out))
+            open(a.out, "wb").write(out)
+            print(f"{a.out}: logo.bmp pixels replaced ({olen} bytes at {start}), hashes and id recomputed")
             return
         nd = open(a.new, "rb").read()
         n = parse(nd)

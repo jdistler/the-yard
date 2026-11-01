@@ -227,6 +227,14 @@ def main():
         out[off:off + len(dtb)] = dtb
         if len(out) != len(blob):
             raise SystemExit("internal error: boot image size changed")
+        # The resource entry keeps a SHA-1 of rk-kernel.dtb, and U-Boot refuses a tree that does not match it
+        # ("Get a bad hash of DTB !": the 2026-10-27 image, which did not start). Seal, then check as U-Boot does.
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import bootimg
+        out = bytearray(bootimg.seal(bytes(out)))
+        bad = [k for k, v in bootimg.verify(bytes(out)).items() if not v]
+        if bad:
+            raise SystemExit(f"the patched image fails U-Boot's checks: {bad}; nothing written")
     else:
         out = dtb
     open(a.out, "wb").write(out)

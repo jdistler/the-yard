@@ -18,6 +18,9 @@ case "$1" in
 esac
 NEW=$(sha256sum "$IMG" | cut -d' ' -f1)
 [ "$(stat -c %s "$IMG")" = 4718592 ] || { echo "$IMG is not 4718592 bytes"; exit 1; }
+# U-Boot refuses an image whose header ID or rk-kernel.dtb hash is stale, and the cabinet then stops at U-Boot's
+# prompt with a dark screen (2026-10-27). Check the image as U-Boot will before anything is copied.
+python3 "$HERE/bootimg.py" verify "$IMG" || { echo "$IMG fails U-Boot's checks: not written"; exit 1; }
 NOW=$(ssh $O root@$H 'pidof yard love.bin >/dev/null && echo BUSY; sha256sum /dev/rkflash0p3 | cut -d" " -f1')
 case "$NOW" in *BUSY*) echo "The Yard is running on the cabinet: not now"; exit 1 ;; esac
 echo "boot partition now: $NOW"
