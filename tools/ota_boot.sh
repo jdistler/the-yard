@@ -2,6 +2,7 @@
 # tools/ota_boot.sh: write the cabinet's boot partition over Wi-Fi (games/boot/README.md). Never the system
 # image (it is in use); the boot partition is idle once the kernel runs.
 #   tools/ota_boot.sh write NEW.img EXPECTED_NOW_SHA256 [STAGE2]   write NEW.img to /dev/rkflash0p3, verify, reboot
+#   NOREBOOT=1 tools/ota_boot.sh write ...                      the same, but leave the reboot to a power-cycle
 #   tools/ota_boot.sh restore                                      put the stock boot image back (sha a0ce5967...)
 # Refuses unless the partition holds EXPECTED_NOW_SHA256 right now, The Yard is not running, and the copy in
 # the cabinet's RAM checks out. After writing: drop caches, read the partition back, compare, then reboot.
@@ -40,5 +41,9 @@ ssh $O root@$H "set -e
   echo \"boot partition after the write: \$GOT\"
   [ \"\$GOT\" = $NEW ] || { echo 'READ-BACK MISMATCH: not rebooting'; exit 1; }
   rm -f /tmp/boot-new.img"
+if [ -n "$NOREBOOT" ]; then
+  echo "written and verified ($NEW). Not rebooting (NOREBOOT): switch the cabinet off and on when ready."
+  exit 0
+fi
 echo "written and verified ($NEW). Rebooting the cabinet."
 ssh $O root@$H 'sync; (sleep 1; reboot) >/dev/null 2>&1 &' || true

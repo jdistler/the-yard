@@ -2,6 +2,16 @@
 
 Written 2026-10-24. **Nothing here has been tried on the cabinet yet.** The slot is still switched off in the device tree (FIELD_TASKS.md task 7 turns it on). The rules below come from the stock rootfs, the device trees, the U-Boot source, and the runtime's code; each is marked with how sure it is. Task 7 checks them, and this file gets updated with what it finds.
 
+## Verified on the cabinet (2026-11-01)
+
+The slot is on: boot partition `def61406…7c53` (`games/boot/out/boot-yard-sd2.img`: `/dwmmc@10214000` okay, sealed with
+`tools/bootimg.py`, so U-Boot's DTB hash check passes). A 32 GB SanDisk SDHC card (ext2, one partition) is found when
+pushed in with the power on, runs at high speed (37.125 MHz), and is mounted read-write at **`/mnt/sdcard`** with
+`noatime` by the stock udev rule. dd with fsync: **14 MB/s write, 16 MB/s read**. Hot insertion works. Before writing
+the boot image, the same tree was booted from RAM through U-Boot's console (`fdt set`, `bootz`), so nothing was
+written until it had run. The slot's DAT0/DAT1 are also U-Boot's console (RECOVERY.md path E): with a card in, the
+console is the card's, and the sniffer board takes its place for recovery.
+
 ## The short version
 
 * A microSDHC card, 4 to 32 GB.

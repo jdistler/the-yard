@@ -600,3 +600,17 @@ No Mask ROM writes after the 10-block key write; everything below was installed 
   run at all: its TPS54335 12V→5V buck is off otherwise, and USB VBUS does **not** back-power it (the old notes said
   it did). The barrel plug can sit loose and power nothing. Mask ROM never enumerated in any attempt (unexplained:
   some attempts had no power, but not all); the console path made it unnecessary.
+
+## 2026-11-01 (later): the SD slot, done right
+
+* The resource entry layout is `ENTR`, name[220], hash[32], hash_size, offset, size; rk-kernel.dtb has a SHA-1
+  there, which U-Boot checks. `tools/bootimg.py seal|verify` handle it; `enable_storage.py` seals and verifies;
+  `ota_boot.sh` refuses an image that fails `verify`. (The logo.bmp hash had been stale since the U-Boot logo change;
+  U-Boot does not check it; sealing fixed it.)
+* RAM-only trial first: Ctrl+C held from power-on stops autoboot; `rksfc read` the zImage (LBA 0x804, 0x2356),
+  ramdisk (0x2b5c, 9) and rk-kernel.dtb (0x2b6b, 0x31); `fdt addr 0x61f00000`, `fdt set /dwmmc@10214000 status
+  okay`; `setenv bootargs` (from /proc/cmdline); `bootz 0x62000000 0x64000000:0x1200 0x61f00000`. Linux came up,
+  "1 slots initialized", and a hot-inserted card mounted.
+* Then (user approved: "approved, write boot-yard-sd2.img (def61406…7c53)") `NOREBOOT=1 tools/ota_boot.sh write
+  games/boot/out/boot-yard-sd2.img de23d410…`: read back def61406…; power-cycled with the console attached:
+  `HASH: OK(s)`, kernel started, Home, Wi-Fi; card mounted at /mnt/sdcard.
