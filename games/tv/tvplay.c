@@ -3,7 +3,8 @@
  *   tvplay URL            exit codes: 0 back to the list (2-player), 10 back to Home (hold 1P + 2P),
  *                         20 next channel (stick down), 21 previous channel (stick up),
  *                         30 no picture (could not open, or nothing to show in 12 s), 31 the stream ended,
- *                         32 a video format the VPU does not decode
+ *                         32 a video format the VPU does not decode, 33 stalled (no new picture for 10 s
+ *                         after playing: tvloop tunes the channel again)
  *
  * The stream (MPEG-TS over HTTPS, redirects followed) is demuxed by the cabinet's own libavformat. Video goes
  * to the VPU through Rockchip's MPP (H.264, HEVC, MPEG-2) into DRM buffers, which the GPU reads without a copy
@@ -17,6 +18,7 @@
 #include <libavformat/avformat.h>
 #include <libavutil/opt.h>
 #include <libswresample/swresample.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -346,7 +348,6 @@ static MppBufferGroup grp;
 static int hevc;
 static SDL_Window *win;
 static int ww, wh;
-static GLuint prog;
 
 #define MAX_IMAGES 40
 static struct { int fd; EGLImageKHR img; GLuint tex; } images[MAX_IMAGES];
@@ -394,31 +395,6 @@ static GLuint texture_for(MppFrame f)
     return images[nimages++].tex;
 }
 
-static void draw(MppFrame f, double sar)
-{
-    int vw = mpp_frame_get_width(f), vh = mpp_frame_get_height(f);
-    /* Upright view 768 x 1024; the picture fills the width, letterboxed (display aspect from the sample aspect). */
-    double dar = (double)vw * (sar > 0 ? sar : 1) / vh;
-    float half = (float)(768.0 / dar / 1024.0);
-    if (half > 1) half = 1;
-    /* Upright (u right, v down) is the framebuffer's (x = v, y = 767 - u): clip X = 2v/1024 - 1, Y = 2u/768 - 1. */
-    float verts[] = {-half, -1, 0, 0, -half, 1, 1, 0, half, -1, 0, 1, half, 1, 1, 1};
-    glViewport_(0, 0, ww, wh);
-    glClearColor_(0, 0, 0, 1);
-    glClear_(GL_COLOR_BUFFER_BIT);
-    GLuint tex = texture_for(f);
-    if (tex) {
-        glActiveTexture_(GL_TEXTURE0);
-        glBindTexture_(GL_TEXTURE_EXTERNAL_OES, tex);
-        glVertexAttribPointer_(0, 2, GL_FLOAT, 0, 16, verts);
-        glVertexAttribPointer_(1, 2, GL_FLOAT, 0, 16, verts + 2);
-        glEnableVertexAttribArray_(0);
-        glEnableVertexAttribArray_(1);
-        glDrawArrays_(GL_TRIANGLE_STRIP, 0, 4);
-    }
-    SDL_GL_SwapWindow(win);
-}
-
 /* Non-reference picture? (the first slice's NAL header in an Annex-B access unit) */
 static int nonref(const uint8_t *p, int n)
 {
@@ -437,6 +413,11 @@ static int nonref(const uint8_t *p, int n)
     return 0;
 }
 
+/* SDL joystick buttons on the deck (games/love/yard/input.lua, 0-based): lower 0, 1P 6, 2P 7, up 15, down 18. */
+enum { B_LOW = 0, B_1P = 6, B_2P = 7, B_UP = 15, B_LEFT = 16, B_RIGHT = 17, B_DOWN = 18 };
+
+#include "tvview.c"
+
 static void gl_setup(void)
 {
     eglGetCurrentDisplay_ = gl("eglGetCurrentDisplay");
@@ -454,33 +435,10 @@ static void gl_setup(void)
     glDrawArrays_ = gl("glDrawArrays"); glClearColor_ = gl("glClearColor"); glClear_ = gl("glClear");
     glViewport_ = gl("glViewport"); glActiveTexture_ = gl("glActiveTexture");
     glGetUniformLocation_ = gl("glGetUniformLocation"); glUniform1i_ = gl("glUniform1i");
-    const char *vs = "attribute vec2 pos; attribute vec2 uv; varying vec2 v;"
-                     "void main() { v = uv; gl_Position = vec4(pos, 0.0, 1.0); }";
-    const char *fs = "#extension GL_OES_EGL_image_external : require\n"
-                     "precision mediump float; varying vec2 v; uniform samplerExternalOES tex;"
-                     "void main() { gl_FragColor = texture2D(tex, v); }";
-    prog = glCreateProgram_();
-    const char *src[2] = {vs, fs};
-    GLenum kinds[2] = {GL_VERTEX_SHADER, GL_FRAGMENT_SHADER};
-    for (int i = 0; i < 2; i++) {
-        GLuint s = glCreateShader_(kinds[i]);
-        GLint ok = 0;
-        glShaderSource_(s, 1, &src[i], NULL);
-        glCompileShader_(s);
-        glGetShaderiv_(s, GL_COMPILE_STATUS, &ok);
-        if (!ok) { char log[512]; glGetShaderInfoLog_(s, sizeof log, NULL, log); say("shader: %s", log); exit(32); }
-        glAttachShader_(prog, s);
-    }
-    glBindAttribLocation_(prog, 0, "pos");
-    glBindAttribLocation_(prog, 1, "uv");
-    glLinkProgram_(prog);
-    glUseProgram_(prog);
-    glUniform1i_(glGetUniformLocation_(prog, "tex"), 0);
+    view_init();
 }
 
 /* ------------------------------------------------------------------ input */
-/* SDL joystick buttons on the deck (games/love/yard/input.lua, 0-based): lower 0, 1P 6, 2P 7, up 15, down 18. */
-enum { B_LOW = 0, B_1P = 6, B_2P = 7, B_UP = 15, B_LEFT = 16, B_RIGHT = 17, B_DOWN = 18 };
 static int down1p, down2p, both_seen;
 static double both_since;
 
@@ -499,7 +457,7 @@ static int handle_input(void)
             pressed = ev.type == SDL_KEYDOWN;
             if (ev.key.repeat) continue;
             b = k == SDLK_1 ? B_1P : k == SDLK_2 ? B_2P : k == SDLK_UP ? B_UP : k == SDLK_DOWN ? B_DOWN
-                : k == SDLK_ESCAPE ? B_2P : -1;
+                : k == SDLK_ESCAPE ? B_2P : k == SDLK_LEFT ? B_LEFT : k == SDLK_RIGHT ? B_RIGHT : k == SDLK_SPACE ? B_LOW : -1;
         }
         if (b == B_1P) down1p = pressed;
         if (b == B_2P) {
@@ -509,6 +467,7 @@ static int handle_input(void)
         }
         if (down1p && down2p && !both_seen) { both_seen = 1; both_since = now(); }
         if (!down1p && !down2p) both_seen = 0;
+        if (pressed) view_button(b);
         if (pressed && b == B_DOWN) return 20;
         if (pressed && b == B_UP) return 21;
     }
@@ -524,6 +483,21 @@ int main(int argc, char **argv)
     const char *lp = getenv("TVPLAY_LOG");
     logf_ = lp ? fopen(lp, "a") : stderr;
     double t_start = now();
+
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) != 0) { say("SDL: %s", SDL_GetError()); return 30; }
+    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "for (int i = 0; i < SDL_NumJoy");
+    for (int i = 0; i < SDL_NumJoysticks(); i++) SDL_JoystickOpen(i);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    /* The screen first: the channel's bands and "TUNING IN..." are up before the stream is asked for. */
+    win = SDL_CreateWindow("tv", 0, 0, 1024, 768, SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN_DESKTOP);
+    SDL_GLContext glc = win ? SDL_GL_CreateContext(win) : NULL;
+    if (!glc) { say("GL: %s", SDL_GetError()); return 30; }
+    SDL_GL_SetSwapInterval(1);
+    SDL_GL_GetDrawableSize(win, &ww, &wh);
+    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "gl_setup();");
+    gl_setup();
+    draw_tuning(0);
 
     /* Open the stream. */
     if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "avformat_network_init();");
@@ -566,19 +540,6 @@ int main(int argc, char **argv)
     say("open %.1f s: video %s, audio %s", now() - t_start, avcodec_get_name(vp->codec_id),
         aidx >= 0 && adec ? adec->name : "none");
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) != 0) { say("SDL: %s", SDL_GetError()); return 30; }
-    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "for (int i = 0; i < SDL_NumJoy");
-    for (int i = 0; i < SDL_NumJoysticks(); i++) SDL_JoystickOpen(i);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    /* The window first, but nothing on it until the first picture: /dev/fb0 (the guide's picture) stays. */
-    win = SDL_CreateWindow("tv", 0, 0, 1024, 768, SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN_DESKTOP);
-    SDL_GLContext glc = win ? SDL_GL_CreateContext(win) : NULL;
-    if (!glc) { say("GL: %s", SDL_GetError()); return 30; }
-    SDL_GL_SetSwapInterval(1);
-    SDL_GL_GetDrawableSize(win, &ww, &wh);
-    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "gl_setup();");
-    gl_setup();
 
     if (aidx >= 0) {
         AVCodecParameters *ap = adec ? stream_par(fmt->streams[aidx], adec->id) : NULL;
@@ -614,7 +575,8 @@ int main(int argc, char **argv)
     long shown = 0, skipped = 0, late = 0, sent = 0;
     double lead = 0.0;                            /* see the decoder feed below */
     int on_time = 0;
-    double last_report = now(), first_pic = -1;
+    double last_report = now(), first_pic = -1, last_tuning = 0, last_shown = 0, draw_sum = 0, draw_max = 0;
+    long shown_at_report = 0;
     int code = -1;
     struct rusage ru0;
     getrusage(RUSAGE_SELF, &ru0);
@@ -704,29 +666,41 @@ int main(int argc, char **argv)
             for (int i = 0; i < show; i++) { mpp_frame_deinit(&waiting[i]); late++; }
             MppFrame f = waiting[show];
             if (wall0 < 0) { wall0 = now(); pts0 = mpp_frame_get_pts(f) / 1e6; }
+            double td = now();
             draw(f, sar);
+            td = now() - td;
+            draw_sum += td;
+            if (td > draw_max) draw_max = td;
             if (++on_time >= 90) { on_time = 0; lead = lead - 0.01 < -0.04 ? -0.04 : lead - 0.01; }
-            if (first_pic < 0) { first_pic = now(); say("first picture %.1f s after start", first_pic - t_start); }
+            last_shown = now();
+            if (first_pic < 0) { first_pic = now(); view_first_picture(); say("first picture %.1f s after start", first_pic - t_start); }
             if (on_screen) mpp_frame_deinit(&on_screen);
             on_screen = f;
             shown++;
             memmove(waiting, waiting + show + 1, (nwait - show - 1) * sizeof waiting[0]);
             nwait -= show + 1;
         } else {
-            SDL_Delay(2);
+            if (first_pic < 0 && now() - last_tuning >= 0.05) { last_tuning = now(); draw_tuning(now() - t_start); }
+            else SDL_Delay(2);
         }
 
         /* Nothing to show for 12 s: give up (a dead channel, or the panel's placeholder). */
         if (first_pic < 0 && now() - t_start > 12) { say("no picture in 12 s"); code = 30; }
+        /* Stalled: the panel stopped sending, or came back with timestamps that no longer meet the sound's
+           (2026-11-01: ESPN ran dry, then sat 30 s with A/V +22 s and 6 MB queued, showing nothing). */
+        if (first_pic >= 0 && now() - last_shown > 10) { say("stalled: no picture for 10 s"); code = 33; }
         if (demux_done && !vq.first && nwait == 0 && first_pic >= 0) { say("the stream ended"); code = 31; }
         if (now() - last_report >= 5) {
             last_report = now();
             say("t %.0f: shown %ld skipped %ld late %ld sent %ld lead %.2f; A/V %+.2f s; queues video %d (%lld KB) audio %d;"
-                " read %lld KB in %lld packets, slowest read %.0f ms; audio queued %.2f s",
+                " read %lld KB in %lld packets, slowest read %.0f ms; audio queued %.2f s; draw %.1f ms (max %.0f)",
                 now() - t_start, shown, skipped, late, sent, lead,
                 nwait && clock >= 0 ? mpp_frame_get_pts(waiting[0]) / 1e6 - clock : 0.0, vq.n,
                 (long long)vq.bytes / 1024, aq.n, demux_bytes / 1024, demux_pkts, demux_slowest * 1000,
-                adev ? (double)SDL_GetQueuedAudioSize(adev) / OUT_BYTES_PER_SEC : 0.0);
+                adev ? (double)SDL_GetQueuedAudioSize(adev) / OUT_BYTES_PER_SEC : 0.0,
+                shown > shown_at_report ? 1000 * draw_sum / (shown - shown_at_report) : 0.0, 1000 * draw_max);
+            shown_at_report = shown;
+            draw_sum = draw_max = 0;
             demux_bytes = demux_pkts = 0;
             demux_slowest = 0;
         }

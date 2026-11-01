@@ -13,6 +13,21 @@ thread, and fetches logos into `/mnt/sdcard/partycade/tv-logos` (the SD slot is 
 in `/data/tv/<NAME>/` (offline copy), the guide in `/tmp/tv`. Lessons: the cabinet's LÖVE is draw-call bound (the
 rows draw in passes: 17 -> 10 ms CPU), and no scissor in Home (it draws turned onto the framebuffer).
 
+Watching (2026-11-01, later): the portrait panel leaves a 16:9 picture 768 x 432 and two 296-pixel bands; they
+are now part of the picture (`games/tv/tvview.c`, included by tvplay). Behind everything, a blurred, darkened copy
+of the programme; in the top band the logo, name, playlist, row, position and clock; in the bottom band NOW (times,
+minutes left, progress) and NEXT, from the playlist's epg.tsv. tvplay draws the bands with "TUNING IN..." before the
+stream is even opened, so flipping channels shows the next channel's name and guide within a second. Stick
+left/right: FIT or ZOOM (cropped to 4:3, 768 x 576); lower button: info on/off; both kept in `/data/tv/view`.
+Text is Home's Fredoka from a glyph sheet (`games/tv/mkfont.py` -> `/data/tv/tvfont.gz`, 115 KB). Measured on a
+720p60 channel: draw 7-10 ms a frame, 0 frames skipped. Lessons: the GPU is one Mali-400 core with ~16 ms of
+fragments a frame: render-to-texture blur cost 5 ms and a four-tap full-band shader 10 ms (half the frames lost),
+so the backdrop is a 36 x 48 image the CPU samples from the decoded frame (NV12, every 4th frame) and the GPU
+stretches with one read a pixel. Now/next takes the latest-started show running (panels' guides overlap) and the
+first one after it ends. A stream that stops showing pictures for 10 s exits 33 and tvloop tunes it again
+("RECONNECTING...", 3 tries); a stalled tvplay once held its memory while Home fell back to the stock menu and the
+OOM killer ran (so `cart push` now refuses while TV plays, and `tools/cab.sh stop` stops tvloop/tvplay too).
+
 STRONG: its proxy answered 500 on every categories call (a Skywave bug, fixed and deployed 2026-11-01, skywave
 eabc75f); since then the STRONG panel itself is down (connection reset, also from home), so the guide shows
 "Not answering right now" and retries every 10 minutes.

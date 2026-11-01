@@ -19,9 +19,9 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$HERE:/w" -v "$MPP:/mpp" -v "$GAMES/o
   -v "$HOME/lovebuild/src/SDL/include:/sdlinc/SDL2:ro" -v "$HOME/lovebuild/build-arm/SDL/include-config-release/SDL2:/sdlcfg:ro" \
   -w /w partycade-mpp \
   arm-linux-gnueabihf-g++ -O2 -Wall -x c tvplay.c -x none -o /out/cab/tvplay \
-    -I/sdlcfg -I/sdlinc -I/mpp/ffmpeg-4.1.11 -I/mpp/mpp/inc -I/mpp/mpp/osal/inc \
+    -I/sdlcfg -I/sdlinc -I/mpp/ffmpeg-4.1.11 -I/mpp/mpp/inc -I/mpp/mpp/osal/inc -I/mpp/zinc \
     /mpp/${MPPLIB:-build-arm-slim}/mpp/librockchip_mpp.a -L/out/love-arm/lib -l:libSDL2-2.0.so.0 \
-    -L/cablib -l:libavformat.so.58 -l:libavcodec.so.58 -l:libavutil.so.56 -l:libswresample.so.3 \
+    -L/cablib -l:libavformat.so.58 -l:libavcodec.so.58 -l:libavutil.so.56 -l:libswresample.so.3 -l:libz.so.1 \
     -Wl,--gc-sections -s -Wl,--gc-sections -s -Wl,--allow-shlib-undefined -Wl,-rpath-link,/cablib -static-libstdc++ -static-libgcc -lpthread -ldl -lm
 # tvnet: the guide's fetcher (HTTPS through the cabinet's libavformat; logos through libavcodec + libswscale).
 # (zlib.h: any 1.x header, in ~/mppbuild/zinc; the cabinet has libz 1.2.11.)
@@ -30,4 +30,6 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$HERE:/w" -v "$MPP:/mpp" -v "$GAMES/o
   arm-linux-gnueabihf-gcc -O2 -Wall tvnet.c -o /out/cab/tvnet -I/mpp/ffmpeg-4.1.11 -I/mpp/zinc \
     -L/cablib -l:libavformat.so.58 -l:libavcodec.so.58 -l:libavutil.so.56 -l:libswscale.so.5 -l:libz.so.1 \
     -Wl,--allow-shlib-undefined -Wl,-rpath-link,/cablib -s
-echo "$GAMES/out/cab/tvplay $GAMES/out/cab/tvnet"
+# tvplay's glyph sheet (Home's font; games/tv/mkfont.py, Python with Pillow).
+python3 "$HERE/mkfont.py" "$GAMES/out/cab/tvfont.gz" >/dev/null
+echo "$GAMES/out/cab/tvplay $GAMES/out/cab/tvnet $GAMES/out/cab/tvfont.gz"

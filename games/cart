@@ -667,11 +667,12 @@ def cmd_push(a):
     # Live TV (games/tv): the player, the fetcher and the loop between them. Built by games/tv/build.sh (MPP and
     # the cabinet's FFmpeg); the playlists' logins (/data/tv/account.conf) are never part of a push.
     tvout = os.path.join(HERE, "out", "cab")
-    if not all(os.path.exists(os.path.join(tvout, n)) for n in ("tvplay", "tvnet")):
+    if not all(os.path.exists(os.path.join(tvout, n)) for n in ("tvplay", "tvnet", "tvfont.gz")):
         subprocess.check_call([os.path.join(HERE, "tv", "build.sh")], stdout=subprocess.DEVNULL)
     files["/data/tv/bin/tvplay"] = (os.path.join(tvout, "tvplay"), False)
     files["/data/tv/bin/tvnet"] = (os.path.join(tvout, "tvnet"), False)
     files["/data/tv/bin/tvloop"] = (os.path.join(HERE, "tv", "tvloop.sh"), False)
+    files["/data/tv/tvfont.gz"] = (os.path.join(tvout, "tvfont.gz"), False)
     # Home at power-on: stage2 (v2) binds games/boot/S50ui over the stock one (games/boot/README.md).
     files["/data/boot/stage2.sh"] = (os.path.join(HERE, "boot", "stage2.sh"), False)
     files["/data/boot/S50ui"] = (os.path.join(HERE, "boot", "S50ui"), False)
@@ -685,12 +686,13 @@ def cmd_push(a):
     busy_check = ("pidof yard >/dev/null && echo busy; "
                   "for p in $(pidof love.bin); do grep -q home.love /proc/$p/cmdline || echo busy; done; "
                   "pidof PacMan SuperPacMan PacLand NS1 Galaga Galaxian Mappy DigDug orb start.sh >/dev/null && echo busy; "
+                  "pidof tvloop tvplay >/dev/null && echo busy; "
                   "pidof homeloop >/dev/null && echo home; ")
     r = ssh(busy_check + "sha256sum " + " ".join(files))
     if r.returncode not in (0, 1) and not r.stdout:
         die(f"cannot reach the cabinet at {host}: {r.stderr.strip()} (is The Yard opened once since boot, for Wi-Fi?)")
     if "busy" in r.stdout.split():
-        die("a game, The Yard or GPU yard is running on the cabinet: leave it first, nothing was changed")
+        die("a game, The Yard, GPU yard or live TV is running on the cabinet: leave it first, nothing was changed")
     home_up = "home" in r.stdout.split()
     if home_up:
         print("   Home is on the screen: stopped for the install, started again after")

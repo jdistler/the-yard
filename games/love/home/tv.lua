@@ -255,13 +255,18 @@ end
 now_next_raw = function(ch)
   local l = ch.epg and epg[ch.pl] and epg[ch.pl][ch.epg]
   if not l or not clock_ok() then return nil end
+  -- Now: of the shows running, the one that started last (panels' guides overlap: a 3:30-6:00 game and a
+  -- 4:00-6:00 one). Next: the first to start once it ends (or the first to come, when nothing is on).
   local now = os.time()
-  for i, p in ipairs(l) do
-    if p[2] > now then
-      if p[1] <= now then return p, l[i + 1] end
-      return nil, p
-    end
+  local cur, nxt
+  for _, p in ipairs(l) do
+    if p[1] <= now and now < p[2] and (not cur or p[1] > cur[1]) then cur = p end
   end
+  local from = cur and cur[2] or now
+  for _, p in ipairs(l) do
+    if p[1] >= from and (not nxt or p[1] < nxt[1]) then nxt = p end
+  end
+  return cur, nxt
 end
 
 local function synced_at(name)
@@ -285,7 +290,9 @@ local function sync_stale()
     local up = tonumber((read_file("/proc/uptime") or ""):match("^(%S+)") or "") or 0
     local stale = not clock_ok() or os.time() - synced_at(pl.name) > SYNC_EVERY or not next(epg[pl.name] or {})
     -- After a failure, wait before asking again (measured on uptime: the clock may not be set yet).
-    if stale and up - failed_at(pl.name) > RETRY_AFTER then sync(pl.name) end
+    -- (A failure in the first minutes after power-on is usually Wi-Fi still connecting: tried again sooner.)
+    local f = failed_at(pl.name)
+    if stale and up - f > (f < 180 and 30 or RETRY_AFTER) then sync(pl.name) end
   end
 end
 
@@ -458,14 +465,14 @@ local function picture_tune(ch, r)
   lg.printf(fit(ctx.font(40), ch.name, W - 80, 2), 40, 540, W - 80, "center")
   ctx.neon_draw("TUNING IN...", 0, 620, 44, r.tint, 1, "center", W)
   lg.setColor(0.04, 0.0, 0.10, 0.85)
-  ctx.rrect("fill", 60, 760, W - 120, 190, 24)
+  ctx.rrect("fill", 60, 730, W - 120, 250, 24)
   lg.setColor(rr, gg, bb, 0.9)
   lg.setLineWidth(2)
-  ctx.rrect("line", 60, 760, W - 120, 190, 24)
+  ctx.rrect("line", 60, 730, W - 120, 250, 24)
   lg.setFont(ctx.font(24))
   lg.setColor(0.92, 0.9, 1, 1)
-  lg.printf("STICK UP / DOWN   change channel\n2-PLAYER   back to the guide\nHOLD 1-PLAYER + 2-PLAYER   Home",
-            60, 790, W - 120, "center")
+  lg.printf("STICK UP / DOWN   change channel\nSTICK LEFT / RIGHT   fit or zoom\nLOWER BUTTON   info on / off\n" ..
+            "2-PLAYER   back to the guide\nHOLD 1-PLAYER + 2-PLAYER   Home", 60, 756, W - 120, "center")
 end
 
 -- Between channels (stick up/down while watching), tvloop puts this up while the next one connects.
@@ -482,8 +489,13 @@ local function play_chosen()
   if not r or #r.channels == 0 then return end
   local c = cols[r.key] or 1
   local ch = r.channels[c]
-  local lines = {tostring(c)}
-  for _, x in ipairs(r.channels) do lines[#lines + 1] = x.pl .. "\t" .. x.sid .. "\t" .. x.name end
+  -- For tvloop and tvplay (games/tv/tvloop.sh): the chosen index, the row's name and where logos are; then per
+  -- channel its playlist, stream id, name, guide id and logo file key.
+  local lines = {c .. "\t" .. group_title(r.title) .. "\t" .. LOGOS}
+  for _, x in ipairs(r.channels) do
+    if x.logo then x.key = x.key or url_key(x.logo) end
+    lines[#lines + 1] = table.concat({x.pl, x.sid, x.name, x.epg or "", x.key or ""}, "\t")
+  end
   os.execute("mkdir -p " .. TMP)
   write_file(TMP .. "/play.tsv", table.concat(lines, "\n") .. "\n")
   write_file(TMP .. "/guide.pos", r.key .. "\n")
