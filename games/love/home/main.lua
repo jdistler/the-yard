@@ -21,6 +21,7 @@ local sound = require("sound")
 local fx = require("fx")
 local splash = require("splash")
 local night = require("night")
+local tv = require("tv")
 
 local W, H = 768, 1024                       -- the upright picture; the panel shows the framebuffer turned
 local headless = os.getenv("HOME_HEADLESS") == "1"
@@ -94,6 +95,7 @@ local OURS = {
 local SECTIONS = {
   {name = "CLASSICS", tint = 0xffd23f},
   {name = "THE YARD", tint = 0x6ef0c8},
+  {name = "TV", tint = 0xff6b6b},
   {name = "MORE", tint = 0x8ab4ff},
 }
 -- How to come back to Home from each kind of game (said on the info panel and on the "get ready" picture).
@@ -103,6 +105,7 @@ local LEAVE = {
   native = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
   yard = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
 }
+local TV_SECTION, MORE_SECTION = 3, 4
 
 local PREVIEW = os.getenv("HOME_MODE") == "preview"
 local items = {}
@@ -114,14 +117,17 @@ for _, g in ipairs(OURS) do
   items[#items + 1] = {kind = g.native and "native" or "cart", id = g.id, native = g.native, section = 2,
                        title = g.title, sub = "THE YARD", blurb = g.blurb, tint = g.tint, statdef = g.stat}
 end
+-- Live TV (tv.lua): one card, which opens the guide in Home itself.
+items[#items + 1] = {kind = "tv", section = TV_SECTION, title = "LIVE TV", sub = "CHANNEL GUIDE",
+                     blurb = "Live sports, news and locals.", tint = 0xff6b6b}
 -- HOME_MODE=preview (opened from a Yard row to try Home): the last card goes back to The Yard.
 if PREVIEW then
-  items[#items + 1] = {kind = "stock", section = 3, title = "BACK TO THE YARD", sub = "HOME PREVIEW",
+  items[#items + 1] = {kind = "stock", section = MORE_SECTION, title = "BACK TO THE YARD", sub = "HOME PREVIEW",
                        blurb = "Home is a preview for now: this goes back to The Yard.", tint = 0xff9c5a}
 else
-  items[#items + 1] = {kind = "yard", section = 3, title = "YARD MENU", sub = "THE WHOLE YARD",
+  items[#items + 1] = {kind = "yard", section = MORE_SECTION, title = "YARD MENU", sub = "THE WHOLE YARD",
                        blurb = "Every Yard game, in its own menu.", tint = 0x7fe8ff}
-  items[#items + 1] = {kind = "stock", section = 3, title = "ORIGINAL MENU", sub = "ARCADE1UP",
+  items[#items + 1] = {kind = "stock", section = MORE_SECTION, title = "ORIGINAL MENU", sub = "ARCADE1UP",
                        blurb = "The menu as it came. On it, hold 1-PLAYER + 2-PLAYER to come back.", tint = 0xff9c5a}
 end
 
@@ -297,6 +303,7 @@ local function control_up(name)
   local seen = down[name] and down_at[name] and love.timer.getTime() - down_at[name] < 0.8
   down[name] = nil
   if name == "1p" and seen and not both_seen then press("1p") end
+  if name == "2p" and seen and not both_seen and not down["1p"] then press("2p") end
   if not down["1p"] and not down["2p"] then both_seen = false end
 end
 function love.joystickpressed(_, b) if JOY[b] then control_down(JOY[b]) end end
@@ -820,6 +827,13 @@ local function draw_intro()
 end
 
 local function draw_scene()
+  if scene == "tv" then
+    -- The guide draws its own quiet backdrop (Home's sky under it cost ~15 fps: two extra full-screen passes).
+    tv.draw()
+    draw_volume()
+    draw_note()
+    return
+  end
   local dim = scene == "night" and 1 or 0
   draw_background(dim)
   if scene == "intro" then
@@ -933,8 +947,15 @@ end
 
 -- ------------------------------------------------------------------ actions
 
-local function request(s, it)
-  if it and (not headless or os.getenv("HOME_FB")) then pictures_for(it) end
+local function request(s, it, picture)
+  if picture and (not headless or os.getenv("HOME_FB")) then
+    local ok, bytes = pcall(splash.render, picture)
+    if ok then splash.show(bytes) end
+    if BACK and not file_exists(BACK) then
+      local ok2, back = pcall(splash.render, picture_back)
+      if ok2 then splash.save(back, BACK) end
+    end
+  elseif it and (not headless or os.getenv("HOME_FB")) then pictures_for(it) end
   log("launch " .. s)
   -- The classic's high score as it was: on the way back, a higher one is celebrated.
   local played = nil
@@ -1029,7 +1050,12 @@ local function handle(name)
     if sound.music then sound.music:setVolume(0.55) end
     return
   end
+  if scene == "tv" then
+    if tv.handle(name) == "exit" then scene = "menu" end
+    return
+  end
   if launch_item then return end
+  if name == "2p" then return end
   if secret(name) then
     -- (the code's presses moved the cards and maybe a setting: put back as they were)
     for _, it in ipairs(items) do if it.kind == "classic" then it.score = high_score(it.index) end end
@@ -1054,6 +1080,11 @@ local function handle(name)
   elseif (name == "low" or name == "1p") and returning and t < 0.6 then
     -- Just back from a game: a button still being mashed there (fire is the lower button) is not a choice.
     return
+  elseif (name == "low" or name == "1p") and it.kind == "tv" then
+    -- The guide opens in Home itself: no program to start.
+    scene = "tv"
+    tv.enter()
+    play("launch")
   elseif name == "low" or name == "1p" then
     launch_item = it
     launch_t = 0
@@ -1125,6 +1156,35 @@ function love.load()
   else
     play("intro")
   end
+  -- Live TV: the guide's lists, and coming back from a channel (tvloop wrote how it ended).
+  tv.load({W = W, H = H, font = font, neon_draw = neon_draw, rgb = rgb, rrect = rrect, fx = fx, play = play,
+           log = log, down = down, backdrop = backdrop,
+           request = function(s, picture) request(s, nil, picture) end,
+           save_picture = function(path, picture)
+             if headless and not os.getenv("HOME_FB") then return end
+             local ok, bytes = pcall(splash.render, picture)
+             if ok then splash.save(bytes, path, true) end
+           end})
+  for k, it in ipairs(items) do
+    if it.kind == "tv" then
+      local n, g, p = tv.channel_count()
+      if n > 0 then it.blurb = string.format("%d channels in %d groups, from %d playlists.", n, g, p) end
+      if not tv.has_playlists() then it.blurb = "No TV playlists on this cabinet yet." end
+    end
+  end
+  do
+    local rc, idx = tv.returning()
+    if rc then
+      for k, it in ipairs(items) do if it.kind == "tv" then sel, pos = k, k end end
+      if rc ~= 10 then
+        scene = "tv"
+        tv.enter(rc, idx)
+      else
+        scene = "menu"
+      end
+      returning = true
+    end
+  end
   read_volume()
   local sc = {}
   for _, it in ipairs(items) do
@@ -1150,6 +1210,7 @@ end
 -- The worker waits for jobs: tell it to stop, so LÖVE's exit does not wait on it.
 function love.quit()
   if worker then love.thread.getChannel("home_work"):push({"quit"}) end
+  tv.quit()
   return false
 end
 
@@ -1201,6 +1262,10 @@ function love.update(dt)
     local letters = math.floor(math.min(1, intro_t / 1.2) * 9 + 0.001)
     if letters > last_letters then last_letters = letters play("tick") end
     if intro_t > INTRO_LEN then scene = "menu" menu_in = 0.45 end
+  end
+  if scene == "tv" then
+    idle = 0
+    if tv.update(dt) == "exit" then scene = "menu" end
   end
   idle = idle + dt
   if scene == "menu" and idle > IDLE_ATTRACT then scene = "attract" attract_t = 0 attract_sel = sel end

@@ -14,6 +14,9 @@ LOG=$H/home.log
 mkdir -p "$H"
 [ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt 131072 ] && mv "$LOG" "$LOG.1"
 MODE=${1:-boot}
+# Local time for Home's clock and TV guide: /data/tv/tz (a POSIX TZ string) or US Central.
+TZ=$(cat /data/tv/tz 2>/dev/null || echo CST6CDT,M3.2.0,M11.1.0)
+export TZ
 FAILS=0
 # At power-on, Home plays its intro once (its state file says "coming back from a game" otherwise).
 INTRO=0
@@ -104,7 +107,7 @@ while :; do
   SEEN=/tmp/home-seen
   if ! grep -qx "$WHAT $2" "$SEEN" 2>/dev/null; then
     echo "$WHAT $2" >> "$SEEN"
-    case "$WHAT" in classic|cart|native|yard) sleep 1.5 ;; esac
+    case "$WHAT" in classic|cart|native|yard) sleep 1.5 ;; esac   # (tv: its "tuning in" stays up while it connects)
   fi
   case "$WHAT" in
     classic) classic "$2" "$3" "$4" ;;
@@ -117,6 +120,10 @@ while :; do
       case "$2" in ""|*[!a-z0-9_-]*) log "bad native: $2"; continue ;; esac
       log "native $2"
       ( cd /data/Games && "./$2" ) ;;
+    tv)
+      # Live TV (games/tv): the channel the guide chose, and the ones flipped to; Home comes back on it.
+      log "tv"
+      /data/tv/bin/tvloop ;;
     yard)
       [ "$MODE" = preview ] && exit 0
       # The whole Yard, as Dig Dug II opens it (GPU yard first, its "Classic yard" row, Orb), but with no stock
@@ -135,5 +142,5 @@ while :; do
   log "$WHAT returned $RC after $((T1 - T0)) s"
   # Home shows a note when a game did not start: an error within 5 s (a game's own exit code on a normal
   # quit is not trusted).
-  if [ $RC -ne 0 ] && [ $((T1 - T0)) -lt 5 ]; then printf 'returned %s failed\n' "$WHAT" >> $H/state; fi
+  if [ $RC -ne 0 ] && [ $((T1 - T0)) -lt 5 ] && [ "$WHAT" != tv ]; then printf 'returned %s failed\n' "$WHAT" >> $H/state; fi
 done

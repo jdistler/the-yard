@@ -664,6 +664,14 @@ def cmd_push(a):
     subprocess.check_call([sys.executable, os.path.join(ROOT, "tools", "home_sfx.py"), sfx], stdout=subprocess.DEVNULL)
     for f in sorted(os.listdir(sfx)):
         files[f"/data/home/sfx/{f}"] = (os.path.join(sfx, f), False)
+    # Live TV (games/tv): the player, the fetcher and the loop between them. Built by games/tv/build.sh (MPP and
+    # the cabinet's FFmpeg); the playlists' logins (/data/tv/account.conf) are never part of a push.
+    tvout = os.path.join(HERE, "out", "cab")
+    if not all(os.path.exists(os.path.join(tvout, n)) for n in ("tvplay", "tvnet")):
+        subprocess.check_call([os.path.join(HERE, "tv", "build.sh")], stdout=subprocess.DEVNULL)
+    files["/data/tv/bin/tvplay"] = (os.path.join(tvout, "tvplay"), False)
+    files["/data/tv/bin/tvnet"] = (os.path.join(tvout, "tvnet"), False)
+    files["/data/tv/bin/tvloop"] = (os.path.join(HERE, "tv", "tvloop.sh"), False)
     # Home at power-on: stage2 (v2) binds games/boot/S50ui over the stock one (games/boot/README.md).
     files["/data/boot/stage2.sh"] = (os.path.join(HERE, "boot", "stage2.sh"), False)
     files["/data/boot/S50ui"] = (os.path.join(HERE, "boot", "S50ui"), False)

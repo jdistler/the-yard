@@ -1,4 +1,21 @@
-# Partycade TV: the plan (2026-10-27)
+# Partycade TV: the plan (2026-10-27; status 2026-11-01 below)
+
+## Status (2026-11-01, verified on the cabinet)
+
+Built and working end to end: Home's TV tab (CLASSICS / THE YARD / **TV** / MORE) opens the guide in Home itself
+(`games/love/home/tv.lua`, 60 fps); RECENT, then FULLENT's groups, then STRONG's, each a row of channel tiles with
+logos and now-playing progress, an info panel with now / next / description. The lower button tunes in: Home paints
+a "tuning in" picture with the controls, `tvloop` (`games/tv/tvloop.sh`) runs `tvplay`; CNN first picture in 4.7 s,
+A/V +0.02 s, 0 drops. Stick up/down flips channels in the row ("changing channel" picture between, dead channels
+skipped), 2-PLAYER comes back to the guide on the channel watched, hold 1P + 2P goes to Home. `tvnet` syncs each
+playlist (handshake sets the clock, groups, channels, the curated XMLTV cut to 12 h) in ~6-9 s from a background
+thread, and fetches logos into `/mnt/sdcard/partycade/tv-logos` (the SD slot is on since 2026-11-01). Lists live
+in `/data/tv/<NAME>/` (offline copy), the guide in `/tmp/tv`. Lessons: the cabinet's LÖVE is draw-call bound (the
+rows draw in passes: 17 -> 10 ms CPU), and no scissor in Home (it draws turned onto the framebuffer).
+
+STRONG: its proxy answered 500 on every categories call (a Skywave bug, fixed and deployed 2026-11-01, skywave
+eabc75f); since then the STRONG panel itself is down (connection reset, also from home), so the guide shows
+"Not answering right now" and retries every 10 minutes.
 
 Live TV on the cabinet from the user's Xtream account (fullent), with the channel curation they already do in
 Skywave. Every claim below was measured on this cabinet or against the real panel on 2026-10-27, unless marked.
