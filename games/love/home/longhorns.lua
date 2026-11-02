@@ -136,18 +136,53 @@ local function tower(x, base, s, mode)
   end
 end
 
--- A fan, from behind or in front, a Hook 'em hand up now and then
-local function fan(x, y, s, shirt, t, hook)
+-- A fan: walking legs, a torso in the shirt, arms swinging (or a Hook 'em hand up), a head with hair. who picks
+-- the skin and hair (else from the shirt and t); y is the ground.
+local SKIN = {{0.93, 0.76, 0.62}, {0.78, 0.57, 0.42}, {0.55, 0.37, 0.26}, {0.97, 0.82, 0.7}, {0.42, 0.28, 0.2}}
+local HAIR = {{0.15, 0.1, 0.08}, {0.4, 0.26, 0.14}, {0.75, 0.6, 0.35}, {0.08, 0.07, 0.07}, {0.55, 0.3, 0.15}}
+local function fan(x, y, s, shirt, t, hook, who)
+  who = who or (floor(abs(t) * 7.31) % 5 + 1)
+  local sk, hr = SKIN[who], HAIR[(who * 3) % 5 + 1]
+  local step = sin(t * 8) * 5 * s
+  local dark = shirt[1] + shirt[2] + shirt[3] < 0.5            -- (a silhouette in the dark)
+  -- legs: jeans, a stride
+  if dark then rgba(shirt) else lg.setColor(0.22, 0.27, 0.42, 1) end
+  lg.polygon("fill", x - 5 * s, y - 13 * s, x - 1 * s, y - 13 * s, x - 2 * s + step * 0.5, y + 1 * s, x - 6 * s + step * 0.5, y + 1 * s)
+  lg.polygon("fill", x + 1 * s, y - 13 * s, x + 5 * s, y - 13 * s, x + 6 * s - step * 0.5, y + 1 * s, x + 2 * s - step * 0.5, y + 1 * s)
+  -- the torso, the shirt's shading
   rgba(shirt)
-  lg.rectangle("fill", x - 9 * s, y - 24 * s, 18 * s, 26 * s, 4 * s, 4 * s, 4)
-  lg.setColor(0.9, 0.72, 0.58, 1)
-  lg.circle("fill", x, y - 30 * s, 7 * s, 10)
+  lg.rectangle("fill", x - 8 * s, y - 32 * s, 16 * s, 21 * s, 4 * s, 4 * s, 6)
+  if not dark then
+    lg.setColor(0, 0, 0, 0.12)
+    lg.rectangle("fill", x + 2 * s, y - 32 * s, 6 * s, 21 * s, 3 * s, 3 * s, 4)
+  end
+  -- arms: one swinging; the other swinging too, or up in a Hook 'em
+  local skin = dark and shirt or sk
+  rgba(skin)
+  lg.push()
+  lg.translate(x - 8 * s, y - 29 * s)
+  lg.rotate(step * 0.05 / s)
+  lg.rectangle("fill", -3 * s, 0, 4 * s, 15 * s, 2 * s, 2 * s, 4)
+  lg.pop()
   if hook then
-    lg.setColor(0.9, 0.72, 0.58, 1)
-    local up = abs(sin(t * 3)) * 6 * s
-    lg.rectangle("fill", x + 8 * s, y - 50 * s - up, 4 * s, 26 * s)
-    lg.rectangle("fill", x + 6 * s, y - 60 * s - up, 3 * s, 10 * s)
-    lg.rectangle("fill", x + 12 * s, y - 60 * s - up, 3 * s, 10 * s)
+    local up = abs(sin(t * 3)) * 4 * s
+    lg.rectangle("fill", x + 6 * s, y - 50 * s - up, 4 * s, 22 * s, 2 * s, 2 * s, 4)
+    lg.rectangle("fill", x + 5 * s, y - 52 * s - up, 6 * s, 6 * s, 2 * s, 2 * s, 4)
+    lg.rectangle("fill", x + 5 * s, y - 60 * s - up, 2 * s, 9 * s)
+    lg.rectangle("fill", x + 9 * s, y - 59 * s - up, 2 * s, 8 * s)
+  else
+    lg.push()
+    lg.translate(x + 8 * s, y - 29 * s)
+    lg.rotate(-step * 0.05 / s)
+    lg.rectangle("fill", -1 * s, 0, 4 * s, 15 * s, 2 * s, 2 * s, 4)
+    lg.pop()
+  end
+  -- the head and the hair
+  rgba(skin)
+  lg.circle("fill", x, y - 38 * s, 6.5 * s, 14)
+  if not dark then
+    rgba(hr)
+    lg.arc("fill", "pie", x, y - 39 * s, 6.8 * s, pi * 1.05, pi * 1.95, 10)
   end
 end
 
@@ -181,7 +216,64 @@ function D.open(lt, len)
   G:caption("LONGHORNS", 750, 54, 0xffffff, b)
 end
 
+-- A tailgate: a pop-up canopy (scalloped), its legs, a table and a grill, folks around it.
+local function tailgate(x, y, s, col, t, seed)
+  local hi = mix(col, {1, 1, 1}, 0.25)
+  lg.setColor(0, 0, 0, 0.22)
+  lg.ellipse("fill", x, y + 4 * s, 78 * s, 9 * s, 20)
+  lg.setColor(0.25, 0.25, 0.28, 1)
+  for _, lx in ipairs({-60, 60}) do lg.rectangle("fill", x + lx * s - 2 * s, y - 70 * s, 4 * s, 72 * s) end
+  -- the table, a cooler, the grill
+  lg.setColor(0.92, 0.9, 0.86, 1)
+  lg.rectangle("fill", x - 40 * s, y - 26 * s, 50 * s, 5 * s)
+  lg.setColor(0.55, 0.55, 0.58, 1)
+  lg.rectangle("fill", x - 36 * s, y - 21 * s, 3 * s, 21 * s)
+  lg.rectangle("fill", x + 3 * s, y - 21 * s, 3 * s, 21 * s)
+  rgba(ORANGE)
+  lg.rectangle("fill", x - 30 * s, y - 40 * s, 22 * s, 14 * s, 2 * s, 2 * s, 4)
+  lg.setColor(1, 1, 1, 1)
+  lg.rectangle("fill", x - 30 * s, y - 40 * s, 22 * s, 4 * s, 2 * s, 2 * s, 4)
+  lg.setColor(0.12, 0.12, 0.13, 1)
+  lg.ellipse("fill", x + 34 * s, y - 24 * s, 16 * s, 8 * s, 16)
+  lg.rectangle("fill", x + 33 * s, y - 20 * s, 2 * s, 20 * s)
+  lg.setColor(1, 0.45, 0.1, 0.5 + 0.3 * sin(t * 9 + seed))
+  lg.ellipse("fill", x + 34 * s, y - 27 * s, 10 * s, 3 * s, 12)
+  -- the canopy: a peak, a sloped top, the valance's scallops
+  local top = y - 72 * s
+  rgba(col)
+  lg.polygon("fill", x - 66 * s, top, x + 66 * s, top, x + 40 * s, top - 22 * s, x - 40 * s, top - 22 * s)
+  rgba(hi)
+  lg.polygon("fill", x, top - 22 * s, x + 40 * s, top - 22 * s, x + 66 * s, top, x + 6 * s, top)
+  rgba(col)
+  lg.rectangle("fill", x - 66 * s, top, 132 * s, 9 * s)
+  for i = 0, 10 do lg.circle("fill", x - 60 * s + i * 12 * s, top + 9 * s, 6 * s, 10) end
+  lg.setColor(1, 1, 1, 0.9)
+  lg.rectangle("fill", x - 66 * s, top + 2 * s, 132 * s, 2 * s)
+  -- the folks
+  for i = 0, 2 do
+    local fx = x - 50 * s + i * 42 * s + sin(t * 0.7 + i + seed) * 6 * s
+    fan(fx, y, 1.05 * s, (i + seed) % 2 == 0 and ORANGE_HI or WHITE, t + i * 1.7 + seed, (i + seed) % 3 == 0)
+  end
+end
+
 function D.campus(lt, len)
+  local A = S.art
+  if A.campus_day then
+    -- the painted Forty Acres (tools/art/longhorns.py): dawn, and the day coming up over half a minute
+    local k = clamp(lt / 30, 0, 1)
+    lg.setColor(1, 1, 1, 1)
+    if k < 1 and A.campus_dawn then lg.draw(A.campus_dawn, 0, 0) end
+    if k > 0 or not A.campus_dawn then lg.setColor(1, 1, 1, A.campus_dawn and k or 1) lg.draw(A.campus_day, 0, 0) end
+    tailgate(200, 895, 0.9, ORANGE, S.t, 1)
+    tailgate(590, 908, 0.95, WHITE, S.t, 2)
+    L.steer(670, 958, 0.85, S.t * 0.5, {{0.82, 0.48, 0.18}, {0.97, 0.95, 0.9}}, {0.95, 0.92, 0.8})
+    for i = 0, 6 do
+      local x = ((S.t * 22 + i * 130) % (W + 120)) - 60
+      fan(x, 962 - (i % 2) * 12, 1.2, i % 3 == 0 and WHITE or ORANGE, S.t + i, i % 2 == 0, i % 5 + 1)
+    end
+    G:plate("THE MAIN BUILDING  ·  THE TOWER", 96, 28, 0xffffff, L.window(lt, 12, 40, 1.5))
+    return
+  end
   local k = clamp(lt / 30, 0, 1)
   G:gradient(0, 0, W, 760, mix({0.25, 0.2, 0.45}, {0.25, 0.5, 0.9}, k), mix({1, 0.6, 0.35}, {0.8, 0.9, 1}, k))
   C.fx.glow(640, lerp(700, 200, k), 200, 160, 1, 0.75, 0.45, 0.4 * (1 - k * 0.5))
@@ -1145,6 +1237,9 @@ function M.start(seed, at)
   G.t, G.prev = S.t, S.t - 0.001
   local R = G.R
   S.flag = G:cloth(L.paint_texas, 600, 400)
+  -- the painted pictures, when the SD card has them (else each scene draws itself live)
+  S.art = {}
+  for _, n in ipairs({"campus_dawn", "campus_day"}) do S.art[n] = G:art("longhorns", n) end
   -- the stands (a band of crowd: orange and white dots), painted once
   S.stands = G:canvas(W, 300, function(w, h)
     lg.setColor(0.35, 0.33, 0.38, 1)
@@ -1288,7 +1383,9 @@ function M.update(dt)
     G:puff(70 + G.R:random() * 60, 880 + G.R:random() * 60, {0.9, 0.9, 0.93}, 30 + G.R:random() * 30, 60 + G.R:random() * 60, 2.5, 22, 0.55)
   end
   if sc[2] == "campus" and G.R:random() < dt * 4 then
-    G:puff(70 + (G.R:random() > 0.5 and 570 or 0), 920, {0.85, 0.85, 0.88}, 40, 8, 2.5, 8, 0.35)
+    local a = S.art.campus_day
+    local gx = a and (G.R:random() > 0.5 and 230 or 625) or (70 + (G.R:random() > 0.5 and 570 or 0))
+    G:puff(gx, a and (G.R:random() > 0.5 and 900 or 915) or 920, {0.85, 0.85, 0.88}, 40, 8, 2.5, 8, 0.35)
   end
   -- the real game: our score went up
   if ut.scored then

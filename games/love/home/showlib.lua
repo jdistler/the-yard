@@ -116,6 +116,26 @@ function G:finish()
   self.glow, self.debris, self.smoke, self.rockets = {}, {}, {}, {}
 end
 
+-- A painted picture (tools/show_art.py: ETC1, 0.5 bytes a pixel on the Mali) from the SD card, or nil (no card,
+-- not painted yet: the show draws its scene live instead). Load them in start(), behind Home's curtain; they go
+-- with the show (finish).
+local ART = os.getenv("HOME_SHOW_ART") or "/mnt/sdcard/partycade/art"
+function G:art(show, name)
+  local f = io.open(ART .. "/" .. show .. "/" .. name .. ".pkm", "rb")
+  if not f then return nil end
+  local bytes = f:read("*a")
+  f:close()
+  local ok, img = pcall(function()
+    return lg.newImage(love.image.newCompressedData(love.filesystem.newFileData(bytes, name .. ".pkm")))
+  end)
+  if not ok then
+    if self.C.log then self.C.log("art " .. show .. "/" .. name .. ": " .. tostring(img)) end
+    return nil
+  end
+  img:setFilter("linear", "linear")
+  return self:track(img)
+end
+
 -- A label to paint ahead of its first use (two a frame, in step: a canvas switch mid-frame costs). when: the
 -- show time it is first needed (painted 25 s ahead, so a long show doesn't hold them all at once); nil: now.
 function G:label(text, px, colour, when)

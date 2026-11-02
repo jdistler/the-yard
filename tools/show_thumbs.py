@@ -14,7 +14,8 @@ GAMES = os.path.join(ROOT, "games")
 OUT = os.path.join(GAMES, "love", "home", "thumbs")
 RUN = os.path.join(GAMES, "out", "love-x86", "run.sh")
 ENV = dict(os.environ, HOME_HEADLESS="1", SDL_VIDEODRIVER="offscreen", SDL_AUDIODRIVER="dummy", ALSOFT_DRIVERS="null",
-           HOME_DT="0.0166667", HOME_SKIP_INTRO="1")
+           HOME_DT="0.0166667", HOME_SKIP_INTRO="1",
+           HOME_SHOW_ART=os.path.join(GAMES, "out", "show-art"))
 
 
 def run(love, env, seconds=60):
