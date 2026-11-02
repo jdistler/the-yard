@@ -12,6 +12,12 @@ the boot image, the same tree was booted from RAM through U-Boot's console (`fdt
 written until it had run. The slot's DAT0/DAT1 are also U-Boot's console (RECOVERY.md path E): with a card in, the
 console is the card's, and the sniffer board takes its place for recovery.
 
+## What Home keeps on it (2026-11-02)
+
+* `partycade/logs/home.log` (and `.1`): Home's log, when a card is mounted at power-on (homeloop; up to 4 MB, Home
+  trims it itself). Without a card it is `/data/home/home.log` (128 KB). `/tmp/home.logpath` says which.
+* Nothing Home needs to start lives on the card: take it out and Home logs to /data again at the next start.
+
 ## The short version
 
 * A microSDHC card, 4 to 32 GB.
