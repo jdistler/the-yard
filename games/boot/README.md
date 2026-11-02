@@ -19,6 +19,9 @@ pixels only, `tools/bootimg.py logo`) and the kernel's compiled-in boot logo (`t
 film's first frame (stage2, 2.7 s) shows the pink logo. Back to any earlier image: `tools/ota_boot.sh write
 IMG <sha now>`; to stock: `tools/ota_boot.sh restore`.
 
+**Since 2026-11-02 the boot partition is `out/boot-starlight.img`, sha256 `a8d3e0e8…7791`:** `boot-yard-sd2.img` with both
+logos replaced by `logo-starlight.png` (BOOT_RESEARCH.md, 2026-11-02).
+
 **Goal:** change what the cabinet does at power-on (intro, menu, idle screen, Wi-Fi at boot) from files in
 `/data`, over Wi-Fi, with no Micro-USB. Written 2026-10-26.
 

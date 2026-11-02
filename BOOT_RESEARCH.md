@@ -614,3 +614,20 @@ No Mask ROM writes after the 10-block key write; everything below was installed 
 * Then (user approved: "approved, write boot-yard-sd2.img (def61406…7c53)") `NOREBOOT=1 tools/ota_boot.sh write
   games/boot/out/boot-yard-sd2.img de23d410…`: read back def61406…; power-cycled with the console attached:
   `HASH: OK(s)`, kernel started, Home, Wi-Fi; card mounted at /mnt/sdcard.
+
+## 2026-11-02: the Starlight logos (written over Wi-Fi with the user's approval, verified)
+
+* The user renamed the cabinet's front end Starlight and approved all flash writes for it ("all flash writes approved").
+* `games/boot/logo-starlight.png` (264x40, the script wordmark in warm neon). U-Boot's `logo.bmp`: the stock BMP's
+  header kept byte for byte (54-byte header, 40x-264, 24 bpp, trailing bytes untouched), pixels rotated 90° (the
+  encoder reproduces the previous logo's pixels exactly from `logo.png`), `bootimg.py logo` on `boot-yard-sd2.img`
+  (`def61406…`, the image on the cabinet) -> sealed. The kernel logo: `kernel_logo.py` refuses an already-patched
+  kernel (the trailer sits after zero padding), so it patched the stock kernel (`boot-yard.img`), and that kernel
+  section was spliced into the sd2-based image and sealed.
+* Checked offline against the running image: the inflated kernels differ only inside the previous logo patch's span
+  (7625 bytes); the zImage stub, the ramdisk and the device tree byte for byte; the resource differs only in
+  logo.bmp's pixels and its 20-byte hash; the header only in its ID; `bootimg.py verify` all ok.
+* `tools/ota_boot.sh write games/boot/out/boot-starlight.img def61406…` (Home stopped first: the script counts any
+  love.bin as busy): read back **`a8d3e0e8656f481486c901ef4545953d83b97651b504a640c8a75d7e58717791`**, rebooted:
+  up at ~60 s, stage2 2.8 s, S50ui 5.8 s, healthy at 66 s, Home's first frame at 10.0 s. Back: `tools/ota_boot.sh
+  write games/boot/out/boot-yard-sd2.img a8d3e0e8…`.
