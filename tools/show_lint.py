@@ -22,6 +22,14 @@ def main():
     ap.add_argument("--out", default=os.path.join(tempfile.gettempdir(), "show_lint"))
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
+    # every Lua file parses (a syntax error in a module Home loads first means no Home at all)
+    home = os.path.join(GAMES, "love", "home")
+    luajit = os.path.join(GAMES, "out", "love-x86", "luajit")
+    bad = [f for f in sorted(glob.glob(os.path.join(home, "*.lua")))
+           if subprocess.run([luajit, "-e", f"assert(loadfile({f!r}))"], capture_output=True).returncode]
+    if bad:
+        print("does not parse:", " ".join(os.path.basename(f) for f in bad))
+        sys.exit(1)
     love = os.path.join(a.out, "home.love")
     subprocess.check_call([os.path.join(GAMES, "cart"), "home-pack", "--out", love], stdout=subprocess.DEVNULL)
     listing = os.path.join(a.out, "shows.txt")
