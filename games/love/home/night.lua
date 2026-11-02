@@ -604,6 +604,19 @@ function N.load(ctx)
   SP.ship = sprite({"....X....", "....X....", "...XXX...", "..XXXXX..", ".XX.X.XX.", "XXXXXXXXX", "XX.XXX.XX", "X...X...X", "........."})
 end
 
+-- One scene only, over and over (the SHOWS section's tiles; nil: the whole night again).
+function N.set_only(name)
+  only = name
+  state_for = nil
+end
+
 N.CYCLE = CYCLE
 N.ORDER = ORDER
+N.DAWN = DAWN
+-- The night's segments for the SHOWS section: {start (seconds into the night), title, scene for set_only}
+N.SEGMENTS = {{0, "DUSK"}}
+local TITLES = {chase = "THE CHASE", swarm = "THE SWARM", stars = "STARFIELD", fireflies = "FIREFLIES", aurora = "AURORA",
+                meteors = "METEOR SHOWER", city = "NEON CITY", ufo = "CLOSE ENCOUNTER", digger = "THE DIGGER", dream = "SWEET DREAMS"}
+for _, name in ipairs(ORDER) do N.SEGMENTS[#N.SEGMENTS + 1] = {0, TITLES[name], name} end
+N.SEGMENTS[#N.SEGMENTS + 1] = {DAWN, "DAWN"}
 return N

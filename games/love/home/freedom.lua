@@ -639,13 +639,40 @@ function F.start(seed, at)
     S.labels[#S.labels + 1] = l
   end
   if at and at > 0 then
-    -- tests: start partway (the state of the acts before is set up roughly)
+    -- Starting partway (a segment from the SHOWS section): the story so far, set up.
     S.t = at
     S.prev = at - 0.001
     if at > 20 then S.eagle = {mode = "perched"} end
     if at > 160 then S.fy = 80 end
+    if at > 175 then
+      -- the battle under way: holes in the flag, part of the fleet gone
+      local holes = at >= 330 and 14 or math.min(14, math.floor((at - 175) / 8))
+      for _ = 1, holes do
+        local h = {u = 0.12 + R:random() * 0.85, v = 0.08 + R:random() * 0.84, r = 9 + R:random() * 8}
+        S.holes[#S.holes + 1] = h
+        burn_hole(h.u, h.v, h.r)
+      end
+      local kills = at >= 326 and 40 or math.min(23, math.floor((at - 175) / 4.5))
+      local n = 0
+      for r = ROWS, 1, -1 do
+        for c = 1, COLS do
+          if n < kills and (at >= 326 or R:random() < 0.6) then S.inv[r][c].alive = false n = n + 1 end
+        end
+      end
+      S.score = 1776 + kills * 150
+    end
+    if at >= 360 then
+      for _, h in ipairs(S.holes) do tape_hole(h.u, h.v, h.r) end
+      S.taped = #S.holes
+    end
   end
 end
+
+-- The segments for the SHOWS section: {start, title}; THUMB: the one whose picture stands for the whole show.
+F.THUMB = 3
+F.SEGMENTS = {{6, "MORNING IN AMERICA"}, {130, "RED ALERT"}, {170, "BATTLE OF THE BACKYARD"},
+              {276, "THE FREEDOM PELLET"}, {296, "THE MOTHERSHIP"}, {330, "MISSION ACCOMPLISHED"},
+              {430, "U-S-A FIREWORKS"}, {450, "SUNSET"}}
 
 function F.act()
   local a = "open"

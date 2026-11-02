@@ -23,7 +23,7 @@ local splash = require("splash")
 local night = require("night")
 local tv = require("tv")
 local music = require("music")
-local freedom = require("freedom")
+local shows = require("shows")
 
 local W, H = 768, 1024                       -- the upright picture; the panel shows the framebuffer turned
 local headless = os.getenv("HOME_HEADLESS") == "1"
@@ -38,14 +38,15 @@ local RENDER = os.getenv("HOME_RENDER")
 local IDLE_ATTRACT = tonumber(os.getenv("HOME_IDLE") or "") or 45    -- seconds without a press
 local IDLE_NIGHT = tonumber(os.getenv("HOME_NIGHT") or "") or 180
 local NIGHT_SPEED = tonumber(os.getenv("HOME_NIGHT_SPEED") or "") or 1   -- tests: the night fast-forwarded
--- HOME_SHOW=freedom[:SECONDS] or night (tests): straight into that idle show at start (the Freedom Show that
--- far in).
+-- HOME_SHOW=ID, ID:SECONDS or ID@SEGMENT (tests, thumbnails): straight into an idle show at start.
 local SHOW_NOW = os.getenv("HOME_SHOW")
--- The idle shows (the card in MORE changes it; kept in the state file): AUTO = the Freedom Show by day (8 AM to
--- 10 PM, or when the clock is not set) taking turns with half an hour of the night sky, and the night sky alone
--- at night; or one of them only.
-local SHOW_MODES = {"auto", "freedom", "night"}
-local SHOW_NAMES = {auto = "AUTO", freedom = "FREEDOM SHOW", night = "NIGHT SKY"}
+-- The idle shows (shows.lua). The SCHEDULE card under SHOWS picks which plays when nobody is playing (kept in
+-- the state file): AUTO follows the calendar (shows.pick), or one show only.
+local SHOW_MODES = {"auto"}
+local SHOW_NAMES = {auto = "AUTO"}
+for _, sh in ipairs(shows.LIST) do
+  if shows.available(sh.id) then SHOW_MODES[#SHOW_MODES + 1] = sh.id SHOW_NAMES[sh.id] = sh.title end
+end
 local show_mode = "auto"
 local AUTO_NIGHT_BLOCK = 1800
 local HORIZON = 760
@@ -115,6 +116,7 @@ local SECTIONS = {
   {name = "CLASSICS", tint = 0xffd23f},
   {name = "THE YARD", tint = 0x6ef0c8},
   {name = "TV", tint = 0xff6b6b},
+  {name = "SHOWS", tint = 0xff4a5a},
   {name = "MORE", tint = 0x8ab4ff},
 }
 -- How to come back to Home from each kind of game (said on the info panel and on the "get ready" picture).
@@ -124,7 +126,7 @@ local LEAVE = {
   native = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
   yard = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
 }
-local TV_SECTION, MORE_SECTION = 3, 4
+local TV_SECTION, SHOWS_SECTION, MORE_SECTION = 3, 4, 5
 
 local PREVIEW = os.getenv("HOME_MODE") == "preview"
 local items = {}
@@ -139,6 +141,14 @@ end
 -- Live TV (tv.lua): one card, which opens the guide in Home itself.
 items[#items + 1] = {kind = "tv", section = TV_SECTION, title = "LIVE TV", sub = "CHANNEL GUIDE",
                      blurb = "Live sports, news and locals.", tint = 0xff6b6b}
+-- The idle shows (shows.lua): a card each (LOWER: its parts, to watch any of them), and the SCHEDULE.
+for _, sh in ipairs(shows.LIST) do
+  if shows.available(sh.id) then
+    items[#items + 1] = {kind = "showcard", show = sh.id, section = SHOWS_SECTION, title = sh.title,
+                         sub = "IDLE SHOW  ·  LOWER BUTTON: pick a part to watch", blurb = sh.blurb, tint = sh.tint}
+  end
+end
+items[#items + 1] = {kind = "show", section = SHOWS_SECTION, title = "SCHEDULE", sub = "AUTO", blurb = "", tint = 0xff4a5a}
 -- HOME_MODE=preview (opened from a Yard row to try Home): the last card goes back to The Yard.
 if PREVIEW then
   items[#items + 1] = {kind = "stock", section = MORE_SECTION, title = "BACK TO THE YARD", sub = "HOME PREVIEW",
@@ -150,9 +160,13 @@ else
                        blurb = "The menu as it came. On it, hold 1-PLAYER + 2-PLAYER to come back.", tint = 0xff9c5a}
 end
 
--- The idle show: which one plays when nobody is playing (top buttons), and LOWER watches it now. (Last in the
--- list: the state file keeps cards by number.)
-items[#items + 1] = {kind = "show", section = MORE_SECTION, title = "IDLE SHOW", sub = "AUTO", blurb = "", tint = 0xff4a5a}
+-- A card's name in the state file (numbers move when cards are added).
+local function item_key(it)
+  return it.kind .. ":" .. tostring(it.id or it.show or it.index or it.title):gsub("%s", "_")
+end
+local function item_by_key(k)
+  for i, it in ipairs(items) do if item_key(it) == k then return i end end
+end
 
 -- The stock menu's settings: one byte per classic.
 local function cfg_read(name)
@@ -354,7 +368,7 @@ end
 
 local sel, pos = 1, 1
 local t, frame = 0, 0
-local scene = "intro"           -- intro, menu, attract, night, freedom, tv
+local scene = "intro"           -- intro, menu, attract, night, show (an idle show), shows (a show's tiles), tv
 local intro_t = 0
 local idle = 0
 local attract_t = 0
@@ -366,6 +380,7 @@ local canvas
 local shot_req
 local vol_level, vol_t, vol_read = nil, 0, nil
 local night_t = 0
+local cur_show, cur_show_id             -- the idle show playing (its module; nil for the night sky), and its id
 local auto_night_t = 0            -- AUTO: how long the night sky has had its turn
 local menu_in = 0                 -- the menu fading in after the intro (seconds left)
 local attract_sel                 -- the card before the attract tour: given back on waking
@@ -376,13 +391,43 @@ local code_buf = {}
 local CODE = {"up", "up", "down", "down", "left", "right", "left", "right", "tl", "low"}
 local last_played                 -- the card of the last game played (state file)
 
+-- The cards' neon titles (two pictures each, ~0.2 MB of GPU memory per card): painted for the cards near the
+-- chosen one, given back for the far ones (all of them painted, Home's labels alone were most of its 12 MB of
+-- pictures, and GPU memory is what this cabinet runs out of).
+local labels_for, labels_sel = {}, nil
+local function title_labels(it)
+  neon_img(it.title, 64, it.tint, 1.2)
+  neon_img(it.title, 44, it.tint, 0.9)
+end
+local function neon_release(s, px, c, glow)
+  local key = s .. "|" .. px .. "|" .. c .. "|" .. (glow or 1)
+  local e = neon_cache[key]
+  if e then e.img:release() neon_cache[key] = nil end
+end
+local function manage_labels(all_now)
+  if labels_sel == sel then return end
+  labels_sel = sel
+  for k, it in ipairs(items) do
+    local d = math.abs(k - sel)
+    if d <= 3 and not labels_for[k] then
+      labels_for[k] = true
+      if all_now or d <= 1 then title_labels(it)
+      else label_jobs[#label_jobs + 1] = function() if labels_for[k] then title_labels(it) end end end
+    elseif d > 5 and labels_for[k] then
+      labels_for[k] = nil
+      neon_release(it.title, 64, it.tint, 1.2)
+      neon_release(it.title, 44, it.tint, 0.9)
+    end
+  end
+end
+
 local function load_state()
   local s = STATE and read_file(STATE)
-  local n = s and tonumber(s:match("sel (%d+)"))
+  local n = s and (item_by_key(s:match("selkey (%S+)") or "") or tonumber(s:match("sel (%d+)")))
   if n and items[n] then sel, pos = n, n end
   local sm = s and s:match("show (%a+)")
   if sm and SHOW_NAMES[sm] then show_mode = sm end
-  local lp = s and tonumber(s:match("played (%d+)"))
+  local lp = s and (item_by_key(s:match("playedkey (%S+)") or "") or tonumber(s:match("played (%d+)")))
   if lp and items[lp] then last_played = items[lp] end
   -- At power-on, never on the original menu's card (the last choice made before the power went off).
   if os.getenv("HOME_INTRO") == "1" and items[sel].kind == "stock" then sel, pos = 1, 1 end
@@ -396,7 +441,9 @@ local function save_state(extra, played)
   end
   local f = io.open(STATE, "w")
   if f then
-    f:write("sel " .. sel .. "\n" .. (lp and ("played " .. lp .. "\n") or "") .. "show " .. show_mode .. "\n" .. (extra or ""))
+    f:write("sel " .. sel .. "\nselkey " .. item_key(items[sel]) .. "\n" ..
+            (lp and ("played " .. lp .. "\nplayedkey " .. item_key(items[lp]) .. "\n") or "") ..
+            "show " .. show_mode .. "\n" .. (extra or ""))
     f:close()
   end
 end
@@ -505,7 +552,9 @@ local function draw_marquee(alpha_k)
 end
 
 local function draw_tabs(cur)
-  local x = 84
+  local total = 0
+  for _, s in ipairs(SECTIONS) do total = total + font(22):getWidth(s.name) + 30 + 14 end
+  local x = (W - total + 14) / 2
   for i, s in ipairs(SECTIONS) do
     local on = i == cur
     lg.setFont(font(22))
@@ -520,12 +569,11 @@ local function draw_tabs(cur)
     end
     lg.setColor(r, g, b, on and 1 or 0.45)
     lg.print(s.name, x + 15, 182)
-    x = x + w + 26
+    x = x + w + 14
   end
 end
 
 -- A card, centered on (cx, cy), of width cw.
-local show_flag, show_quads                 -- the IDLE SHOW card's little flag (painted when first drawn)
 local function draw_card(it, cx, cy, cw, focus, alpha)
   local ch = cw * 0.58
   local x, y = cx - cw / 2, cy - ch / 2
@@ -571,50 +619,18 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
     lg.setFont(font(math.max(12, math.floor(cw * 0.034))))
     lg.setColor(0.9, 0.88, 1, 0.85 * alpha * focus)   -- the chosen card only: the panel below repeats it
     lg.printf(it.blurb, tx + 8, cy + px * 0.55, x + cw - tx - 16, "center")
-  elseif it.kind == "show" then
-    -- The idle shows: a little flag waving on its pole (the Freedom Show) under a crescent moon (the night sky).
-    if not show_flag then
-      show_flag = lg.newCanvas(150, 80)
-      lg.push("all")
-      lg.origin()
-      lg.setCanvas(show_flag)
-      for i = 0, 12 do
-        if i % 2 == 0 then lg.setColor(0.8, 0.11, 0.17, 1) else lg.setColor(0.97, 0.97, 0.95, 1) end
-        lg.rectangle("fill", 0, i * 80 / 13, 150, 80 / 13 + 1)
-      end
-      lg.setColor(0.14, 0.2, 0.52, 1)
-      lg.rectangle("fill", 0, 0, 60, 80 * 7 / 13)
-      lg.setColor(1, 1, 1, 1)
-      for row = 0, 4 do for c = 0, 4 do lg.circle("fill", 6 + c * 12 + (row % 2) * 6, 5 + row * 8, 1.6, 6) end end
-      lg.pop()
-      show_quads = {}
-      for i = 0, 14 do show_quads[i] = lg.newQuad(i * 10, 0, 10, 80, 150, 80) end
-    end
+  elseif it.kind == "show" or it.kind == "showcard" then
+    -- An idle show (its picture), or the SCHEDULE (the show it is set to; a calendar for AUTO).
     local sc = ch / 260
-    local fx0, fy0 = x + 46 * sc, cy - 70 * sc
-    lg.setColor(0.8, 0.8, 0.85, alpha)
-    lg.rectangle("fill", fx0 - 6 * sc, fy0 - 8 * sc, 4 * sc, 170 * sc)
-    lg.setColor(1, 0.82, 0.3, alpha)
-    lg.circle("fill", fx0 - 4 * sc, fy0 - 10 * sc, 5 * sc, 12)
-    for i = 0, 14 do
-      local k = i / 14
-      local wob = math.sin(t * 3.2 - i * 0.47) * 7 * k * sc
-      local shade = 0.82 + 0.18 * math.cos(t * 3.2 - i * 0.47 + 0.8) * k
-      lg.setColor(shade, shade, shade, alpha)
-      lg.draw(show_flag, show_quads[i], fx0 + i * 10 * sc * 0.99, fy0 + wob, 0, sc, sc)
-    end
-    local mx, my = x + cw - 70 * sc, y + 54 * sc
-    fx.glow(mx, my, 60 * sc, 60 * sc, 0.8, 0.85, 1, 0.15 * alpha)
-    lg.setColor(0.95, 0.93, 0.8, alpha)
-    lg.circle("fill", mx, my, 22 * sc, 32)
-    lg.setColor(0.07, 0.03, 0.14, alpha)
-    lg.circle("fill", mx + 10 * sc, my - 6 * sc, 19 * sc, 32)
-    local tx = fx0 + 165 * sc
-    local px = math.floor(cw * 0.1)
+    shows.icon(it.kind == "showcard" and it.show or show_mode, x + 40 * sc, cy, sc, alpha, t)
+    local tx = x + 230 * sc
+    local px = math.min(cw * 0.1, 64 * (x + cw - tx - 24) / (font(64):getWidth(it.title) + 20))
     neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", x + cw - tx, alpha, px / 64)
-    lg.setFont(font(math.max(12, math.floor(cw * 0.036))))
-    lg.setColor(1, 0.85, 0.3, alpha)
-    lg.printf(SHOW_NAMES[show_mode], tx, cy + px * 0.5, x + cw - tx, "center")
+    if it.kind == "show" then
+      lg.setFont(font(math.max(12, math.floor(cw * 0.036))))
+      lg.setColor(1, 0.85, 0.3, alpha)
+      lg.printf(SHOW_NAMES[show_mode], tx, cy + px * 0.5, x + cw - tx, "center")
+    end
   elseif it.id == "orb" then
     -- Orb: the glowing well, rings shrinking into the dark, a pilot falling in.
     local wx, wr = x + ch * 0.55, ch * 0.42
@@ -908,9 +924,14 @@ local function draw_scene()
     draw_note()
     return
   end
-  if scene == "freedom" then
-    -- The Freedom Show draws the whole picture (freedom.lua).
-    freedom.draw()
+  if scene == "show" and cur_show then
+    -- An idle show draws the whole picture (freedom.lua, texas.lua, ...).
+    cur_show.draw()
+    draw_volume()
+    return
+  end
+  if scene == "shows" then
+    shows.draw()
     draw_volume()
     return
   end
@@ -1104,22 +1125,15 @@ local function secret(name)
 end
 
 -- ------------------------------------------------------------------ the idle shows
-local function daytime()
-  local now = os.time()
-  if now < 1700000000 then return true end      -- (the clock is not set: no way to know)
-  local h = tonumber(os.date("%H", now))
-  return h >= 8 and h < 22
-end
 local SHOW_BLURB = {
-  auto = "By day the Freedom Show, then the night sky; after 10 PM, the night sky only. LOWER BUTTON: watch now.",
-  freedom = "The Freedom Show, over and over. LOWER BUTTON: watch now.",
-  night = "The night sky: three hours of scenes, dusk to dawn. LOWER BUTTON: watch now.",
+  auto = "Follows the calendar: holiday shows in season, the Longhorns on game days, Texas and the Freedom Show " ..
+         "by day, the night sky at night. LOWER BUTTON: watch now.",
 }
 local function show_card()
   for _, it in ipairs(items) do
     if it.kind == "show" then
       it.sub = SHOW_NAMES[show_mode] .. "   ·   top buttons change it"
-      it.blurb = SHOW_BLURB[show_mode]
+      it.blurb = SHOW_BLURB[show_mode] or (SHOW_NAMES[show_mode] .. " only, whenever nobody's playing. LOWER BUTTON: watch now.")
     end
   end
 end
@@ -1135,40 +1149,67 @@ local function free_menu_pictures()
   end
   for k, e in pairs(neon_cache) do e.img:release() neon_cache[k] = nil end
   for i = #label_jobs, 1, -1 do label_jobs[i] = nil end
+  labels_for, labels_sel = {}, nil
   collectgarbage()
 end
+local demo                              -- started from a show's tiles: its id (back to them at the end)
+local auto_rot = 0                      -- AUTO: ordinary days take turns
+local function stop_show()
+  if cur_show then cur_show.stop() cur_show = nil end
+  night.set_only(nil)
+end
 local function restore_menu_pictures()
-  freedom.stop()
+  stop_show()
   if not menu_freed then return end
   menu_freed = false
   for k, e in pairs(neon_cache) do e.img:release() neon_cache[k] = nil end
   load_art()
   neon_img("PARTYCADE", 92, 0xff4fd8, 1.6)
   neon_img("HOME", 26, 0x6ef0c8, 0.8)
-  for k, it in ipairs(items) do
-    local job = function() neon_img(it.title, 64, it.tint, 1.2) neon_img(it.title, 44, it.tint, 0.9) end
-    if math.abs(k - sel) <= 1 then job() else label_jobs[#label_jobs + 1] = job end
-  end
+  labels_for, labels_sel = {}, nil
+  manage_labels(false)
   label_jobs[#label_jobs + 1] = function() neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1) end
   lg.setCanvas()
 end
 
-local function start_freedom(at)
+-- Play a show (from its segment seg, if given; demo: from its tiles).
+local function play_show(id, seg, from_demo)
   free_menu_pictures()
-  scene = "freedom"
-  freedom.start(os.time() + math.random(1, 1e6), at)
-  log("freedom show" .. (at and (" at " .. at) or ""))
+  stop_show()
+  demo = from_demo and id or nil
+  cur_show_id = id
+  local sg = seg and seg > 0 and shows.segments(id)[seg] or nil
+  if id == "night" then
+    scene = "night"
+    auto_night_t = 0
+    night.set_only(sg and sg[3] or nil)
+    night_t = (sg and not sg[3]) and sg[1] / NIGHT_SPEED or 0
+  else
+    cur_show = shows.module(id)
+    if not cur_show then scene = "menu" restore_menu_pictures() return end
+    scene = "show"
+    cur_show.start(os.time() + math.random(1, 1e6), sg and sg[1] or nil)
+  end
+  log("show " .. id .. (sg and (": " .. sg[2]) or ""))
 end
-local function start_night()
-  free_menu_pictures()
-  freedom.stop()
-  scene = "night"
-  night_t = 0
-  auto_night_t = 0
-end
--- Nobody has played for a while: the show for this mode (and time of day).
+-- The Longhorns are playing (or about to): utgame.lua, set when it has news.
+local game_now = false
+-- Nobody has played for a while: the show for this mode (and the calendar).
 local function start_show()
-  if show_mode == "freedom" or (show_mode == "auto" and daytime()) then start_freedom() else start_night() end
+  local id = show_mode
+  if id == "auto" then
+    id = shows.pick(os.time(), game_now, auto_rot)
+    auto_rot = auto_rot + 1
+  end
+  play_show(id)
+end
+local shows_ctx                          -- for the SHOWS tiles (love.load)
+local function open_tiles(id)
+  free_menu_pictures()
+  stop_show()
+  demo = nil
+  shows.open(shows_ctx, id)
+  scene = "shows"
 end
 
 local function handle(name)
@@ -1190,12 +1231,30 @@ local function handle(name)
     if attract_sel then sel = attract_sel end
     return
   end
-  if scene == "night" or scene == "freedom" then
-    -- The first press only wakes it.
-    scene = "menu"
-    if attract_sel then sel, pos = attract_sel, attract_sel end
-    restore_menu_pictures()
+  if scene == "night" or scene == "show" then
+    -- The first press only wakes it: back to the show's tiles (watching one), or the menu.
+    if demo then
+      open_tiles(demo)
+    else
+      scene = "menu"
+      if attract_sel then sel, pos = attract_sel, attract_sel end
+      restore_menu_pictures()
+    end
     play("wake")
+    return
+  end
+  if scene == "shows" then
+    local r = shows.handle(name)
+    if r == "back" then
+      shows.close()
+      scene = "menu"
+      restore_menu_pictures()
+      play("back")
+    elseif type(r) == "table" then
+      shows.close()
+      play("launch")
+      play_show(r[2], r[3], true)
+    end
     return
   end
   if scene == "tv" then
@@ -1237,10 +1296,14 @@ local function handle(name)
     save_state()
     play("toggle")
   elseif (name == "low" or name == "1p") and it.kind == "show" then
-    -- Watch it now (AUTO: the Freedom Show).
+    -- Watch it now (AUTO: what the calendar picks).
     attract_sel = sel
     play("launch")
-    if show_mode == "night" then start_night() else start_freedom() end
+    play_show(show_mode == "auto" and shows.pick(os.time(), game_now, auto_rot) or show_mode)
+  elseif (name == "low" or name == "1p") and it.kind == "showcard" then
+    attract_sel = sel
+    play("launch")
+    open_tiles(it.show)
   elseif (name == "low" or name == "1p") and it.kind == "tv" then
     -- The guide opens in Home itself: no program to start.
     scene = "tv"
@@ -1268,7 +1331,12 @@ function love.load()
   fx.load()
   night.load({W = W, H = H, HORIZON = HORIZON, font = font, neon_draw = neon_draw, fx = fx, log = log})
   music.log = log
-  freedom.load({W = W, H = H, font = font, neon_draw = neon_draw, neon_img = neon_img, fx = fx, sfx = music.sfx, log = log})
+  local show_ctx = {W = W, H = H, font = font, neon_draw = neon_draw, neon_img = neon_img, fx = fx, sfx = music.sfx,
+                    log = log, rgb = rgb}
+  for _, sh in ipairs(shows.LIST) do
+    local m = shows.module(sh.id)
+    if m then m.load(show_ctx) end
+  end
   if RENDER then
     -- Render a picture and quit (the PC build of the power-on picture): "boot:PATH".
     local kind, path = RENDER:match("^(%a+):(.+)$")
@@ -1289,10 +1357,7 @@ function love.load()
   neon_img("PARTYCADE", 92, 0xff4fd8, 1.6)
   neon_img("HOME", 26, 0x6ef0c8, 0.8)
   if scene == "intro" or os.getenv("HOME_INTRO") == "1" then neon_img("ARCADE  HOME", 34, 0x6ef0c8, 0.8) end
-  for k, it in ipairs(items) do
-    local job = function() neon_img(it.title, 64, it.tint, 1.2) neon_img(it.title, 44, it.tint, 0.9) end
-    if math.abs(k - sel) <= 2 then job() else label_jobs[#label_jobs + 1] = job end
-  end
+  manage_labels(false)
   label_jobs[#label_jobs + 1] = function() neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1) end
   label_jobs[#label_jobs + 1] = function() neon_img("NEW HIGH SCORE!", 44, 0xffd23f, 1) end
   lg.setCanvas()
@@ -1328,6 +1393,8 @@ function love.load()
              local ok, bytes = pcall(splash.render, picture)
              if ok then splash.save(bytes, path, true) end
            end})
+  shows_ctx = {backdrop = backdrop, rgb = rgb, neon_draw = neon_draw, font = font, fx = fx, rrect = rrect, play = play}
+  shows.set_ctx(shows_ctx)
   for k, it in ipairs(items) do
     if it.kind == "tv" then
       local n, g, p = tv.channel_count()
@@ -1349,10 +1416,29 @@ function love.load()
     end
   end
   show_card()
+  if os.getenv("HOME_SHOW_LIST") then
+    -- tools/show_thumbs.py: the shows and how many segments each has
+    local f = io.open(os.getenv("HOME_SHOW_LIST"), "w")
+    for _, sh in ipairs(shows.LIST) do
+      if shows.available(sh.id) then
+        local m = shows.module(sh.id)
+        f:write(sh.id, " ", #shows.segments(sh.id), " ", (m and m.THUMB) or (sh.id == "night" and 7 or 1), "\n")
+      end
+    end
+    f:close()
+    love.event.quit(0)
+    return
+  end
   if SHOW_NOW then
-    -- tests: straight into a show
-    local what, at = SHOW_NOW:match("^(%a+):?(%d*)$")
-    if what == "freedom" then start_freedom(tonumber(at)) elseif what == "night" then start_night() end
+    -- tests: straight into a show (ID, ID:SECONDS, ID@SEGMENT)
+    local id, how, n = SHOW_NOW:match("^(%a+)([:@]?)(%d*)$")
+    if id and shows.available(id) then
+      if how == "@" then play_show(id, tonumber(n))
+      else
+        play_show(id)
+        if how == ":" and cur_show then cur_show.start(1, tonumber(n)) end
+      end
+    end
   end
   read_volume()
   local sc = {}
@@ -1393,7 +1479,7 @@ local function music_tick()
   if scene == "night" then
     local sc = night.scene_at(night_t * NIGHT_SPEED)
     want, vol, fade = NIGHT_SONG[sc] or sc, 0.26, 3
-  elseif scene == "freedom" then want, vol, fade = freedom.music(), 0.42, 2
+  elseif scene == "show" and cur_show then want, vol, fade = cur_show.music(), 0.42, 2
   elseif scene == "tv" then want = "tv"
   elseif scene == "attract" then want = "attract" end
   if vol ~= music_vol then music_vol = vol music.volume(vol, 1.5) end
@@ -1417,15 +1503,26 @@ local function update_idle(dt)
   if scene == "night" then
     night_t = night_t + dt
     auto_night_t = auto_night_t + dt
-    -- AUTO by day: the night sky has had its half hour; the Freedom Show again.
-    if show_mode == "auto" and auto_night_t > AUTO_NIGHT_BLOCK and daytime() then start_freedom() end
-  end
-  if scene == "freedom" then
-    idle = 0
-    if freedom.update(dt) then
-      -- The show is over: again (FREEDOM), or the night sky's turn (AUTO).
-      if show_mode == "freedom" then start_freedom() else start_night() end
+    -- AUTO: the night sky has had its half hour (or the Longhorns kick off): the calendar's show.
+    if show_mode == "auto" and not demo and (auto_night_t > AUTO_NIGHT_BLOCK or game_now) then
+      local id = shows.pick(os.time(), game_now, auto_rot)
+      if id ~= "night" then auto_rot = auto_rot + 1 play_show(id) else auto_night_t = 0 end
     end
+  end
+  if scene == "show" and cur_show then
+    idle = 0
+    if cur_show.update(dt) then
+      -- The show is over: its tiles again (watching one), the same show (one show only), or the night sky's
+      -- turn (AUTO; the Longhorns go on while the game is on).
+      if demo then open_tiles(demo)
+      elseif show_mode ~= "auto" then play_show(show_mode)
+      elseif cur_show_id == "longhorns" and game_now then play_show("longhorns")
+      else play_show("night") end
+    end
+  end
+  if scene == "shows" then
+    shows.update(dt)
+    if idle > IDLE_NIGHT then shows.close() start_show() end
   end
   music_tick()
 end
@@ -1471,6 +1568,7 @@ function love.update(dt)
   end
   for _, n in ipairs(pressed_q) do handle(n) end
   pressed_q = {}
+  if not menu_freed then manage_labels(false) end
   if PREVIEW and down["1p"] and down["2p"] and not launch_item then
     hold_t = hold_t + dt
     idle = 0

@@ -409,6 +409,10 @@ def love_pack(out=None):
     files = [(os.path.join(src, f), f) for f in os.listdir(src) if f.endswith(".lua")]
     files += [(os.path.join(lib, f), "lib/" + f) for f in os.listdir(lib) if f.endswith(".lua")]
     files.append((os.path.join(HERE, "engine", "fonts", "Fredoka-SemiBold.ttf"), "fonts/Fredoka-SemiBold.ttf"))
+    # the SHOWS section's tiles (tools/show_thumbs.py)
+    thumbs = os.path.join(src, "thumbs")
+    if os.path.isdir(thumbs):
+        files += [(os.path.join(thumbs, f), "thumbs/" + f) for f in sorted(os.listdir(thumbs)) if f.endswith(".png")]
     return zip_files(out, files)
 
 
@@ -423,6 +427,10 @@ def home_pack(out=None):
     src = os.path.join(HERE, "love", "home")
     files = [(os.path.join(src, f), f) for f in os.listdir(src) if f.endswith(".lua")]
     files.append((os.path.join(HERE, "engine", "fonts", "Fredoka-SemiBold.ttf"), "fonts/Fredoka-SemiBold.ttf"))
+    # the SHOWS section's tiles (tools/show_thumbs.py)
+    thumbs = os.path.join(src, "thumbs")
+    if os.path.isdir(thumbs):
+        files += [(os.path.join(thumbs, f), "thumbs/" + f) for f in sorted(os.listdir(thumbs)) if f.endswith(".png")]
     for cid, shot in HOME_SHOTS.items():
         p = os.path.join(HERE, "out", "shots", cid, shot)
         if not os.path.exists(p):
