@@ -73,9 +73,20 @@ end
 
 local D = {}
 
+-- the painted picture for a scene, if the SD card has it: drawn, true
+local function art(name, a)
+  local img = S.art[name]
+  if not img then return false end
+  lg.setColor(1, 1, 1, a or 1)
+  lg.draw(img, 0, 0)
+  return true
+end
+
 function D.open(lt, len)
-  G:gradient(0, 0, W, H, {0.2, 0.55, 0.95}, {1, 0.85, 0.55})
-  sun(384, 330, 90)
+  if not art("open") then
+    G:gradient(0, 0, W, H, {0.2, 0.55, 0.95}, {1, 0.85, 0.55})
+    sun(384, 330, 90)
+  end
   local a = L.window(lt, 0.4, 4, 0.7)
   G:caption("PARTYCADE", 560, 54, 0xff4fd8, a)
   G:caption("PRESENTS", 632, 26, 0x6ef0c8, a)
@@ -83,6 +94,8 @@ function D.open(lt, len)
 end
 
 function D.lake(lt, len)
+  local painted = art("lake")
+  if not painted then
   G:gradient(0, 0, W, 520, {0.2, 0.5, 0.95}, {0.75, 0.9, 1})
   sun(620, 110, 46)
   -- the hills across the lake, the cliffs on the right
@@ -96,6 +109,7 @@ function D.lake(lt, len)
   for i = 0, 4 do lg.rectangle("fill", 560 + i * 30, 470 + i * 50, 208 - i * 30, 4) end
   lg.setColor(0.25, 0.42, 0.22, 1)
   lg.ellipse("fill", 690, 400, 90, 30, 20)
+  end
   water_lines(540, 1000, S.t, 0.25)
   -- the sailboat far off; a speedboat and its wake
   local sx = ((S.t * 8) % (W + 200)) - 100
@@ -148,6 +162,8 @@ function D.lake(lt, len)
 end
 
 function D.springs(lt, len)
+  local painted = art("springs")
+  if not painted then
   G:gradient(0, 0, W, 460, {0.25, 0.55, 0.95}, {0.8, 0.92, 1})
   -- the pecans, the grassy hill with towels
   for i, x in ipairs({90, 330, 640}) do L.live_oak(x, 500, 2.2 - i * 0.2, S.t + i) end
@@ -163,11 +179,14 @@ function D.springs(lt, len)
     local x = (i * 57 + sin(S.t + i) * 20) % W
     lg.ellipse("fill", x, 650 + (i * 41) % 340, 30, 6, 12)
   end
+  end
   water_lines(610, 1000, S.t, 0.3)
   -- the diving board, the dive
-  lg.setColor(0.9, 0.9, 0.92, 1)
-  lg.rectangle("fill", 520, 590, 200, 12)
-  lg.rectangle("fill", 690, 590, 20, 60)
+  if not painted then
+    lg.setColor(0.9, 0.9, 0.92, 1)
+    lg.rectangle("fill", 520, 590, 200, 12)
+    lg.rectangle("fill", 690, 590, 20, 60)
+  end
   local d = lt % 12
   if d < 2.4 then
     local k = d / 2.4
@@ -195,29 +214,36 @@ function D.springs(lt, len)
 end
 
 function D.snocone(lt, len)
-  G:gradient(0, 0, W, 640, {0.35, 0.6, 0.98}, {0.95, 0.9, 0.75})
-  sun(120, 120, 60)
+  local painted = art("snocone")
+  if not painted then
+    G:gradient(0, 0, W, 640, {0.35, 0.6, 0.98}, {0.95, 0.9, 0.75})
+    sun(120, 120, 60)
+  end
   -- the heat: wavy air
   lg.setColor(1, 1, 1, 0.08)
   for i = 0, 8 do
     local y = 520 + i * 14
     lg.rectangle("fill", sin(S.t * 3 + i) * 10, y, W, 3)
   end
+  if not painted then
   G:gradient(0, 640, W, H, {0.8, 0.72, 0.58}, {0.62, 0.55, 0.42})
   -- the stand
   lg.setColor(0.95, 0.95, 0.92, 1)
   lg.rectangle("fill", 160, 360, 448, 360)
   lg.setColor(0.25, 0.2, 0.3, 1)
   lg.rectangle("fill", 200, 440, 368, 140)
+  end
   -- Pac-Man behind the counter, in his paper hat, shaving the ice
   C.fx.chomper(384, 500 + abs(sin(S.t * 6)) * 6, 44, 1, S.t * 0.5, 1)
   lg.setColor(1, 1, 1, 1)
   lg.polygon("fill", 350, 466, 418, 466, 410, 446, 358, 446)
+  if not painted then
   for i = 0, 7 do
     if i % 2 == 0 then lg.setColor(0.9, 0.2, 0.4, 1) else lg.setColor(1, 1, 1, 1) end
     lg.polygon("fill", 140 + i * 61, 360, 201 + i * 61, 360, 196 + i * 61, 400, 145 + i * 61, 400)
   end
   G:text("SNO-BALLS", 160, 300, 44, {0.9, 0.2, 0.4}, 1, "center", 448)
+  end
   -- the syrup bottles
   local flavours = {{1, 0.15, 0.2}, {0.2, 0.4, 1}, {0.3, 0.9, 0.3}, {1, 0.8, 0.1}, {0.8, 0.3, 0.9}}
   for i, c in ipairs(flavours) do
@@ -243,7 +269,7 @@ function D.snocone(lt, len)
     end
   end
   -- the thermometer
-  lg.setColor(0.95, 0.95, 0.95, 1)
+  lg.setColor(0.95, 0.95, 0.95, painted and 0 or 1)
   lg.rectangle("fill", 660, 400, 50, 280, 20, 20, 8)
   local temp = floor(96 + clamp(lt / 30, 0, 1) * 8)
   lg.setColor(0.9, 0.1, 0.1, 1)
@@ -257,6 +283,8 @@ function D.snocone(lt, len)
 end
 
 function D.tubing(lt, len)
+  local painted = art("tubing")
+  if not painted then
   G:gradient(0, 0, W, 420, {0.3, 0.55, 0.95}, {0.8, 0.9, 1})
   -- the cypress trees along the banks
   for i, x in ipairs({40, 160, 620, 730}) do
@@ -268,12 +296,14 @@ function D.tubing(lt, len)
   end
   G:gradient(0, 420, W, 520, {0.4, 0.55, 0.3}, {0.3, 0.45, 0.22})
   G:gradient(0, 500, W, H, {0.3, 0.6, 0.55}, {0.18, 0.45, 0.42})
+  end
   water_lines(520, 1000, S.t * 0.6, 0.3)
   -- the log, the turtle sunning
-  lg.setColor(0.4, 0.3, 0.2, 1)
+  lg.setColor(0.4, 0.3, 0.2, painted and 0 or 1)
   lg.rectangle("fill", 520, 560, 200, 26, 12, 12, 6)
-  lg.setColor(0.35, 0.45, 0.25, 1)
+  lg.setColor(0.35, 0.45, 0.25, painted and 0 or 1)
   lg.ellipse("fill", 620, 552, 28, 14, 16)
+  lg.setColor(0.35, 0.45, 0.25, 1)
   lg.circle("fill", 650, 552 - (floor(S.t / 4) % 2) * 4, 7, 10)
   -- the flotilla: everyone in tubes, the cooler in its own
   local x0 = -260 + ((lt * 16) % (W + 600))
@@ -293,8 +323,13 @@ end
 
 function D.storm(lt, len)
   local k = clamp(lt / 12, 0, 1) * clamp((len - 14 - lt) / 6, 0, 1)
+  if S.art.storm_clear and S.art.storm_dark then
+    art("storm_clear")
+    art("storm_dark", k)
+  else
   G:gradient(0, 0, W, 640, mix({0.3, 0.55, 0.95}, {0.2, 0.22, 0.28}, k), mix({0.8, 0.9, 1}, {0.4, 0.42, 0.45}, k))
   G:gradient(0, 640, W, H, mix({0.4, 0.62, 0.3}, {0.2, 0.3, 0.18}, k), mix({0.3, 0.5, 0.22}, {0.15, 0.22, 0.12}, k))
+  end
   -- the clouds rolling in
   lg.setColor(0.3, 0.32, 0.38, k)
   for i = 0, 6 do
@@ -341,6 +376,11 @@ end
 
 function D.fireflies(lt, len)
   local k = clamp(lt / 50, 0, 1)
+  local painted = S.art.porch_dusk and S.art.porch_night
+  if painted then
+    art("porch_dusk")
+    art("porch_night", k)
+  else
   G:gradient(0, 0, W, 700, mix({0.4, 0.3, 0.6}, {0.03, 0.04, 0.12}, k), mix({1, 0.6, 0.35}, {0.1, 0.1, 0.25}, k))
   for i, s in ipairs(S.stars) do
     lg.setColor(1, 1, 0.9, k * (0.4 + 0.4 * sin(S.t + i)))
@@ -354,6 +394,7 @@ function D.fireflies(lt, len)
   lg.rectangle("fill", 440, 480, 12, 220)
   lg.rectangle("fill", 740, 480, 12, 220)
   lg.rectangle("fill", 430, 470, 338, 16)
+  end
   local sw = sin(S.t * 0.8) * 10
   lg.setColor(0.45, 0.32, 0.22, 1)
   lg.setLineWidth(2)
@@ -362,7 +403,7 @@ function D.fireflies(lt, len)
   lg.rectangle("fill", 510 + sw, 610, 180, 14)
   C.fx.chomper(560 + sw, 588, 22, 1, 0, 1)
   C.fx.ghost(640 + sw, 590, 20, GHOSTS[2], -1, S.t, false, false, 1)
-  lg.setColor(1, 0.85, 0.5, 0.8)
+  lg.setColor(1, 0.85, 0.5, painted and 0 or 0.8)
   lg.rectangle("fill", 600, 500, 40, 50)
   -- the fireflies
   lg.setBlendMode("add")
@@ -384,13 +425,18 @@ function D.fireflies(lt, len)
 end
 
 function D.finale(lt, len)
-  G:gradient(0, 0, W, H, {0.25, 0.4, 0.8}, {1, 0.6, 0.35})
-  sun(384, 640, 140)
-  G:gradient(0, 760, W, H, {0.1, 0.2, 0.3}, {0.05, 0.12, 0.2})
+  local painted = art("finale")
+  if not painted then
+    G:gradient(0, 0, W, H, {0.25, 0.4, 0.8}, {1, 0.6, 0.35})
+    sun(384, 640, 140)
+    G:gradient(0, 760, W, H, {0.1, 0.2, 0.3}, {0.05, 0.12, 0.2})
+  end
   water_lines(770, 1000, S.t, 0.3)
-  lg.setColor(0.18, 0.12, 0.1, 1)
-  lg.rectangle("fill", 0, 836, 520, 18)
-  for i = 0, 5 do lg.rectangle("fill", 20 + i * 96, 850, 12, 80) end
+  if not painted then
+    lg.setColor(0.18, 0.12, 0.1, 1)
+    lg.rectangle("fill", 0, 836, 520, 18)
+    for i = 0, 5 do lg.rectangle("fill", 20 + i * 96, 850, 12, 80) end
+  end
   C.fx.chomper(110, 810, 26, 1, 0, 1)
   for i = 1, 4 do C.fx.ghost(150 + i * 66, 812 + sin(S.t * 2 + i) * 2, 24, GHOSTS[i], 1, S.t + i, false, false, 1) end
   G:caption("SUMMER", 260, 96, 0xffd23f, L.window(lt, 0.5, len, 1))
@@ -415,6 +461,11 @@ function M.start(seed, at)
   S = {t = at or 0}
   G.t, G.prev = S.t, S.t - 0.001
   local R = G.R
+  S.art = {}
+  for _, n in ipairs({"open", "lake", "springs", "snocone", "tubing", "storm_clear", "storm_dark", "porch_dusk",
+                      "porch_night", "finale"}) do
+    S.art[n] = G:art("summer", n)
+  end
   S.stars, S.rain, S.flies = {}, {}, {}
   for i = 1, 90 do S.stars[i] = {R:random() * W, R:random() * 640} end
   for i = 1, 140 do S.rain[i] = {R:random() * W, R:random() * 1100} end
