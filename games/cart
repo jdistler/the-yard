@@ -444,6 +444,7 @@ def home_picture(kind, out, art):
     """Home renders one of its pictures for /dev/fb0 (HOME_RENDER=kind:out) on the PC's LÖVE."""
     hl = home_pack(os.path.join(os.path.dirname(out), "home-render.love"))
     env = dict(os.environ, HOME_RENDER=f"{kind}:{out}", HOME_HEADLESS="1", HOME_ART=art, SDL_VIDEODRIVER="offscreen",
+               HOME_SHOW_ART=os.path.join(HERE, "out", "show-art"),
                SDL_AUDIODRIVER="dummy", ALSOFT_DRIVERS="null")
     subprocess.run([LOVE_X86, hl], env=env, check=True, capture_output=True, timeout=120)
     if not os.path.exists(out):
