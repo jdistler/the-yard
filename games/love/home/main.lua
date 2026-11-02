@@ -141,7 +141,7 @@ local SECTIONS = {
   {name = "THE YARD", tint = 0x6ef0c8},
   {name = "TV", tint = 0xff6b6b},
   {name = "SHOWS", tint = 0xff4a5a},
-  {name = "MORE", tint = 0x8ab4ff},
+  {name = "EXTRAS", tint = 0x8ab4ff},
 }
 -- How to come back to Home from each kind of game (said on the info panel and on the "get ready" picture).
 local LEAVE = {
@@ -265,16 +265,25 @@ end
 
 local fonts = {}
 local font_data
+-- Starlight's state, in one table (main.lua is at Lua's 200 locals): the script face, the world, the marquee
+local ST = {script_fonts = {}, face = "round", world_want = "base"}
 local function font(px)
   if not fonts[px] then
     fonts[px] = font_data and lg.newFont(font_data, px) or lg.newFont(px)
   end
   return fonts[px]
 end
+-- Starlight's wordmark face (Pacifico, OFL; a subset): the marquee and the brand's titles
+function ST.script_font(px)
+  if not ST.script_fonts[px] then
+    ST.script_fonts[px] = ST.script_data and lg.newFont(ST.script_data, px) or font(px)
+  end
+  return ST.script_fonts[px]
+end
 
 -- Text with a neon glow: soft additive copies around it, then the text.
 local function neon(s, x, y, px, c, glow, align, width)
-  local f = font(px)
+  local f = ST.face == "script" and ST.script_font(px) or font(px)
   lg.setFont(f)
   local r, g, b = rgb(c)
   glow = glow or 1
@@ -313,10 +322,10 @@ local function rrect(mode, x, y, w, h, r) lg.rectangle(mode, x, y, w, h, r, r, 1
 local neon_cache = {}
 local label_jobs = {}
 local function neon_img(s, px, c, glow)
-  local key = s .. "|" .. px .. "|" .. c .. "|" .. (glow or 1)
+  local key = s .. "|" .. px .. "|" .. c .. "|" .. (glow or 1) .. (ST.face == "script" and "|s" or "")
   local e = neon_cache[key]
   if e then return e end
-  local f = font(px)
+  local f = ST.face == "script" and ST.script_font(px) or font(px)
   local pad = 10
   local cw, ch = f:getWidth(s) + pad * 2, f:getHeight() + pad * 2
   lg.push("all")
@@ -344,6 +353,20 @@ local function neon_draw(s, x, y, px, c, glow, align, width, alpha, sc)
   -- (on whole pixels: a label drawn at a half pixel is resampled, and soft)
   lg.draw(e.img, math.floor(x + dx - e.pad * sc + 0.5), math.floor(y - e.pad * sc + 0.5), 0, sc, sc)
   lg.setBlendMode("alpha")
+end
+
+-- The brand: STARLIGHT in its script neon (a painted label, like any other).
+ST.BRAND, ST.C, ST.ACCENT = "Starlight", 0xffd36b, 0x6ef0c8
+function ST.draw(x, y, px, alpha, sc, align, width)
+  ST.face = "script"
+  neon_draw(ST.BRAND, x or 0, y, px, ST.C, 1.5, align or "center", width or W, alpha, sc)
+  ST.face = "round"
+end
+function ST.img(px)
+  ST.face = "script"
+  local e = neon_img(ST.BRAND, px, ST.C, 1.5)
+  ST.face = "round"
+  return e
 end
 
 local play = sound.play
@@ -410,6 +433,27 @@ local attract_t = 0
 local launch_t, launch_item = 0, nil
 local note, note_t = nil, 0
 local stars = {}
+-- The living menu's world (tools/art/home.py): a painting a season, on the SD card; nil: the synthwave grid.
+ST.WORLD_ART = (os.getenv("HOME_SHOW_ART") or "/mnt/sdcard/partycade/art") .. "/home"
+function ST.world_load(name)
+  if ST.world and ST.world_name == name then return end
+  if ST.world then ST.world:release() ST.world = nil end
+  ST.world_name = name
+  local f = io.open(ST.WORLD_ART .. "/world_" .. name .. ".pkm", "rb")
+  if not f then f = io.open(ST.WORLD_ART .. "/world_base.pkm", "rb") end
+  if not f then return end
+  local bytes = f:read("*a")
+  f:close()
+  local ok, img = pcall(function()
+    local fd = love.filesystem.newFileData(bytes, "w.pkm")
+    local cd = love.image.newCompressedData(fd)
+    fd:release()
+    local im = lg.newImage(cd)
+    cd:release()
+    return im
+  end)
+  if ok then img:setFilter("linear", "linear") ST.world = img end
+end
 local direct = not headless and os.getenv("HOME_CANVAS") ~= "1"
 local canvas
 local shot_req
@@ -464,7 +508,7 @@ local function title_labels(it)
   neon_img(it.title, 44, it.tint, 0.9)
 end
 local function neon_release(s, px, c, glow)
-  local key = s .. "|" .. px .. "|" .. c .. "|" .. (glow or 1)
+  local key = s .. "|" .. px .. "|" .. c .. "|" .. (glow or 1) .. (ST.face == "script" and "|s" or "")
   local e = neon_cache[key]
   if e then e.img:release() neon_cache[key] = nil end
 end
@@ -555,7 +599,62 @@ end
 local hue_rgb = hue
 hue = function(h, a) local r, g, b = hue_rgb(h) return r, g, b, a end
 local sky
+function ST.draw_world(dim)
+  lg.setColor(1 - dim * 0.5, 1 - dim * 0.5, 1 - dim * 0.4, 1)
+  lg.draw(ST.world, 0, 0)
+  -- the sky alive: stars twinkling over the painted ones, a shooting star now and then
+  for _, st in ipairs(stars) do
+    local tw = math.abs(math.sin(t * st[4] + st[3]))
+    if tw > 0.7 then
+      lg.setColor(1, 0.97, 0.88, (tw - 0.7) * 2.6 * st[5] * (1 - dim * 0.5))
+      lg.rectangle("fill", st[1], st[2], st[6], st[6])
+    end
+  end
+  fx.draw_shooting()
+  -- the season's own life
+  local wn = ST.world_name
+  if wn == "christmas" then
+    lg.setColor(1, 1, 1, 0.85)
+    for i = 1, 70 do
+      local x = (i * 97.3 + math.sin(t * 0.7 + i) * 30) % W
+      local y = (i * 53.7 + t * (28 + (i % 5) * 8)) % (H + 20) - 10
+      lg.circle("fill", x, y, 1.5 + (i % 3), 6)
+    end
+  elseif wn == "summer" or wn == "july4" or wn == "spring" then
+    lg.setBlendMode("add")
+    for i = 1, 22 do
+      local on = math.sin(t * (1.2 + i % 4 * 0.3) + i * 1.7)
+      if on > 0.4 then
+        local x = (i * 61) % W + math.sin(t * 0.3 + i) * 30
+        local y = 700 + (i * 37) % 90 + math.cos(t * 0.4 + i) * 16
+        lg.setColor(0.75, 1, 0.3, (on - 0.4) * 1.4)
+        lg.circle("fill", x, y, 3, 8)
+      end
+    end
+    lg.setBlendMode("alpha")
+  end
+  if wn == "newyear" or wn == "july4" then
+    -- a firework far off, every few seconds
+    local cyc = t % 5
+    if cyc < 1.6 then
+      local k = cyc / 1.6
+      local seed = math.floor(t / 5)
+      local bx, by = 150 + (seed * 211) % 470, 300 + (seed * 97) % 180
+      local cols = wn == "july4" and {{1, 0.3, 0.3}, {1, 1, 1}, {0.4, 0.6, 1}} or {{1, 0.85, 0.3}, {1, 0.4, 0.85}, {0.4, 0.9, 1}}
+      local c = cols[seed % 3 + 1]
+      lg.setBlendMode("add")
+      for j = 1, 24 do
+        local a = j / 24 * 2 * math.pi
+        lg.setColor(c[1], c[2], c[3], (1 - k) * 0.9)
+        lg.circle("fill", bx + math.cos(a) * 70 * k, by + math.sin(a) * 70 * k + k * k * 20, 2.5, 6)
+      end
+      lg.setBlendMode("alpha")
+    end
+  end
+end
+
 local function draw_background(dim)
+  if ST.world then return ST.draw_world(dim) end
   -- The sky: deep violet to black, a slow color drift (one mesh, its colours updated).
   local drift = math.sin(t * 0.07) * 0.5 + 0.5
   local tr, tg, tb = 0.05 + 0.03 * drift, 0.02, 0.12 + 0.04 * (1 - drift)
@@ -606,34 +705,86 @@ local function draw_background(dim)
   lg.line(0, HORIZON, W, HORIZON)
 end
 
+-- The marquee's bulbs: round the board's frame (tools/art/home.py BOARD), a chase running round them.
+ST.bulbs = {}
+do
+  local x0, y0, x1, y1 = 58, 8, 710, 172
+  local per = 2 * ((x1 - x0) + (y1 - y0))
+  local n = 72
+  for i = 0, n - 1 do
+    local d = i / n * per
+    local x, y
+    if d < x1 - x0 then x, y = x0 + d, y0
+    elseif d < (x1 - x0) + (y1 - y0) then x, y = x1, y0 + d - (x1 - x0)
+    elseif d < 2 * (x1 - x0) + (y1 - y0) then x, y = x1 - (d - (x1 - x0) - (y1 - y0)), y1
+    else x, y = x0, y1 - (d - 2 * (x1 - x0) - (y1 - y0)) end
+    ST.bulbs[#ST.bulbs + 1] = {x, y}
+  end
+end
+-- lit: 0..1 (the intro lights them in turn)
+function ST.draw_bulbs(alpha, lit)
+  lit = lit or 1
+  local n = #ST.bulbs
+  local chase = math.floor(t * 8)
+  for i, b in ipairs(ST.bulbs) do
+    if i / n <= lit then
+      local on = ((i + chase) % 3) ~= 0
+      local k = (on and 1 or 0.35) * alpha
+      lg.setColor(1, 0.86, 0.55, k * 0.35)
+      lg.circle("fill", b[1], b[2], 7, 10)
+      lg.setColor(1, 0.97, 0.85, k)
+      lg.circle("fill", b[1], b[2], 3.2, 8)
+    else
+      lg.setColor(0.3, 0.27, 0.24, alpha)
+      lg.circle("fill", b[1], b[2], 3.2, 8)
+    end
+  end
+end
+
 local function draw_marquee(alpha_k)
-  -- A neon sign: now and then a tube stutters.
-  -- A steady sign that breathes very slowly (the old tube stutter felt like a strobe light to the user).
-  local flick = 0.92 + 0.08 * math.sin(t * 0.8)
-  lg.setColor(1, 1, 1, 1)
-  neon_draw("PARTYCADE", 0, 34, 92, 0xff4fd8, 1.6, "center", W, flick * (alpha_k or 1))
-  neon_draw("HOME", 0, 132, 26, 0x6ef0c8, 0.8, "center", W, alpha_k)
+  -- The marquee: STARLIGHT in script neon on its board, the bulbs chasing round it; it breathes, slowly.
+  local a = alpha_k or 1
+  local flick = 0.93 + 0.07 * math.sin(t * 0.8)
+  if not ST.world then
+    lg.setColor(0.04, 0.02, 0.08, 0.85 * a)
+    rrect("fill", 64, 14, 640, 152, 14)
+  end
+  ST.draw_bulbs(a)
+  fx.glow(W / 2, 92, 300, 70, 1, 0.75, 0.35, 0.16 * a)
+  ST.draw(0, 24, 96, flick * a)
 end
 
 local function draw_tabs(cur)
+  -- (26 px: readable from the couch; on a dark pill so the sky's stars don't fight them)
+  local px, gap = 26, 10
   local total = 0
-  for _, s in ipairs(SECTIONS) do total = total + font(22):getWidth(s.name) + 30 + 14 end
-  local x = (W - total + 14) / 2
+  for _, s in ipairs(SECTIONS) do total = total + font(px):getWidth(s.name) + 28 + gap end
+  local x = math.floor((W - total + gap) / 2)
+  lg.setColor(0.03, 0.02, 0.08, 0.6)
+  rrect("fill", x - 10, 182, total - gap + 20, 46, 23)
   for i, s in ipairs(SECTIONS) do
     local on = i == cur
-    lg.setFont(font(22))
-    local w = font(22):getWidth(s.name) + 30
+    lg.setFont(font(px))
+    local w = font(px):getWidth(s.name) + 28
     local r, g, b = rgb(s.tint)
     if on then
-      lg.setColor(r, g, b, 0.25)
-      rrect("fill", x, 176, w, 36, 18)
+      lg.setColor(r, g, b, 0.28)
+      rrect("fill", x, 186, w, 38, 19)
       lg.setColor(r, g, b, 1)
       lg.setLineWidth(2)
-      rrect("line", x, 176, w, 36, 18)
+      rrect("line", x, 186, w, 38, 19)
     end
-    lg.setColor(r, g, b, on and 1 or 0.45)
-    lg.print(s.name, x + 15, 182)
-    x = x + w + 14
+    lg.setColor(r, g, b, on and 1 or 0.6)
+    lg.print(s.name, x + 14, 190)
+    x = x + w + gap
+  end
+  -- Now and next: tonight's show, the Longhorns' next game (set by update_cards)
+  if ST.now_line then
+    lg.setFont(font(20))
+    lg.setColor(0, 0, 0, 0.5)
+    lg.printf(ST.now_line, 2, 240, W, "center")
+    lg.setColor(1, 0.86, 0.5, 0.95)
+    lg.printf(ST.now_line, 0, 238, W, "center")
   end
 end
 
@@ -754,7 +905,7 @@ local function draw_carousel()
       local cy = 505 + off * 225 * (1 - 0.18 * math.min(a, 1))
       local alpha = math.max(0, 1 - a * 0.5) * math.min(1, (1.9 - a) * 2)
       -- Fade out before reaching the marquee and the tabs (a card scrolling up slid under them).
-      alpha = alpha * math.max(0, math.min(1, (cy - cw * 0.29 - 200) / 70))
+      alpha = alpha * math.max(0, math.min(1, (cy - cw * 0.29 - 262) / 60))
       local focus = math.max(0, 1 - a * 2)
       if launch_item == it then cw = cw * (1 + 0.25 * math.min(1, launch_t / 0.5)) end
       draw_card(it, W / 2, cy, cw, focus, alpha)
@@ -771,25 +922,25 @@ local function draw_info()
   lg.setLineWidth(2)
   rrect("line", 40, y, W - 80, 196, 24)
   neon_draw(it.title, 60, y + 14, 44, it.tint, 0.9, "left", W - 120)
-  lg.setFont(font(20))
-  lg.setColor(0.75, 0.7, 0.95, 1)
-  lg.printf(it.sub, 60, y + 72, W - 120, "left")
+  lg.setFont(font(22))
+  lg.setColor(0.8, 0.76, 0.98, 1)
+  lg.printf(it.sub, 60, y + 70, W - 120, "left")
   if it.score or it.stat then
     lg.setFont(font(22))
     lg.setColor(1, 0.85, 0.3, 1)
     lg.printf(it.score and ("HIGH SCORE  " .. it.score) or it.stat, 60, y + 22, W - 120, "right")
   end
-  lg.setFont(font(24))
-  lg.setColor(0.95, 0.93, 1, 1)
+  lg.setFont(font(26))
+  lg.setColor(0.97, 0.95, 1, 1)
   lg.printf(it.blurb, 60, y + 100, W - 120, "left")
   if it.kind == "classic" then
     local i = it.index + 1
     local chips = {{"SPEED", speed[i] == 1 and "FAST" or "NORMAL"}, {"SMOOTH", smooth[i] == 1 and "ON" or "OFF"}}
     local x = 60
     for _, c in ipairs(chips) do
-      lg.setFont(font(19))
+      lg.setFont(font(21))
       local s = c[1] .. "  " .. c[2]
-      local w = font(19):getWidth(s) + 26
+      local w = font(21):getWidth(s) + 26
       lg.setColor(1, 0.85, 0.3, 0.18)
       rrect("fill", x, y + 146, w, 32, 16)
       lg.setColor(1, 0.85, 0.3, 1)
@@ -797,14 +948,14 @@ local function draw_info()
       lg.print(s, x + 13, y + 151)
       x = x + w + 14
     end
-    lg.setColor(0.7, 0.65, 0.9, 0.9)
-    lg.setFont(font(16))
-    lg.print("top buttons change", x + 4, y + 155)
+    lg.setColor(0.78, 0.74, 0.95, 0.95)
+    lg.setFont(font(19))
+    lg.print("top buttons change", x + 4, y + 153)
   end
 end
 
 local function draw_hint(s, y, alpha)
-  lg.setFont(font(20))
+  lg.setFont(font(21))
   lg.setColor(0.85, 0.8, 1, alpha or 0.9)
   lg.printf(s, 0, y, W, "center")
 end
@@ -928,8 +1079,8 @@ local function draw_night()
   -- The sign asleep: it breathes, slowly (dimmer in the rest stretch before dawn).
   local rest = night.scene_at(nt) == "rest" and 0.35 or 1
   local breath = (0.3 + 0.12 * math.sin(night_t * 1.1)) * rest
-  fx.glow(W / 2, 80, 330, 60, 1, 0.3, 0.85, breath * 0.25)
-  neon_draw("PARTYCADE", 0, 34, 92, 0xff4fd8, 1.6, "center", W, breath)
+  fx.glow(W / 2, 80, 330, 60, 1, 0.75, 0.35, breath * 0.25)
+  ST.draw(0, 24, 96, breath)
   for i = 0, 2 do
     local k = ((night_t * 0.3) + i / 3) % 1
     local zx, zy = W / 2 + 260 + k * 60 + math.sin(k * 6) * 10, 120 - k * 110
@@ -940,43 +1091,47 @@ local function draw_night()
   draw_hint("press any button", 930, (0.35 + 0.25 * math.sin(t * 2)) * rest)
 end
 
--- The sign, unlit: the tubes dark, as on the power-on picture.
-local SIGN_Y, SIGN_PX = 400, 104
-local function sign_x()
-  return math.floor((W - font(SIGN_PX):getWidth("PARTYCADE")) / 2)
-end
+-- The sign, unlit: the board dark, its bulbs out, the tubes faintly there (the power-on picture).
 local function draw_unlit_sign(a)
-  lg.setFont(font(SIGN_PX))
-  lg.setColor(0.32, 0.1, 0.3, a or 1)
-  lg.print("PARTYCADE", sign_x(), SIGN_Y)
+  ST.draw_bulbs(a or 1, 0)
+  ST.face = "script"
+  lg.setFont(ST.script_font(96))
+  ST.face = "round"
+  lg.setColor(0.28, 0.2, 0.12, a or 1)
+  lg.printf(ST.BRAND, 0, 24 + 10, W, "center")
 end
 
--- Power-on: the unlit sign lights letter by letter where it stands (with a stutter), "ARCADE HOME" comes
--- on, then the sign glides up into the marquee while the menu fades in (draw_scene's menu_in).
-local INTRO_LEN = 2.6
+-- Power-on: the world comes up out of the dark; the bulbs light round the board in turn; STARLIGHT is written
+-- across in neon, a spark at the pen; "ARCADE · SHOWS · TV" under it; then the menu fades in under the sign.
+local INTRO_LEN = 3.0
 local function draw_intro()
-  local word = "PARTYCADE"
-  if intro_t < 1.9 then
-    local k = math.min(1, intro_t / 1.2)
-    local n = math.floor(k * #word + 0.001)
-    draw_unlit_sign()
-    fx.glow(W / 2, SIGN_Y + 60, 380, 120, 1, 0.3, 0.85, 0.15 * k)
-    if n > 0 then neon(word:sub(1, n), sign_x(), SIGN_Y, SIGN_PX, 0xff4fd8, 1.8, "left", W) end
-    if intro_t > 1.3 then
-      local a = math.min(1, (intro_t - 1.3) / 0.4)
-      neon("ARCADE  HOME", 0, 530, 34, 0x6ef0c8, a)
+  local up = math.min(1, intro_t / 0.6)
+  if up < 1 then
+    lg.setColor(0, 0, 0, 1 - up)
+    lg.rectangle("fill", 0, 0, W, H)
+  end
+  local lit = math.max(0, math.min(1, (intro_t - 0.3) / 1.0))
+  ST.draw_bulbs(1, lit)
+  local wk = math.max(0, math.min(1, (intro_t - 0.9) / 1.0))
+  if wk < 1 then draw_unlit_sign() end
+  if wk > 0 then
+    -- the wordmark written across: a widening window over the painted label
+    local e = ST.img(96)
+    local x0 = math.floor((W - e.w) / 2)
+    local wx = x0 + e.w * wk
+    lg.setScissor(0, 0, math.floor(wx), H)
+    ST.draw(0, 24, 96, 1)
+    lg.setScissor()
+    if wk < 1 then
+      fx.glow(wx, 90, 40, 40, 1, 0.9, 0.6, 0.9)
+      lg.setColor(1, 1, 0.9, 1)
+      lg.circle("fill", wx, 90 + math.sin(wk * 9) * 16, 4, 8)
     end
-  else
-    -- The glide: from the middle (104 px) to the marquee (92 px, y 34), easing out.
-    local k = math.min(1, (intro_t - 1.9) / (INTRO_LEN - 1.9))
-    local e = 1 - (1 - k) ^ 3
-    local y = SIGN_Y + (34 - SIGN_Y) * e
-    local sc = (SIGN_PX + (92 - SIGN_PX) * e) / 92
-    fx.glow(W / 2, y + 60 * sc, 380, 120, 1, 0.3, 0.85, 0.15 * (1 - e))
-    neon_draw("PARTYCADE", 0, y, 92, 0xff4fd8, 1.6, "center", W, 1, sc)
-    if e < 1 then
-      neon_draw("ARCADE  HOME", 0, 530 - 400 * e, 34, 0x6ef0c8, 0.8, "center", W, 1 - e)
-    end
+    fx.glow(W / 2, 92, 300, 70, 1, 0.75, 0.35, 0.16 * wk)
+  end
+  if intro_t > 1.9 then
+    local a = math.min(1, (intro_t - 1.9) / 0.5)
+    neon_draw("ARCADE  ·  SHOWS  ·  TV", 0, 470, 34, ST.ACCENT, 0.8, "center", W, a)
   end
 end
 
@@ -1021,7 +1176,7 @@ local function draw_scene()
     if it.score then
       draw_hint("HIGH SCORE  " .. it.score .. "  —  can you beat it?", 930, 0.9)
     else
-      draw_hint("12 CLASSICS  +  THE YARD", 930, 0.9)
+      draw_hint(ST.now_line or "12 CLASSICS  ·  THE YARD  ·  SHOWS  ·  TV", 930, 0.9)
     end
   else
     draw_info()
@@ -1029,8 +1184,8 @@ local function draw_scene()
   end
   if menu_in > 0 then
     -- After the intro: the menu comes up under the sign.
-    lg.setColor(0.02, 0.0, 0.05, menu_in / 0.45)
-    lg.rectangle("fill", 0, 120, W, H - 120)
+    lg.setColor(0.02, 0.0, 0.05, menu_in / 0.45 * 0.8)
+    lg.rectangle("fill", 0, 178, W, H - 178)
   end
   draw_volume()
   draw_celebration()
@@ -1049,7 +1204,8 @@ end
 -- The backdrop of every picture: the sky, the grid and the sign, still.
 local function backdrop()
   draw_background(0.3)
-  neon_draw("PARTYCADE", 0, 34, 92, 0xff4fd8, 1.6, "center", W)
+  ST.draw_bulbs(1)
+  ST.draw(0, 24, 96, 1)
 end
 
 -- "Get ready": the game's logo (or name) big, and how to come back.
@@ -1083,17 +1239,16 @@ end
 -- "Welcome back": Home's own sky with the sign and the tabs, as the menu will look in a moment.
 local function picture_back()
   backdrop()
-  neon_draw("HOME", 0, 132, 26, 0x6ef0c8, 0.8, "center", W)
   draw_tabs(items[sel].section)
 end
 
 -- Power-on: the sign, warming up.
 local function picture_boot()
-  draw_background(0)
+  draw_background(0.35)
   draw_unlit_sign()
   lg.setFont(font(26))
-  lg.setColor(0.85, 0.8, 1, 0.75)
-  lg.printf("warming up the neon...", 0, 545, W, "center")
+  lg.setColor(1, 0.86, 0.6, 0.7)
+  lg.printf("warming up the lights...", 0, 470, W, "center")
 end
 
 local function file_exists(p) local f = p and io.open(p, "rb") if f then f:close() return true end return false end
@@ -1213,6 +1368,7 @@ local function free_menu_pictures()
     if it.art then it.art:release() it.art = nil end
   end
   for k, e in pairs(neon_cache) do e.img:release() neon_cache[k] = nil end
+  if ST.world then ST.world:release() ST.world = nil ST.world_name = nil end
   for i = #label_jobs, 1, -1 do label_jobs[i] = nil end
   labels_for, labels_sel = {}, nil
   collectgarbage()
@@ -1234,8 +1390,8 @@ local function restore_menu_pictures()
   menu_freed = false
   for k, e in pairs(neon_cache) do e.img:release() neon_cache[k] = nil end
   load_art()
-  neon_img("PARTYCADE", 92, 0xff4fd8, 1.6)
-  neon_img("HOME", 26, 0x6ef0c8, 0.8)
+  ST.world_load(ST.world_want)
+  ST.img(96)
   labels_for, labels_sel = {}, nil
   manage_labels(false)
   label_jobs[#label_jobs + 1] = function() neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1) end
@@ -1299,6 +1455,40 @@ local function update_cards()
       it.blurb = text
     end
   end
+  ST.update_world()
+end
+
+-- The world's season (the menu's painting) and the now-and-next line, from the calendar and the Longhorns' news.
+local HOLIDAY_WORLD = {christmas = "christmas", newyear = "newyear", thanksgiving = "thanksgiving", halloween = "halloween",
+                       valentine = "valentine", easter = "easter", freedom = "july4", space = "summer", texas = "spring"}
+function ST.update_world()
+  local now = os.time()
+  local d = os.date("*t", now)
+  local want = "base"
+  local h = now > 1700000000 and shows.holiday(d)
+  if game_now.window or game_now.gameday then want = "gameday"
+  elseif h and HOLIDAY_WORLD[h] then want = HOLIDAY_WORLD[h]
+  elseif d.month >= 6 and d.month <= 8 then want = "summer"
+  elseif d.month >= 3 and d.month <= 5 then want = "spring" end
+  ST.world_want = want
+  if not menu_freed and ST.world_name ~= want then ST.world_load(want) end
+  -- now and next
+  local parts = {}
+  if now > 1700000000 then
+    local id = shows.pick(now, game_now, auto_rot)
+    if SHOW_NAMES[id] and id ~= "night" then parts[#parts + 1] = "ON TONIGHT: " .. SHOW_NAMES[id] end
+  end
+  local g = utgame.game
+  if g and g.kickoff then
+    local un = utgame.now()
+    if g.state == "in" then
+      parts[#parts + 1] = string.format("LIVE: TEXAS %d, %s %d", g.us or 0, g.opp_abbr, g.them or 0)
+    elseif g.state == "pre" and g.kickoff - un < 8 * 86400 then
+      parts[#parts + 1] = "LONGHORNS " .. (g.home and "VS " or "AT ") .. string.upper(g.opp_abbr) .. " " ..
+                          (string.upper(os.date("%a %I:%M %p", g.kickoff)):gsub(" 0", " "))
+    end
+  end
+  ST.now_line = #parts > 0 and table.concat(parts, "   ·   ") or nil
 end
 
 local shows_ctx                          -- for the SHOWS tiles (love.load)
@@ -1422,6 +1612,7 @@ function love.load()
   love.mouse.setVisible(false)
   local fd = love.filesystem.getInfo("fonts/Fredoka-SemiBold.ttf") and love.filesystem.newFileData("fonts/Fredoka-SemiBold.ttf")
   font_data = fd
+  ST.script_data = love.filesystem.getInfo("fonts/Pacifico-Starlight.ttf") and love.filesystem.newFileData("fonts/Pacifico-Starlight.ttf")
   math.randomseed(RENDER and 1 or os.time())   -- the PC-rendered picture is the same every build
   for i = 1, 90 do
     stars[i] = {math.random() * W, math.random() * 700, math.random() * 6, 0.5 + math.random() * 2,
@@ -1441,6 +1632,7 @@ function love.load()
   if RENDER then
     -- Render a picture and quit (the PC build of the power-on picture): "boot:PATH".
     local kind, path = RENDER:match("^(%a+):(.+)$")
+    ST.world_load("base")
     local bytes = splash.render(kind == "back" and picture_back or picture_boot)
     splash.save(bytes, path, path:match("%.gz$") ~= nil)
     love.event.quit(0)
@@ -1455,9 +1647,9 @@ function love.load()
   load_art()
   mark("art")
   -- The labels in view now; the rest a few a frame, before the frame's drawing starts (see neon_img).
-  neon_img("PARTYCADE", 92, 0xff4fd8, 1.6)
-  neon_img("HOME", 26, 0x6ef0c8, 0.8)
-  if scene == "intro" or os.getenv("HOME_INTRO") == "1" then neon_img("ARCADE  HOME", 34, 0x6ef0c8, 0.8) end
+  ST.world_load(ST.world_want)
+  ST.img(96)
+  if scene == "intro" or os.getenv("HOME_INTRO") == "1" then neon_img("ARCADE  ·  SHOWS  ·  TV", 34, ST.ACCENT, 0.8) end
   manage_labels(false)
   label_jobs[#label_jobs + 1] = function() neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1) end
   label_jobs[#label_jobs + 1] = function() neon_img("NEW HIGH SCORE!", 44, 0xffd23f, 1) end
