@@ -16,6 +16,16 @@
 -- the game ends (HOME_BACK). HOME_RENDER=boot:PATH only renders the power-on picture to PATH (gzip) and quits
 -- (cart home-pack runs it on the PC).
 
+-- An error while the modules below load (before the full handler further down): log it and quit, so homeloop
+-- moves on. LÖVE's own handler would keep its error screen up for good on a cabinet with no keyboard.
+function love.errorhandler(msg)
+  local text = "ERROR: " .. debug.traceback(tostring(msg), 2)
+  local path = os.getenv("HOME_LOG")
+  local f = path and io.open(path, "a")
+  if f then f:write(text, "\n") f:close() else print(text) end
+  return nil
+end
+
 local lg = love.graphics
 local sound = require("sound")
 local fx = require("fx")

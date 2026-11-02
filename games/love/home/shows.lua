@@ -33,6 +33,8 @@ S.LIST = {
    blurb = "Snow on the fence, lights on the house, and a Texas Santa."},
   {id = "newyear", title = "NEW YEAR'S EVE", tint = 0xffd23f, module = "newyear",
    blurb = "The party, the resolutions, the ball, midnight. On the night, live: the countdown ends at midnight."},
+  {id = "valentine", title = "SWEETHEARTS", tint = 0xff6fa8, module = "valentine",
+   blurb = "Valentine's Day: Pac-Man meets Ms. Pac-Man, candy hearts, Blinky's card, a milkshake for two."},
 }
 S.BY_ID = {}
 for _, s in ipairs(S.LIST) do S.BY_ID[s.id] = s end
@@ -89,6 +91,7 @@ function S.holiday(d)
     if day >= ld - 2 and day <= ld then return "freedom", "Labor Day" end
   end
   if m == 7 and day >= 16 and day <= 24 then return "space", "the Moon landing's anniversary" end
+  if m == 2 and day >= 7 and day <= 14 then return "valentine", "Valentine's Day" end
   if m == 3 and day == 2 then return "texas", "Texas Independence Day" end
   if (m == 3 and day >= 15) or (m == 4) then return "texas", "bluebonnet season" end
   return nil
@@ -262,6 +265,18 @@ function S.icon(id, x, cy, sc, a, t)
     lg.setColor(1, 0.7, 0.2, a * (0.7 + 0.3 * math.sin(t * 20)))
     lg.polygon("fill", bx - 10 * sc, by + 40 * sc, bx + 10 * sc, by + 40 * sc, bx, by + 74 * sc)
     for i, p in ipairs({{-60, -70}, {60, -40}, {-50, 40}, {64, 60}}) do star(bx + p[1] * sc, by + p[2] * sc, 6 * sc, {1, 1, 0.9}, a) end
+  elseif id == "valentine" then
+    local bx, by, r = x + 90 * sc, cy - 6 * sc, 50 * sc * (1 + 0.05 * math.sin(t * 5))
+    C.fx.glow(bx, by + 10 * sc, 80 * sc, 70 * sc, 1, 0.3, 0.5, 0.4 * a)
+    lg.setColor(0.95, 0.15, 0.3, a)
+    lg.circle("fill", bx - r * 0.5, by, r * 0.54, 20)
+    lg.circle("fill", bx + r * 0.5, by, r * 0.54, 20)
+    lg.polygon("fill", bx - r * 1.02, by + r * 0.14, bx + r * 1.02, by + r * 0.14, bx, by + r * 1.25)
+    C.fx.chomper(bx - 50 * sc, by + 66 * sc, 16 * sc, 1, 0, a)
+    C.fx.chomper(bx + 50 * sc, by + 66 * sc, 16 * sc, -1, 0, a)
+    lg.setColor(0.95, 0.1, 0.25, a)
+    lg.polygon("fill", bx + 48 * sc, by + 52 * sc, bx + 40 * sc, by + 46 * sc, bx + 40 * sc, by + 56 * sc)
+    lg.polygon("fill", bx + 48 * sc, by + 52 * sc, bx + 56 * sc, by + 46 * sc, bx + 56 * sc, by + 56 * sc)
   elseif id == "summer" then
     local bx, by = x + 90 * sc, cy
     C.fx.glow(bx, by - 10 * sc, 70 * sc, 70 * sc, 1, 0.8, 0.3, 0.45 * a)

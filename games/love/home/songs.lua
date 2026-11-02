@@ -1191,6 +1191,103 @@ M.su_fireflies = {
   order = {"A", "B", "C", "B"},
 }
 
+-- ------------------------------------------------------------------ Sweethearts (valentine.lua): all ours
+local TRIPLET = function(ch) return string.rep(ch .. " ", 12) end
+M.ve_open = {
+  bpm = 124, gain = 1, echo = {time = 0.36, fb = 0.25, mix = 0.18},
+  inst = {lead = copy(LEAD, {duty = 0.5, vol = 0.1, send = 0.3}), lead_2 = copy(BELL, {vol = 0.12}),
+          chord = copy(CHOP, {vol = 0.05}), bass = copy(BASS, {gate = 0.6})},
+  parts = {
+    A = {lead = "e5*2 g5*2 c6*4 b5*2 a5*2 g5*4 | a5*2 c6*2 e6*4 d6*2 c6*2 a5*4 | f5*2 a5*2 c6*4 b5*2 a5*2 f5*4 | g5*4 b5*4 d6*8",
+         chord = string.rep(".*2 C*2 ", 4) .. string.rep(".*2 Am*2 ", 4) .. string.rep(".*2 F*2 ", 4) .. string.rep(".*2 G*2 ", 4),
+         bass = eights("c2", "c3") .. eights("a1", "a2") .. eights("f1", "f2") .. eights("g1", "g2"),
+         drums = "k*2 h*2 s*2 h*2 k*2 k*2 s*2 h*2"},
+    B = {lead_2 = "c6*8 b5*4 a5*4 | e6*8 d6*4 c6*4 | a5*4 c6*4 f6*4 e6*4 | d6*12 .*4",
+         chord = string.rep(".*2 C*2 ", 4) .. string.rep(".*2 Am*2 ", 4) .. string.rep(".*2 F*2 ", 4) .. string.rep(".*2 G*2 ", 4),
+         bass = eights("c2", "c3") .. eights("a1", "a2") .. eights("f1", "f2") .. eights("g1", "g2"),
+         drums = "k*2 h*2 s*2 h*2 k*2 h*2 s*2 o*2"},
+  },
+  order = {"A", "A", "B", "A"},
+}
+
+M.ve_chase = {
+  bpm = 150, gain = 1,
+  inst = {lead = copy(LEAD, {vol = 0.1}), arp = ARP, bass = copy(BASS, {gate = 0.6})},
+  parts = {
+    A = {lead = "a5 . a5 . c6 . a5 . e6*2 d6*2 c6*2 b5*2 | g5 . g5 . b5 . g5 . d6*2 c6*2 b5*2 a5*2 |" ..
+                "f5 . f5 . a5 . f5 . c6*2 b5*2 a5*2 g5*2 | e5 . e5 . g#5 . e5 . b5*4 g#5*4",
+         arp = "Am*16 G*16 F*16 E*16",
+         bass = eights("a2", "a3") .. eights("g2", "g3") .. eights("f2", "f3") .. eights("e2", "e3"),
+         drums = "k*2 h*2 s*2 h*2 k*2 h*2 s*2 h*2"},
+  },
+  order = {"A", "A", "A+3", "A"},
+}
+
+M.ve_bubble = {
+  bpm = 128, gain = 1,
+  inst = {lead = XYLO, chord = copy(CHOP, {vol = 0.05}), bass = copy(BASS, {gate = 0.6}), lead_2 = copy(BELL, {vol = 0.1})},
+  parts = {
+    A = {lead = "c6 . a5 . f5 . a5 . c6*2 d6*2 c6*4 | d6 . a5 . f5 . a5 . d6*2 e6*2 d6*4 |" ..
+                "bb5 . g5 . d5 . g5 . bb5*2 c6*2 d6*4 | c6*2 bb5*2 a5*2 g5*2 e5*4 c5*4",
+         chord = string.rep(".*2 F*2 ", 4) .. string.rep(".*2 Dm*2 ", 4) .. string.rep(".*2 Gm*2 ", 4) .. string.rep(".*2 C*2 ", 4),
+         bass = eights("f2", "c3") .. eights("d2", "a2") .. eights("g2", "d3") .. eights("c2", "g2"),
+         drums = "k*4 x*4 k*2 k*2 x*4"},
+    B = {lead_2 = "f6*8 e6*4 c6*4 | d6*8 a5*8 | bb5*4 d6*4 g6*4 f6*4 | e6*12 .*4",
+         chord = string.rep(".*2 F*2 ", 4) .. string.rep(".*2 Dm*2 ", 4) .. string.rep(".*2 Gm*2 ", 4) .. string.rep(".*2 C*2 ", 4),
+         bass = eights("f2", "c3") .. eights("d2", "a2") .. eights("g2", "d3") .. eights("c2", "g2"),
+         drums = "k*4 x*4 k*2 k*2 x*4"},
+  },
+  order = {"A", "B", "A+2", "B+2", "A"},
+}
+
+M.ve_serenade = {
+  bpm = 63, steps = 3, gain = 1, echo = {time = 0.48, fb = 0.35, mix = 0.25},
+  inst = {lead = copy(THEREMIN, {vol = 0.15}), keys = {wave = "sine", a = 0.004, d = 0.4, s = 0.2, r = 0.2, vol = 0.06, oct = 4},
+          bass = copy(PLUCK, {vol = 0.28, d = 0.5})},
+  parts = {
+    A = {lead = "e5*6 d5*3 c5*3 | e5*6 g5*6 | a5*6 g5*3 f5*3 | d5*12",
+         keys = TRIPLET("C") .. TRIPLET("Am") .. TRIPLET("F") .. TRIPLET("G"),
+         bass = "c2*6 g2*6 | a1*6 e2*6 | f1*6 c2*6 | g1*6 d2*6", drums = "k?*3 h?*3 s?*3 h?*3"},
+    B = {lead = "g5*6 a5*3 g5*3 | e5*6 c5*6 | f5*3 e5*3 d5*3 f5*3 | c5*12",
+         keys = TRIPLET("C") .. TRIPLET("Am") .. TRIPLET("G7") .. TRIPLET("C"),
+         bass = "c2*6 g2*6 | a1*6 e2*6 | g1*6 d2*6 | c2*6 g1*6", drums = "k?*3 h?*3 s?*3 h?*3"},
+  },
+  order = {"A", "B", "A", "B"},
+}
+
+M.ve_doowop = {
+  bpm = 76, steps = 3, gain = 1, echo = {time = 0.4, fb = 0.3, mix = 0.2},
+  inst = {lead = copy(TRUMPET, {vol = 0.1}), keys = {wave = "sine", a = 0.004, d = 0.35, s = 0.25, r = 0.2, vol = 0.06, oct = 4},
+          choir = copy(CHOIR, {vol = 0.06}), bass = copy(BASS, {vol = 0.38, gate = 0.7})},
+  parts = {
+    A = {lead = "g5*6 e5*6 | a5*6 c6*6 | a5*3 g5*3 f5*3 a5*3 | g5*12",
+         keys = TRIPLET("C") .. TRIPLET("Am") .. TRIPLET("F") .. TRIPLET("G"), choir = "C*12 Am*12 F*12 G*12",
+         bass = "c2*3 e2*3 g2*3 a2*3 | a1*3 c2*3 e2*3 g2*3 | f1*3 a1*3 c2*3 d2*3 | g1*3 b1*3 d2*3 f2*3",
+         drums = "k*3 h h h s*3 h h h"},
+    B = {lead = "c6*6 b5*3 a5*3 | c6*6 e5*6 | f5*3 a5*3 c6*3 a5*3 | b5*6 d6*6",
+         keys = TRIPLET("C") .. TRIPLET("Am") .. TRIPLET("F") .. TRIPLET("G"), choir = "C*12 Am*12 F*12 G*12",
+         bass = "c2*3 e2*3 g2*3 a2*3 | a1*3 c2*3 e2*3 g2*3 | f1*3 a1*3 c2*3 d2*3 | g1*3 b1*3 d2*3 f2*3",
+         drums = "k*3 h h h s*3 h h h"},
+  },
+  order = {"A", "B", "A", "B"},
+}
+
+M.ve_heart = {
+  bpm = 132, gain = 1, echo = {time = 0.45, fb = 0.3, mix = 0.22},
+  inst = {lead = copy(BELL, {vol = 0.18}), lead_2 = copy(FLUTE, {vol = 0.1}), chord = copy(CHOP, {vol = 0.05}),
+          bass = copy(BASS, {gate = 0.5, vol = 0.38})},
+  parts = {
+    A = {lead = "e5*8 g5*4 | c6*8 b5*4 | a5*8 g5*4 | e5*12 | f5*8 a5*4 | d6*8 c6*4 | b5*8 a5*4 | g5*12",
+         chord = ".*4 C*4 C*4 | .*4 C*4 C*4 | .*4 Am*4 Am*4 | .*4 C*4 C*4 | .*4 F*4 F*4 | .*4 F*4 F*4 | .*4 G*4 G*4 | .*4 G7*4 G7*4",
+         bass = "c2*4 .*8 | e2*4 .*8 | a1*4 .*8 | c2*4 .*8 | f1*4 .*8 | a1*4 .*8 | g1*4 .*8 | b1*4 .*8",
+         drums = "k*4 h?*4 h?*4"},
+    B = {lead = "e6*8 d6*4 | c6*8 a5*4 | g5*8 b5*4 | c6*12", lead_2 = "c6*8 b5*4 | a5*8 f5*4 | d5*8 f5*4 | e5*12",
+         chord = ".*4 C*4 C*4 | .*4 Am*4 Am*4 | .*4 G7*4 G7*4 | .*4 C*4 C*4",
+         bass = "c2*4 .*8 | a1*4 .*8 | g1*4 .*8 | c2*4 .*8", drums = "k*4 h?*4 h?*4"},
+  },
+  order = {"A", "A", "B"},
+}
+
 -- ------------------------------------------------------------------ sound effects (loop = false; steps of 1/32 s)
 local function fx(inst, lane, beats, gain)
   return {bpm = 120, steps = 16, loop = false, gain = gain or 1, inst = {x = inst}, parts = {A = {x = lane}}, order = {"A"}}
