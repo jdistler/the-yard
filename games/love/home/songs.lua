@@ -1346,6 +1346,49 @@ M.eg_secret = {
   order = {"A", "A", "B", "B"},
 }
 
+-- ------------------------------------------------------------------ Longhorns, more (longhorns.lua): all ours
+M.lh_board = {
+  bpm = 118, gain = 1, echo = {time = 0.38, fb = 0.25, mix = 0.18},
+  inst = {lead = TRUMPET, brass = BRASS_PAD, bass = TUBA},
+  parts = {
+    A = {lead = "f5*2 bb5*2 d6*4 c6*2 bb5*2 g5*4 | f5*2 a5*2 c6*4 bb5*2 a5*2 f5*4 | eb5*2 g5*2 bb5*4 a5*2 g5*2 eb5*4 | f5*4 a5*4 bb5*8",
+         brass = "Bb*16 F*16 Eb*16 F*8 Bb*8",
+         bass = oompah("bb2", "f2") .. oompah("f2", "c3") .. oompah("eb2", "bb2") .. "f2*4 c3*4 bb2*8 ", drums = MARCH_DRUMS},
+    B = {lead = "d6*4 c6*4 bb5*4 d6*4 | c6*4 a5*4 f5*8 | g5*4 bb5*4 eb6*4 d6*4 | c6*12 .*4",
+         brass = "Bb*16 F*16 Eb*16 F*16",
+         bass = oompah("bb2", "f2") .. oompah("f2", "c3") .. oompah("eb2", "bb2") .. oompah("f2", "c3"),
+         drums = "k*2 s?*2 s*2 s?*2 k*2 s?*2 s!*2 s?*2 | k*2 s?*2 s*2 s?*2 k*2 s?*2 s!*2 s?*2 | k*2 s?*2 s*2 s?*2 k*2 s?*2 s!*2 s?*2 | k*2 s s s! s! s s s! s! c*4 .*2"},
+  },
+  order = {"A", "A", "B", "A"},
+}
+
+M.lh_legends = {
+  bpm = 120, gain = 1, echo = {time = 0.5, fb = 0.35, mix = 0.22},
+  inst = {arp = ARP, pad = copy(PAD, {vol = 0.05}), bass = copy(BASS, {gate = 0.5}), lead = TRUMPET, brass = BRASS_PAD},
+  parts = {
+    A = {arp = "Dm*16 Bb*16 C*16 A*16", pad = "Dm*16 Bb*16 C*16 A*16",
+         bass = sixteens("d2", "d3") .. sixteens("bb1", "bb2") .. sixteens("c2", "c3") .. sixteens("a1", "a2"),
+         drums = "k*4 h*4 k*4 h*4 | k*4 h*4 k*4 h*4 | k*4 h*4 k*4 h*4 | k*4 h*4 k*4 s s s! s!"},
+    B = {lead = "d5*4 f#5*4 a5*8 | g5*4 b5*4 d6*8 | e6*4 d6*4 c#6*4 b5*4 | a5*16", brass = "D*16 G*16 A*16 D*16",
+         bass = eights("d2", "d3") .. eights("g1", "g2") .. eights("a1", "a2") .. eights("d2", "d3"),
+         drums = "c+k*2 s*2 k*2 s*2 k*2 s*2 k*2 s*2"},
+  },
+  -- (the replay's touchdown is about 48 s into the scene: the fanfare starts there)
+  order = {"A", "A", "A", "A", "A", "A", "B", "B", "B", "B"},
+}
+
+M.lh_hex = {
+  bpm = 66, steps = 3, gain = 1.1, echo = {time = 0.45, fb = 0.45, mix = 0.3},
+  inst = {lead = copy(BELL, {vol = 0.18}), pad = copy(ORGAN, {vol = 0.06}), bass = copy(BASS, {vol = 0.36, gate = 0.8})},
+  parts = {
+    A = {lead = "a4*6 c5*3 e5*3 | d5*6 c5*3 b4*3 | c5*6 a4*3 e4*3 | g#4*12", pad = "Am*12 Dm*12 Am*12 E*12",
+         bass = "a1*12 | d2*12 | a1*12 | e1*12", drums = "t*6 t?*6"},
+    B = {lead = "c#5*6 e5*3 a5*3 | b5*6 a5*3 g#5*3 | a5*6 e5*3 c#5*3 | e5*12", pad = "A*12 E*12 A*12 E*12",
+         bass = "a1*12 | e2*12 | a1*12 | e1*12", drums = "t*6 t?*3 t?*3"},
+  },
+  order = {"A", "A", "B", "A", "B"},
+}
+
 -- ------------------------------------------------------------------ sound effects (loop = false; steps of 1/32 s)
 local function fx(inst, lane, beats, gain)
   return {bpm = 120, steps = 16, loop = false, gain = gain or 1, inst = {x = inst}, parts = {A = {x = lane}}, order = {"A"}}

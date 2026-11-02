@@ -1,15 +1,21 @@
 -- Longhorns: game day on the Forty Acres. Home's show for the University of Texas (our own drawings, no
--- official marks), nine minutes:
+-- official marks), thirteen minutes:
 --   0:00  PARTYCADE PRESENTS ... TEXAS LONGHORNS                                  (Game Day)
 --   0:10  Game day on the Forty Acres: the Tower at sunrise, live oaks, tailgates, Bevo, fans with Hook 'em
---   1:20  The Longhorn Band: marching in, Big Bertha rolling past; then from above, the band spells TEXAS
+--   1:20  The season on the video board: every game, the results, the record, the next kickoff (utgame.season)
+--                                                                                  (Scoreboard)
+--   2:20  The Longhorn Band: marching in, Big Bertha rolling past; then from above, the band spells TEXAS
 --                                                                                  (Burnt Orange March)
---   2:30  Smokey and the flag: the cannon fires, the giant Lone Star flag runs the field   (Drumline)
---   3:35  Hook 'em: the stands, a card stunt (TEXAS), the hand sign, TEXAS! FIGHT!    (Hook 'Em)
---   4:35  The drive: a drive down the field from above, play by play, to a touchdown   (The Drive)
---   6:00  The Red River Rivalry: the State Fair, Big Tex, the Texas Star, the Golden Hat stays in Austin
+--   3:30  Smokey and the flag: the cannon, the flag run, the Hook 'Em Herd, the team out of the tunnel (Drumline)
+--   4:40  Hook 'em: the stands, a card stunt (TEXAS), the hand sign, TEXAS! FIGHT!    (Hook 'Em)
+--   5:40  The drive: a drive down the field from above, play by play, to a touchdown   (The Drive)
+--   7:05  Legends: the national titles and the Heismans on the stadium; then the Rose Bowl, Jan 4, 2006, from
+--         above: fourth and five from the 8, the run to the right pylon, 41-38         (Legends)
+--   8:40  The Red River Rivalry: the State Fair, Big Tex, the Texas Star, the Golden Hat stays in Austin
 --                                                                                  (State Fair)
---   7:30  The Tower lit orange: the night, the "1", fireworks                        (Tower Glow)
+--  10:10  The Hex Rally: 1941's fortune teller, red candles on the Main Mall the week of the A&M game (The Hex)
+--  11:20  The Tower lit orange: an orange top for a win (the real one, when there is one); all orange with
+--         the "1" for a national title; fireworks                                   (Tower Glow)
 -- On game days (utgame.lua) a scorebug rides along: the countdown, the live score, the final; when Texas
 -- scores during the game, the show stops for it: TOUCHDOWN TEXAS, Smokey, fireworks.
 local lg = love.graphics
@@ -18,7 +24,7 @@ local ut = require("utgame")
 local M = {}
 local C, G
 local W, H = 768, 1024
-local LEN = 540
+local LEN = 770
 M.LEN = LEN
 local sin, cos, floor, min, max, abs, pi = math.sin, math.cos, math.floor, math.min, math.max, math.abs, math.pi
 local clamp, ease, lerp, mix = L.clamp, L.ease, L.lerp, L.mix
@@ -30,16 +36,19 @@ local STONE = {0.9, 0.84, 0.7}
 local SCENES = {
   {0, "open", "lh_gameday"},
   {10, "campus", "lh_gameday", "GAME DAY", "THE FORTY ACRES  ·  AUSTIN"},
-  {80, "band", "lh_march", "THE LONGHORN BAND", "THE SHOWBAND OF THE SOUTHWEST  ·  BIG BERTHA"},
-  {150, "smokey", "lh_drumline", "SMOKEY AND THE FLAG", "THE CANNON  ·  THE FLAG RUN"},
-  {215, "hookem", "lh_hookem", "HOOK 'EM", "TEXAS!  FIGHT!"},
-  {275, "drive", "lh_drive", "THE DRIVE", "FIRST AND TEN  ·  THE LONGHORNS' BALL"},
-  {360, "redriver", "lh_fair", "RED RIVER RIVALRY", "THE COTTON BOWL  ·  THE STATE FAIR OF TEXAS"},
-  {450, "tower", "lh_tower", "THE TOWER LIT ORANGE", "HOOK 'EM HORNS"},
+  {80, "season", "lh_board", "THE SEASON", "EVERY GAME  ·  ON THE BIG BOARD"},
+  {140, "band", "lh_march", "THE LONGHORN BAND", "THE SHOWBAND OF THE SOUTHWEST  ·  BIG BERTHA"},
+  {210, "smokey", "lh_drumline", "SMOKEY AND THE FLAG", "THE CANNON  ·  THE FLAG RUN  ·  THE HOOK 'EM HERD"},
+  {280, "hookem", "lh_hookem", "HOOK 'EM", "TEXAS!  FIGHT!"},
+  {340, "drive", "lh_drive", "THE DRIVE", "FIRST AND TEN  ·  THE LONGHORNS' BALL"},
+  {425, "legends", "lh_legends", "LEGENDS", "FOUR TITLES  ·  TWO HEISMANS  ·  ONE RUN TO THE RIGHT PYLON"},
+  {520, "redriver", "lh_fair", "RED RIVER RIVALRY", "THE COTTON BOWL  ·  THE STATE FAIR OF TEXAS"},
+  {610, "hex", "lh_hex", "THE HEX RALLY", "RED CANDLES  ·  THE MAIN MALL  ·  SINCE 1941"},
+  {680, "tower", "lh_tower", "THE TOWER LIT ORANGE", "HOOK 'EM HORNS"},
 }
 M.SEGMENTS = {}
 for _, s in ipairs(SCENES) do if s[4] then M.SEGMENTS[#M.SEGMENTS + 1] = {s[1], s[4]} end end
-M.THUMB = 5
+M.THUMB = 6
 
 local S
 local function scene_at(t)
@@ -69,23 +78,31 @@ local function opp()
 end
 
 -- ------------------------------------------------------------------ the Tower (the Main Building's)
-local function tower(x, base, s, lit)
-  local st = lit and mix(STONE, ORANGE_HI, 0.85) or STONE
-  local sh = lit and mix(STONE, ORANGE, 0.9) or {0.75, 0.68, 0.55}
+-- mode: nil (by day), "dark" (at night, unlit), "win" (an orange top over a white shaft: a football win), "one"
+-- (all orange, a "1" in the windows: a national title)
+local function tower(x, base, s, mode)
+  local lit = mode == "win" or mode == "one"
+  local LIT_WHITE = {1, 0.97, 0.9}
+  local top, shaft, sh
+  if mode == "one" then top, shaft, sh = mix(STONE, ORANGE_HI, 0.85), mix(STONE, ORANGE_HI, 0.85), mix(STONE, ORANGE, 0.9)
+  elseif mode == "win" then top, shaft, sh = mix(STONE, ORANGE_HI, 0.85), LIT_WHITE, mix(STONE, ORANGE, 0.9)
+  elseif mode == "dark" then top, shaft, sh = mix(STONE, {0.1, 0.1, 0.16}, 0.75), mix(STONE, {0.1, 0.1, 0.16}, 0.75), {0.12, 0.12, 0.17}
+  else top, shaft, sh = STONE, STONE, {0.75, 0.68, 0.55} end
   -- the Main Building in front
   rgba(sh)
   lg.rectangle("fill", x - 190 * s, base - 70 * s, 380 * s, 70 * s)
-  lg.setColor(0.62, 0.28, 0.2, 1)
+  if mode == "dark" then lg.setColor(0.2, 0.12, 0.12, 1) else lg.setColor(0.62, 0.28, 0.2, 1) end
   lg.polygon("fill", x - 200 * s, base - 70 * s, x + 200 * s, base - 70 * s, x + 180 * s, base - 92 * s, x - 180 * s, base - 92 * s)
   -- the shaft
-  rgba(st)
+  rgba(shaft)
   lg.rectangle("fill", x - 34 * s, base - 380 * s, 68 * s, 300 * s)
-  rgba(sh)
+  if mode == "win" then lg.setColor(0.85, 0.8, 0.7, 1) else rgba(sh) end
   for i = 0, 3 do lg.rectangle("fill", x - 26 * s + i * 16 * s, base - 370 * s, 4 * s, 270 * s) end
   -- the clock stage, the colonnade, the cupola
-  rgba(st)
+  rgba(top)
   lg.rectangle("fill", x - 40 * s, base - 430 * s, 80 * s, 50 * s)
-  lg.setColor(lit and 1 or 0.95, lit and 0.9 or 0.92, lit and 0.7 or 0.85, 1)
+  if mode == "dark" then lg.setColor(0.5, 0.48, 0.4, 1)
+  else lg.setColor(lit and 1 or 0.95, lit and 0.9 or 0.92, lit and 0.7 or 0.85, 1) end
   lg.circle("fill", x, base - 405 * s, 15 * s, 20)
   lg.setColor(0.2, 0.18, 0.15, 1)
   lg.setLineWidth(2 * s)
@@ -93,22 +110,29 @@ local function tower(x, base, s, lit)
   local hh, mm = tonumber(os.date("%I", tt)), tonumber(os.date("%M", tt))
   lg.line(x, base - 405 * s, x + sin((hh + mm / 60) / 12 * 2 * pi) * 8 * s, base - 405 * s - cos((hh + mm / 60) / 12 * 2 * pi) * 8 * s)
   lg.line(x, base - 405 * s, x + sin(mm / 60 * 2 * pi) * 12 * s, base - 405 * s - cos(mm / 60 * 2 * pi) * 12 * s)
-  rgba(st)
+  rgba(top)
   lg.rectangle("fill", x - 44 * s, base - 440 * s, 88 * s, 10 * s)
-  rgba(sh)
+  rgba(lit and mix(STONE, ORANGE, 0.9) or sh)
   for i = 0, 5 do lg.rectangle("fill", x - 38 * s + i * 15 * s, base - 476 * s, 6 * s, 36 * s) end
-  rgba(st)
+  rgba(top)
   lg.rectangle("fill", x - 44 * s, base - 484 * s, 88 * s, 10 * s)
   lg.rectangle("fill", x - 22 * s, base - 512 * s, 44 * s, 28 * s)
   lg.arc("fill", "pie", x, base - 512 * s, 22 * s, pi, 2 * pi, 16)
   lg.rectangle("fill", x - 2 * s, base - 548 * s, 4 * s, 16 * s)
-  if lit then
+  if mode == "one" then
     -- the "1" in the windows
     lg.setColor(1, 1, 0.85, 1)
     lg.rectangle("fill", x - 4 * s, base - 360 * s, 10 * s, 220 * s)
     lg.rectangle("fill", x - 16 * s, base - 350 * s, 14 * s, 12 * s)
     lg.rectangle("fill", x - 14 * s, base - 148 * s, 30 * s, 10 * s)
     C.fx.glow(x, base - 300 * s, 160 * s, 300 * s, 1, 0.5, 0.1, 0.35)
+  elseif mode == "win" then
+    C.fx.glow(x, base - 460 * s, 130 * s, 110 * s, 1, 0.5, 0.1, 0.4)
+    C.fx.glow(x, base - 240 * s, 90 * s, 200 * s, 1, 0.95, 0.85, 0.12)
+  elseif mode == "dark" then
+    -- a few late windows
+    lg.setColor(1, 0.85, 0.5, 0.7)
+    for i = 0, 5 do lg.rectangle("fill", x - 150 * s + i * 58 * s, base - 46 * s, 10 * s, 14 * s) end
   end
 end
 
@@ -287,7 +311,9 @@ function D.smokey(lt, len)
   G:gradient(0, 600, W, H, {0.25, 0.55, 0.22}, {0.2, 0.48, 0.18})
   lg.setColor(1, 1, 1, 0.8)
   for i = 0, 6 do lg.rectangle("fill", 0, 640 + i * 60, W, 3) end
-  if lt < 30 then
+  -- Bevo watches from the south end zone the whole time
+  L.steer(660, 720, 0.8, 0, {{0.82, 0.48, 0.18}, {0.97, 0.95, 0.9}}, {0.95, 0.92, 0.8})
+  if lt < 24 then
     -- Smokey: the cannon on its carriage, the Texas Cowboys beside it
     local x, y = 300, 860
     lg.setColor(0.35, 0.22, 0.12, 1)
@@ -298,7 +324,7 @@ function D.smokey(lt, len)
       local a = i * pi / 4 + S.t * 0.1
       lg.line(x - 50, y + 40, x - 50 + cos(a) * 44, y + 40 + sin(a) * 44)
     end
-    local rec = (lt % 10) < 0.4 and (1 - (lt % 10) / 0.4) or 0
+    local rec = ((lt - 2) % 8) < 0.4 and lt > 2 and (1 - ((lt - 2) % 8) / 0.4) or 0
     lg.push()
     lg.translate(x - 30, y + 10)
     lg.rotate(-0.45 - rec * 0.1)
@@ -324,9 +350,9 @@ function D.smokey(lt, len)
       lg.rectangle("fill", cx - 7, y - 36, 14, 12, 3, 3, 4)
     end
     if rec > 0.9 then C.fx.glow(x + 150, y - 70, 120, 120, 1, 0.9, 0.6, 0.8) end
-  else
+  elseif lt < 50 then
     -- the flag run: the giant Lone Star flag across the field
-    local fx = lerp(-700, W + 80, clamp((lt - 31) / 30, 0, 1))
+    local fx = lerp(-660, W + 80, clamp((lt - 24) / 24, 0, 1))
     S.flag:draw(fx, 620, 640, 300, S.t, 0.85, {1, 1, 1})
     for i = 0, 15 do
       local px = fx + 30 + i * 40
@@ -339,7 +365,50 @@ function D.smokey(lt, len)
         lg.rectangle("fill", px + 1, 980, 3, 30 - st)
       end
     end
+    -- the Hook 'Em Herd: the kids, right behind it
+    local kx = fx - 120
+    for i = 0, 13 do
+      local x = kx - (i % 7) * 46 - floor(i / 7) * 20
+      local y = 900 + floor(i / 7) * 50 + sin(S.t * 9 + i) * 4
+      if x > -30 and x < W + 30 then
+        fan(x, y, 0.85, i % 3 == 0 and WHITE or ORANGE_HI, S.t * 2 + i, i % 2 == 0)
+      end
+    end
+  else
+    -- the team out of the tunnel, through the smoke
+    local k = lt - 50
+    -- the tunnel: a big orange arch at the left, the dark inside
+    rgba(ORANGE)
+    lg.rectangle("fill", 0, 720, 190, 260, 90, 90, 16)
+    rgba(WHITE)
+    lg.rectangle("fill", 18, 744, 154, 236, 74, 74, 16)
+    lg.setColor(0.06, 0.04, 0.04, 1)
+    lg.rectangle("fill", 30, 760, 130, 220, 64, 64, 16)
+    G:text("TEXAS", 0, 724, 18, WHITE, 1, "center", 190)
+    for i = 0, 23 do
+      local x = 80 + (k * 140) - i * 46 - (i % 3) * 16
+      local y = 800 + (i % 4) * 52 + sin(S.t * 11 + i) * 4
+      if x > 95 and x < W + 40 then
+        local sc2 = 1.45
+        local st = sin(S.t * 14 + i) * 8
+        lg.setColor(0.97, 0.97, 0.97, 1)
+        lg.rectangle("fill", x - 10 * sc2, y + 22 * sc2, 8 * sc2, (16 + st * 0.6) * sc2)
+        lg.rectangle("fill", x + 2 * sc2, y + 22 * sc2, 8 * sc2, (16 - st * 0.6) * sc2)
+        lg.rectangle("fill", x - 11 * sc2, y + 6 * sc2, 22 * sc2, 18 * sc2, 3, 3, 4)
+        rgba(ORANGE_HI)
+        lg.rectangle("fill", x - 15 * sc2, y - 22 * sc2, 30 * sc2, 30 * sc2, 6, 6, 4)
+        lg.setColor(1, 1, 1, 1)
+        G:text(tostring((i * 7) % 99 + 1), x - 15 * sc2, y - 16 * sc2, 16, WHITE, 1, "center", 30 * sc2)
+        lg.circle("fill", x, y - 33 * sc2, 12 * sc2, 12)
+        rgba(ORANGE)
+        lg.rectangle("fill", x - 2 * sc2, y - 45 * sc2, 4 * sc2, 24 * sc2)
+        lg.setColor(0.2, 0.2, 0.22, 1)
+        lg.rectangle("fill", x + 4 * sc2, y - 34 * sc2, 9 * sc2, 3 * sc2)
+      end
+    end
+    G:plate("HERE COME THE LONGHORNS", 170, 34, 0xff8c1a, L.window(k, 0.5, len - 50 - 1, 0.6))
   end
+  if lt > 34 and lt < 50 then G:plate("THE HOOK 'EM HERD", 170, 30, 0xffffff, L.window(lt, 35, 48, 0.6)) end
 end
 
 function D.hookem(lt, len)
@@ -612,7 +681,15 @@ function D.tower(lt, len)
     lg.setColor(1, 1, 0.9, 0.5 + 0.5 * sin(S.t * (1 + i % 3) + i))
     lg.rectangle("fill", s[1], s[2], 2, 2)
   end
-  tower(384, 800, 1.2, true)
+  -- first an orange top (a win: the real one, when there's one this week), then all orange with the 1
+  local one = lt > 48
+  tower(384, 800, 1.2, one and "one" or "win")
+  if lt > 47.6 and lt < 48.6 then
+    lg.setBlendMode("add")
+    lg.setColor(1, 0.6, 0.2, 1 - abs(lt - 48.1) * 2)
+    lg.rectangle("fill", 0, 0, W, 800)
+    lg.setBlendMode("alpha")
+  end
   L.live_oak(90, 820, 1.2, S.t)
   L.live_oak(680, 820, 1.1, S.t + 1)
   G:gradient(0, 800, W, H, {0.06, 0.08, 0.05}, {0.03, 0.04, 0.03})
@@ -620,12 +697,328 @@ function D.tower(lt, len)
   for i = 0, 15 do
     fan(30 + i * 48, 1000 - (i % 2) * 14, 1.1, {0.08, 0.06, 0.06}, S.t + i, true)
   end
-  local a = L.window(lt, 6, len - 2, 1.5)
-  local g = ut.game
-  if g and g.state == "post" and g.us and g.them and g.us > g.them then
-    G:plate(string.format("TODAY: TEXAS %d, %s %d", g.us, g.opp_abbr, g.them), 150, 32, 0xffd23f, a)
+  local last = S.last
+  if not one then
+    local a = L.window(lt, 5, 46, 1.2)
+    if last and last.won and S.last_days and S.last_days <= 6 then
+      G:plate(string.format("TEXAS %d, %s %d", last.us or 0, string.upper(last.opp or last.opp_abbr or ""), last.them or 0), 150, 32, 0xffd23f, a)
+      G:plate("THE TOWER IS ORANGE TONIGHT", 210, 26, 0xffffff, L.window(lt, 8, 46, 1.2))
+    else
+      G:plate("AFTER EVERY WIN: AN ORANGE TOP", 150, 30, 0xffd23f, a)
+    end
   else
-    G:plate("THE EYES OF TEXAS ARE UPON YOU", 150, 30, 0xffffff, a)
+    G:plate("A NATIONAL TITLE: ALL ORANGE, WITH A 1", 150, 28, 0xffd23f, L.window(lt, 49, 66, 1.2))
+    G:plate("THE EYES OF TEXAS ARE UPON YOU", 150, 30, 0xffffff, L.window(lt, 68, len - 2, 1.2))
+  end
+end
+
+-- ------------------------------------------------------------------ the season on the video board
+local MON = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"}
+local DOW = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"}
+local function day_label(day)
+  local y, m, d = day:match("^(%d+)-(%d+)-(%d+)")
+  if not y then return "" end
+  return MON[tonumber(m)] .. " " .. tonumber(d)
+end
+local function kick_label(g)
+  if g.tbd or not g.kickoff then return "TBD" end
+  return (os.date("%I:%M %p", g.kickoff):gsub("^0", ""))
+end
+local function opp_name(g)
+  local n = string.upper(g.opp or g.opp_abbr or "")
+  if g.opp_rank then n = "NO. " .. g.opp_rank .. " " .. n end
+  return n
+end
+
+function D.season(lt, len)
+  G:gradient(0, 0, W, H, {0.04, 0.04, 0.1}, {0.22, 0.09, 0.04})
+  lg.setColor(1, 1, 1, 0.9)
+  lg.draw(S.crowd, 0, 840)
+  -- the board on its frame
+  local bx, by, bw, bh = 34, 96, 700, 724
+  lg.setColor(0.18, 0.18, 0.2, 1)
+  lg.rectangle("fill", bx - 16, by - 16, bw + 32, bh + 32, 10, 10, 6)
+  lg.rectangle("fill", 360, by + bh + 16, 48, 60)
+  rgba(ORANGE)
+  lg.rectangle("fill", bx - 6, by - 6, bw + 12, bh + 12, 8, 8, 6)
+  lg.setColor(0.02, 0.02, 0.04, 1)
+  lg.rectangle("fill", bx, by, bw, bh)
+  lg.setColor(1, 1, 1, 0.025)
+  for y = by, by + bh, 6 do lg.rectangle("fill", bx, y, bw, 2) end
+  local games = S.games or {}
+  local season = ut.season
+  if #games == 0 then
+    -- no schedule (no network yet, or never): the season, coming
+    G:text("LONGHORNS FOOTBALL", bx, by + 120, 44, ORANGE_HI, 1, "center", bw)
+    G:text("THE SEASON KICKS OFF", bx, by + 300, 34, WHITE, 1, "center", bw)
+    G:text("LATE AUGUST", bx, by + 350, 44, ORANGE_HI, 0.6 + 0.4 * abs(sin(S.t * 3)), "center", bw)
+    G:text("SCHEDULE AND SCORES FROM ESPN WHEN THE CABINET IS ONLINE", bx + 40, by + 560, 18, {0.7, 0.7, 0.75}, 1, "center", bw - 80)
+    return
+  end
+  local year = games[#games].day:sub(1, 4)
+  local wins, losses = 0, 0
+  for _, g in ipairs(games) do
+    if g.state == "post" then if g.won then wins = wins + 1 else losses = losses + 1 end end
+  end
+  local rank = season and season.rank
+  G:text(year .. " LONGHORNS", bx, by + 18, 42, ORANGE_HI, 1, "center", bw)
+  G:text((rank and ("NO. " .. rank .. "  ·  ") or "") .. wins .. "-" .. losses, bx, by + 66, 30, WHITE,
+         0.7 + 0.3 * abs(sin(S.t * 2)), "center", bw)
+  lg.setColor(ORANGE[1], ORANGE[2], ORANGE[3], 0.8)
+  lg.rectangle("fill", bx + 20, by + 108, bw - 40, 3)
+  -- the games, flipping up one by one
+  local n = #games
+  local rh = min(40, (bh - 240) / n)
+  local nx = ut.next()
+  for i, g in ipairs(games) do
+    local a = clamp((lt - 2.5 - i * 1.1) * 3, 0, 1)
+    if a > 0 then
+      local y = by + 126 + (i - 1) * rh
+      lg.push()
+      lg.translate(0, y + rh / 2)
+      lg.scale(1, a)
+      lg.translate(0, -(y + rh / 2))
+      local next_one = nx and g.day == nx.day
+      if next_one then
+        lg.setColor(1, 0.5, 0.1, 0.18 + 0.12 * abs(sin(S.t * 4)))
+        lg.rectangle("fill", bx + 10, y, bw - 20, rh - 4, 6, 6, 4)
+      end
+      local px = min(24, rh * 0.55)
+      G:text(day_label(g.day), bx + 20, y + (rh - px) / 2 - 2, px, {0.75, 0.75, 0.8}, 1, "left", 110)
+      local where = g.neutral and "VS" or (g.home and "VS" or "AT")
+      local name = opp_name(g)
+      if g.note and g.post then name = string.upper(g.note:gsub(" Presented.*", "")) .. ": " .. string.upper(g.opp_abbr or "") end
+      G:text(where .. "  " .. name, bx + 128, y + (rh - px) / 2 - 2, px, WHITE, 1, "left", 400)
+      local res, col
+      if g.state == "post" and g.us and g.them then
+        res = (g.won and "W " or "L ") .. g.us .. "-" .. g.them
+        col = g.won and ORANGE_HI or {0.6, 0.6, 0.65}
+      elseif g.state == "in" then
+        res, col = "LIVE " .. (g.us or 0) .. "-" .. (g.them or 0), {1, 0.3, 0.3}
+      elseif next_one then
+        res, col = "NEXT  " .. kick_label(g), {1, 0.85, 0.3}
+      else
+        res, col = kick_label(g), {0.6, 0.6, 0.65}
+      end
+      G:text(res, bx + bw - 200, y + (rh - px) / 2 - 2, px, col, 1, "right", 180)
+      lg.pop()
+    end
+  end
+  -- then the next kickoff, big
+  local done = 2.5 + n * 1.1 + 2
+  if nx and lt > done then
+    local a = clamp((lt - done) * 2, 0, 1)
+    local where = nx.neutral and "VS " or (nx.home and "VS " or "AT ")
+    local wd = nx.day and DOW[tonumber(os.date("%w", os.time({year = tonumber(nx.day:sub(1, 4)), month = tonumber(nx.day:sub(6, 7)),
+                                                        day = tonumber(nx.day:sub(9, 10)), hour = 12}))) + 1] or ""
+    lg.setColor(0.02, 0.02, 0.04, 0.85 * a)
+    lg.rectangle("fill", bx + 20, by + bh - 96, bw - 40, 84, 10, 10, 6)
+    G:text("NEXT: " .. where .. string.upper(nx.opp or ""), bx, by + bh - 88, 30, ORANGE_HI, a, "center", bw)
+    G:text(wd .. " " .. day_label(nx.day) .. "  ·  " .. kick_label(nx) .. (nx.net and ("  ·  " .. nx.net) or ""),
+           bx, by + bh - 50, 24, WHITE, a, "center", bw)
+  end
+end
+
+-- ------------------------------------------------------------------ legends
+local CARDINAL, GOLD = {0.62, 0.1, 0.16}, {1, 0.8, 0.2}
+local function banner(x, y, w, h, col, a, big, small)
+  rgba(col, a)
+  lg.rectangle("fill", x, y, w, h)
+  lg.polygon("fill", x, y + h, x + w, y + h, x + w / 2, y + h + 26)
+  lg.setColor(0.25, 0.2, 0.15, a)
+  lg.rectangle("fill", x - 6, y - 8, w + 12, 8)
+  local tc = col == WHITE and ORANGE or WHITE
+  G:text(big, x, y + 18, 42, tc, a, "center", w)
+  if small then G:text(small, x, y + h - 40, 15, tc, a, "center", w) end
+end
+
+-- the Rose Bowl replay: yards from the goal line (y, downfield is up) and across (x, -26.6 .. 26.6)
+local RB_YD, RB_GOAL = 24, 300
+local function rb_xy(x, y) return 384 + x * 13, RB_GOAL + y * RB_YD end
+local function rb_path(k)
+  -- the quarterback: the drop, a look, then out to the right and up to the pylon
+  local pts = {{0, 13}, {-1, 15.5}, {1, 15}, {9, 12}, {19, 6}, {23, 1}, {24, -2.5}}
+  local f = k * (#pts - 1)
+  local i = min(floor(f) + 1, #pts - 1)
+  local u = f - (i - 1)
+  return lerp(pts[i][1], pts[i + 1][1], u), lerp(pts[i][2], pts[i + 1][2], u)
+end
+
+function D.legends(lt, len)
+  if lt < 34 then
+    -- the stadium's upper deck, the banners coming down
+    G:gradient(0, 0, W, 300, {0.25, 0.5, 0.9}, {0.75, 0.85, 1})
+    rgba(STONE)
+    lg.rectangle("fill", 0, 160, W, 520)
+    lg.setColor(0.8, 0.74, 0.6, 1)
+    for i = 0, 7 do lg.rectangle("fill", 10 + i * 96, 180, 70, 60, 35, 35, 10) end
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.crowd, 0, 680)
+    local a0 = clamp((lt - 1.5) * 2, 0, 1)
+    G:text("NATIONAL CHAMPIONS", 0, 262, 34, ORANGE, a0, "center", W)
+    for i, yr in ipairs({"1963", "1969", "1970", "2005"}) do
+      local k = ease(clamp((lt - 2 - i * 1.6) / 0.8, 0, 1))
+      if k > 0 then banner(40 + (i - 1) * 176, lerp(120, 310, k), 160, 120, ORANGE, k, yr) end
+    end
+    local h1 = ease(clamp((lt - 13) / 0.8, 0, 1))
+    local h2 = ease(clamp((lt - 16) / 0.8, 0, 1))
+    if h1 > 0 or h2 > 0 then G:text("THE HEISMAN TROPHY", 0, 470, 30, {0.35, 0.25, 0.15}, max(h1, h2), "center", W) end
+    if h1 > 0 then banner(100, lerp(400, 510, h1), 260, 130, WHITE, h1, "20", "EARL CAMPBELL  ·  1977") end
+    if h2 > 0 then banner(408, lerp(400, 510, h2), 260, 130, WHITE, h2, "34", "RICKY WILLIAMS  ·  1998") end
+    local f = clamp((lt - 31) / 3, 0, 1)
+    if f > 0 then lg.setColor(0, 0, 0, f) lg.rectangle("fill", 0, 0, W, H) end
+    return
+  end
+  -- the Rose Bowl: January 4, 2006, from above
+  local r = lt - 34
+  G:gradient(0, 0, W, H, {0.2, 0.5, 0.2}, {0.17, 0.44, 0.17})
+  rgba(ORANGE)
+  local gx, gy = rb_xy(0, 0)
+  lg.setColor(0.45, 0.12, 0.15, 1)
+  lg.rectangle("fill", 10, gy - 10 * RB_YD, W - 20, 10 * RB_YD)
+  G:text("ROSE BOWL", 0, gy - 6.5 * RB_YD, 56, {1, 0.85, 0.3}, 0.8, "center", W)
+  for yd = 0, 30, 5 do
+    local _, y = rb_xy(0, yd)
+    lg.setColor(1, 1, 1, yd % 10 == 0 and 0.9 or 0.55)
+    lg.rectangle("fill", 10, y - 1, W - 20, 3)
+    if yd % 10 == 0 and yd > 0 then G:text(tostring(yd), 24, y - 14, 26, WHITE, 0.8, "left", 60) end
+  end
+  -- the pylons
+  rgba(ORANGE_HI)
+  lg.rectangle("fill", 10, gy - 8, 10, 10)
+  lg.rectangle("fill", W - 20, gy - 8, 10, 10)
+  local _, los = rb_xy(0, 8)
+  local _, ftd = rb_xy(0, 3)
+  local snap, run_t = 8, 6.5
+  local k = clamp((r - snap) / run_t, 0, 1)
+  local two = r > 17 and r < 26
+  if not two then
+    lg.setColor(0.2, 0.5, 1, 0.8)
+    lg.rectangle("fill", 10, los - 2, W - 20, 4)
+    lg.setColor(1, 0.85, 0.1, 0.8)
+    lg.rectangle("fill", 10, ftd - 2, W - 20, 4)
+  end
+  -- the players
+  local qx, qy
+  if two then
+    -- the two-point try: from the 3, the same quarterback, the same corner
+    local k2 = clamp((r - 19.5) / 2.5, 0, 1)
+    qx, qy = lerp(0, 18, ease(k2)), lerp(8, -2, k2)
+  elseif r < snap then qx, qy = 0, 13
+  elseif r < snap + run_t + 0.01 then qx, qy = rb_path(k)
+  else qx, qy = 24, -2.5 end
+  local base = two and 3 or 8
+  local off = {{-6, 0.5}, {-3, 0.5}, {0, 0.5}, {3, 0.5}, {6, 0.5}, {-20, 0.5}, {20, 0.5}, {-14, 1}, {14, 1}, {3, base == 3 and 5 or 5}}
+  local def = {{-4.5, -1}, {-1.5, -1}, {1.5, -1}, {4.5, -1}, {-8, -4}, {0, -4}, {8, -4}, {-20, -2}, {20, -2}, {-10, -8}, {10, -8}}
+  local moving = (two and r > 19.5) or (not two and r > snap)
+  for i, p in ipairs(def) do
+    local dx, dy = p[1], base + p[2]
+    if moving then
+      -- the defence chases him toward the right, a step late
+      local f = two and clamp((r - 19.5) / 2.5, 0, 1) or k
+      local tx, ty = qx - 3 - (i % 3), qy + 1 + (i % 4) * 0.8
+      dx, dy = lerp(dx, tx, f * 0.75), lerp(dy, ty, f * 0.75)
+    end
+    local x, y = rb_xy(dx, dy)
+    rgba(CARDINAL)
+    lg.circle("fill", x, y, 12, 14)
+    rgba(GOLD)
+    lg.circle("fill", x, y, 4.5, 8)
+  end
+  for i, p in ipairs(off) do
+    local x, y = rb_xy(p[1], base + p[2] + (moving and -0.8 or 0))
+    if i >= 6 and i <= 9 and moving then x, y = rb_xy(p[1] * 0.7, base - 3 - (i % 2) * 2) end
+    rgba(ORANGE_HI)
+    lg.circle("fill", x, y, 12, 14)
+    lg.setColor(1, 1, 1, 1)
+    lg.circle("fill", x, y, 4.5, 8)
+  end
+  local x, y = rb_xy(qx, qy)
+  C.fx.glow(x, y, 50, 50, 1, 0.6, 0.2, 0.5)
+  rgba(ORANGE_HI)
+  lg.circle("fill", x, y, 15, 16)
+  G:text("10", x - 20, y - 10, 18, WHITE, 1, "center", 40)
+  -- the scoreboard
+  local us = (r > snap + run_t) and 39 or 33
+  if r > 22.5 then us = 41 end
+  lg.setColor(0.02, 0.02, 0.06, 0.82)
+  lg.rectangle("fill", 0, 0, W, 64)
+  G:text("TEXAS  " .. us, 18, 16, 30, ORANGE_HI, 1, "left", 300)
+  G:text("USC  38", W - 318, 16, 30, {1, 0.75, 0.3}, 1, "right", 300)
+  local mid = r < snap + run_t and "4TH & 5  ·  THE 8" or (us == 39 and "0:19 LEFT" or "0:19 LEFT")
+  G:text(mid, 0, 20, 22, WHITE, 0.9)
+  -- the words
+  if r < snap then
+    G:plate("JAN 4, 2006  ·  PASADENA", 120, 30, 0xffffff, L.window(r, 0.3, snap - 0.3, 0.6))
+    G:plate("FOURTH AND FIVE. DOWN BY FIVE.", 180, 30, 0xffb347, L.window(r, 2, snap - 0.3, 0.6))
+  end
+  if r > snap + run_t and r < 19 then
+    G:caption("TOUCHDOWN TEXAS!", 520, 64, 0xff8c1a, clamp((r - snap - run_t) * 2, 0, 1), 1 + 0.06 * abs(sin(r * 5)))
+  end
+  if two and r < 22.5 then G:plate("THE TWO-POINT TRY", 160, 30, 0xffffff, L.window(r, 17.5, 22.5, 0.4)) end
+  if r > 24 then
+    local a = clamp((r - 24) * 1.5, 0, 1)
+    lg.setColor(0.75, 0.34, 0, 0.35 * a)
+    lg.rectangle("fill", 0, 0, W, H)
+    G:caption("NATIONAL CHAMPIONS", 420, 64, 0xff8c1a, a, 1 + 0.05 * abs(sin(r * 4)))
+    G:plate("TEXAS 41  ·  USC 38", 520, 34, 0xffffff, a)
+  end
+end
+
+-- ------------------------------------------------------------------ the Hex Rally
+local HEX_LINES = {
+  {3, 15, "1941: STUDENTS ASKED A FORTUNE TELLER", "HOW TO BEAT THE AGGIES"},
+  {15, 27, "SHE TOLD THEM: BURN RED CANDLES", "THE WEEK BEFORE THE GAME"},
+  {27, 38, "THEY DID. TEXAS WON, 23-0.", "THE HEX HAS BEEN BURNING SINCE"},
+}
+function D.hex(lt, len)
+  G:gradient(0, 0, W, 760, {0.02, 0.02, 0.07}, {0.1, 0.04, 0.1})
+  for i, s in ipairs(S.stars) do
+    lg.setColor(1, 1, 0.9, 0.3 + 0.4 * abs(sin(S.t * 0.6 + i)))
+    lg.rectangle("fill", s[1], s[2], 2, 2)
+  end
+  local warm = clamp((lt - 52) / 4, 0, 1)
+  tower(384, 700, 1.0, warm > 0.5 and "win" or "dark")
+  G:gradient(0, 700, W, H, {0.05, 0.04, 0.05}, {0.02, 0.02, 0.03})
+  -- the crowd on the Main Mall, a candle each, lit from the front out
+  for _, c in ipairs(S.candles) do
+    lg.setColor(0.04, 0.03, 0.05, 1)
+    lg.circle("fill", c[1], c[2] - 16 * c[4], 7 * c[4], 8)
+    lg.rectangle("fill", c[1] - 7 * c[4], c[2] - 10 * c[4], 14 * c[4], 26 * c[4])
+    lg.setColor(0.75, 0.08, 0.1, 1)
+    lg.rectangle("fill", c[1] + 6 * c[4], c[2] - 6 * c[4], 4 * c[4], 12 * c[4])
+  end
+  -- the flames, all in one additive pass
+  lg.setBlendMode("add")
+  for _, c in ipairs(S.candles) do
+    if lt > 4 + c[3] * 34 then
+      local fl = 0.8 + 0.2 * sin(S.t * 12 + c[5])
+      lg.setColor(1, 0.45, 0.1, 0.25 * fl)
+      lg.circle("fill", c[1] + 8 * c[4], c[2] - 10 * c[4], 14 * c[4], 10)
+      lg.setColor(1, 0.85, 0.4, fl)
+      lg.ellipse("fill", c[1] + 8 * c[4], c[2] - 9 * c[4], 2.5 * c[4], 4 * c[4], 8)
+    end
+  end
+  lg.setBlendMode("alpha")
+  -- the warm glow of all of them over the Mall
+  local n = clamp((lt - 4) / 34, 0, 1)
+  C.fx.glow(384, 900, 420, 160, 1, 0.3, 0.05, 0.35 * n)
+  for _, l in ipairs(HEX_LINES) do
+    local a = L.window(lt, l[1], l[2], 0.8)
+    if a > 0 then
+      G:text(l[3], 0, 130, 30, {1, 0.85, 0.7}, a, "center", W)
+      G:text(l[4], 0, 172, 30, {1, 0.85, 0.7}, a, "center", W)
+    end
+  end
+  if lt > 39 then
+    G:caption("THE HEX IS ON", 150, 72, 0xff3b3b, clamp((lt - 39) * 1.5, 0, 1), 1 + 0.04 * sin(S.t * 3))
+    local st = S.status or {}
+    local g = ut.next()
+    local line = "EVERY YEAR, THE WEEK OF THE A&M GAME"
+    if st.week == "lonestar" and g then
+      line = "THIS WEEK: " .. ((g.home and "VS ") or "AT ") .. "TEXAS A&M  ·  " .. day_label(g.day)
+    end
+    G:plate(line, 240, 26, 0xffd0a0, clamp((lt - 42) * 1.5, 0, 1) * L.window(lt, 42, len - 1, 1))
   end
 end
 
@@ -744,12 +1137,35 @@ function M.start(seed, at)
   end
   S.stars = {}
   for i = 1, 90 do S.stars[i] = {R:random() * W, R:random() * 700} end
-  for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
-  for _, l in ipairs({{"PARTYCADE", 54, 0xff4fd8}, {"PRESENTS", 26, 0x6ef0c8}, {"TEXAS", 96, 0xff8c1a},
-                      {"LONGHORNS", 54, 0xffffff}, {"TEXAS!", 80, 0xff8c1a}, {"FIGHT!", 80, 0xffffff},
-                      {"TOUCHDOWN TEXAS!", 64, 0xff8c1a}, {"THE GOLDEN HAT STAYS IN AUSTIN", 26, 0xffd23f},
-                      {"THE EYES OF TEXAS ARE UPON YOU", 30, 0xffffff}, {"THE MAIN BUILDING  ·  THE TOWER", 28, 0xffffff}}) do
-    G:label(l[1], l[2], l[3])
+  -- the Hex Rally's crowd: rows back from the front, lit from the middle of the front row out
+  S.candles = {}
+  for row = 0, 6 do
+    local sc = 1.3 - row * 0.1
+    local y = 1000 - row * 42
+    local n = 12 + row
+    for c = 0, n - 1 do
+      local x = 20 + (c + (row % 2) * 0.5) * (W - 40) / n + (R:random() - 0.5) * 10
+      local d = (abs(x - 384) / 384 * 0.6 + row / 6 * 0.4) * (0.85 + R:random() * 0.3)
+      S.candles[#S.candles + 1] = {x, y, clamp(d, 0, 1), sc, R:random() * 6}
+    end
+  end
+  table.sort(S.candles, function(a, b) return a[2] < b[2] end)
+  for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff, s[1]) end end
+  local at = {}
+  for _, s in ipairs(SCENES) do at[s[2]] = s[1] end
+  for _, l in ipairs({{"PARTYCADE", 54, 0xff4fd8, 0}, {"PRESENTS", 26, 0x6ef0c8, 0}, {"TEXAS", 96, 0xff8c1a, 0},
+                      {"LONGHORNS", 54, 0xffffff, 0}, {"TEXAS!", 80, 0xff8c1a, at.hookem}, {"FIGHT!", 80, 0xffffff, at.hookem},
+                      {"TOUCHDOWN TEXAS!", 64, 0xff8c1a}, {"THE GOLDEN HAT STAYS IN AUSTIN", 26, 0xffd23f, at.redriver},
+                      {"THE EYES OF TEXAS ARE UPON YOU", 30, 0xffffff, at.tower + 68},
+                      {"THE MAIN BUILDING  ·  THE TOWER", 28, 0xffffff, at.campus},
+                      {"NATIONAL CHAMPIONS", 64, 0xff8c1a, at.legends + 34}, {"THE HEX IS ON", 72, 0xff3b3b, at.hex},
+                      {"HERE COME THE LONGHORNS", 34, 0xff8c1a, at.smokey + 30}, {"THE HOOK 'EM HERD", 30, 0xffffff, at.smokey + 20},
+                      {"JAN 4, 2006  ·  PASADENA", 30, 0xffffff, at.legends + 20},
+                      {"FOURTH AND FIVE. DOWN BY FIVE.", 30, 0xffb347, at.legends + 20},
+                      {"THE TWO-POINT TRY", 30, 0xffffff, at.legends + 40}, {"TEXAS 41  ·  USC 38", 34, 0xffffff, at.legends + 40},
+                      {"AFTER EVERY WIN: AN ORANGE TOP", 30, 0xffd23f, at.tower}, {"THE TOWER IS ORANGE TONIGHT", 26, 0xffffff, at.tower},
+                      {"A NATIONAL TITLE: ALL ORANGE, WITH A 1", 28, 0xffd23f, at.tower + 40}}) do
+    G:label(l[1], l[2], l[3], l[4])
   end
 end
 
@@ -773,7 +1189,35 @@ function M.update(dt)
   S.t = G.t
   local sc, lt = scene_at(S.t)
   -- Smokey fires every ten seconds in its scene; the drive's touchdown; the tower's fireworks
-  if sc[2] == "smokey" and lt < 30 and floor((lt - dt) / 10) ~= floor(lt / 10) then
+  -- what the season knows, every two seconds (for the board, the hex, the tower)
+  S.refresh = (S.refresh or 0) - dt
+  if S.refresh <= 0 then
+    S.refresh = 2
+    S.games = ut.games()
+    S.status = ut.status()
+    S.last = ut.last()
+    if S.last and S.last.day then
+      local y, m, d = S.last.day:match("^(%d+)-(%d+)-(%d+)")
+      S.last_days = floor((os.time() - os.time({year = tonumber(y), month = tonumber(m), day = tonumber(d), hour = 12})) / 86400 + 0.5)
+    end
+  end
+  if sc[2] == "season" and lt > 2.5 then
+    local i = floor((lt - 2.5) / 1.1)
+    if i >= 1 and i <= #(S.games or {}) and floor((lt - dt - 2.5) / 1.1) ~= i then C.sfx("tape", 0.25) end
+  end
+  if sc[2] == "legends" then
+    if lt < 34 then
+      for i = 1, 4 do if G:at(SCENES[8][1] + 2 + i * 1.6) then C.sfx("boom", 0.4) end end
+    else
+      if G:at(SCENES[8][1] + 34 + 14.5) or G:at(SCENES[8][1] + 34 + 22) then
+        C.sfx("cheer") C.sfx("boom")
+        for i = 1, 6 do G:rocket(100 + i * 95, 160 + G.R:random() * 200, {from = 1024, colours = {ORANGE_HI, WHITE}}) end
+      end
+      if G:at(SCENES[8][1] + 34 + 24) then G:confetti(160, {ORANGE_HI, WHITE, {1, 0.8, 0.3}}) end
+    end
+  end
+  if sc[2] == "hex" and G:at(SCENES[10][1] + 39) then C.sfx("thunder", 0.6) end
+  if sc[2] == "smokey" and lt < 24 and lt > 2 and floor((lt - dt - 2) / 8) ~= floor((lt - 2) / 8) then
     C.sfx("boom")
     for i = 1, 30 do G:puff(450 + G.R:random() * 60, 760 + G.R:random() * 30, {0.92, 0.92, 0.95}, 20 + G.R:random() * 30,
                             40 + G.R:random() * 60, 3, 14, 0.6) end
@@ -785,12 +1229,15 @@ function M.update(dt)
       for i = 1, 5 do G:rocket(150 + i * 100, 200 + G.R:random() * 150, {from = 1024, colours = {ORANGE_HI, WHITE}}) end
     end
   end
-  if (sc[2] == "tower" and lt > 4) or (sc[2] == "redriver" and lt > 54 and lt < 80) then
+  if (sc[2] == "tower" and lt > 4 and (lt > 48 or lt % 6 < 3)) or (sc[2] == "redriver" and lt > 54 and lt < 80) then
     S.fw = (S.fw or 0) - dt
     if S.fw <= 0 then
       S.fw = 0.7 + G.R:random() * 0.9
       G:rocket(150 + G.R:random() * 470, 100 + G.R:random() * 220, {from = 820, colours = {ORANGE_HI, WHITE, {1, 0.75, 0.3}}})
     end
+  end
+  if sc[2] == "smokey" and lt > 49 and G.R:random() < dt * 14 then
+    G:puff(70 + G.R:random() * 60, 880 + G.R:random() * 60, {0.9, 0.9, 0.93}, 30 + G.R:random() * 30, 60 + G.R:random() * 60, 2.5, 22, 0.55)
   end
   if sc[2] == "campus" and G.R:random() < dt * 4 then
     G:puff(70 + (G.R:random() > 0.5 and 570 or 0), 920, {0.85, 0.85, 0.88}, 40, 8, 2.5, 8, 0.35)
@@ -820,7 +1267,8 @@ function M.draw()
   G:draw_back()
   G:draw_front()
   if sc[4] and sc[2] ~= "drive" then
-    G:plate(sc[4], bug_lines() and 150 or 30, 56, 0xffffff, L.window(lt, 1.5, 9, 1))
+    local hide_bug = sc[2] == "season" or sc[2] == "legends"
+    G:plate(sc[4], (bug_lines() and not hide_bug) and 150 or 30, 56, 0xffffff, L.window(lt, 1.5, 9, 1))
   end
   if sc[5] then
     local b = L.window(lt, 2, len - 1.5, 1)
@@ -828,7 +1276,7 @@ function M.draw()
     lg.rectangle("fill", 0, H - 50, W, 50)
     G:text(sc[5], 0, H - 38, 20, {1, 0.8, 0.55}, b)
   end
-  if sc[2] ~= "open" then scorebug() end
+  if sc[2] ~= "open" and sc[2] ~= "season" and sc[2] ~= "legends" then scorebug() end
   local c = S.celebrate
   if c then
     local a = min(1, c.t * 3, (12 - c.t) / 1.5)

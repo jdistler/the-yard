@@ -100,11 +100,21 @@ turn June - August), Sweethearts (Valentine's, Feb 7-14), the Egg Hunt (Easter w
 what AUTO plays next.
 
 * `texas.lua` (10 min): a day across Texas, Galveston to Big Bend, with Round Rock's rock and donuts; ten tunes.
-* `longhorns.lua` (9 min): game day on the Forty Acres, the band (Big Bertha; TEXAS spelled from above), Smokey
-  and the flag run, Hook 'em, a drive to a touchdown, the Red River Rivalry at the State Fair (the Golden Hat stays
-  in Austin), the Tower lit orange. Game days from `utgame.lua`: ESPN's public team endpoint fetched by tvnet's
-  `get` (countdown, live score, final; a TOUCHDOWN TEXAS celebration when Texas scores). Our own drawings and
-  tunes (Texas Fight and The Eyes of Texas are not quoted).
+* `longhorns.lua` (13 min): game day on the Forty Acres; the season on the video board (every game, the results,
+  the record and ranking, the next kickoff); the band (Big Bertha; TEXAS spelled from above); Smokey, the flag
+  run, the Hook 'Em Herd and the team out of the tunnel; Hook 'em; a drive to a touchdown; Legends (the four
+  national titles, the 1977 and 1998 Heismans, the Rose Bowl's fourth-and-five run from above, 41-38); the Red
+  River Rivalry at the State Fair (the Golden Hat stays in Austin); the Hex Rally (1941's fortune teller, red
+  candles on the Main Mall); the Tower: an orange top for a win (the real score after a win this week), then all
+  orange with the 1 for a title. Data from `utgame.lua`: ESPN's public team endpoint and the season schedule
+  (decoded off the frame by `utsched.lua`), fetched by tvnet's `get` (countdown, live score, final; a TOUCHDOWN
+  TEXAS celebration when Texas scores). Our own drawings and tunes (Texas Fight and The Eyes of Texas are not
+  quoted).
+  AUTO and the Longhorns (`shows.pick` with `utgame.status`): the game itself always (2 h before kickoff to an
+  hour after); the rest of game day all day; Red River week, Lone Star Showdown week, bowl and playoff weeks
+  and the day after a win, two turns in three; the season every other turn; the off-season one turn in eight.
+  Holidays keep their days: the day itself (Thanksgiving Day, Christmas Day, ...) stays the holiday's outside the
+  game; another game day in a holiday week takes turns with it; a big week gets one turn in three.
 * `thanksgiving.lua` (8 min): the parade, the Great Turkey Chase, autumn, the table, football on TV, pie.
 * `christmas.lua` (9 min): the house in lights, the sleigh, a Texas Christmas, the tree, cookies, Silent Night;
   public-domain carols.

@@ -102,6 +102,12 @@ function G:begin(seed)
   self.pixb = self:track(lg.newSpriteBatch(self.px, 900, "stream"))
   self.skym = self:track(lg.newMesh({{0, 0, 0, 0}, {1, 0, 1, 0}, {1, 1, 1, 1}, {0, 1, 0, 1}}, "fan", "dynamic"))
   self.labels = {}
+  self.used, self.sweep = {}, 0
+end
+
+-- A caption or plate drawn now: remembered, so a label not seen for 20 s can go (G:step).
+function G:use(text, px, colour)
+  self.used[text .. "|" .. px .. "|" .. colour] = {self.t, text, px, colour}
 end
 
 function G:finish()
@@ -110,9 +116,10 @@ function G:finish()
   self.glow, self.debris, self.smoke, self.rockets = {}, {}, {}, {}
 end
 
--- A label to paint ahead of its first use (two a frame, in step: a canvas switch mid-frame costs).
-function G:label(text, px, colour)
-  self.labels[#self.labels + 1] = {text, px, colour}
+-- A label to paint ahead of its first use (two a frame, in step: a canvas switch mid-frame costs). when: the
+-- show time it is first needed (painted 25 s ahead, so a long show doesn't hold them all at once); nil: now.
+function G:label(text, px, colour, when)
+  self.labels[#self.labels + 1] = {text, px, colour, when}
 end
 
 -- ------------------------------------------------------------------ the clock
@@ -121,9 +128,31 @@ function G:at(T) return self.prev < T and self.t >= T end
 function G:later_sfx(t, name) self.later[#self.later + 1] = {t, name} end
 
 function G:step(dt)
-  for _ = 1, 2 do
-    local l = table.remove(self.labels)
-    if l then self.C.neon_img(l[1], l[2], l[3], 1) end
+  local n = 0
+  for i = #self.labels, 1, -1 do
+    local l = self.labels[i]
+    local when = l[4] or -1e9
+    if when + 120 < self.t then
+      table.remove(self.labels, i)                       -- (long past: started further on)
+    elseif when <= self.t + 25 and n < 2 then
+      table.remove(self.labels, i)
+      self.C.neon_img(l[1], l[2], l[3], 1)
+      self:use(l[1], l[2], l[3])
+      if l[4] then self.used[l[1] .. "|" .. l[2] .. "|" .. l[3]][1] = max(self.t, l[4]) end
+      n = n + 1
+    end
+  end
+  -- labels not drawn for 20 s: released (painted again if they come back), so a long show holds only its
+  -- current segment's
+  self.sweep = self.sweep - dt
+  if self.sweep <= 0 and self.C.neon_release then
+    self.sweep = 5
+    for k, u in pairs(self.used) do
+      if self.t - u[1] > 20 then
+        self.C.neon_release(u[2], u[3], u[4], 1)
+        self.used[k] = nil
+      end
+    end
   end
   self.prev = self.t
   self.t = self.t + dt
@@ -284,6 +313,7 @@ end
 
 function G:caption(text, y, px, colour, alpha, sc)
   if alpha <= 0 then return end
+  self:use(text, px, colour)
   self.C.neon_draw(text, 0, y, px, colour, 1, "center", self.W, alpha, sc)
 end
 
@@ -295,6 +325,7 @@ function G:plate(text, y, px, colour, alpha)
   local h = px * 1.55 * sc
   lg.setColor(0.03, 0.02, 0.08, 0.55 * alpha)
   lg.rectangle("fill", (self.W - w) / 2, y - px * 0.18 * sc, w, h, h / 2, h / 2, 12)
+  self:use(text, px, colour)
   self.C.neon_draw(text, 0, y, px, colour, 1, "center", self.W, alpha, sc)
 end
 

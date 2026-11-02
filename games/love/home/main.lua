@@ -1168,6 +1168,10 @@ local auto_rot = 0                      -- AUTO: ordinary days take turns
 local function stop_show()
   if cur_show then cur_show.stop() cur_show = nil end
   night.set_only(nil)
+  -- the show's painted labels go with it (in AUTO, show follows show with no menu between: they piled up)
+  if menu_freed then
+    for k, e in pairs(neon_cache) do e.img:release() neon_cache[k] = nil end
+  end
 end
 local function restore_menu_pictures()
   stop_show()
@@ -1372,7 +1376,8 @@ function love.load()
   night.load({W = W, H = H, HORIZON = HORIZON, font = font, neon_draw = neon_draw, fx = fx, log = log})
   music.log = log
   if not RENDER then utgame.start(log) end
-  local show_ctx = {W = W, H = H, font = font, neon_draw = neon_draw, neon_img = neon_img, fx = fx, sfx = music.sfx,
+  local show_ctx = {W = W, H = H, font = font, neon_draw = neon_draw, neon_img = neon_img, neon_release = neon_release,
+                    fx = fx, sfx = music.sfx,
                     log = log, rgb = rgb}
   for _, sh in ipairs(shows.LIST) do
     local m = shows.module(sh.id)
