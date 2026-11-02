@@ -189,7 +189,14 @@ function D.candy(lt, len)
     lg.rotate(h.rot * k + (1 - k) * sin(S.t * 3 + i))
     rgba(h.c)
     heart(0, -14, 34)
-    G:text(h.say, -44, -8, 13, {0.8, 0.2, 0.35}, 1, "center", 88)
+    if k < 1 then
+      G:text(h.say, -44, -8, 13, {0.8, 0.2, 0.35}, 1, "center", 88)
+    else
+      -- settled in the pile: the printing as two short lines (a print each was 120 a frame: 54 fps on the cabinet)
+      lg.setColor(0.8, 0.2, 0.35, 0.75)
+      lg.rectangle("fill", -18, -4, 36, 3)
+      lg.rectangle("fill", -12, 3, 24, 3)
+    end
     lg.pop()
   end
   -- the jar's glass over them

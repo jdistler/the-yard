@@ -766,42 +766,27 @@ function D.season(lt, len)
          0.7 + 0.3 * abs(sin(S.t * 2)), "center", bw)
   lg.setColor(ORANGE[1], ORANGE[2], ORANGE[3], 0.8)
   lg.rectangle("fill", bx + 20, by + 108, bw - 40, 3)
-  -- the games, flipping up one by one
+  -- the games, flipping up one by one (painted once into a picture: ~80 prints a frame ran at 51 fps on the
+  -- cabinet)
   local n = #games
   local rh = min(40, (bh - 240) / n)
   local nx = ut.next()
-  for i, g in ipairs(games) do
-    local a = clamp((lt - 2.5 - i * 1.1) * 3, 0, 1)
-    if a > 0 then
-      local y = by + 126 + (i - 1) * rh
-      lg.push()
-      lg.translate(0, y + rh / 2)
-      lg.scale(1, a)
-      lg.translate(0, -(y + rh / 2))
-      local next_one = nx and g.day == nx.day
-      if next_one then
-        lg.setColor(1, 0.5, 0.1, 0.18 + 0.12 * abs(sin(S.t * 4)))
-        lg.rectangle("fill", bx + 10, y, bw - 20, rh - 4, 6, 6, 4)
+  local bd = S.board
+  if bd and bd.n == n then
+    for i = 1, n do
+      local a = clamp((lt - 2.5 - i * 1.1) * 3, 0, 1)
+      if a > 0 then
+        local y = by + 126 + (i - 1) * rh
+        local g = games[i]
+        if nx and g.day == nx.day then
+          lg.setColor(1, 0.5, 0.1, (0.18 + 0.12 * abs(sin(S.t * 4))) * a)
+          lg.rectangle("fill", bx + 10, y + rh / 2 - (rh - 4) / 2 * a, bw - 20, (rh - 4) * a, 6, 6, 4)
+        end
+        lg.setColor(1, 1, 1, 1)
+        lg.setBlendMode("alpha", "premultiplied")
+        lg.draw(bd.cv, bd.quads[i], bx, y + rh / 2, 0, 1, a, 0, rh / 2)
+        lg.setBlendMode("alpha")
       end
-      local px = min(24, rh * 0.55)
-      G:text(day_label(g.day), bx + 20, y + (rh - px) / 2 - 2, px, {0.75, 0.75, 0.8}, 1, "left", 110)
-      local where = g.neutral and "VS" or (g.home and "VS" or "AT")
-      local name = opp_name(g)
-      if g.note and g.post then name = string.upper(g.note:gsub(" Presented.*", "")) .. ": " .. string.upper(g.opp_abbr or "") end
-      G:text(where .. "  " .. name, bx + 128, y + (rh - px) / 2 - 2, px, WHITE, 1, "left", 400)
-      local res, col
-      if g.state == "post" and g.us and g.them then
-        res = (g.won and "W " or "L ") .. g.us .. "-" .. g.them
-        col = g.won and ORANGE_HI or {0.6, 0.6, 0.65}
-      elseif g.state == "in" then
-        res, col = "LIVE " .. (g.us or 0) .. "-" .. (g.them or 0), {1, 0.3, 0.3}
-      elseif next_one then
-        res, col = "NEXT  " .. kick_label(g), {1, 0.85, 0.3}
-      else
-        res, col = kick_label(g), {0.6, 0.6, 0.65}
-      end
-      G:text(res, bx + bw - 200, y + (rh - px) / 2 - 2, px, col, 1, "right", 180)
-      lg.pop()
     end
   end
   -- then the next kickoff, big
@@ -817,6 +802,52 @@ function D.season(lt, len)
     G:text(wd .. " " .. day_label(nx.day) .. "  ·  " .. kick_label(nx) .. (nx.net and ("  ·  " .. nx.net) or ""),
            bx, by + bh - 50, 24, WHITE, a, "center", bw)
   end
+end
+
+-- The board's rows, painted into a picture (when the season changes, before its scene)
+local function board_paint()
+  local games = S.games or {}
+  local n = #games
+  if n == 0 then return end
+  local bw, bh = 700, 724
+  local rh = min(40, (bh - 240) / n)
+  local nx = ut.next()
+  local sig = n .. "|" .. (nx and nx.day or "") .. "|"
+  for _, g in ipairs(games) do sig = sig .. (g.state or "") .. (g.us or "") .. (g.them or "") .. (g.tbd and "t" or "") end
+  if S.board and S.board.sig == sig then return end
+  local cv = S.board and S.board.cv
+  if not cv then cv = G:track(lg.newCanvas(bw, 520)) end
+  lg.push("all")
+  lg.setCanvas(cv)
+  lg.clear(0, 0, 0, 0)
+  lg.origin()
+  local quads = {}
+  for i, g in ipairs(games) do
+    local y = (i - 1) * rh
+    local px = min(24, rh * 0.55)
+    local ty = y + (rh - px) / 2 - 2
+    local next_one = nx and g.day == nx.day
+    G:text(day_label(g.day), 20, ty, px, {0.75, 0.75, 0.8}, 1, "left", 110)
+    local where = g.neutral and "VS" or (g.home and "VS" or "AT")
+    local name = opp_name(g)
+    if g.note and g.post then name = string.upper(g.note:gsub(" Presented.*", "")) .. ": " .. string.upper(g.opp_abbr or "") end
+    G:text(where .. "  " .. name, 128, ty, px, WHITE, 1, "left", 400)
+    local res, col
+    if g.state == "post" and g.us and g.them then
+      res = (g.won and "W " or "L ") .. g.us .. "-" .. g.them
+      col = g.won and ORANGE_HI or {0.6, 0.6, 0.65}
+    elseif g.state == "in" then
+      res, col = "LIVE " .. (g.us or 0) .. "-" .. (g.them or 0), {1, 0.3, 0.3}
+    elseif next_one then
+      res, col = "NEXT  " .. kick_label(g), {1, 0.85, 0.3}
+    else
+      res, col = kick_label(g), {0.6, 0.6, 0.65}
+    end
+    G:text(res, bw - 200, ty, px, col, 1, "right", 180)
+    quads[i] = lg.newQuad(0, y, bw, rh, bw, 520)
+  end
+  lg.pop()
+  S.board = {cv = cv, quads = quads, n = n, sig = sig}
 end
 
 -- ------------------------------------------------------------------ legends
@@ -1195,6 +1226,7 @@ function M.update(dt)
     S.refresh = 2
     S.games = ut.games()
     S.status = ut.status()
+    if (sc[2] == "campus" and lt > 60) or sc[2] == "season" or not S.board then board_paint() end
     S.last = ut.last()
     if S.last and S.last.day then
       local y, m, d = S.last.day:match("^(%d+)-(%d+)-(%d+)")
