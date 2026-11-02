@@ -278,14 +278,24 @@ local function neon(s, x, y, px, c, glow, align, width)
   lg.setFont(f)
   local r, g, b = rgb(c)
   glow = glow or 1
+  -- (white on white glow read as blur on the cabinet: pale labels get a crisp dark edge and only a faint glow;
+  -- coloured ones keep their neon, tighter)
+  local pale = math.min(r, g, b) > 0.75
+  if pale then
+    lg.setColor(0, 0, 0, 0.55)
+    for k = 0, 7 do
+      local ang = k * math.pi / 4
+      lg.printf(s, x + math.floor(math.cos(ang) * 2 + 0.5), y + math.floor(math.sin(ang) * 2 + 0.5), width or W, align or "center")
+    end
+  end
   if glow > 0 then
     lg.setBlendMode("add")
-    for _, o in ipairs({{3, 0.10}, {6, 0.06}}) do
+    for _, o in ipairs(pale and {{3, 0.04}} or {{2, 0.12}, {4, 0.06}}) do
       local d, a = o[1], o[2] * glow
       lg.setColor(r, g, b, a)
       for k = 0, 7 do
         local ang = k * math.pi / 4
-        lg.printf(s, x + math.cos(ang) * d, y + math.sin(ang) * d, width or W, align or "center")
+        lg.printf(s, x + math.floor(math.cos(ang) * d + 0.5), y + math.floor(math.sin(ang) * d + 0.5), width or W, align or "center")
       end
     end
     lg.setBlendMode("alpha")
@@ -331,7 +341,8 @@ local function neon_draw(s, x, y, px, c, glow, align, width, alpha, sc)
   local a = alpha or 1
   lg.setBlendMode("alpha", "premultiplied")
   lg.setColor(a, a, a, a)
-  lg.draw(e.img, x + dx - e.pad * sc, y - e.pad * sc, 0, sc, sc)
+  -- (on whole pixels: a label drawn at a half pixel is resampled, and soft)
+  lg.draw(e.img, math.floor(x + dx - e.pad * sc + 0.5), math.floor(y - e.pad * sc + 0.5), 0, sc, sc)
   lg.setBlendMode("alpha")
 end
 
@@ -405,6 +416,35 @@ local shot_req
 local vol_level, vol_t, vol_read = nil, 0, nil
 local night_t = 0
 local cur_show, cur_show_id             -- the idle show playing (its module; nil for the night sky), and its id
+-- A show's start behind a curtain: the screen black while it sets up (its pictures, its labels: 300 ms and more
+-- on the cabinet, which froze whatever was moving), its clock still until frames come smoothly, then a fade in.
+local curtain
+-- The curtain's step: true when the show may run as usual this frame.
+local function curtain_step(dt)
+  local cu = curtain
+  if not cu then return true end
+  cu.n = cu.n + 1
+  if cu.phase == "cover" then
+    if cu.n >= 2 then cur_show.start(cu.seed, cu.at) cu.phase, cu.n = "settle", 0 end
+    return false
+  elseif cu.phase == "settle" then
+    cur_show.update(0)                                      -- (its labels paint; its clock stays)
+    cu.good = dt < 0.025 and cu.good + 1 or 0
+    if cu.good >= 8 or cu.n > 120 then cu.phase = "fade" end
+    return false
+  end
+  cu.f = cu.f + dt
+  if cu.f >= 0.4 then curtain = nil end
+  return true
+end
+
+local function curtain_draw()
+  local cu = curtain
+  if not cu then return end
+  local a = cu.phase == "fade" and math.max(0, 1 - cu.f / 0.4) or 1
+  lg.setColor(0, 0, 0, a)
+  lg.rectangle("fill", 0, 0, W, H)
+end
 local auto_night_t = 0            -- AUTO: how long the night sky has had its turn
 local menu_in = 0                 -- the menu fading in after the intro (seconds left)
 local attract_sel                 -- the card before the attract tour: given back on waking
@@ -951,6 +991,7 @@ local function draw_scene()
   if scene == "show" and cur_show then
     -- An idle show draws the whole picture (freedom.lua, texas.lua, ...).
     cur_show.draw()
+    curtain_draw()
     draw_volume()
     return
   end
@@ -1180,6 +1221,7 @@ local demo                              -- started from a show's tiles: its id (
 local auto_rot = 0                      -- AUTO: ordinary days take turns
 local function stop_show()
   if cur_show then cur_show.stop() cur_show = nil end
+  curtain = nil
   night.set_only(nil)
   -- the show's painted labels go with it (in AUTO, show follows show with no menu between: they piled up)
   if menu_freed then
@@ -1216,7 +1258,7 @@ local function play_show(id, seg, from_demo)
     cur_show = shows.module(id)
     if not cur_show then scene = "menu" restore_menu_pictures() return end
     scene = "show"
-    cur_show.start(os.time() + math.random(1, 1e6), sg and sg[1] or nil)
+    curtain = {phase = "cover", n = 0, good = 0, f = 0, seed = os.time() + math.random(1, 1e6), at = sg and sg[1] or nil}
   end
   log("show " .. id .. (sg and (": " .. sg[2]) or ""))
 end
@@ -1452,7 +1494,9 @@ function love.load()
              local ok, bytes = pcall(splash.render, picture)
              if ok then splash.save(bytes, path, true) end
            end})
-  shows_ctx = {backdrop = backdrop, rgb = rgb, neon_draw = neon_draw, font = font, fx = fx, rrect = rrect, play = play}
+  shows_ctx = {request_art = worker and function(key, path)
+                 love.thread.getChannel("home_work"):push({"art", key, path, "love"})
+               end or nil, backdrop = backdrop, rgb = rgb, neon_draw = neon_draw, font = font, fx = fx, rrect = rrect, play = play}
   shows.set_ctx(shows_ctx)
   for k, it in ipairs(items) do
     if it.kind == "tv" then
@@ -1573,7 +1617,7 @@ local function update_idle(dt)
   end
   if scene == "show" and cur_show then
     idle = 0
-    if cur_show.update(dt) then
+    if curtain_step(dt) and cur_show.update(dt) then
       if os.getenv("HOME_SHOW_ONCE") then love.event.quit(0) return end   -- (tools/show_lint.py)
       -- The show is over: its tiles again (watching one), the same show (one show only), or the night sky's
       -- turn (AUTO; the Longhorns go on while the game is on).
@@ -1594,8 +1638,16 @@ local fps_t, fps_n = 0, 0
 local last_letters = 0
 local FIXED_DT = tonumber(os.getenv("HOME_DT") or "")   -- tests: every frame this long (PC renders of the shows)
 local FPS_EVERY = tonumber(os.getenv("HOME_FPS_EVERY") or "") or 300   -- the frames line: every this many frames
+local hitches = 0
 function love.update(dt)
   if FIXED_DT then dt = FIXED_DT end
+  -- a frame that took too long (a hitch you can see): logged with what was going on, the first 300 a run
+  if dt > 0.045 and frame > 10 and hitches < 300 then
+    hitches = hitches + 1
+    log(string.format("hitch %d ms, scene %s%s, music %s, lua %d KB", dt * 1000, scene,
+                      cur_show and cur_show.act and (" " .. tostring(cur_show_id) .. ":" .. tostring(cur_show.act())) or "",
+                      tostring(music.now), collectgarbage("count")))
+  end
   fps_t, fps_n = fps_t + dt, fps_n + 1
   if fps_n == FPS_EVERY then
     local st = lg.getStats()
@@ -1615,7 +1667,9 @@ function love.update(dt)
   if worker then
     local msg = love.thread.getChannel("home_done"):pop()
     while msg do
-      if msg[1] == "art" and msg[3] and not menu_freed then items[msg[2]].art = art_image(msg[3])
+      if msg[1] == "art" and type(msg[2]) == "string" then
+        if msg[3] then shows.thumb_ready(msg[2], msg[3]) end
+      elseif msg[1] == "art" and msg[3] and not menu_freed then items[msg[2]].art = art_image(msg[3])
       end
       msg = love.thread.getChannel("home_done"):pop()
     end

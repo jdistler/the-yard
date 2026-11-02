@@ -313,6 +313,11 @@ end
 
 function G:caption(text, y, px, colour, alpha, sc)
   if alpha <= 0 then return end
+  -- (a caption scaled every frame is resampled every frame, and soft: a pulse in size becomes one in brightness)
+  if sc and sc ~= 1 then
+    alpha = alpha * math.min(1, 0.82 + math.abs(sc - 1) * 3)
+    sc = nil
+  end
   self:use(text, px, colour)
   self.C.neon_draw(text, 0, y, px, colour, 1, "center", self.W, alpha, sc)
 end
@@ -333,6 +338,7 @@ end
 function G:text(s, x, y, px, c, a, align, w)
   local f = self.C.font(px)
   lg.setFont(f)
+  x, y = floor(x + 0.5), floor(y + 0.5)                   -- (whole pixels: crisp)
   lg.setColor(0, 0, 0, 0.55 * a)
   lg.printf(s, x + 2, y + 2, w or self.W, align or "center")
   lg.setColor(c[1], c[2], c[3], a)

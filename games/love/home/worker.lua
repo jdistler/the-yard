@@ -12,9 +12,14 @@ while true do
   local job = work:demand()
   if job[1] == "quit" then break end
   if job[1] == "art" then
-    local f = io.open(job[3], "rb")
-    local bytes = f and f:read("*a")
-    if f then f:close() end
+    local bytes
+    if job[4] == "love" then
+      bytes = love.filesystem.read(job[3])                 -- (a file inside home.love: the tiles' pictures)
+    else
+      local f = io.open(job[3], "rb")
+      bytes = f and f:read("*a")
+      if f then f:close() end
+    end
     local ok, data = false, nil
     if bytes then ok, data = pcall(love.image.newImageData, love.filesystem.newFileData(bytes, "a.png")) end
     done:push({"art", job[2], ok and data or nil})

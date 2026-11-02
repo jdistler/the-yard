@@ -19,6 +19,7 @@ function M.start()
 end
 
 function M.play(name, fade)
+  M.now = name
   if name == M.current then return end
   M.current = name
   if M.log then M.log("music: " .. name) end

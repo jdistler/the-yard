@@ -421,6 +421,7 @@ local TW, TH = 344, 172                         -- a tile
 local COLS, X0, Y0, GAP = 2, 30, 214, 18
 
 function S.set_ctx(ctx) C = ctx end
+local gen = 0
 function S.open(ctx, id)
   C = ctx
   cur = S.BY_ID[id]
@@ -431,13 +432,27 @@ function S.open(ctx, id)
   end
   sel, scroll, t = 1, 0, 0
   thumbs = {}
+  -- the pictures decoded by Home's worker, off the frame (11 at once on the frame: a 155 ms freeze), arriving
+  -- in S.thumb_ready; without a worker, here
+  gen = gen + 1
   for i, tl in ipairs(tiles) do
     local p = string.format("thumbs/%s_%d.png", id, tl.seg)
     if love.filesystem.getInfo(p) then
-      local ok, img = pcall(lg.newImage, p)
-      if ok then img:setFilter("linear", "linear") thumbs[i] = img end
+      if C.request_art then C.request_art("thumb:" .. gen .. ":" .. i, p)
+      else
+        local ok, img = pcall(lg.newImage, p)
+        if ok then img:setFilter("linear", "linear") thumbs[i] = img end
+      end
     end
   end
+end
+
+function S.thumb_ready(key, data)
+  local g, i = key:match("^thumb:(%d+):(%d+)$")
+  if not g or tonumber(g) ~= gen or not cur then return end
+  local img = lg.newImage(data)
+  img:setFilter("linear", "linear")
+  thumbs[tonumber(i)] = img
 end
 
 function S.close()
@@ -475,9 +490,9 @@ end
 
 function S.draw()
   if not cur then return end
-  C.backdrop()
-  lg.setColor(0.02, 0.0, 0.06, 0.82)
-  lg.rectangle("fill", 0, 0, 768, 1024)
+  -- (a plain background: the menu's backdrop under a dark veil was two full-screen layers for nothing, and the
+  -- screen ran at 42-46 fps on the cabinet)
+  lg.clear(0.04, 0.02, 0.08, 1)
   local r, g, b = C.rgb(cur.tint)
   C.neon_draw(cur.title, 0, 40, 64, cur.tint, 1.2, "center", 768)
   lg.setFont(C.font(22))
