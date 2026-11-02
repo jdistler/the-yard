@@ -1917,6 +1917,7 @@ function love.update(dt)
   end
   if scene == "intro" then
     intro_t = intro_t + dt
+    if intro_t > 0.9 and not ST.stung then ST.stung = true music.sfx("sting", 0.9) end
     local letters = math.floor(math.min(1, intro_t / 1.2) * 9 + 0.001)
     if letters > last_letters then last_letters = letters play("tick") end
     if intro_t > INTRO_LEN then scene = "menu" menu_in = 0.45 end

@@ -1394,6 +1394,9 @@ local function fx(inst, lane, beats, gain)
   return {bpm = 120, steps = 16, loop = false, gain = gain or 1, inst = {x = inst}, parts = {A = {x = lane}}, order = {"A"}}
 end
 M.SFX = {
+  -- Starlight's sound logo: a twinkle up a major arpeggio to a ringing star (the intro, as the name is written)
+  sting = fx({wave = "sine", a = 0.002, d = 0.9, s = 0.15, r = 0.6, vol = 0.22, vib = {0.08, 6, 0.3}, detune = 7},
+             "g5*3 c6*3 e6*3 g6*3 c7*36 . . . e7*6 g7*20"),
   -- a laser: down from high, fast
   pew = fx({wave = "pulse", duty = 0.25, a = 0.001, d = 0.18, s = 0, r = 0.02, vol = 0.16, slide = 0.05}, "e7 c4*6"),
   -- the invaders' laser: lower, buzzier
@@ -1426,5 +1429,15 @@ M.SFX = {
   usa = {bpm = 120, steps = 4, loop = false, gain = 1, inst = {},
          parts = {A = {drums = "x+k!*4 x+k!*4 x+k!*8"}}, order = {"A"}},
 }
+
+-- Loudness evened out (tools/song_levels.py): each song's gain times its level
+if os.getenv("HOME_SONG_LEVELS") ~= "0" then
+  local ok, levels = pcall(require, "song_levels")
+  if ok and type(levels) == "table" then
+    for name, g in pairs(levels) do
+      if type(M[name]) == "table" then M[name].gain = (M[name].gain or 1) * g end
+    end
+  end
+end
 
 return M
