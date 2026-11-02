@@ -709,7 +709,9 @@ def cmd_push(a):
                   "pidof PacMan SuperPacMan PacLand NS1 Galaga Galaxian Mappy DigDug orb start.sh >/dev/null && echo busy; "
                   "pidof tvloop tvplay >/dev/null && echo busy; "
                   "pidof homeloop >/dev/null && echo home; ")
-    r = ssh(busy_check + "sha256sum " + " ".join(files))
+    # (the list over stdin: with the shows' pictures it is too long for one command line)
+    r = subprocess.run(["ssh"] + sshopt + [f"root@{host}", busy_check + "xargs sha256sum 2>/dev/null"],
+                       input="\n".join(files) + "\n", capture_output=True, text=True)
     if r.returncode not in (0, 1) and not r.stdout:
         die(f"cannot reach the cabinet at {host}: {r.stderr.strip()} (is The Yard opened once since boot, for Wi-Fi?)")
     if "busy" in r.stdout.split():
