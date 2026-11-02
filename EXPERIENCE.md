@@ -84,14 +84,19 @@ FREEDOM SHOW, or NIGHT SKY. Kept in Home's state file. Tests: `HOME_SHOW=freedom
 Home in a show; `HOME_DT=0.0166667` makes every frame 1/60 s (PC renders: the whole show in a minute).
 
 **The SHOWS section (2026-11-01, later):** a tab of its own (CLASSICS · THE YARD · TV · SHOWS · MORE) with a
-card for each idle show: NIGHT SKY, FREEDOM SHOW, TEXAS, LONGHORNS, THANKSGIVING, CHRISTMAS, and the SCHEDULE.
+card for each idle show: NIGHT SKY, FREEDOM SHOW, TEXAS, LONGHORNS, MISSION CONTROL, SUMMER, HALLOWEEN,
+THANKSGIVING, CHRISTMAS, NEW YEAR'S EVE, and the SCHEDULE.
 LOWER on a show opens a screen of tiles, one per segment with its picture (`tools/show_thumbs.py` renders them
 with Home itself on the PC; `games/love/home/thumbs/`), to watch any part now; the show plays on from there and
 any button goes back to the tiles. The SCHEDULE's AUTO follows the calendar (`shows.lua` `pick`): Christmas
 (Dec 1-26), Thanksgiving week, the Freedom Show for July 1-7 and the Memorial Day and Labor Day weekends, Texas
 for Texas Independence Day and bluebonnet season (Mar 15 - Apr 30), the Longhorns from two hours before kickoff
 to the end of a game, ordinary days taking turns (Texas, Freedom, and the Longhorns in football season), the night
-sky at night (10 PM - 8 AM) and for half an hour between shows.
+sky at night (10 PM - 8 AM) and for half an hour between shows. Added overnight 2026-11-01: Halloween (Oct 15-31,
+and Halloween night from 5 PM), New Year's Eve (Dec 27 - Jan 1, and live from 6 PM on the 31st to 1 AM, the
+countdown ending at midnight), Mission Control (July 16-24, and in the ordinary-day rotation), Summer (every other
+turn June - August). The LONGHORNS card shows the next game, the live score, or the final; the SCHEDULE card says
+what AUTO plays next.
 
 * `texas.lua` (10 min): a day across Texas, Galveston to Big Bend, with Round Rock's rock and donuts; ten tunes.
 * `longhorns.lua` (9 min): game day on the Forty Acres, the band (Big Bertha; TEXAS spelled from above), Smokey
@@ -102,6 +107,15 @@ sky at night (10 PM - 8 AM) and for half an hour between shows.
 * `thanksgiving.lua` (8 min): the parade, the Great Turkey Chase, autumn, the table, football on TV, pie.
 * `christmas.lua` (9 min): the house in lights, the sleigh, a Texas Christmas, the tree, cookies, Silent Night;
   public-domain carols.
+* `halloween.lua`: the haunted house, jack-o'-lanterns, the graveyard, trick or treat, a storm, BOO!
+* `newyear.lua`: the party, resolutions, the ball drop, midnight, Auld Lang Syne. On the night (or with
+  `HOME_NY_NOW`), live to the second.
+* `space.lua` (Mission Control): Houston, the Saturn V, a launch and staging, the station over Texas, the Moon,
+  splashdown; quotes Strauss's Zarathustra sunrise and The Blue Danube (public domain).
+* `summer.lua` (8 min): Lake Travis, Barton Springs, snow cones, tubing the river, a summer storm and its rainbow,
+  fireflies on the porch, sunset off the dock.
+* `tools/show_lint.py [SHOW...]`: plays every show start to finish on the PC (fixed 1/60 s frames), fails on any
+  Lua error, and writes contact sheets.
 * `showlib.lua`: what they share (pictures made at a show's start and released at its end, particles, fireworks,
   smoke, a cloth flag, captions on plates).
 
