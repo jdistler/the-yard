@@ -10,9 +10,18 @@ REQ=/tmp/home-req
 # screen the moment a game ends, until Home's first frame (EXPERIENCE.md).
 BACK=/tmp/home-back.fb
 back_picture() { [ -s "$BACK" ] && cat "$BACK" > /dev/fb0 2>/dev/null; }
+# The log: on the SD card when one is in (/data is ~96% full, and the card is the cheap flash to wear), else
+# /data/home; where it is goes into /tmp/home.logpath for the tools. Home trims it itself (HOME_LOG_MAX).
 LOG=$H/home.log
+LOG_MAX=131072
+if grep -q " /mnt/sdcard " /proc/mounts && mkdir -p /mnt/sdcard/partycade/logs 2>/dev/null &&
+   touch /mnt/sdcard/partycade/logs/home.log 2>/dev/null; then
+  LOG=/mnt/sdcard/partycade/logs/home.log
+  LOG_MAX=4194304
+fi
+echo "$LOG" > /tmp/home.logpath
 mkdir -p "$H"
-[ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt 131072 ] && mv "$LOG" "$LOG.1"
+[ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt $LOG_MAX ] && mv "$LOG" "$LOG.1"
 MODE=${1:-boot}
 # Local time for Home's clock and TV guide: /data/tv/tz (a POSIX TZ string) or US Central.
 TZ=$(cat /data/tv/tz 2>/dev/null || echo CST6CDT,M3.2.0,M11.1.0)
@@ -86,7 +95,7 @@ classic() {
 while :; do
   rm -f "$REQ"
   log "home: starting LOVE"
-  HOME_INTRO=$INTRO HOME_REQ=$REQ HOME_BACK=$BACK HOME_STATE=$H/state HOME_LOG=$LOG HOME_ART=$H/art HOME_GAMES=/data/Games HOME_MODE=$MODE \
+  HOME_INTRO=$INTRO HOME_REQ=$REQ HOME_BACK=$BACK HOME_STATE=$H/state HOME_LOG=$LOG HOME_LOG_MAX=$LOG_MAX HOME_ART=$H/art HOME_GAMES=/data/Games HOME_MODE=$MODE \
     /data/love/run.sh $H/home.love
   CODE=$?
   INTRO=0

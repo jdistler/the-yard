@@ -274,7 +274,7 @@ def flow_front():
             or True, "left The Yard")
     wait_screen(f, "home-after-yard", home_look, 20, "back in Home")
     f.check(not cab("ssh", "pidof game"), "the stock menu did not start (The Yard runs without it here)")
-    log = cab("ssh", "tail -12 /data/home/home.log")
+    log = cab("ssh", "tail -12 $(cat /tmp/home.logpath 2>/dev/null || echo /data/home/home.log)")
     print(log)
     return f
 

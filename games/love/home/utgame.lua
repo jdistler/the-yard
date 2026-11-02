@@ -1,7 +1,7 @@
 -- The Longhorns' next game, for Home: from ESPN's public team endpoint (Texas is team 251), fetched by tvnet
 -- (games/tv/tvnet.c "get": HTTPS through the cabinet's libavformat) in the background, now and then, more often
--- around kickoff, every 30 s while the game is on. The last copy is kept (/data/home/ut.json), so the countdown
--- is there after a power cut with no network yet.
+-- around kickoff, every 30 s while the game is on, into /tmp. After a power cut with no network yet, the
+-- countdown comes from the season kept on /data (ut_season.txt).
 --   utgame.update(dt)           in Home's update (cheap: a file read when one is due)
 --   utgame.game                 nil, or {opp, opp_abbr, opp_loc, home, kickoff (epoch), state "pre"|"in"|"post",
 --                               detail ("Q3 4:12", "Final"), us, them (scores), net ("ESPN"), record ("6-2")}
@@ -20,7 +20,9 @@
 local json = require("json")
 local U = {}
 local URL = "https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams/251"
-local FILE = os.getenv("HOME_UT_JSON") or "/data/home/ut.json"
+-- (in RAM: during a game it comes every 30 s, ~8 MB of writes a game on /data's flash. After a power cut the
+-- next game comes from the season kept on /data, ut_season.txt, until the network is back.)
+local FILE = os.getenv("HOME_UT_JSON") or "/tmp/ut.json"
 local BIN = os.getenv("TV_BIN") or "/data/tv/bin"
 local fixed = os.getenv("HOME_UT_JSON") ~= nil
 local SCHED_URL = URL .. "/schedule"
@@ -281,6 +283,10 @@ function U.start(logf)
     local text = f:read("*a")
     f:close()
     if text and text ~= "" then sched_parse(text) end
+  end
+  if not U.game then
+    local nx = U.next()
+    if nx then U.game = nx end
   end
   next_fetch = 5                         -- a first look soon after Home starts (the network may come later)
 end

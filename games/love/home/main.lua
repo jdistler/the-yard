@@ -62,11 +62,24 @@ local show_mode = "auto"
 local AUTO_NIGHT_BLOCK = 1800
 local HORIZON = 760
 
+-- (trimmed as it goes: a line every 5 s is ~2 MB a day, and homeloop only trims it when Home starts again)
+local LOG_MAX = tonumber(os.getenv("HOME_LOG_MAX") or "") or 131072
+local log_size
 local function log(...)
   local s = table.concat({...}, " ")
   if LOGF then
     local f = io.open(LOGF, "a")
-    if f then f:write(string.format("%.2f %s\n", love.timer.getTime(), s)) f:close() end
+    if f then
+      if not log_size then log_size = f:seek("end") or 0 end
+      local line = string.format("%.2f %s\n", love.timer.getTime(), s)
+      f:write(line)
+      f:close()
+      log_size = log_size + #line
+      if log_size > LOG_MAX then
+        os.rename(LOGF, LOGF .. ".1")
+        log_size = 0
+      end
+    end
   else
     print(s)
   end
