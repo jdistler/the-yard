@@ -121,6 +121,7 @@ local dot
 local flagcv, mesh, vdata, vp, NU, NV
 local cloud_img, dog_img, fence_img, hat_img, mini_img
 local smokeb, dogb
+local dogb_art                       -- the hot dogs, painted (art.hotdog)
 local sky_mesh, lawn_mesh
 local stars_pts = {}
 
@@ -603,8 +604,30 @@ end
 -- Its pictures exist only while it plays: Home has ~35 MB on this cabinet, GPU memory included (2026-11-01:
 -- the show on top of the menu's pictures ran the OOM killer).
 local made = false
+-- The painted pictures (tools/art/freedom.py) from the SD card: PNGs with transparency, or nil (drawn live).
+local ART = os.getenv("HOME_SHOW_ART") or "/mnt/sdcard/partycade/art"
+local art = {}
+local function load_art(name)
+  local f = io.open(ART .. "/freedom/" .. name .. ".png", "rb")
+  if not f then return nil end
+  local bytes = f:read("*a")
+  f:close()
+  local ok, img = pcall(function()
+    local fd = love.filesystem.newFileData(bytes, name .. ".png")
+    local id = love.image.newImageData(fd)
+    fd:release()
+    local im = lg.newImage(id)
+    id:release()
+    return im
+  end)
+  if ok then img:setFilter("linear", "linear") return img end
+  if C and C.log then C.log("art freedom/" .. name .. ": " .. tostring(img)) end
+end
+
 function F.stop()
   S = nil
+  if dogb_art then dogb_art:release() dogb_art = nil end
+  for k, img in pairs(art) do img:release() art[k] = nil end
   if not made then return end
   made = false
   for _, o in ipairs({dogb, atlas, pix, dot, glowb, smokeb, flagcv, mesh, vdata, cloud_img, dog_img, fence_img, hat_img,
@@ -620,6 +643,10 @@ end
 local LABELS = {}
 function F.start(seed, at)
   if not made then make_pictures() made = true end
+  for _, n in ipairs({"yard", "cloud", "hotdog"}) do
+    if not art[n] then art[n] = load_art(n) end
+  end
+  if art.hotdog and not dogb_art then dogb_art = lg.newSpriteBatch(art.hotdog, 80, "stream") end
   R = love.math.newRandomGenerator(seed or os.time())
   S = {t = 0, prev = -1, wind = 0.8, flag_yoff = 0, light = {1, 1, 1}, glow = {}, debris = {}, rockets = {},
        later = {}, pops = {}, holes = {}, taped = 0, score = 1776, fx = 120, fy = -260, dir = 1, step_t = 0,
@@ -1174,7 +1201,8 @@ local function draw_clouds()
     local x = ((i * 260 + t * (10 + i * 4)) % (W + 300)) - 220
     local y = 70 + i * 52 + (i % 2) * 30
     lg.setColor(tint[1], tint[2], tint[3], a * (0.75 - i * 0.1))
-    lg.draw(cloud_img, x, y, 0, 1 - i * 0.1, 1 - i * 0.1)
+    if art.cloud then lg.draw(art.cloud, x, y - 20, 0, (1 - i * 0.1) * 0.5, (1 - i * 0.1) * 0.5)
+    else lg.draw(cloud_img, x, y, 0, 1 - i * 0.1, 1 - i * 0.1) end
   end
 end
 
@@ -1310,6 +1338,10 @@ local function draw_ground(dark)
   local t = S.t
   if t > 450 then l = l * 0.85 end
   lg.setColor(l, l * (F.act() == "alert" and 0.8 or 1), l, 1)
+  if art.yard then
+    lg.draw(art.yard, 0, 560)
+    return
+  end
   lg.draw(lawn_mesh)
   lg.setColor(l * 0.95, l * 0.95, l, 1)
   lg.draw(fence_img, 0, GROUND - 52)
@@ -1386,10 +1418,13 @@ end
 
 local function draw_dogs()
   if #S.dogs == 0 then return end
-  dogb:clear()
-  for _, d in ipairs(S.dogs) do dogb:add(d.x, d.y, d.rot, 1, 1, 40, 18) end
+  local b = dogb_art or dogb
+  b:clear()
+  for _, d in ipairs(S.dogs) do
+    if dogb_art then b:add(d.x, d.y, d.rot, 0.55, 0.55, 80, 36) else b:add(d.x, d.y, d.rot, 1, 1, 40, 18) end
+  end
   lg.setColor(1, 1, 1, 1)
-  lg.draw(dogb)
+  lg.draw(b)
 end
 
 local ticker_x = 0
