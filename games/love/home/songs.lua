@@ -677,6 +677,86 @@ M.lh_tower = {
   order = {"A", "A"},
 }
 
+-- ------------------------------------------------------------------ Thanksgiving (thanksgiving.lua): all original
+local XYLO = {wave = "tri", a = 0.001, d = 0.18, s = 0.0, r = 0.05, vol = 0.3}
+local TUBA = copy(BASS, {gate = 0.45, vol = 0.45})
+
+M.tg_harvest = {
+  bpm = 84, gain = 1.6, echo = {time = 0.36, fb = 0.3, mix = 0.25},
+  inst = {lead = HARMONICA, arp = copy(GUITAR, {arp = "up", oct = 3}), bass = copy(PLUCK, {vol = 0.3})},
+  parts = {
+    A = {lead = "d5*8 b4*4 | c5*8 e5*4 | d5*4 c5*4 a4*4 | b4*12 | g4*4 b4*4 e5*4 | e5*8 c5*4 | a4*4 b4*4 c5*4 | b4*12",
+         arp = "G*12 C*12 D*12 G*12 Em*12 C*12 D*12 G*12",
+         bass = "g2*12 | c3*12 | d3*12 | g2*12 | e2*12 | c3*12 | d3*12 | g2*12"},
+  },
+  order = {"A", "A"},
+}
+
+M.tg_parade = {
+  bpm = 120, gain = 1,
+  inst = {lead = copy(BUGLE, {vol = 0.12}), lead_2 = copy(BUGLE, {vol = 0.05, detune = 0}), pic = PICCOLO,
+          bass = copy(BASS, {gate = 0.5, vol = 0.42})},
+  parts = {
+    A = {lead = "c5*4 e5*4 g5*4 e5*4 | d5*4 f5*4 b5*8 | g5*4 f5*4 d5*4 b4*4 | c5*8 g4*8 | a4*4 c5*4 f5*4 a5*4 | g5*4 e5*4 c5*8 |" ..
+                "d5*4 g5*4 f5*4 d5*4 | c5*16",
+         lead_2 = "g4*16 | b4*16 | b4*16 | e4*16 | f4*16 | e4*16 | b4*16 | e4*16",
+         bass = oompah("c3", "g2") .. oompah("g2", "d3") .. oompah("g2", "d3") .. oompah("c3", "g2") .. oompah("f2", "c3") ..
+                oompah("c3", "g2") .. oompah("g2", "d3") .. oompah("c3", "g2"),
+         drums = MARCH_DRUMS},
+    B = {lead = "e5*4 g5*4 c6*4 g5*4 | f5*4 a5*4 d6*8 | b5*4 g5*4 d6*4 b5*4 | c6*16",
+         pic = "c7 d7 c7 d7 c7 d7 c7 d7 c7*8 | a6 b6 a6 b6 a6 b6 a6 b6 a6*8 | g6 a6 g6 a6 g6 a6 g6 a6 b6*8 | c7*16",
+         bass = oompah("c3", "g2") .. oompah("f2", "c3") .. oompah("g2", "d3") .. oompah("c3", "g2"),
+         drums = MARCH_DRUMS},
+  },
+  order = {"A", "B", "A", "B"},
+}
+
+M.tg_trot = {
+  bpm = 160, gain = 1,
+  inst = {lead = XYLO, bass = TUBA},
+  parts = {
+    A = {lead = "c5 . a4 . c5 . f5 . e5 . d5 . c5*4 | bb4 . g4 . bb4 . e5 . d5 . c5 . bb4*4 | a4 . c5 . f5 . a5 . g5 . f5 . e5 . d5 . |" ..
+                "c5*2 e5*2 g5*2 c6*2 .*8",
+         bass = oompah("f2", "c3") .. oompah("c3", "g2") .. oompah("f2", "c3") .. oompah("c3", "g2"),
+         drums = "k*4 s?*4 k*4 s?*4"},
+  },
+  order = {"A", "A", "A+2", "A"},
+}
+
+M.tg_grateful = {
+  bpm = 76, gain = 1.6, echo = {time = 0.4, fb = 0.3, mix = 0.25},
+  inst = {lead = HARMONICA, arp = copy(GUITAR, {arp = "up", oct = 3}), pad = copy(PAD, {vol = 0.04}), bass = copy(PLUCK, {vol = 0.3})},
+  parts = {
+    A = {lead = "f#4*8 a4*4 d5*4 | e5*12 d5*4 | b4*8 a4*4 g4*4 | a4*16 | f#4*8 a4*4 d5*4 | g5*12 f#5*4 | e5*8 d5*4 c#5*4 | d5*16",
+         arp = "D*16 A*16 G*16 A*16 D*16 G*16 A*16 D*16", pad = "D*16 A*16 G*16 A*16 D*16 G*16 A*16 D*16",
+         bass = "d3*16 | a2*16 | g2*16 | a2*16 | d3*16 | g2*16 | a2*16 | d3*16"},
+  },
+  order = {"A", "A"},
+}
+
+M.tg_football = {
+  bpm = 120, gain = 1,
+  inst = {lead = copy(TRUMPET, {vol = 0.12}), brass = BRASS_PAD, bass = copy(BASS, {gate = 0.7, vol = 0.4})},
+  parts = {
+    A = {lead = "bb4*4 d5*4 f5*8 | eb5*4 g5*4 bb5*8 | a5*4 f5*4 c5*4 a4*4 | bb4*16", brass = "Bb*16 Eb*16 F*16 Bb*16",
+         bass = eights("bb1", "bb2") .. eights("eb2", "eb3") .. eights("f1", "f2") .. eights("bb1", "bb2"),
+         drums = "c+k*2 h*2 s*2 h*2 k*2 k*2 s*2 t*2 | k*2 h*2 s*2 h*2 k*2 k*2 s*2 T*2"},
+  },
+  order = {"A", "A"},
+}
+
+M.tg_pie = {
+  bpm = 128, gain = 0.95,
+  inst = {lead = ACCORDION, chord = copy(CHOP, {vol = 0.06}), bass = copy(BASS, {gate = 0.6, vol = 0.38})},
+  parts = {
+    A = {lead = "g5*2 b5*2 g5*2 d5*2 | e5*2 c5*2 a4*4 | d5*2 f#5*2 a5*2 f#5*2 | g5*4 .*4",
+         chord = ".*2 G*2 .*2 G*2 | .*2 Am*2 .*2 Am*2 | .*2 D7*2 .*2 D7*2 | .*2 G*2 .*2 G*2",
+         bass = "g2*2 .*2 d3*2 .*2 | a2*2 .*2 e3*2 .*2 | d3*2 .*2 a2*2 .*2 | g2*2 .*2 d3*2 .*2",
+         drums = "k*2 s?*2 k*2 s?*2"},
+  },
+  order = {"A", "A", "A+5", "A"},
+}
+
 -- ------------------------------------------------------------------ sound effects (loop = false; steps of 1/32 s)
 local function fx(inst, lane, beats, gain)
   return {bpm = 120, steps = 16, loop = false, gain = gain or 1, inst = {x = inst}, parts = {A = {x = lane}}, order = {"A"}}
