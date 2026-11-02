@@ -14,6 +14,9 @@ back_picture() { [ -s "$BACK" ] && cat "$BACK" > /dev/fb0 2>/dev/null; }
 # /data/home; where it is goes into /tmp/home.logpath for the tools. Home trims it itself (HOME_LOG_MAX).
 LOG=$H/home.log
 LOG_MAX=131072
+# (at power-on the card may still be mounting: a few seconds' grace when it is there but not yet mounted)
+n=0
+while [ -b /dev/mmcblk0p1 ] && ! grep -q " /mnt/sdcard " /proc/mounts && [ $n -lt 8 ]; do sleep 1; n=$((n + 1)); done
 if grep -q " /mnt/sdcard " /proc/mounts && mkdir -p /mnt/sdcard/partycade/logs 2>/dev/null &&
    touch /mnt/sdcard/partycade/logs/home.log 2>/dev/null; then
   LOG=/mnt/sdcard/partycade/logs/home.log
@@ -31,6 +34,20 @@ FAILS=0
 INTRO=0
 [ "$MODE" = boot ] && INTRO=1
 log() { echo "$(cut -d' ' -f1 /proc/uptime) $*" >> "$LOG"; }
+# Swap on the SD card (made once: dd 128 MB, mkswap; SDCARD.md): a safety net for memory, used only under
+# pressure (swappiness 10). Once a boot, in the background, when the card is mounted.
+SWAP=/mnt/sdcard/partycade/swap
+if [ ! -e /tmp/home.swap ]; then
+  touch /tmp/home.swap
+  (
+    n=0
+    while ! grep -q " /mnt/sdcard " /proc/mounts && [ $n -lt 60 ]; do sleep 1; n=$((n + 1)); done
+    if [ -f "$SWAP" ] && ! grep -q "^$SWAP " /proc/swaps; then
+      echo 10 > /proc/sys/vm/swappiness
+      if swapon "$SWAP" 2>/dev/null; then log "swap on: $SWAP"; else log "swap: could not turn it on"; fi
+    fi
+  ) &
+fi
 stock() {
   log "the original menu"
   rm -f /tmp/.minigui_freeze   # left by a menu killed mid-game, it keeps a new one from drawing

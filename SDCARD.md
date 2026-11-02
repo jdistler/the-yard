@@ -16,6 +16,10 @@ console is the card's, and the sniffer board takes its place for recovery.
 
 * `partycade/logs/home.log` (and `.1`): Home's log, when a card is mounted at power-on (homeloop; up to 4 MB, Home
   trims it itself). Without a card it is `/data/home/home.log` (128 KB). `/tmp/home.logpath` says which.
+* `partycade/swap`: 128 MB of swap (made once on the cabinet: `dd if=/dev/zero of=... bs=1M count=128`, `mkswap`),
+  turned on by homeloop once a boot when the card is mounted, with `vm.swappiness` 10: a safety net for the 115 MB
+  of RAM, used only under pressure. Verified after a reboot (2026-11-02: on at 6.3 s). Undo: `swapoff`, delete the
+  file. Taking the card out while swap holds pages would crash what owns them; the user keeps the card in for good.
 * Nothing Home needs to start lives on the card: take it out and Home logs to /data again at the next start.
 
 ## The short version
