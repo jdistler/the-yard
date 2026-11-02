@@ -23,6 +23,8 @@ S.LIST = {
    blurb = "Game day on the Forty Acres. Hook 'em! Live scores on game days."},
   {id = "space", title = "MISSION CONTROL", tint = 0x8ab4ff, module = "space",
    blurb = "Houston: the Saturn V, a launch, the station over Texas, the Moon, splashdown."},
+  {id = "summer", title = "SUMMER", tint = 0x4fd8ff, module = "summer",
+   blurb = "Lake Travis, Barton Springs, snow cones, tubing the river, a storm, and fireflies."},
   {id = "halloween", title = "HALLOWEEN", tint = 0xff8000, module = "halloween",
    blurb = "The ghosts' own holiday: the haunted house, jack-o'-lanterns, trick or treat, BOO!"},
   {id = "thanksgiving", title = "THANKSGIVING", tint = 0xe0903a, module = "thanksgiving",
@@ -114,7 +116,10 @@ function S.pick(now, game, rot)
   local h = S.holiday(d)
   if h and S.available(h) then return h end
   local r = {}
-  for _, id in ipairs({"texas", "space", "freedom", "longhorns"}) do
+  -- (summer days: the Summer show every other turn)
+  local summer = d.month >= 6 and d.month <= 8
+  for _, id in ipairs(summer and {"summer", "texas", "summer", "space", "summer", "freedom", "longhorns"} or
+                      {"texas", "space", "freedom", "longhorns"}) do
     if S.available(id) and (id ~= "longhorns" or football_season(d)) then r[#r + 1] = id end
   end
   if #r == 0 then return "night" end
@@ -257,6 +262,30 @@ function S.icon(id, x, cy, sc, a, t)
     lg.setColor(1, 0.7, 0.2, a * (0.7 + 0.3 * math.sin(t * 20)))
     lg.polygon("fill", bx - 10 * sc, by + 40 * sc, bx + 10 * sc, by + 40 * sc, bx, by + 74 * sc)
     for i, p in ipairs({{-60, -70}, {60, -40}, {-50, 40}, {64, 60}}) do star(bx + p[1] * sc, by + p[2] * sc, 6 * sc, {1, 1, 0.9}, a) end
+  elseif id == "summer" then
+    local bx, by = x + 90 * sc, cy
+    C.fx.glow(bx, by - 10 * sc, 70 * sc, 70 * sc, 1, 0.8, 0.3, 0.45 * a)
+    lg.setColor(1, 0.85, 0.3, a)
+    lg.circle("fill", bx, by - 10 * sc, 40 * sc, 24)
+    for i = 0, 11 do
+      local an = i * math.pi / 6 + t * 0.3
+      lg.setLineWidth(4 * sc)
+      lg.line(bx + math.cos(an) * 50 * sc, by - 10 * sc + math.sin(an) * 50 * sc, bx + math.cos(an) * 64 * sc, by - 10 * sc + math.sin(an) * 64 * sc)
+    end
+    lg.setColor(0.1, 0.1, 0.14, a)
+    lg.rectangle("fill", bx - 30 * sc, by - 22 * sc, 26 * sc, 14 * sc, 5 * sc)
+    lg.rectangle("fill", bx + 4 * sc, by - 22 * sc, 26 * sc, 14 * sc, 5 * sc)
+    lg.rectangle("fill", bx - 6 * sc, by - 20 * sc, 12 * sc, 3 * sc)
+    lg.arc("line", "open", bx, by - 2 * sc, 18 * sc, 0.4, math.pi - 0.4, 10)
+    lg.setColor(0.2, 0.6, 0.9, a)
+    lg.setLineWidth(5 * sc)
+    for i = 0, 2 do
+      local yy = by + (50 + i * 16) * sc
+      for k = 0, 5 do
+        lg.arc("line", "open", bx - 75 * sc + k * 30 * sc + math.sin(t * 2 + i) * 4 * sc, yy, 15 * sc, math.pi, 2 * math.pi, 8)
+      end
+    end
+    lg.setLineWidth(1)
   elseif id == "halloween" then
     local bx, by, r = x + 90 * sc, cy + 10 * sc, 56 * sc
     C.fx.glow(bx, by, r * 1.8, r * 1.6, 1, 0.55, 0.1, 0.35 * a)

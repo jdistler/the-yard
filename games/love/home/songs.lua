@@ -1097,6 +1097,100 @@ M.mc_home = {
   order = {"A", "A"},
 }
 
+-- ------------------------------------------------------------------ Summer (summer.lua): all ours
+local FLUTE = {wave = "sine", a = 0.04, d = 0.2, s = 0.8, r = 0.2, vol = 0.16, vib = {0.12, 5, 0.25}, send = 0.4}
+M.su_lake = {
+  bpm = 116, gain = 1, echo = {time = 0.39, fb = 0.25, mix = 0.18},
+  inst = {lead = copy(LEAD, {duty = 0.5, vol = 0.1, send = 0.3}), chord = copy(CHOP, {vol = 0.05}), bass = copy(BASS, {gate = 0.6})},
+  parts = {
+    A = {lead = "a5*2 c6*2 a5*2 f5*2 g5*4 a5*4 | f5*2 d5*2 f5*2 a5*2 c6*8 | bb5*2 a5*2 g5*2 f5*2 d5*4 f5*4 | g5*2 a5*2 g5*2 e5*2 c5*8",
+         chord = string.rep(".*2 F*2 ", 4) .. string.rep(".*2 Dm*2 ", 4) .. string.rep(".*2 Bb*2 ", 4) .. string.rep(".*2 C*2 ", 4),
+         bass = eights("f2", "c3") .. eights("d2", "a2") .. eights("bb1", "f2") .. eights("c2", "g2"),
+         drums = "k*2 h*2 s*2 h*2 k*2 k*2 s*2 h*2"},
+    B = {lead = "c6*4 bb5*4 a5*4 f5*4 | d6*4 c6*4 a5*8 | bb5*4 d6*4 c6*4 a5*4 | g5*12 .*4",
+         chord = string.rep(".*2 Bb*2 ", 4) .. string.rep(".*2 F*2 ", 4) .. string.rep(".*2 Gm*2 ", 4) .. string.rep(".*2 C*2 ", 4),
+         bass = eights("bb1", "f2") .. eights("f2", "c3") .. eights("g2", "d3") .. eights("c2", "g2"),
+         drums = "k*2 h*2 s*2 h*2 k*2 h*2 s*2 o*2"},
+  },
+  order = {"A", "A", "B", "A"},
+}
+
+M.su_bossa = {
+  bpm = 128, gain = 1, echo = {time = 0.47, fb = 0.3, mix = 0.22},
+  inst = {lead = FLUTE, keys = {wave = "sine", a = 0.004, d = 0.5, s = 0.3, r = 0.2, vol = 0.09, oct = 4, trem = {0.15, 4}},
+          bass = copy(BASS, {vol = 0.36, gate = 0.8})},
+  parts = {
+    A = {lead = "a5*6 g5*2 f5*4 e5*4 | d5*6 e5*2 f5*4 b5*4 | c6*6 b5*2 a5*4 g5*4 | e5*12 .*4",
+         keys = "Dm7*3 Dm7*3 Dm7*2 .*2 Dm7*3 Dm7*3 | G7*3 G7*3 G7*2 .*2 G7*3 G7*3 | Cmaj7*3 Cmaj7*3 Cmaj7*2 .*2 Cmaj7*3 Cmaj7*3 | A7*3 A7*3 A7*2 .*2 A7*3 A7*3",
+         bass = "d2*6 a2*2 a2*6 d2*2 | g2*6 d2*2 d2*6 g2*2 | c2*6 g2*2 g2*6 c2*2 | a1*6 e2*2 e2*6 a1*2",
+         drums = "k+h h r h k+h h r h k+h h h r k+h r h h"},
+    B = {lead = "c6*4 a5*4 f5*8 | b5*4 g#5*4 e5*8 | a5*4 c6*4 e6*4 c6*4 | b5*8 d6*8",
+         keys = "Fmaj7*3 Fmaj7*3 Fmaj7*2 .*2 Fmaj7*3 Fmaj7*3 | E7*3 E7*3 E7*2 .*2 E7*3 E7*3 | Am7*3 Am7*3 Am7*2 .*2 Am7*3 Am7*3 | G7*3 G7*3 G7*2 .*2 G7*3 G7*3",
+         bass = "f2*6 c3*2 c3*6 f2*2 | e2*6 b2*2 b2*6 e2*2 | a1*6 e2*2 e2*6 a1*2 | g1*6 d2*2 d2*6 g1*2",
+         drums = "k+h h r h k+h h r h k+h h h r k+h r h h"},
+  },
+  order = {"A", "A", "B", "A"},
+}
+
+M.su_shuffle = {
+  bpm = 136, swing = 0.3, gain = 1,
+  inst = {lead = copy(CALLIOPE, {vol = 0.07}), lead_2 = XYLO, chord = copy(CHOP, {vol = 0.05}), bass = TUBA},
+  parts = {
+    A = {lead = "g5*2 e5*2 c5*2 e5*2 g5*4 c6*4 | a5*2 f5*2 c5*2 f5*2 a5*8 | g5*2 e5*2 c5*2 e5*2 d5*2 f5*2 b5*2 d6*2 | c6*4 g5*4 c6*8",
+         chord = ".*4 C*4 .*4 C*4 | .*4 F*4 .*4 F*4 | .*4 C*4 .*4 G7*4 | .*4 G7*4 .*4 C*4",
+         bass = oompah("c3", "g2") .. oompah("f2", "c3") .. oompah("c3", "g2") .. "g2*4 d3*4 c3*4 g2*4 ",
+         drums = "k*4 s*4 k*4 s*4"},
+    B = {lead_2 = "e6*2 d6*2 c6*2 a5*2 g5*4 e5*4 | f5*2 a5*2 c6*2 d6*2 c6*8 | d6*2 c6*2 b5*2 a5*2 g5*4 f5*4 | e5*4 d5*4 c5*8",
+         chord = ".*4 C*4 .*4 Am*4 | .*4 F*4 .*4 F*4 | .*4 G7*4 .*4 G7*4 | .*4 C*4 .*4 C*4",
+         bass = oompah("c3", "g2") .. oompah("f2", "c3") .. oompah("g2", "d3") .. oompah("c3", "g2"),
+         drums = "k*4 s*4 k*4 s*2 s?*2"},
+  },
+  order = {"A", "B", "A+5", "B+5", "A"},
+}
+
+M.su_lazy = {
+  bpm = 84, gain = 1, echo = {time = 0.5, fb = 0.3, mix = 0.2},
+  inst = {lead = STEEL, pick = copy(GUITAR, {arp = "up", oct = 4, vol = 0.06}), harp = HARMONICA, bass = copy(BASS, {vol = 0.36, gate = 0.7})},
+  parts = {
+    A = {lead = "e5*8 g5*4 e5*4 | d5*12 c5*4 | a4*8 c5*4 d5*4 | e5*16", pick = "C*16 G*16 F*16 C*16",
+         bass = "c2*8 g2*8 | g1*8 d2*8 | f1*8 c2*8 | c2*8 g1*8", drums = "k?*8 r?*8"},
+    B = {lead = "g5*8 a5*4 g5*4 | e5*12 d5*4 | c5*8 d5*4 e5*4 | c5*16", pick = "C*16 Am*16 F*16 C*16",
+         bass = "c2*8 g2*8 | a1*8 e2*8 | f1*8 c2*8 | c2*8 g1*8", drums = "k?*8 r?*8"},
+    C = {harp = "g4*8 e4*8 | d4*8 b3*8 | c4*8 a3*8 | g3*16", pick = "C*16 G*16 F*16 C*16",
+         bass = "c2*8 g2*8 | g1*8 d2*8 | f1*8 c2*8 | c2*8 g1*8", drums = "k?*8 r?*8"},
+  },
+  order = {"A", "B", "C", "A", "B"},
+}
+
+M.su_storm = {
+  bpm = 100, gain = 1, echo = {time = 0.6, fb = 0.35, mix = 0.25},
+  inst = {lead = copy(LEAD, {vol = 0.1, send = 0.4}), pad = copy(PAD, {vol = 0.06}), bass = copy(BASS, {gate = 0.5, vol = 0.38})},
+  parts = {
+    A = {lead = "e5*4 .*4 e5*2 f5*2 e5*4 | c5*8 a4*8 | d5*4 f5*4 a5*4 f5*4 | g#5*12 .*4", pad = "Am*16 F*16 Dm*16 E*16",
+         bass = sixteens("a1", "a2") .. sixteens("f1", "f2") .. sixteens("d2", "d3") .. sixteens("e1", "e2"),
+         drums = "k*2 t*2 T*2 t*2 k*2 t*2 s*2 t*2 | k*2 t*2 T*2 t*2 k*2 t*2 s*2 t*2 | k*2 t*2 T*2 t*2 k*2 t*2 s*2 t*2 | k*2 t*2 T*2 t*2 s s s! s! c*4"},
+    B = {lead = "a5*4 g5*4 e5*8 | f5*4 e5*4 c5*8 | e5*4 g5*4 c6*8 | b5*12 .*4", pad = "Am*16 F*16 C*16 G*16",
+         bass = sixteens("a1", "a2") .. sixteens("f1", "f2") .. sixteens("c2", "c3") .. sixteens("g1", "g2"),
+         drums = "k*2 h*2 s*2 h*2 k*2 k*2 s*2 h*2"},
+  },
+  order = {"A", "A", "B", "A"},
+}
+
+M.su_fireflies = {
+  bpm = 72, gain = 1.1, echo = {time = 0.5, fb = 0.45, mix = 0.3},
+  inst = {lead = copy(FLUTE, {vol = 0.12}), box = copy(BELL, {arp = "up", oct = 4, vol = 0.09}), pad = copy(PAD, {vol = 0.04}),
+          bass = copy(PLUCK, {vol = 0.24, d = 0.6})},
+  parts = {
+    A = {box = "Cmaj7*16 Am7*16 Fmaj7*16 G*16", pad = "Cmaj7*16 Am7*16 Fmaj7*16 G*16",
+         bass = "c3*8 g2*8 | a2*8 e2*8 | f2*8 c3*8 | g2*8 d2*8", drums = "h?*2 h?*2 .*4 h?*2 h?*2 .*4"},
+    B = {lead = "g5*8 e5*4 c5*4 | a5*8 g5*4 e5*4 | f5*8 a5*4 c6*4 | b5*12 .*4", box = "Cmaj7*16 Am7*16 Fmaj7*16 G*16",
+         pad = "Cmaj7*16 Am7*16 Fmaj7*16 G*16", bass = "c3*8 g2*8 | a2*8 e2*8 | f2*8 c3*8 | g2*8 d2*8", drums = "h?*2 h?*2 .*4 h?*2 h?*2 .*4"},
+    C = {lead = "e6*8 d6*4 c6*4 | c6*8 b5*4 a5*4 | a5*8 g5*4 f5*4 | g5*16", box = "Cmaj7*16 Am7*16 Fmaj7*16 G*16",
+         pad = "Cmaj7*16 Am7*16 Fmaj7*16 G*16", bass = "c3*8 g2*8 | a2*8 e2*8 | f2*8 c3*8 | g2*8 d2*8", drums = "h?*2 h?*2 .*4 h?*2 h?*2 .*4"},
+  },
+  order = {"A", "B", "C", "B"},
+}
+
 -- ------------------------------------------------------------------ sound effects (loop = false; steps of 1/32 s)
 local function fx(inst, lane, beats, gain)
   return {bpm = 120, steps = 16, loop = false, gain = gain or 1, inst = {x = inst}, parts = {A = {x = lane}}, order = {"A"}}

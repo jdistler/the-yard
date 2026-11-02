@@ -1667,9 +1667,9 @@ function love.draw()
     draw_scene()
     lg.setCanvas()
     if shot_req then
-      canvas:newImageData():encode("png", "shot.png")
-      local d = read_file(love.filesystem.getSaveDirectory() .. "/shot.png")
-      local f = d and io.open(shot_req, "wb")
+      -- (straight to the file: two test runs at once would share a "shot.png" in the save directory)
+      local d = canvas:newImageData():encode("png"):getString()
+      local f = io.open(shot_req, "wb")
       if f then f:write(d) f:close() end
       shot_req = nil
     end
