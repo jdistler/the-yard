@@ -164,10 +164,10 @@ def square():
             p.fill_rect(x + 6, by, 80, 54, hexc(bc, 0.9), r=3)
             p.fill_rect(x + 10, by + 4, 72, 46, p.lin(0, by, 0, by + 50, [(0, mix(bc, "#ffffff", 0.3)), (1, bc)]), r=2)
             p.glow(x + 46, by + 27, 80, bc, 0.3)
-    # the tower under the ball: narrow, its own sign
+    # the tower under the ball: narrow and dark where the year and the clock are written over it, its signs lower
     p.fill_rect(344, 470, 80, 300, p.lin(344, 0, 424, 0, [(0, "#1a1630"), (0.5, "#2a2448"), (1, "#141028")]))
-    for k in range(5):
-        p.fill_rect(350, 500 + k * 48, 68, 34, hexc(PARTY[k % len(PARTY)], 0.85), r=2)
+    for k in range(2):
+        p.fill_rect(350, 676 + k * 42, 68, 30, hexc(PARTY[k % len(PARTY)], 0.85), r=2)
     # the street: lit, crowded
     p.fill_rect(0, 760, W, H - 760, p.lin(0, 760, 0, H, [(0, "#1a1428"), (1, "#0a0814")]))
     for i in range(140):

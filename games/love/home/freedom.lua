@@ -1188,7 +1188,7 @@ local function draw_sun(dark)
   elseif dark > 0.8 then
     -- the moon at night
     lg.setColor(0.95, 0.93, 0.8, 0.9)
-    lg.circle("fill", 650, 120, 30, 40)
+    lg.circle("fill", 700, 250, 30, 40)       -- (clear of the invaders' formation)
   end
 end
 
@@ -1472,6 +1472,7 @@ local function draw_hud()
     lg.print(s, 20, 16)
     lg.setColor(0.5, 1, 0.55, 1)
     lg.print("ALIENS  0", W - 24 - C.font(26):getWidth("ALIENS  0"), 16)
+    require("showlib").top_busy = 1          -- (Home's on-air bug steps aside for the score)
     lg.setFont(C.font(22))
     for _, p in ipairs(S.pops) do
       lg.setColor(1, 1, 0.6, 1 - p.t)
@@ -1617,8 +1618,9 @@ function F.draw()
   draw_glow()
   draw_trails()
   draw_pix()
-  draw_flag_and_pole()
+  -- (the yard first: the pole stands in front of it; drawn after, the trees covered the flag)
   draw_ground(dark)
+  draw_flag_and_pole()
   draw_lawn_life()
   if #S.smoke > 0 then draw_puffs(S.smoke) end
   draw_dogs()

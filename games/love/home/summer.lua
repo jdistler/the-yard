@@ -306,7 +306,8 @@ function D.tubing(lt, len)
   lg.setColor(0.35, 0.45, 0.25, 1)
   lg.circle("fill", 650, 552 - (floor(S.t / 4) % 2) * 4, 7, 10)
   -- the flotilla: everyone in tubes, the cooler in its own
-  local x0 = -260 + ((lt * 16) % (W + 600))
+  -- (on screen from the start: they used to take 20 s to float in)
+  local x0 = ((lt * 16 + 560) % (W + 720)) - 120   -- wraps with every tube off screen
   for i = 0, 4 do
     local x = x0 - i * 120
     local y = 760 + sin(S.t * 0.8 + i) * 14 + (i % 2) * 70
