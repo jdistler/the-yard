@@ -43,7 +43,9 @@ def main():
             if not os.path.exists(shot):
                 print(f"{sid} {seg}: no picture (see {tmp}/log.txt)")
                 continue
-            Image.open(shot).convert("RGB").resize((120, 160), Image.LANCZOS).save(
+            # (256 colours: half the bytes, the same at this size; the cabinet's /data is ~96% full)
+            Image.open(shot).convert("RGB").resize((120, 160), Image.LANCZOS).quantize(
+                colors=256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.FLOYDSTEINBERG).save(
                 os.path.join(OUT, f"{sid}_{seg}.png"), optimize=True)
             print(f"{sid} {seg}")
         src = os.path.join(OUT, f"{sid}_{thumb}.png")

@@ -24,8 +24,12 @@ local FILE = os.getenv("HOME_UT_JSON") or "/data/home/ut.json"
 local BIN = os.getenv("TV_BIN") or "/data/tv/bin"
 local fixed = os.getenv("HOME_UT_JSON") ~= nil
 local SCHED_URL = URL .. "/schedule"
-local SCHED_FILE = os.getenv("HOME_UT_SCHED") or "/data/home/ut_sched.json"
+-- (the download, ~430 KB, goes to RAM and is deleted once read: /data is ~96% full. What it says, a couple of
+-- KB, is kept on /data for the next start.)
+local SCHED_FILE = os.getenv("HOME_UT_SCHED") or "/tmp/ut_sched.json"
 local sched_fixed = os.getenv("HOME_UT_SCHED") ~= nil or fixed
+local SEASON_FILE = os.getenv("HOME_UT_SEASON") or (not sched_fixed and "/data/home/ut_season.txt") or nil
+local season_text
 local log = function() end
 
 local next_fetch, next_read, fetching = 0, 0, false
@@ -127,6 +131,7 @@ local sched_next_fetch, sched_next_read, sched_size, sched_thread = 20, 2, nil, 
 
 local function sched_parse(text)
   if text == "" then return end
+  season_text = text
   local season = {games = {}}
   for line in text:gmatch("[^\n]+") do
     local f = {}
@@ -154,7 +159,21 @@ local function sched_update()
     local text = love.thread.getChannel("ut_sched"):pop()
     if text then
       sched_thread = nil
+      local old = season_text
       sched_parse(text)
+      if not sched_fixed and text ~= "" then
+        os.remove(SCHED_FILE)
+        sched_size = nil
+        -- kept for the next start, only when it changed (flash)
+        if SEASON_FILE and text ~= old then
+          local f = io.open(SEASON_FILE .. ".new", "wb")
+          if f then
+            f:write(text)
+            f:close()
+            os.rename(SEASON_FILE .. ".new", SEASON_FILE)
+          end
+        end
+      end
     elseif not sched_thread:isRunning() then
       log("utgame: schedule thread: " .. tostring(sched_thread:getError()))
       sched_thread = nil
@@ -256,6 +275,13 @@ end
 function U.start(logf)
   log = logf or log
   read()
+  -- the season as last read (until the next download)
+  local f = SEASON_FILE and io.open(SEASON_FILE, "rb")
+  if f then
+    local text = f:read("*a")
+    f:close()
+    if text and text ~= "" then sched_parse(text) end
+  end
   next_fetch = 5                         -- a first look soon after Home starts (the network may come later)
 end
 
