@@ -730,66 +730,69 @@ local function opp_name(g)
   return n
 end
 
+local BOARD_W, BOARD_H, BOARD_TOP = 700, 724, 126
 function D.season(lt, len)
-  G:gradient(0, 0, W, H, {0.04, 0.04, 0.1}, {0.22, 0.09, 0.04})
-  lg.setColor(1, 1, 1, 0.9)
-  lg.draw(S.crowd, 0, 840)
-  -- the board on its frame
-  local bx, by, bw, bh = 34, 96, 700, 724
-  lg.setColor(0.18, 0.18, 0.2, 1)
-  lg.rectangle("fill", bx - 16, by - 16, bw + 32, bh + 32, 10, 10, 6)
-  lg.rectangle("fill", 360, by + bh + 16, 48, 60)
-  rgba(ORANGE)
-  lg.rectangle("fill", bx - 6, by - 6, bw + 12, bh + 12, 8, 8, 6)
-  lg.setColor(0.02, 0.02, 0.04, 1)
-  lg.rectangle("fill", bx, by, bw, bh)
-  lg.setColor(1, 1, 1, 0.025)
-  for y = by, by + bh, 6 do lg.rectangle("fill", bx, y, bw, 2) end
+  local bx, by, bw, bh = 34, 96, BOARD_W, BOARD_H
   local games = S.games or {}
-  local season = ut.season
-  if #games == 0 then
+  local bd = S.board
+  if #games == 0 or not bd or bd.n ~= #games then
     -- no schedule (no network yet, or never): the season, coming
+    lg.clear(0.05, 0.03, 0.06, 1)
+    lg.setColor(1, 1, 1, 0.9)
+    lg.draw(S.crowd, 0, 840)
+    lg.setColor(0.02, 0.02, 0.04, 1)
+    lg.rectangle("fill", bx, by, bw, bh)
+    lg.setLineWidth(8)
+    rgba(ORANGE)
+    lg.rectangle("line", bx - 4, by - 4, bw + 8, bh + 8, 8, 8, 6)
     G:text("LONGHORNS FOOTBALL", bx, by + 120, 44, ORANGE_HI, 1, "center", bw)
     G:text("THE SEASON KICKS OFF", bx, by + 300, 34, WHITE, 1, "center", bw)
     G:text("LATE AUGUST", bx, by + 350, 44, ORANGE_HI, 0.6 + 0.4 * abs(sin(S.t * 3)), "center", bw)
     G:text("SCHEDULE AND SCORES FROM ESPN WHEN THE CABINET IS ONLINE", bx + 40, by + 560, 18, {0.7, 0.7, 0.75}, 1, "center", bw - 80)
     return
   end
-  local year = games[#games].day:sub(1, 4)
-  local wins, losses = 0, 0
-  for _, g in ipairs(games) do
-    if g.state == "post" then if g.won then wins = wins + 1 else losses = losses + 1 end end
-  end
-  local rank = season and season.rank
-  G:text(year .. " LONGHORNS", bx, by + 18, 42, ORANGE_HI, 1, "center", bw)
-  G:text((rank and ("NO. " .. rank .. "  ·  ") or "") .. wins .. "-" .. losses, bx, by + 66, 30, WHITE,
-         0.7 + 0.3 * abs(sin(S.t * 2)), "center", bw)
-  lg.setColor(ORANGE[1], ORANGE[2], ORANGE[3], 0.8)
-  lg.rectangle("fill", bx + 20, by + 108, bw - 40, 3)
-  -- the games, flipping up one by one (painted once into a picture: ~80 prints a frame ran at 51 fps on the
-  -- cabinet)
-  local n = #games
-  local rh = min(40, (bh - 240) / n)
-  local nx = ut.next()
-  local bd = S.board
-  if bd and bd.n == n then
+  -- (one layer where it can be: a clear, the crowd below, the frame as lines, the board's picture)
+  lg.clear(0.05, 0.03, 0.06, 1)
+  lg.setColor(1, 1, 1, 0.9)
+  lg.draw(S.crowd, 0, 840)
+  lg.setColor(0.18, 0.18, 0.2, 1)
+  lg.rectangle("fill", 360, by + bh + 16, 48, 60)
+  lg.setLineWidth(12)
+  lg.rectangle("line", bx - 10, by - 10, bw + 20, bh + 20, 10, 10, 6)
+  rgba(ORANGE)
+  lg.setLineWidth(6)
+  lg.rectangle("line", bx - 3, by - 3, bw + 6, bh + 6, 8, 8, 6)
+  local n = bd.n
+  local rh = bd.rh
+  local all_in = lt > 2.5 + n * 1.1 + 0.4
+  lg.setColor(1, 1, 1, 1)
+  lg.setBlendMode("replace")
+  if all_in then
+    lg.draw(bd.cv, bx, by)
+  else
+    lg.draw(bd.cv, bd.head, bx, by)
+    lg.setColor(0.02, 0.02, 0.04, 1)
+    lg.rectangle("fill", bx, by + BOARD_TOP, bw, bh - BOARD_TOP)
+    lg.setColor(1, 1, 1, 1)
     for i = 1, n do
       local a = clamp((lt - 2.5 - i * 1.1) * 3, 0, 1)
       if a > 0 then
-        local y = by + 126 + (i - 1) * rh
-        local g = games[i]
-        if nx and g.day == nx.day then
-          lg.setColor(1, 0.5, 0.1, (0.18 + 0.12 * abs(sin(S.t * 4))) * a)
-          lg.rectangle("fill", bx + 10, y + rh / 2 - (rh - 4) / 2 * a, bw - 20, (rh - 4) * a, 6, 6, 4)
-        end
-        lg.setColor(1, 1, 1, 1)
-        lg.setBlendMode("alpha", "premultiplied")
+        local y = by + BOARD_TOP + (i - 1) * rh
         lg.draw(bd.cv, bd.quads[i], bx, y + rh / 2, 0, 1, a, 0, rh / 2)
-        lg.setBlendMode("alpha")
       end
     end
   end
-  -- then the next kickoff, big
+  lg.setBlendMode("alpha")
+  -- the next game's row glowing; then the next kickoff, big
+  local nx = ut.next()
+  if nx then
+    for i, g in ipairs(games) do
+      if g.day == nx.day and lt > 2.5 + i * 1.1 + 0.3 then
+        lg.setColor(1, 0.5, 0.1, 0.18 + 0.12 * abs(sin(S.t * 4)))
+        lg.rectangle("fill", bx + 10, by + BOARD_TOP + (i - 1) * rh, bw - 20, rh - 4, 6, 6, 4)
+      end
+    end
+  end
   local done = 2.5 + n * 1.1 + 2
   if nx and lt > done then
     local a = clamp((lt - done) * 2, 0, 1)
@@ -804,26 +807,38 @@ function D.season(lt, len)
   end
 end
 
--- The board's rows, painted into a picture (when the season changes, before its scene)
+-- The board, painted into one picture when the season changes (its background, scanlines, header and rows):
+-- the cabinet is fill-bound here, and five big layers a frame (gradient, panels, scanlines, rows) ran at 47 fps.
 local function board_paint()
   local games = S.games or {}
   local n = #games
   if n == 0 then return end
-  local bw, bh = 700, 724
-  local rh = min(40, (bh - 240) / n)
+  local rh = min(40, (BOARD_H - 240) / n)
   local nx = ut.next()
-  local sig = n .. "|" .. (nx and nx.day or "") .. "|"
+  local season = ut.season
+  local sig = n .. "|" .. (nx and nx.day or "") .. "|" .. tostring(season and season.rank) .. "|"
   for _, g in ipairs(games) do sig = sig .. (g.state or "") .. (g.us or "") .. (g.them or "") .. (g.tbd and "t" or "") end
   if S.board and S.board.sig == sig then return end
   local cv = S.board and S.board.cv
-  if not cv then cv = G:track(lg.newCanvas(bw, 520)) end
+  if not cv then cv = G:track(lg.newCanvas(BOARD_W, BOARD_H)) end
   lg.push("all")
   lg.setCanvas(cv)
-  lg.clear(0, 0, 0, 0)
   lg.origin()
+  lg.clear(0.02, 0.02, 0.04, 1)
+  lg.setColor(1, 1, 1, 0.025)
+  for y = 0, BOARD_H, 6 do lg.rectangle("fill", 0, y, BOARD_W, 2) end
+  local wins, losses = 0, 0
+  for _, g in ipairs(games) do
+    if g.state == "post" then if g.won then wins = wins + 1 else losses = losses + 1 end end
+  end
+  local rank = season and season.rank
+  G:text(games[n].day:sub(1, 4) .. " LONGHORNS", 0, 18, 42, ORANGE_HI, 1, "center", BOARD_W)
+  G:text((rank and ("NO. " .. rank .. "  ·  ") or "") .. wins .. "-" .. losses, 0, 66, 30, WHITE, 1, "center", BOARD_W)
+  lg.setColor(ORANGE[1], ORANGE[2], ORANGE[3], 0.8)
+  lg.rectangle("fill", 20, 108, BOARD_W - 40, 3)
   local quads = {}
   for i, g in ipairs(games) do
-    local y = (i - 1) * rh
+    local y = BOARD_TOP + (i - 1) * rh
     local px = min(24, rh * 0.55)
     local ty = y + (rh - px) / 2 - 2
     local next_one = nx and g.day == nx.day
@@ -843,11 +858,12 @@ local function board_paint()
     else
       res, col = kick_label(g), {0.6, 0.6, 0.65}
     end
-    G:text(res, bw - 200, ty, px, col, 1, "right", 180)
-    quads[i] = lg.newQuad(0, y, bw, rh, bw, 520)
+    G:text(res, BOARD_W - 200, ty, px, col, 1, "right", 180)
+    quads[i] = lg.newQuad(0, y, BOARD_W, rh, BOARD_W, BOARD_H)
   end
   lg.pop()
-  S.board = {cv = cv, quads = quads, n = n, sig = sig}
+  S.board = {cv = cv, quads = quads, n = n, sig = sig, rh = rh,
+             head = lg.newQuad(0, 0, BOARD_W, BOARD_TOP, BOARD_W, BOARD_H)}
 end
 
 -- ------------------------------------------------------------------ legends
