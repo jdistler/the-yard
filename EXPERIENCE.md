@@ -83,6 +83,30 @@ Freedom Show by day, 8 AM to 10 PM, then half an hour of the night sky in turn; 
 FREEDOM SHOW, or NIGHT SKY. Kept in Home's state file. Tests: `HOME_SHOW=freedom:SECONDS` or `night` starts
 Home in a show; `HOME_DT=0.0166667` makes every frame 1/60 s (PC renders: the whole show in a minute).
 
+**The SHOWS section (2026-11-01, later):** a tab of its own (CLASSICS · THE YARD · TV · SHOWS · MORE) with a
+card for each idle show: NIGHT SKY, FREEDOM SHOW, TEXAS, LONGHORNS, THANKSGIVING, CHRISTMAS, and the SCHEDULE.
+LOWER on a show opens a screen of tiles, one per segment with its picture (`tools/show_thumbs.py` renders them
+with Home itself on the PC; `games/love/home/thumbs/`), to watch any part now; the show plays on from there and
+any button goes back to the tiles. The SCHEDULE's AUTO follows the calendar (`shows.lua` `pick`): Christmas
+(Dec 1-26), Thanksgiving week, the Freedom Show for July 1-7 and the Memorial Day and Labor Day weekends, Texas
+for Texas Independence Day and bluebonnet season (Mar 15 - Apr 30), the Longhorns from two hours before kickoff
+to the end of a game, ordinary days taking turns (Texas, Freedom, and the Longhorns in football season), the night
+sky at night (10 PM - 8 AM) and for half an hour between shows.
+
+* `texas.lua` (10 min): a day across Texas, Galveston to Big Bend, with Round Rock's rock and donuts; ten tunes.
+* `longhorns.lua` (9 min): game day on the Forty Acres, the band (Big Bertha; TEXAS spelled from above), Smokey
+  and the flag run, Hook 'em, a drive to a touchdown, the Red River Rivalry at the State Fair (the Golden Hat stays
+  in Austin), the Tower lit orange. Game days from `utgame.lua`: ESPN's public team endpoint fetched by tvnet's
+  `get` (countdown, live score, final; a TOUCHDOWN TEXAS celebration when Texas scores). Our own drawings and
+  tunes (Texas Fight and The Eyes of Texas are not quoted).
+* `thanksgiving.lua` (8 min): the parade, the Great Turkey Chase, autumn, the table, football on TV, pie.
+* `christmas.lua` (9 min): the house in lights, the sleigh, a Texas Christmas, the tree, cookies, Silent Night;
+  public-domain carols.
+* `showlib.lua`: what they share (pictures made at a show's start and released at its end, particles, fireworks,
+  smoke, a cloth flag, captions on plates).
+
+The menu now paints neon titles only for the cards near the chosen one (GPU memory in the menu 32 -> 20 MB).
+
 **Memory (2026-11-01):** Home has ~35 MB on this cabinet and the Mali driver keeps ~20 MB of it for itself
 (`/sys/kernel/debug/mali/gpu_memory`: 32 MB in the menu, of which LÖVE's own textures were 12 MB). The Freedom
 Show on top of the menu's pictures ran the OOM killer, so an idle show now frees the menu's logos and neon labels
