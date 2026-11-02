@@ -1577,14 +1577,19 @@ end
 local NIGHT_SONG = {dusk = "dusk", quiet = "quiet", rest = "none", dawn = "dawn"}
 local music_vol
 local function music_tick()
-  if headless or scene == "intro" then return end
+  if scene == "intro" then return end
   local want, vol, fade = "menu", 0.32, 1.2
   if scene == "night" then
     local sc = night.scene_at(night_t * NIGHT_SPEED)
     want, vol, fade = NIGHT_SONG[sc] or sc, 0.26, 3
-  elseif scene == "show" and cur_show then want, vol, fade = cur_show.music(), 0.42, 2
+  elseif scene == "show" and cur_show then
+    -- (behind the curtain, before the show has started, it isn't asked: silence until it has)
+    if curtain and curtain.phase == "cover" then return end
+    want, vol, fade = cur_show.music(), 0.42, 2
   elseif scene == "tv" then want = "tv"
   elseif scene == "attract" then want = "attract" end
+  -- (headless tests choose the song too, so a show that can't say which is caught on the PC, but play nothing)
+  if headless then return end
   if vol ~= music_vol then music_vol = vol music.volume(vol, 1.5) end
   music.play(want, fade)
 end

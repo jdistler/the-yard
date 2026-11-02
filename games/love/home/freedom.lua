@@ -703,6 +703,7 @@ F.SEGMENTS = {{6, "MORNING IN AMERICA"}, {130, "RED ALERT"}, {170, "BATTLE OF TH
 
 function F.act()
   local a = "open"
+  if not S then return a end                      -- (asked before start: Home's curtain)
   for _, e in ipairs(ACTS) do if S.t >= e[1] then a = e[2] end end
   return a
 end
