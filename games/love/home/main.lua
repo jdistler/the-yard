@@ -1203,8 +1203,8 @@ local function play_show(id, seg, from_demo)
   end
   log("show " .. id .. (sg and (": " .. sg[2]) or ""))
 end
--- The Longhorns are playing (or about to): utgame.lua, set when it has news.
-local game_now = false
+-- The Longhorns' news for AUTO (utgame.status: the game window, game day, a big week, ...), every second.
+local game_now = {}
 -- Nobody has played for a while: the show for this mode (and the calendar).
 local function start_show()
   local id = show_mode
@@ -1548,7 +1548,7 @@ local function update_idle(dt)
     night_t = night_t + dt
     auto_night_t = auto_night_t + dt
     -- AUTO: the night sky has had its half hour (or the Longhorns kick off): the calendar's show.
-    if show_mode == "auto" and not demo and (auto_night_t > AUTO_NIGHT_BLOCK or game_now) then
+    if show_mode == "auto" and not demo and (auto_night_t > AUTO_NIGHT_BLOCK or game_now.window) then
       local id = shows.pick(os.time(), game_now, auto_rot)
       if id ~= "night" then auto_rot = auto_rot + 1 play_show(id) else auto_night_t = 0 end
     end
@@ -1561,7 +1561,7 @@ local function update_idle(dt)
       -- turn (AUTO; the Longhorns go on while the game is on).
       if demo then open_tiles(demo)
       elseif show_mode ~= "auto" then play_show(show_mode)
-      elseif cur_show_id == "longhorns" and game_now then play_show("longhorns")
+      elseif cur_show_id == "longhorns" and game_now.window then play_show("longhorns")
       else play_show("night") end
     end
   end
@@ -1591,7 +1591,7 @@ function love.update(dt)
   frame = frame + 1
   if frame == 3 and not headless then music.start() end
   utgame.update(dt)
-  if frame % 60 == 0 then game_now = utgame.window() end
+  if frame % 60 == 0 then game_now = utgame.status() end
   local merr = music.check()
   if merr then log("music: " .. merr) end
   if worker then

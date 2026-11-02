@@ -3,7 +3,7 @@
 --
 --   shows.LIST                  {id, title, tint, blurb, module?} in the order of their cards
 --   shows.segments(id)          {{start, title, scene?}, ...} (night: scene names; others: seconds)
---   shows.pick(now, game)       the show for this moment in AUTO (game: shows.game_window(now) from utgame.lua)
+--   shows.pick(now, ut, rot)    the show for this moment in AUTO (ut: utgame.status(now); rot: a turn counter)
 --   shows.open(ctx, id)         the tiles screen for a show; shows.handle(name) -> nil | "back" | {"play", id, i}
 --   shows.draw(), shows.close()
 -- A show module (freedom.lua, texas.lua, ...): load(ctx), start(seed, at), stop(), update(dt) -> ended,
@@ -87,33 +87,33 @@ local function easter(y)
 end
 S.easter = easter
 
--- The holiday show for a date, if any: {show, why}
+-- The holiday show for a date, if any: show, why, main (the day itself: Thanksgiving Day, not the week)
 function S.holiday(d)
   local m, day, y = d.month, d.day, d.year
-  if m == 12 and day <= 26 then return "christmas", "Christmas" end
-  if (m == 12 and day >= 27) or (m == 1 and day == 1) then return "newyear", "the new year" end
+  if m == 12 and day <= 26 then return "christmas", "Christmas", day == 24 or day == 25 end
+  if (m == 12 and day >= 27) or (m == 1 and day == 1) then return "newyear", "the new year", day == 31 or day == 1 end
   if m == 11 then
     local tg = nth_weekday(y, 11, 5, 4)                 -- Thanksgiving: the fourth Thursday
-    if day >= tg - 3 and day <= tg + 3 then return "thanksgiving", "Thanksgiving week" end
+    if day >= tg - 3 and day <= tg + 3 then return "thanksgiving", "Thanksgiving week", day == tg end
   end
-  if m == 10 and day >= 15 then return "halloween", "Halloween" end
-  if m == 7 and day <= 7 then return "freedom", "the Fourth of July" end
+  if m == 10 and day >= 15 then return "halloween", "Halloween", day == 31 end
+  if m == 7 and day <= 7 then return "freedom", "the Fourth of July", day == 4 end
   if m == 5 then
     local md = nth_weekday(y, 5, 2, -1)                 -- Memorial Day: the last Monday
-    if day >= md - 2 and day <= md then return "freedom", "Memorial Day" end
+    if day >= md - 2 and day <= md then return "freedom", "Memorial Day", day == md end
   end
   if m == 9 then
     local ld = nth_weekday(y, 9, 2, 1)                  -- Labor Day: the first Monday
-    if day >= ld - 2 and day <= ld then return "freedom", "Labor Day" end
+    if day >= ld - 2 and day <= ld then return "freedom", "Labor Day", day == ld end
   end
-  if m == 7 and day >= 16 and day <= 24 then return "space", "the Moon landing's anniversary" end
-  if m == 2 and day >= 7 and day <= 14 then return "valentine", "Valentine's Day" end
+  if m == 7 and day >= 16 and day <= 24 then return "space", "the Moon landing's anniversary", day == 20 end
+  if m == 2 and day >= 7 and day <= 14 then return "valentine", "Valentine's Day", day == 14 end
   if m == 3 or m == 4 then                              -- Easter week: the six days before, and the day
     local em, ed = easter(y)
     local days = (os.time({year = y, month = em, day = ed, hour = 12}) - os.time({year = y, month = m, day = day, hour = 12})) / 86400
-    if days >= 0 and days <= 6 then return "easter", "Easter" end
+    if days >= 0 and days <= 6 then return "easter", "Easter", days == 0 end
   end
-  if m == 3 and day == 2 then return "texas", "Texas Independence Day" end
+  if m == 3 and day == 2 then return "texas", "Texas Independence Day", true end
   if (m == 3 and day >= 15) or (m == 4) then return "texas", "bluebonnet season" end
   return nil
 end
@@ -125,12 +125,18 @@ end
 -- The show for now (AUTO). game: true while a Longhorns game is on or near (utgame.lua). rot: a counter, so
 -- ordinary days take turns.
 function S.pick(now, game, rot)
-  if game and S.available("longhorns") then return "longhorns" end
+  rot = rot or 0
+  -- game: utgame.status(now) (or just true/false: the game window)
+  local ut = type(game) == "table" and game or {window = game and true or false}
+  local lh = S.available("longhorns")
+  -- 1. The game itself: from two hours before kickoff to an hour after the end, whatever the day.
+  if ut.window and lh then return "longhorns" end
   if now < 1700000000 then
     local r = {"freedom", "texas"}
-    return r[(rot or 0) % #r + 1]
+    return r[rot % #r + 1]
   end
   local d = os.date("*t", now)
+  -- 2. The holidays' own hours.
   -- (Halloween night is the point of Halloween)
   if d.month == 10 and d.day == 31 and d.hour >= 17 and S.available("halloween") then return "halloween" end
   -- (New Year's Eve: the countdown to midnight, live, from the evening to one in the morning)
@@ -138,18 +144,39 @@ function S.pick(now, game, rot)
      S.available("newyear") then return "newyear" end
   -- (the Fourth of July: the Freedom Show through the fireworks, until midnight)
   if d.month == 7 and d.day == 4 and d.hour >= 8 and S.available("freedom") then return "freedom" end
+  -- 3. Night.
   if d.hour >= 22 or d.hour < 8 then return "night" end
-  local h = S.holiday(d)
-  if h and S.available(h) then return h end
-  local r = {}
-  -- (summer days: the Summer show every other turn)
+  -- the ordinary turns: Texas, Mission Control, Freedom (and Summer every other turn in summer)
   local summer = d.month >= 6 and d.month <= 8
-  for _, id in ipairs(summer and {"summer", "texas", "summer", "space", "summer", "freedom", "longhorns"} or
-                      {"texas", "space", "freedom", "longhorns"}) do
-    if S.available(id) and (id ~= "longhorns" or football_season(d)) then r[#r + 1] = id end
+  local base = {}
+  for _, id in ipairs(summer and {"summer", "texas", "summer", "space", "summer", "freedom"} or {"texas", "space", "freedom"}) do
+    if S.available(id) then base[#base + 1] = id end
   end
-  if #r == 0 then return "night" end
-  return r[(rot or 0) % #r + 1]
+  local function ordinary(k) return #base > 0 and base[k % #base + 1] or "night" end
+  -- a big week: Red River or Lone Star Showdown week, a bowl or playoff week, the day after a win
+  local big = ut.week or ut.won
+  local h, _, main = S.holiday(d)
+  if h and not S.available(h) then h = nil end
+  -- 4. A holiday keeps its day. Its day itself (Thanksgiving Day) is all its own outside the game; on another
+  -- game day of its week the two take turns; in a big week the Longhorns get one turn in three.
+  if h then
+    if not lh or main then return h end
+    if ut.gameday then return rot % 2 == 0 and h or "longhorns" end
+    if big then return rot % 3 == 2 and "longhorns" or h end
+    return h
+  end
+  if lh then
+    -- 5. Game day: the Longhorns all day.
+    if ut.gameday then return "longhorns" end
+    -- 6. A big week: two turns in three.
+    if big then return rot % 3 == 2 and ordinary(rot) or "longhorns" end
+    -- 7. The season: every other turn. Out of season: one turn in eight.
+    local season = ut.season
+    if season == nil then season = football_season(d) end
+    if season then return rot % 2 == 1 and "longhorns" or ordinary(math.floor(rot / 2)) end
+    if rot % 8 == 7 then return "longhorns" end
+  end
+  return ordinary(rot)
 end
 
 -- ------------------------------------------------------------------ the cards' pictures
