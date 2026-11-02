@@ -58,6 +58,37 @@ meteor shower, a neon city with a blimp, a UFO taking a ghost, a digger tunnelli
 dreams), a 15-minute rest stretch (dark, a few fireflies, music silent), and dawn. A moon crosses the sky. All
 ten at 60 fps on the cabinet. HOME_NIGHT_SPEED fast-forwards it, HOME_NIGHT_SCENE shows one scene.
 
+**Music and the idle shows (2026-11-01, games/love/home):** every moment has its own original chiptune now,
+streamed by a little synth in its own thread (`synth.lua`, `songs.lua`, `musicthread.lua`, `music.lua`): Neon
+Home (the menu), Insert Coin (attract), Channel Surfing (the TV guide), and in the night show Sundown (dusk),
+Night Air (the quiet sky between scenes), one per scene (Midnight Chase, The Swarm, Starfield, Firefly Waltz,
+Aurora, Falling Stars, Neon Nights, Close Encounter, Underground, Lullaby), silence for the rest stretch, and
+First Light (dawn). Crossfades between them; the sound effects stay as they were. `songcheck.lua` checks every
+song on the PC (`games/out/love-x86/luajit games/love/home/songcheck.lua [WAVDIR]`). On the cabinet the thread
+uses ~11% of a core at its busiest.
+
+The second idle show, **the Freedom Show** (`freedom.lua`, 9.5 minutes, satirical and very patriotic): the
+flag raised at dawn (a cloth mesh with its stripes and stars painted once), the bald eagle lands on the pole, a
+Pac-Man parade in Uncle Sam's hat, jets in red/white/blue smoke; RED ALERT (klaxon, searchlights, a ghost field
+reporter, the invaders descend); the Battle of the Backyard (they burn holes in the flag that ripple with the
+cloth, they taunt, a star-spangled cannon, the eagle dives through a column, the jets strafe a row, Pac-Man eats
+the FREEDOM PELLET and the scared invaders fall onto the lawn, the mothership); MISSION ACCOMPLISHED (duct tape
+on every hole, fireworks, confetti, celebratory hot dogs, U! S! A!, EAGLE CAM's single tear, fireworks that
+write U S A); a sunset with "America the Beautiful"; "FREEDOM WILL RETURN". Its music: a fanfare into a
+Sousa-style march (quoting Yankee Doodle, with a trio on "America the Beautiful" that modulates up a semitone at
+the end), Red Alert, Invader Assault, Mission Accomplished, the anthem. 60 fps on the cabinet in every act.
+
+Which show plays is the **IDLE SHOW** card under MORE (top buttons change it, LOWER watches it now): AUTO (the
+Freedom Show by day, 8 AM to 10 PM, then half an hour of the night sky in turn; the night sky alone at night),
+FREEDOM SHOW, or NIGHT SKY. Kept in Home's state file. Tests: `HOME_SHOW=freedom:SECONDS` or `night` starts
+Home in a show; `HOME_DT=0.0166667` makes every frame 1/60 s (PC renders: the whole show in a minute).
+
+**Memory (2026-11-01):** Home has ~35 MB on this cabinet and the Mali driver keeps ~20 MB of it for itself
+(`/sys/kernel/debug/mali/gpu_memory`: 32 MB in the menu, of which LÖVE's own textures were 12 MB). The Freedom
+Show on top of the menu's pictures ran the OOM killer, so an idle show now frees the menu's logos and neon labels
+(painted again on waking, the cards in view first) and the show's own pictures exist only while it plays. Home's
+log line every 5 s has the Lua heap and LÖVE's texture memory.
+
 ## Work, in order (each one checked on the cabinet, committed)
 
 1. Logos from the settings pages (done: `tools/home_art.py`); cards redrawn for transparent logos.

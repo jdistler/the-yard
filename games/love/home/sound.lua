@@ -1,7 +1,7 @@
 -- Home's sounds: a tiny chiptune synth (square and triangle voices, a short attack and a decay).
 -- Samples go straight into the SoundData through the FFI, with LuaJIT's compiler on: the old per-sample
 -- setSample loop took 1.8 s of Home's start on the cabinet (2026-10-27). The effects are made at load (a few
--- ms); the music after the first frame (sound.music_later).
+-- ms). The music is music.lua's (its own synth and thread).
 local ffi = require("ffi")
 if jit then jit.on() end
 
@@ -79,30 +79,6 @@ end
 function S.play(name)
   local s = sfx[name]
   if s then s:stop() s:play() end
-end
-
--- Menu music: eight soft bars, bass and an arpeggio, looping. Its samples are made in the worker thread
--- (worker.lua), then played here with S.music_from.
-function S.music_data()
-  local notes, beat = {}, 60 / 112
-  local prog = {{45, 57, 60, 64}, {41, 53, 57, 60}, {43, 55, 59, 62}, {40, 52, 55, 59}}
-  for bar = 0, 7 do
-    local ch = prog[bar % 4 + 1]
-    for b8 = 0, 7 do
-      local t = (bar * 8 + b8) * beat / 2
-      if b8 % 2 == 0 then notes[#notes + 1] = {ch[1], t, beat * 0.45, "tri", 0.16} end
-      notes[#notes + 1] = {ch[2 + b8 % 3] + 12, t, beat * 0.4, "sq", 0.035}
-    end
-  end
-  return render(notes, 8 * 4 * beat, "sq", 0.04)
-end
-
-function S.music_from(sd, volume)
-  local m = love.audio.newSource(sd, "static")
-  m:setLooping(true)
-  m:setVolume(volume or 0.55)
-  S.music = m
-  return m
 end
 
 S.render = render

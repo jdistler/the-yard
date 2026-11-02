@@ -1,7 +1,7 @@
 -- Home's background worker (a love.thread): the slow things to make, off the frame. Asked through the
--- "home_work" channel with {"art", key, path} (decode a PNG into ImageData) and {"music"}; answers on
--- "home_done" with {"art", key, imagedata} and {"music", sounddata}. Without it, the music alone stalled
--- Home for 0.36 s on the cabinet right after its first frame (2026-10-27).
+-- "home_work" channel with {"art", key, path} (decode a PNG into ImageData); answers on "home_done" with
+-- {"art", key, imagedata}. (It made the old menu music too, which alone stalled Home for 0.36 s on the cabinet;
+-- the music is music.lua's own thread now.)
 require("love.image")
 require("love.sound")
 require("love.filesystem")
@@ -18,8 +18,5 @@ while true do
     local ok, data = false, nil
     if bytes then ok, data = pcall(love.image.newImageData, love.filesystem.newFileData(bytes, "a.png")) end
     done:push({"art", job[2], ok and data or nil})
-  elseif job[1] == "music" then
-    local sound = require("sound")
-    done:push({"music", sound.music_data()})
   end
 end
