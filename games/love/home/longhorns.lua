@@ -730,7 +730,59 @@ function D.drive(lt, len)
   end
 end
 
+local redriver_score                -- (below)
+-- the Red River scene over its painting: the Texas Star's wheel, Big Tex's waving arm, his "howdy"
+local function redriver_live(lt)
+  local wx, wy, wr = 600, 300, 170
+  lg.setColor(0.88, 0.9, 0.95, 1)
+  lg.setLineWidth(3)
+  lg.circle("line", wx, wy, wr, 64)
+  lg.circle("line", wx, wy, wr - 10, 64)
+  for i = 0, 15 do
+    local a = i / 16 * 2 * pi + S.t * 0.15
+    lg.setLineWidth(2)
+    lg.setColor(0.88, 0.9, 0.95, 1)
+    lg.line(wx + cos(a) * 14, wy + sin(a) * 14, wx + cos(a) * wr, wy + sin(a) * wr)
+    local c = ({{1, 0.3, 0.3}, {1, 0.85, 0.2}, {0.3, 0.6, 1}, {0.4, 0.85, 0.4}})[i % 4 + 1]
+    local gx, gy = wx + cos(a) * wr, wy + sin(a) * wr
+    lg.setColor(0.3, 0.3, 0.34, 1)
+    lg.rectangle("fill", gx - 1, gy, 2, 6)
+    rgba(c)
+    lg.rectangle("fill", gx - 9, gy + 5, 18, 14, 4, 4, 4)
+    lg.setColor(1, 1, 1, 0.6)
+    lg.rectangle("fill", gx - 6, gy + 8, 12, 5)
+  end
+  lg.setColor(0.88, 0.9, 0.95, 1)
+  lg.circle("fill", wx, wy, 14, 16)
+  -- Big Tex's right arm, waving: plaid sleeve, the hand
+  local wave = sin(S.t * 2) * 0.3
+  lg.push()
+  lg.translate(222, 240)
+  lg.rotate(-1.9 + wave)
+  lg.setColor(0.77, 0.19, 0.16, 1)
+  lg.rectangle("fill", 0, -14, 120, 28, 12, 12, 6)
+  lg.setColor(1, 1, 1, 0.22)
+  for i = 0, 7 do lg.rectangle("fill", 6 + i * 14, -14, 4, 28) end
+  lg.setColor(0.91, 0.72, 0.57, 1)
+  lg.circle("fill", 128, 0, 16, 14)
+  lg.rectangle("fill", 128, -26, 8, 18, 4, 4, 4)
+  lg.pop()
+  if L.window(lt, 6, 16, 0.5) > 0 then
+    lg.setColor(1, 1, 1, 0.95)
+    lg.rectangle("fill", 240, 70, 210, 50, 14, 14, 8)
+    lg.polygon("fill", 250, 120, 270, 120, 236, 140)
+    G:text("HOWDY, FOLKS!", 240, 82, 26, {0.6, 0.15, 0.1}, 1, "center", 210)
+  end
+end
+
 function D.redriver(lt, len)
+  if S.art.fair then
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.art.fair, 0, 0)
+    redriver_live(lt)
+    redriver_score(lt)
+    return
+  end
   G:gradient(0, 0, W, 600, {0.2, 0.42, 0.85}, {0.85, 0.85, 0.95})
   -- the Texas Star turning, Big Tex waving
   local wx, wy, wr = 600, 300, 170
@@ -791,7 +843,11 @@ function D.redriver(lt, len)
   lg.setColor(1, 1, 1, 0.12)
   for i = 0, 40 do lg.rectangle("fill", (i * 37) % W, 610 + (i * 23) % 140, 6, 6) end
   G:gradient(0, 760, W, H, {0.25, 0.55, 0.22}, {0.2, 0.48, 0.18})
-  -- the score, quarter by quarter; the Golden Hat at the end
+  redriver_score(lt)
+end
+
+-- the score, quarter by quarter; the Golden Hat at the end
+function redriver_score(lt)
   local scores = {{0, 0, "KICKOFF"}, {7, 0, "1ST QUARTER"}, {14, 10, "2ND QUARTER"}, {21, 17, "3RD QUARTER"}, {31, 24, "FINAL"}}
   local q = clamp(floor((lt - 4) / 12) + 1, 1, #scores)
   local s = scores[q]
@@ -1041,11 +1097,16 @@ end
 function D.legends(lt, len)
   if lt < 34 then
     -- the stadium's upper deck, the banners coming down
-    G:gradient(0, 0, W, 300, {0.25, 0.5, 0.9}, {0.75, 0.85, 1})
-    rgba(STONE)
-    lg.rectangle("fill", 0, 160, W, 520)
-    lg.setColor(0.8, 0.74, 0.6, 1)
-    for i = 0, 7 do lg.rectangle("fill", 10 + i * 96, 180, 70, 60, 35, 35, 10) end
+    if S.art.legends_wall then
+      lg.setColor(1, 1, 1, 1)
+      lg.draw(S.art.legends_wall, 0, 0)
+    else
+      G:gradient(0, 0, W, 300, {0.25, 0.5, 0.9}, {0.75, 0.85, 1})
+      rgba(STONE)
+      lg.rectangle("fill", 0, 160, W, 520)
+      lg.setColor(0.8, 0.74, 0.6, 1)
+      for i = 0, 7 do lg.rectangle("fill", 10 + i * 96, 180, 70, 60, 35, 35, 10) end
+    end
     lg.setColor(1, 1, 1, 1)
     crowd_strip(680)
     local a0 = clamp((lt - 1.5) * 2, 0, 1)
@@ -1065,6 +1126,10 @@ function D.legends(lt, len)
   end
   -- the Rose Bowl: January 4, 2006, from above
   local r = lt - 34
+  if S.art.rosebowl then
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.art.rosebowl, 0, 0)
+  else
   G:gradient(0, 0, W, H, {0.2, 0.5, 0.2}, {0.17, 0.44, 0.17})
   rgba(ORANGE)
   local gx, gy = rb_xy(0, 0)
@@ -1081,6 +1146,7 @@ function D.legends(lt, len)
   rgba(ORANGE_HI)
   lg.rectangle("fill", 10, gy - 8, 10, 10)
   lg.rectangle("fill", W - 20, gy - 8, 10, 10)
+  end
   local _, los = rb_xy(0, 8)
   local _, ftd = rb_xy(0, 3)
   local snap, run_t = 8, 6.5
@@ -1143,8 +1209,8 @@ function D.legends(lt, len)
   G:text(mid, 0, 20, 22, WHITE, 0.9)
   -- the words
   if r < snap then
-    G:plate("JAN 4, 2006  ·  PASADENA", 120, 30, 0xffffff, L.window(r, 0.3, snap - 0.3, 0.6))
-    G:plate("FOURTH AND FIVE. DOWN BY FIVE.", 180, 30, 0xffb347, L.window(r, 2, snap - 0.3, 0.6))
+    G:plate("JAN 4, 2006  ·  PASADENA", 560, 30, 0xffffff, L.window(r, 0.3, snap - 0.3, 0.6))
+    G:plate("FOURTH AND FIVE. DOWN BY FIVE.", 620, 30, 0xffb347, L.window(r, 2, snap - 0.3, 0.6))
   end
   if r > snap + run_t and r < 19 then
     G:caption("TOUCHDOWN TEXAS!", 520, 64, 0xff8c1a, clamp((r - snap - run_t) * 2, 0, 1), 1 + 0.06 * abs(sin(r * 5)))
@@ -1301,7 +1367,7 @@ function M.start(seed, at)
   S.flag = G:cloth(L.paint_texas, 600, 400)
   -- the painted pictures, when the SD card has them (else each scene draws itself live)
   S.art = {}
-  for _, n in ipairs({"open", "campus_dawn", "campus_day", "stadium_day", "field_long", "crowd_close", "tower_dark", "tower_win", "tower_one"}) do
+  for _, n in ipairs({"open", "campus_dawn", "campus_day", "stadium_day", "field_long", "crowd_close", "fair", "rosebowl", "legends_wall", "tower_dark", "tower_win", "tower_one"}) do
     S.art[n] = G:art("longhorns", n)
   end
   -- (the made crowds, only without the painted ones: 7400 rectangles painted at the start)

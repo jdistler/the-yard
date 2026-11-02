@@ -531,7 +531,7 @@ PAINTS.update({
 
 
 # ------------------------------------------------------------------ the stadium, across the field from the sideline
-def crowd_band(p, x0, y0, x1, y1, seed, rows, fill=0.8, light=1.0):
+def crowd_band(p, x0, y0, x1, y1, seed, rows, fill=0.8, light=1.0, palette=None):
     """Rows of fans, smaller toward the top (further away): heads and shirts, orange and white, here and there a
     hand up."""
     r = rng(seed)
@@ -544,7 +544,10 @@ def crowd_band(p, x0, y0, x1, y1, seed, rows, fill=0.8, light=1.0):
         x = x0 + r.random() * size
         while x < x1:
             if r.random() < fill:
-                shirt = "#e86a10" if r.random() < 0.72 else ("#f4f1ea" if r.random() < 0.85 else "#3a3a40")
+                if palette:
+                    shirt = palette[0] if r.random() < 0.72 else (palette[1] if r.random() < 0.85 else "#3a3a40")
+                else:
+                    shirt = "#e86a10" if r.random() < 0.72 else ("#f4f1ea" if r.random() < 0.85 else "#3a3a40")
                 p.fill_rect(x - size * 0.45, y - size * 1.5, size * 0.9, size * 1.0, mix(shirt, "#000000", 0.15 * (1 - light)))
                 skin = ["#f0c9a8", "#c99572", "#8a5a3c", "#f6d8c0", "#6a4430"][r.randrange(5)]
                 p.circle(x, y - size * 1.85, size * 0.38, skin)
@@ -824,3 +827,234 @@ def crowd_close():
 
 
 PAINTS["crowd_close"] = crowd_close
+
+
+# ------------------------------------------------------------------ the State Fair and the Cotton Bowl (Red River)
+def big_tex(p, x, base):
+    """Big Tex, 55 feet of him: boots, jeans, a belt and buckle, a plaid western shirt, a bandana, the hat. His
+    right arm (waving) is longhorns.lua's."""
+    # boots and jeans
+    for dx in (-26, 26):
+        p.fill_rect(x + dx - 18, base - 210, 36, 180, p.lin(x + dx - 18, 0, x + dx + 18, 0, [(0, "#24345e"), (0.5, "#33467a"), (1, "#22305a")]))
+        p.fill_rect(x + dx - 18, base - 210, 36, 4, "#1a2440")
+        p.fill_path([("M", x + dx - 20, base - 40), ("L", x + dx + 18, base - 40), ("L", x + dx + 22, base - 8),
+                     ("C", x + dx + 36, base - 8, x + dx + 40, base, x + dx + 34, base), ("L", x + dx - 20, base), ("Z",)], "#6a3a1a")
+        p.fill_rect(x + dx - 20, base - 44, 38, 8, "#8a5228")
+    # the shirt: plaid, tucked in, the belt
+    sx0, sx1, sy0, sy1 = x - 56, x + 56, base - 390, base - 205
+    p.fill_rect(sx0, sy0, sx1 - sx0, sy1 - sy0, "#c4302a", r=10)
+    for i in range(9):
+        p.fill_rect(sx0 + 4 + i * 13, sy0, 5, sy1 - sy0, hexc("#ffffff", 0.22))
+        p.fill_rect(sx0, sy0 + 6 + i * 21, sx1 - sx0, 5, hexc("#ffffff", 0.22))
+        p.fill_rect(sx0 + 9 + i * 13, sy0, 2, sy1 - sy0, hexc("#1a2a5a", 0.35))
+    p.fill_rect(x - 2, sy0 + 20, 4, sy1 - sy0 - 24, hexc("#7a1a14", 0.6))
+    for i in range(5):
+        p.circle(x + 6, sy0 + 40 + i * 30, 2.4, "#f4ead0")
+    p.fill_rect(sx0, sy1 - 14, sx1 - sx0, 16, "#3a2414")
+    p.fill_rect(x - 14, sy1 - 16, 28, 20, "#d8b25a", r=4)
+    # his left arm down by his side
+    p.fill_rect(sx0 - 26, sy0 + 14, 30, 150, "#b82c26", r=12)
+    p.circle(sx0 - 11, sy0 + 172, 15, "#e8b892")
+    # the bandana, the head, the face, the hat
+    p.poly([(x - 30, sy0 + 2), (x + 30, sy0 + 2), (x, sy0 + 30)], "#1f4a8a")
+    p.ellipse(x, sy0 - 40, 36, 44, p.lin(x - 36, 0, x + 36, 0, [(0, "#d9a27e"), (0.5, "#f0c29c"), (1, "#d49a76")]))
+    p.ellipse(x - 13, sy0 - 48, 4, 5, "#2a1a10")
+    p.ellipse(x + 13, sy0 - 48, 4, 5, "#2a1a10")
+    p.fill_path([("M", x - 16, sy0 - 22), ("C", x - 8, sy0 - 12, x + 8, sy0 - 12, x + 16, sy0 - 22), ("C", x + 8, sy0 - 16, x - 8, sy0 - 16, x - 16, sy0 - 22)], "#7a2a1a")
+    p.ellipse(x, sy0 - 36, 5, 7, hexc("#b8805a", 0.6))
+    p.ellipse(x, sy0 - 74, 88, 15, p.lin(0, sy0 - 88, 0, sy0 - 60, [(0, "#fffaf0"), (1, "#d8d0bc")]))
+    p.fill_path([("M", x - 44, sy0 - 76), ("C", x - 46, sy0 - 130, x - 20, sy0 - 136, x, sy0 - 124),
+                 ("C", x + 20, sy0 - 136, x + 46, sy0 - 130, x + 44, sy0 - 76), ("Z",)],
+                p.lin(x - 44, 0, x + 44, 0, [(0, "#e2dccb"), (0.5, "#fffcf4"), (1, "#d6cfbc")]))
+    p.fill_rect(x - 44, sy0 - 92, 88, 10, "#3a2a20")
+
+
+def fair():
+    p = Paint()
+    p.fill_rect(0, 0, W, 610, p.lin(0, 0, 0, 610, [(0, "#3d76c8"), (0.6, "#9cc0e6"), (1, "#ffe0a8")]))
+    p.glow(700, 520, 380, "#ffd08a", 0.35, 0.5)
+    for i, (x, y, s) in enumerate([(300, 110, 0.7), (640, 80, 0.55)]):
+        cloud(p, x, y, s, hexc("#ffffff", 0.95), hexc("#d8c8c0", 0.95), 60 + i)
+    # the Cotton Bowl beyond: its long Art Deco front, the name over the gate
+    p.fill_rect(0, 470, W, 140, p.lin(0, 470, 0, 610, [(0, "#e9dcc0"), (1, "#c8b694")]))
+    for i in range(24):
+        p.fill_rect(10 + i * 32, 500, 14, 90, hexc("#a8946c", 0.55))
+    p.fill_rect(0, 462, W, 12, "#bfa982")
+    gx = 384
+    p.fill_rect(gx - 120, 430, 240, 180, p.lin(0, 430, 0, 610, [(0, "#f0e4c8"), (1, "#cdb994")]))
+    # the gate: an arch, lit inside, columns either side
+    p.rrect(gx - 54, 500, 108, 110, 52)
+    p.src(p.lin(0, 500, 0, 610, [(0, "#5a4a3a"), (1, "#c8a46a")]))
+    p.cr.fill()
+    p.rrect(gx - 40, 516, 80, 94, 38)
+    p.src(p.lin(0, 516, 0, 610, [(0, "#2a2228"), (0.7, "#6a5040"), (1, "#e8c890")]))
+    p.cr.fill()
+    for dx in (-84, -66, 66, 84):
+        p.fill_rect(gx + dx - 5, 486, 10, 124, p.lin(gx + dx - 5, 0, gx + dx + 5, 0, [(0, "#c8b28a"), (0.5, "#f4ead2"), (1, "#c8b28a")]))
+    p.cr.save()
+    p.cr.select_font_face("serif", 0, 1)
+    p.cr.set_font_size(26)
+    e = p.cr.text_extents("COTTON BOWL")
+    p.src("#7a5a2a")
+    p.cr.move_to(gx - e.width / 2 - e.x_bearing, 474)
+    p.cr.show_text("COTTON BOWL")
+    p.cr.restore()
+    for i in range(5):
+        p.fill_rect(gx - 110 + i * 52, 430, 8, 30, "#c8b28a")
+    # the midway in front: striped tents, flags on strings
+    for i, (x, col) in enumerate([(70, "#d8302a"), (230, "#2a6ad8"), (560, "#e8b020"), (720, "#2aa84a")]):
+        p.poly([(x - 60, 610), (x + 60, 610), (x + 60, 570), (x, 530), (x - 60, 570)], "#f8f4ec")
+        for j in range(4):
+            p.poly([(x - 60 + j * 30, 570), (x - 45 + j * 30, 570), (x, 530)], col)
+            p.fill_rect(x - 60 + j * 30, 570, 15, 40, col)
+    r = rng(70)
+    for row in range(2):
+        pts = [(0, 250 + row * 90), (W, 280 + row * 80)]
+        p.line(pts, hexc("#ffffff", 0.6), 1.2)
+        for i in range(30):
+            t = i / 29
+            x = t * W
+            y = 250 + row * 90 + (30 - row * 10) * t + math.sin(t * math.pi) * 24
+            col = ["#d8302a", "#2a6ad8", "#e8b020", "#2aa84a", "#ffffff"][i % 5]
+            p.poly([(x - 6, y), (x + 6, y), (x, y + 12)], col)
+    # the Texas Star's legs and hub (the wheel turns in longhorns.lua)
+    wx, wy = 600, 300
+    for d in (-1, 1):
+        p.poly([(wx - 6, wy), (wx + 6, wy), (wx + d * 64 + 6, 610), (wx + d * 64 - 6, 610)], "#d8dce6")
+        for k in range(1, 6):
+            y = wy + k * 52
+            p.line([(wx + d * (k * 10.5), y), (wx - d * (k * 10.5), y + 40)], hexc("#c0c6d2", 0.8), 2)
+    p.circle(wx, wy, 14, "#e8ecf4")
+    p.circle(wx, wy, 6, "#8a90a0")
+    # Big Tex
+    big_tex(p, 170, 610)
+    # the stands: Texas's half orange, OU's half crimson, split at the fifty
+    p.fill_rect(0, 610, W, 150, "#3a3440")
+    crowd_band(p, 0, 616, W // 2, 756, 71, 14, 0.9, 1.0, ("#e86a10", "#f4f1ea"))
+    crowd_band(p, W // 2, 616, W, 756, 72, 14, 0.9, 1.0, ("#9a1a24", "#efe6d0"))
+    p.fill_rect(W // 2 - 2, 610, 4, 150, "#ffffff")
+    p.fill_rect(0, 756, W, 10, p.lin(0, 0, W, 0, [(0, "#bf5700"), (0.5, "#bf5700"), (0.5001, "#841617"), (1, "#841617")]))
+    # the field
+    p.fill_rect(0, 766, W, H - 766, p.lin(0, 766, 0, H, [(0, "#3c7a2e"), (1, "#2c6620")]))
+    for i in range(9):
+        x = 384 + (i - 4) * 110
+        p.poly([(x - 2, 766), (x + 2, 766), (x + (x - 384) * 0.5 + 3, H), (x + (x - 384) * 0.5 - 3, H)], hexc("#ffffff", 0.7))
+    p.grain(0.02, 73)
+    return p
+
+
+PAINTS["fair"] = fair
+
+
+# ------------------------------------------------------------------ the Rose Bowl, Jan 4, 2006: the field near the goal line
+RB_YD, RB_GOAL = 24, 300                         # as longhorns.lua's replay: px a yard, the goal line's y
+
+
+def rose(p, x, y, s):
+    """A rose: layered petals in red, a stem and two leaves."""
+    p.line([(x, y + 18 * s), (x - 4 * s, y + 70 * s)], "#2a6a2a", 5 * s)
+    for d in (-1, 1):
+        p.ellipse(x + d * 14 * s - 2 * s, y + 46 * s, 14 * s, 7 * s, "#2f7a30")
+    for i, (r, c) in enumerate([(26, "#7a0e18"), (21, "#a8142a"), (15, "#c8243a"), (9, "#e04058")]):
+        for k in range(5):
+            a = k / 5 * 2 * math.pi + i * 0.6
+            p.ellipse(x + math.cos(a) * r * 0.35 * s, y + math.sin(a) * r * 0.3 * s, r * 0.62 * s, r * 0.5 * s, c)
+
+
+def rosebowl():
+    p = Paint()
+    p.fill_rect(0, 0, W, H, p.lin(0, 0, 0, H, [(0, "#2a6420"), (1, "#2f7026")]))
+    for yd in range(-10, 32, 5):
+        if (yd // 5) % 2 == 0:
+            p.fill_rect(0, RB_GOAL + yd * RB_YD, W, 5 * RB_YD, hexc("#ffffff", 0.045))
+    # beyond the end line, then the end zone with its name
+    p.fill_rect(0, 0, W, RB_GOAL - 10 * RB_YD, "#244e1c")
+    ez0, ez1 = RB_GOAL - 10 * RB_YD, RB_GOAL
+    p.fill_rect(10, ez0, W - 20, ez1 - ez0, p.lin(0, ez0, 0, ez1, [(0, "#6a0c18"), (1, "#8a1424")]))
+    p.cr.save()
+    p.cr.select_font_face("serif", 0, 1)
+    p.cr.set_font_size(78)
+    e = p.cr.text_extents("ROSE BOWL")
+    p.src(hexc("#000000", 0.3))
+    p.cr.move_to(W / 2 - e.width / 2 - e.x_bearing + 3, (ez0 + ez1) / 2 + e.height / 2 + 3)
+    p.cr.show_text("ROSE BOWL")
+    p.src("#f6d36a")
+    p.cr.move_to(W / 2 - e.width / 2 - e.x_bearing, (ez0 + ez1) / 2 + e.height / 2)
+    p.cr.show_text("ROSE BOWL")
+    p.cr.restore()
+    rose(p, 90, (ez0 + ez1) / 2 - 20, 0.9)
+    rose(p, W - 90, (ez0 + ez1) / 2 - 20, 0.9)
+    white = hexc("#ffffff", 0.9)
+    p.fill_rect(8, ez0, 6, H - ez0, white)
+    p.fill_rect(W - 14, ez0, 6, H - ez0, white)
+    p.fill_rect(10, ez0 - 3, W - 20, 6, white)
+    p.fill_rect(10, RB_GOAL - 3, W - 20, 6, white)
+    for yd in range(5, 31, 5):
+        p.fill_rect(10, RB_GOAL + yd * RB_YD - 2, W - 20, 4, white)
+    for yd in range(1, 31):
+        y = RB_GOAL + yd * RB_YD
+        for x in (24, 300, 468, W - 24):
+            p.fill_rect(x - 7, y - 1, 14, 2, white)
+    # the two-point line, the numbers
+    p.fill_rect(380, RB_GOAL + 3 * RB_YD - 1, 8, 3, white)
+    for yd in (10, 20, 30):
+        numeral(p, 70, RB_GOAL + yd * RB_YD, f"{yd // 10} 0", 42, math.pi / 2)
+        numeral(p, W - 70, RB_GOAL + yd * RB_YD, f"{yd // 10} 0", 42, -math.pi / 2)
+    # the goal post's shadow, the pylons
+    p.fill_rect(W / 2 - 60, ez0 + 4, 120, 6, "#f2d22a")
+    for x in (10, W - 20):
+        p.fill_rect(x, RB_GOAL - 8, 10, 10, "#ff8c1a")
+        p.fill_rect(x, ez0 - 2, 10, 10, "#ff8c1a")
+    p.grain(0.025, 81)
+    return p
+
+
+PAINTS["rosebowl"] = rosebowl
+
+
+# ------------------------------------------------------------------ the stadium's wall (Legends: the banners hang on it)
+def legends_wall():
+    p = Paint()
+    p.fill_rect(0, 0, W, 200, p.lin(0, 0, 0, 200, [(0, "#2f6cc4"), (1, "#a8ccef")]))
+    cloud(p, 160, 70, 0.6, hexc("#ffffff", 0.95), hexc("#b9cbe2", 0.95), 90)
+    cloud(p, 600, 50, 0.5, hexc("#ffffff", 0.95), hexc("#b9cbe2", 0.95), 91)
+    # flags on the parapet
+    for x, kind in ((140, "us"), (628, "tx")):
+        p.fill_rect(x - 2, 40, 4, 130, "#b8bcc6")
+        if kind == "tx":
+            p.fill_rect(x + 2, 46, 26, 40, "#1a3a8a")
+            p.fill_rect(x + 28, 46, 44, 20, "#ffffff")
+            p.fill_rect(x + 28, 66, 44, 20, "#c4202a")
+        else:
+            for i in range(7):
+                p.fill_rect(x + 2, 46 + i * 40 / 7, 70, 40 / 7, "#c4202a" if i % 2 == 0 else "#ffffff")
+            p.fill_rect(x + 2, 46, 30, 23, "#1a3a8a")
+    # the wall: limestone courses, a cornice, arches with depth
+    p.fill_rect(0, 160, W, 520, p.lin(0, 160, 0, 680, [(0, "#efe4ca"), (1, "#d4c6a4")]))
+    r = rng(92)
+    for row in range(26):
+        y = 176 + row * 20
+        p.fill_rect(0, y, W, 1.2, hexc("#a8946c", 0.45))
+        off = (row % 2) * 24
+        for i in range(17):
+            x = off + i * 48
+            p.fill_rect(x, y - 20, 1.2, 20, hexc("#a8946c", 0.35))
+            if r.random() < 0.3:
+                p.fill_rect(x + 1, y - 19, 46, 18, hexc("#ffffff" if r.random() < 0.5 else "#8a7a5a", 0.06))
+    p.fill_rect(0, 152, W, 18, "#d8c8a4")
+    p.fill_rect(0, 166, W, 6, "#a8946c")
+    for i in range(8):
+        x = 10 + i * 96
+        p.rrect(x, 180, 70, 64, 35)
+        p.src(p.lin(0, 180, 0, 244, [(0, "#3a3440"), (1, "#6a5e5a")]))
+        p.cr.fill()
+        p.rrect(x - 4, 176, 78, 6, 3)
+        p.src("#c8b48c")
+        p.cr.fill()
+    # the inscription band under the arches
+    p.fill_rect(0, 250, W, 4, "#bf5700")
+    p.grain(0.02, 93)
+    return p
+
+
+PAINTS["legends_wall"] = legends_wall
