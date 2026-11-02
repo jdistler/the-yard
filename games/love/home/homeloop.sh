@@ -34,10 +34,11 @@ FAILS=0
 INTRO=0
 [ "$MODE" = boot ] && INTRO=1
 log() { echo "$(cut -d' ' -f1 /proc/uptime) $*" >> "$LOG"; }
-# Swap on the SD card (made once: dd 128 MB, mkswap; SDCARD.md): a safety net for memory, used only under
-# pressure (swappiness 10). Once a boot, in the background, when the card is mounted.
+# Swap on the SD card (made once: dd 128 MB, mkswap; SDCARD.md), only with swap.on beside it: OFF by default
+# since 2026-11-02, when running out of memory with it froze the whole cabinet (the card swapping) instead of
+# the kernel killing Home, which homeloop restarts. Once a boot, in the background, when the card is mounted.
 SWAP=/mnt/sdcard/partycade/swap
-if [ ! -e /tmp/home.swap ]; then
+if [ ! -e /tmp/home.swap ] && [ -e "$SWAP.on" ]; then
   touch /tmp/home.swap
   (
     n=0

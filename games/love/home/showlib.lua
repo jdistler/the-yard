@@ -125,9 +125,19 @@ function G:art(show, name)
   if not f then return nil end
   local bytes = f:read("*a")
   f:close()
+  -- (each copy let go as soon as the next is made: three copies of nine pictures at once, ~14 MB, helped run the
+  -- cabinet out of memory)
   local ok, img = pcall(function()
-    return lg.newImage(love.image.newCompressedData(love.filesystem.newFileData(bytes, name .. ".pkm")))
+    local fd = love.filesystem.newFileData(bytes, name .. ".pkm")
+    bytes = nil
+    local cd = love.image.newCompressedData(fd)
+    fd:release()
+    local im = lg.newImage(cd)
+    cd:release()
+    return im
   end)
+  bytes = nil
+  collectgarbage("step", 400)
   if not ok then
     if self.C.log then self.C.log("art " .. show .. "/" .. name .. ": " .. tostring(img)) end
     return nil
