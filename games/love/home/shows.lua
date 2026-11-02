@@ -33,6 +33,8 @@ S.LIST = {
    blurb = "Snow on the fence, lights on the house, and a Texas Santa."},
   {id = "newyear", title = "NEW YEAR'S EVE", tint = 0xffd23f, module = "newyear",
    blurb = "The party, the resolutions, the ball, midnight. On the night, live: the countdown ends at midnight."},
+  {id = "easter", title = "EGG HUNT", tint = 0xffb6d9, module = "easter",
+   blurb = "Easter: the hunt in the bluebonnets, dyeing eggs, the bunny, cascarones, and a secret level."},
   {id = "valentine", title = "SWEETHEARTS", tint = 0xff6fa8, module = "valentine",
    blurb = "Valentine's Day: Pac-Man meets Ms. Pac-Man, candy hearts, Blinky's card, a milkshake for two."},
 }
@@ -71,6 +73,20 @@ local function nth_weekday(year, month, wday, n)
 end
 S.nth_weekday = nth_weekday
 
+-- Easter Sunday of a year (the Gregorian computus): month, day.
+local function easter(y)
+  local a, b, c = y % 19, math.floor(y / 100), y % 100
+  local d, e = math.floor(b / 4), b % 4
+  local f = math.floor((b + 8) / 25)
+  local g = math.floor((b - f + 1) / 3)
+  local h = (19 * a + b - d - g + 15) % 30
+  local i, k = math.floor(c / 4), c % 4
+  local l = (32 + 2 * e + 2 * i - h - k) % 7
+  local m = math.floor((a + 11 * h + 22 * l) / 451)
+  return math.floor((h + l - 7 * m + 114) / 31), (h + l - 7 * m + 114) % 31 + 1
+end
+S.easter = easter
+
 -- The holiday show for a date, if any: {show, why}
 function S.holiday(d)
   local m, day, y = d.month, d.day, d.year
@@ -92,6 +108,11 @@ function S.holiday(d)
   end
   if m == 7 and day >= 16 and day <= 24 then return "space", "the Moon landing's anniversary" end
   if m == 2 and day >= 7 and day <= 14 then return "valentine", "Valentine's Day" end
+  if m == 3 or m == 4 then                              -- Easter week: the six days before, and the day
+    local em, ed = easter(y)
+    local days = (os.time({year = y, month = em, day = ed, hour = 12}) - os.time({year = y, month = m, day = day, hour = 12})) / 86400
+    if days >= 0 and days <= 6 then return "easter", "Easter" end
+  end
   if m == 3 and day == 2 then return "texas", "Texas Independence Day" end
   if (m == 3 and day >= 15) or (m == 4) then return "texas", "bluebonnet season" end
   return nil
@@ -267,6 +288,22 @@ function S.icon(id, x, cy, sc, a, t)
     lg.setColor(1, 0.7, 0.2, a * (0.7 + 0.3 * math.sin(t * 20)))
     lg.polygon("fill", bx - 10 * sc, by + 40 * sc, bx + 10 * sc, by + 40 * sc, bx, by + 74 * sc)
     for i, p in ipairs({{-60, -70}, {60, -40}, {-50, 40}, {64, 60}}) do star(bx + p[1] * sc, by + p[2] * sc, 6 * sc, {1, 1, 0.9}, a) end
+  elseif id == "easter" then
+    local bx, by = x + 90 * sc, cy
+    local eg = function(ex, ey, r, c1, c2)
+      lg.setColor(c1[1], c1[2], c1[3], a)
+      lg.ellipse("fill", ex, ey, r * 0.76, r, 20)
+      lg.setColor(c2[1], c2[2], c2[3], a)
+      for _, dy in ipairs({-0.3, 0.22}) do
+        local w = r * 0.76 * math.sqrt(1 - dy * dy)
+        lg.rectangle("fill", ex - w, ey + dy * r - r * 0.08, w * 2, r * 0.16)
+      end
+    end
+    eg(bx - 42 * sc, by + 18 * sc, 36 * sc, {0.7, 0.85, 1}, {1, 0.95, 0.6})
+    eg(bx + 42 * sc, by + 18 * sc, 36 * sc, {0.75, 1, 0.75}, {0.85, 0.75, 1})
+    eg(bx, by - 8 * sc + math.sin(t * 3) * 4 * sc, 46 * sc, {1, 0.7, 0.8}, {1, 1, 1})
+    lg.setColor(0.7, 0.5, 0.25, a)
+    lg.rectangle("fill", bx - 80 * sc, by + 40 * sc, 160 * sc, 40 * sc, 8 * sc)
   elseif id == "valentine" then
     local bx, by, r = x + 90 * sc, cy - 6 * sc, 50 * sc * (1 + 0.05 * math.sin(t * 5))
     C.fx.glow(bx, by + 10 * sc, 80 * sc, 70 * sc, 1, 0.3, 0.5, 0.4 * a)

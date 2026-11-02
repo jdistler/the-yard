@@ -1288,6 +1288,64 @@ M.ve_heart = {
   order = {"A", "A", "B"},
 }
 
+-- ------------------------------------------------------------------ Easter Egg Hunt (easter.lua): all ours
+M.eg_hunt = {
+  bpm = 112, gain = 1, echo = {time = 0.4, fb = 0.3, mix = 0.2},
+  inst = {lead = FLUTE, pick = copy(PLUCK, {arp = "up", oct = 4, vol = 0.14}), bass = copy(BASS, {gate = 0.6, vol = 0.38})},
+  parts = {
+    A = {lead = "d5*2 g5*2 b5*4 a5*2 g5*2 e5*4 | d5*2 g5*2 b5*2 d6*2 c6*8 | c6*2 b5*2 a5*2 g5*2 e5*4 c6*4 | b5*4 a5*4 g5*8",
+         pick = "G*16 C*16 Am*16 D*8 G*8",
+         bass = "g2*4 d3*4 g2*4 d3*4 | c3*4 g2*4 c3*4 g2*4 | a2*4 e3*4 a2*4 e3*4 | d3*4 a2*4 g2*8", drums = "k*4 h*4 s*4 h*4"},
+  },
+  order = {"A", "A", "A+5", "A"},
+}
+
+M.eg_dye = {
+  bpm = 120, swing = 0.25, gain = 1,
+  inst = {lead = XYLO, chord = copy(CHOP, {vol = 0.05}), bass = TUBA},
+  parts = {
+    A = {lead = "f5*2 a5*2 c6*2 a5*2 bb5*4 g5*4 | e5*2 g5*2 bb5*2 g5*2 a5*4 f5*4 | d5*2 f5*2 a5*2 f5*2 g5*4 e5*4 | c5*4 e5*4 f5*8",
+         chord = ".*4 F*4 .*4 F*4 | .*4 C7*4 .*4 F*4 | .*4 Dm*4 .*4 C7*4 | .*4 C7*4 .*4 F*4",
+         bass = oompah("f2", "c3") .. oompah("c3", "g2") .. oompah("d3", "a2") .. "c3*4 g2*4 f2*8 ", drums = "k*4 s*4 k*4 s*4"},
+  },
+  order = {"A", "A+2", "A"},
+}
+
+M.eg_hop = {
+  bpm = 140, gain = 1,
+  inst = {lead = ACCORDION, chord = copy(CHOP, {vol = 0.05}), bass = TUBA},
+  parts = {
+    A = {lead = "a5*4 f#5*4 a5*4 f#5*4 | a5*2 b5*2 a5*2 g5*2 f#5*4 e5*4 | g5*4 e5*4 g5*4 e5*4 | g5*2 a5*2 g5*2 f#5*2 e5*4 d5*4",
+         chord = ".*4 D*4 .*4 D*4 | .*4 D*4 .*4 A7*4 | .*4 A7*4 .*4 A7*4 | .*4 A7*4 .*4 D*4",
+         bass = oompah("d3", "a2") .. oompah("d3", "a2") .. oompah("a2", "e2") .. oompah("a2", "d3"), drums = "k*4 s*4 k*4 s*4"},
+  },
+  order = {"A", "A", "A+2", "A"},
+}
+
+M.eg_cascarones = {
+  bpm = 100, gain = 1,
+  inst = {lead = ACCORDION, chord = copy(CHOP, {vol = 0.05}), bass = copy(BASS, {gate = 0.7, vol = 0.4})},
+  parts = {
+    A = {lead = "e5*2 g5*2 e5*2 c5*2 d5*4 e5*4 | f5*2 a5*2 f5*2 d5*2 e5*4 f5*4 | g5*2 f5*2 e5*2 d5*2 c5*2 d5*2 e5*2 f5*2 | g5*12 .*4",
+         chord = string.rep(".*2 C*2 ", 4) .. string.rep(".*2 Dm*2 ", 4) .. string.rep(".*2 G7*2 ", 4) .. string.rep(".*2 C*2 ", 4),
+         bass = "c2*6 g2*2 c2*4 g1*4 | d2*6 a2*2 d2*4 a1*4 | g1*6 d2*2 g1*4 d2*4 | c2*6 g2*2 c2*4 g1*4",
+         drums = "k h x h k h x h k h x h k h x h"},
+  },
+  order = {"A", "A", "A+2", "A"},
+}
+
+M.eg_secret = {
+  bpm = 120, gain = 1, echo = {time = 0.375, fb = 0.4, mix = 0.25},
+  inst = {lead = copy(LEAD, {vol = 0.1, send = 0.4}), arp = ARP, bass = copy(BASS, {gate = 0.6})},
+  parts = {
+    A = {lead = "e5*8 .*8 | f5*8 .*8 | e5*4 c5*4 a4*8 | g#4*16", arp = "Am*16 Bb*16 Am*16 E*16", bass = "a1*16 | bb1*16 | a1*16 | e1*16"},
+    B = {lead = "c5*2 e5*2 g5*2 c6*2 e6*8 | d6*2 b5*2 g5*2 d5*2 b5*8 | c6*2 a5*2 f5*2 a5*2 c6*4 f6*4 | e6*16",
+         arp = "C*16 G*16 F*16 C*16", bass = eights("c2", "c3") .. eights("g1", "g2") .. eights("f1", "f2") .. eights("c2", "c3"),
+         drums = "k*2 h*2 s*2 h*2 k*2 k*2 s*2 h*2"},
+  },
+  order = {"A", "A", "B", "B"},
+}
+
 -- ------------------------------------------------------------------ sound effects (loop = false; steps of 1/32 s)
 local function fx(inst, lane, beats, gain)
   return {bpm = 120, steps = 16, loop = false, gain = gain or 1, inst = {x = inst}, parts = {A = {x = lane}}, order = {"A"}}
