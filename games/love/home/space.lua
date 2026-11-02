@@ -115,9 +115,20 @@ end
 -- ------------------------------------------------------------------ the scenes
 local D = {}
 
+-- the painted picture for a scene, if the SD card has it: drawn, true
+local function art(name, a)
+  local img = S.art[name]
+  if not img then return false end
+  lg.setColor(1, 1, 1, a or 1)
+  lg.draw(img, 0, 0)
+  return true
+end
+
 function D.open(lt, len)
-  G:gradient(0, 0, W, H, {0.0, 0.0, 0.03}, {0.03, 0.04, 0.12})
-  stars()
+  if not art("open") then
+    G:gradient(0, 0, W, H, {0.0, 0.0, 0.03}, {0.03, 0.04, 0.12})
+    stars()
+  end
   local a = L.window(lt, 0.5, 4, 0.7)
   G:caption("PARTYCADE", 400, 54, 0xff4fd8, a)
   G:caption("PRESENTS", 472, 26, 0x6ef0c8, a)
@@ -127,6 +138,8 @@ function D.open(lt, len)
 end
 
 function D.houston(lt, len)
+  local painted = art("houston")
+  if not painted then
   G:gradient(0, 0, W, 640, {0.3, 0.55, 0.9}, {0.85, 0.9, 1})
   L.live_oak(90, 640, 1.2, S.t)
   L.live_oak(690, 640, 1.0, S.t + 1)
@@ -148,6 +161,7 @@ function D.houston(lt, len)
   lg.setColor(0.6, 0.6, 0.65, 1)
   for _, x in ipairs({120, 320, 520, 640}) do lg.rectangle("fill", x, y + 56, 12, 100) end
   G:gradient(0, 640, W, H, {0.35, 0.6, 0.3}, {0.25, 0.48, 0.2})
+  end
   -- visitors, small, for the scale
   for i = 0, 6 do
     local x = 120 + i * 80 + sin(S.t * 0.3 + i) * 20
@@ -160,6 +174,7 @@ function D.houston(lt, len)
 end
 
 function D.control(lt, len)
+  if not art("control") then
   G:gradient(0, 0, W, H, {0.12, 0.13, 0.16}, {0.06, 0.07, 0.09})
   -- the big screens: the world map with the track, the clock
   lg.setColor(0.03, 0.06, 0.1, 1)
@@ -170,6 +185,7 @@ function D.control(lt, len)
   lg.setColor(0.4, 0.75, 0.45, 0.5)
   for _, b in ipairs({{120, 200, 90, 50}, {240, 260, 60, 80}, {400, 190, 120, 60}, {560, 240, 80, 50}}) do
     lg.ellipse("fill", b[1], b[2], b[3], b[4], 16)
+  end
   end
   lg.setColor(1, 0.85, 0.3, 1)
   lg.setLineWidth(2)
@@ -214,6 +230,7 @@ function D.launch(lt, len)
   if lt > 52 then
     -- high up: the sky gone dark, the Earth curving away, the first stage falling off
     local k2 = clamp((lt - 52) / 10, 0, 1)
+    if not art("high") then
     G:gradient(0, 0, W, H, {0.0, 0.0, 0.04}, mix({0.2, 0.35, 0.7}, {0.05, 0.08, 0.25}, k2))
     for i, s in ipairs(S.stars) do
       lg.setColor(1, 1, 1, s[3] * k2)
@@ -222,6 +239,7 @@ function D.launch(lt, len)
     C.fx.glow(384, 1500, 1100, 600, 0.3, 0.6, 1, 0.4)
     lg.setColor(0.1, 0.3, 0.7, 1)
     lg.circle("fill", 384, 1900, 1050, 96)
+    end
     local sep = lt > 62
     local ry = 520 + sin(lt * 0.5) * 6
     if sep then
@@ -258,6 +276,13 @@ function D.launch(lt, len)
   end
   local up = clamp(lt - 22, 0, 100)
   local k = clamp(up / 40, 0, 1)
+  local painted = art("pad")
+  if painted then
+    -- the sky darkening as it climbs
+    lg.setColor(0.04, 0.06, 0.2, k * 0.85)
+    lg.rectangle("fill", 0, 0, W, H)
+    lg.setColor(0.5, 0.1, 0.07, 1)
+  else
   G:gradient(0, 0, W, H, mix({0.35, 0.6, 0.95}, {0.05, 0.08, 0.25}, k), mix({0.9, 0.85, 0.75}, {0.3, 0.35, 0.6}, k))
   -- the tower
   lg.setColor(0.7, 0.15, 0.1, 1)
@@ -265,15 +290,18 @@ function D.launch(lt, len)
   lg.setColor(0.5, 0.1, 0.07, 1)
   lg.setLineWidth(3)
   for y = 240, 860, 40 do lg.line(520, y, 570, y + 40) lg.line(570, y, 520, y + 40) end
+  end
   local arm = up > 0 and 0 or 1
   lg.rectangle("fill", 470, 420, 50 * arm + 2, 10)
   -- the rocket: rising, faster and faster
   local ry = 870 - (up > 0 and (up ^ 2) * 1.6 or 0)
   if ry > -600 then rocket(384, ry, 1.15) end
   -- the pad, the smoke
-  lg.setColor(0.45, 0.45, 0.48, 1)
-  lg.rectangle("fill", 200, 870, 368, 40)
-  G:gradient(0, 910, W, H, {0.5, 0.48, 0.4}, {0.4, 0.38, 0.3})
+  if not painted then
+    lg.setColor(0.45, 0.45, 0.48, 1)
+    lg.rectangle("fill", 200, 870, 368, 40)
+    G:gradient(0, 910, W, H, {0.5, 0.48, 0.4}, {0.4, 0.38, 0.3})
+  end
   -- the count
   if lt > 8 and lt < 22 then
     local n = floor(22 - lt)
@@ -307,10 +335,12 @@ local function earth(cx, cy, r, turn)
 end
 
 function D.orbit(lt, len)
-  lg.setColor(0, 0, 0.02, 1)
-  lg.rectangle("fill", 0, 0, W, H)
-  stars()
-  earth(384, 1700, 1100, S.t * 0.02)
+  if not art("orbit") then
+    lg.setColor(0, 0, 0.02, 1)
+    lg.rectangle("fill", 0, 0, W, H)
+    stars()
+    earth(384, 1700, 1100, S.t * 0.02)
+  end
   -- sunrise over the edge
   local sr = clamp((lt - 40) / 10, 0, 1) * clamp((80 - lt) / 10, 0, 1)
   if sr > 0 then
@@ -351,9 +381,12 @@ function D.orbit(lt, len)
 end
 
 function D.moon(lt, len)
-  lg.setColor(0, 0, 0.01, 1)
-  lg.rectangle("fill", 0, 0, W, H)
-  stars()
+  local painted = art("moon")
+  if not painted then
+    lg.setColor(0, 0, 0.01, 1)
+    lg.rectangle("fill", 0, 0, W, H)
+    stars()
+  end
   -- Earthrise
   local er = clamp((lt - 4) / 30, 0, 1)
   local ey = lerp(640, 300, ease(er))
@@ -366,7 +399,12 @@ function D.moon(lt, len)
   lg.ellipse("fill", 580, ey + 20, 26, 8, 12)
   lg.setColor(0, 0, 0.01, 0.6)
   lg.arc("fill", "pie", 560, ey, 71, -pi / 2, pi / 2, 20)
-  -- the ground: grey, with craters
+  -- the ground: grey, with craters (painted: its ground again, in front of the rising Earth)
+  if painted then
+    S.ground_q = S.ground_q or lg.newQuad(0, 640, W, H - 640, W, H)
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.art.moon, S.ground_q, 0, 640)
+  else
   G:gradient(0, 640, W, H, {0.55, 0.55, 0.57}, {0.4, 0.4, 0.42})
   for i, c in ipairs(S.craters) do
     lg.setColor(0.38, 0.38, 0.4, 1)
@@ -374,8 +412,10 @@ function D.moon(lt, len)
     lg.setColor(0.65, 0.65, 0.67, 1)
     lg.ellipse("fill", c[1], c[2] - c[3] * 0.08, c[3] * 0.85, c[3] * 0.2, 20)
   end
+  end
   -- the lander
   local lx, ly = 200, 760
+  if not painted then
   lg.setColor(0.85, 0.7, 0.25, 1)
   lg.polygon("fill", lx - 60, ly - 40, lx + 60, ly - 40, lx + 70, ly, lx - 70, ly)
   lg.setLineWidth(5)
@@ -385,6 +425,7 @@ function D.moon(lt, len)
   lg.polygon("fill", lx - 44, ly - 40, lx + 44, ly - 40, lx + 30, ly - 110, lx - 30, ly - 110)
   lg.setColor(0.1, 0.1, 0.15, 1)
   lg.polygon("fill", lx - 14, ly - 90, lx + 14, ly - 90, lx + 10, ly - 70, lx - 10, ly - 70)
+  end
   -- the flags (US and Texas), planted after the hop
   local planted = lt > 40
   if planted then
@@ -421,8 +462,10 @@ end
 
 function D.splash(lt, len)
   local k = clamp(lt / 50, 0, 1)
+  if not art("ocean") then
   G:gradient(0, 0, W, 640, {0.3, 0.55, 0.9}, {0.8, 0.9, 1})
   G:gradient(0, 640, W, H, {0.15, 0.4, 0.6}, {0.05, 0.25, 0.45})
+  end
   for i = 0, 12 do
     lg.setColor(1, 1, 1, 0.25)
     local y = 660 + i * 28
@@ -505,6 +548,10 @@ function M.start(seed, at)
   for i = 1, 22 do S.clouds[i] = {R:random() * 2 * pi, R:random(), 0.6 + R:random() * 0.4, 40 + R:random() * 90, 10 + R:random() * 20} end
   S.craters = {}
   for i = 1, 16 do S.craters[i] = {R:random() * W, 680 + R:random() * 320, 20 + R:random() * 60} end
+  S.art = {}
+  for _, n in ipairs({"open", "houston", "control", "pad", "high", "orbit", "moon", "ocean"}) do
+    S.art[n] = G:art("space", n)
+  end
   for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
   for _, l in ipairs({{"PARTYCADE", 54, 0xff4fd8}, {"PRESENTS", 26, 0x6ef0c8}, {"MISSION CONTROL", 64, 0x8ab4ff},
                       {"HOUSTON", 34, 0xffffff}, {"LIFTOFF!", 72, 0xffd23f}, {"IGNITION", 56, 0xffffff},
