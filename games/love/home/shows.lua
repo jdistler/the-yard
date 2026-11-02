@@ -115,6 +115,8 @@ function S.pick(now, game, rot)
   -- (New Year's Eve: the countdown to midnight, live, from the evening to one in the morning)
   if ((d.month == 12 and d.day == 31 and d.hour >= 18) or (d.month == 1 and d.day == 1 and d.hour < 1)) and
      S.available("newyear") then return "newyear" end
+  -- (the Fourth of July: the Freedom Show through the fireworks, until midnight)
+  if d.month == 7 and d.day == 4 and d.hour >= 8 and S.available("freedom") then return "freedom" end
   if d.hour >= 22 or d.hour < 8 then return "night" end
   local h = S.holiday(d)
   if h and S.available(h) then return h end

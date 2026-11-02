@@ -85,7 +85,7 @@ Home in a show; `HOME_DT=0.0166667` makes every frame 1/60 s (PC renders: the wh
 
 **The SHOWS section (2026-11-01, later):** a tab of its own (CLASSICS · THE YARD · TV · SHOWS · MORE) with a
 card for each idle show: NIGHT SKY, FREEDOM SHOW, TEXAS, LONGHORNS, MISSION CONTROL, SUMMER, HALLOWEEN,
-THANKSGIVING, CHRISTMAS, NEW YEAR'S EVE, and the SCHEDULE.
+THANKSGIVING, CHRISTMAS, NEW YEAR'S EVE, SWEETHEARTS, and the SCHEDULE.
 LOWER on a show opens a screen of tiles, one per segment with its picture (`tools/show_thumbs.py` renders them
 with Home itself on the PC; `games/love/home/thumbs/`), to watch any part now; the show plays on from there and
 any button goes back to the tiles. The SCHEDULE's AUTO follows the calendar (`shows.lua` `pick`): Christmas
@@ -95,7 +95,8 @@ to the end of a game, ordinary days taking turns (Texas, Freedom, and the Longho
 sky at night (10 PM - 8 AM) and for half an hour between shows. Added overnight 2026-11-01: Halloween (Oct 15-31,
 and Halloween night from 5 PM), New Year's Eve (Dec 27 - Jan 1, and live from 6 PM on the 31st to 1 AM, the
 countdown ending at midnight), Mission Control (July 16-24, and in the ordinary-day rotation), Summer (every other
-turn June - August). The LONGHORNS card shows the next game, the live score, or the final; the SCHEDULE card says
+turn June - August), Sweethearts (Valentine's, Feb 7-14), and the Freedom Show through the night of July 4
+(until midnight). The LONGHORNS card shows the next game, the live score, or the final; the SCHEDULE card says
 what AUTO plays next.
 
 * `texas.lua` (10 min): a day across Texas, Galveston to Big Bend, with Round Rock's rock and donuts; ten tunes.
@@ -114,6 +115,8 @@ what AUTO plays next.
   splashdown; quotes Strauss's Zarathustra sunrise and The Blue Danube (public domain).
 * `summer.lua` (8 min): Lake Travis, Barton Springs, snow cones, tubing the river, a summer storm and its rainbow,
   fireflies on the porch, sunset off the dock.
+* `valentine.lua` (Sweethearts, 7 min): Pac-Man meets Ms. Pac-Man, candy hearts in a jar, Blinky's card for
+  Pinky, a milkshake for two at Pac's Diner, a heart of dots eaten from the top both ways.
 * `tools/show_lint.py [SHOW...]`: plays every show start to finish on the PC (fixed 1/60 s frames), fails on any
   Lua error, and writes contact sheets.
 * `showlib.lua`: what they share (pictures made at a show's start and released at its end, particles, fireworks,
