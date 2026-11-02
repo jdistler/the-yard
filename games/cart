@@ -686,6 +686,16 @@ def cmd_push(a):
     files["/data/boot/S50ui"] = (os.path.join(HERE, "boot", "S50ui"), False)
     # The power-on picture (stage2 puts it in /dev/fb0 at ~2.5 s): rendered by Home itself, on the PC.
     files["/data/home/boot.fb.gz"] = (home_picture("boot", os.path.join(stage, "boot.fb.gz"), art), False)
+    # The shows' painted pictures (tools/show_art.py) go to the SD card, when one is mounted (never to /data, ~96%
+    # full; without them the shows draw their scenes live).
+    show_art = os.path.join(HERE, "out", "show-art")
+    if os.path.isdir(show_art) and ssh("grep -q ' /mnt/sdcard ' /proc/mounts && echo card").stdout.strip() == "card":
+        for sid in sorted(os.listdir(show_art)):
+            for f in sorted(os.listdir(os.path.join(show_art, sid))):
+                base, ext = os.path.splitext(f)
+                if ext == ".pkm" or (ext == ".png" and not base.endswith(".etc1") and
+                                     not os.path.exists(os.path.join(show_art, sid, base + ".pkm"))):
+                    files[f"/mnt/sdcard/partycade/art/{sid}/{f}"] = (os.path.join(show_art, sid, f), False)
     for extra_file in a.also or []:
         src, dst = extra_file.split(":", 1)
         files[dst] = (os.path.abspath(src), False)
@@ -733,7 +743,7 @@ def push_files(files, have, host, sshopt, ssh):
             how = f"dd if={tmp} of={dst} bs=65536 conv=notrunc,fsync 2>/dev/null"
         else:
             # A new file renamed over the old one: a running script (yardnet) keeps reading its old copy.
-            mode = "644" if dst.endswith((".love", ".pak", ".keys", ".txt", ".conf", ".png", ".wav")) else "755"
+            mode = "644" if dst.endswith((".love", ".pak", ".keys", ".txt", ".conf", ".png", ".wav", ".pkm")) else "755"
             how = (f"mkdir -p {os.path.dirname(dst)} && cp {tmp} {dst}.new && chmod {mode} {dst}.new && "
                    f"mv -f {dst}.new {dst}")
         r = ssh(f"[ \"$(sha256sum {tmp} | cut -d' ' -f1)\" = {want} ] && {how} && sync && rm -f {tmp} && sha256sum {dst}")

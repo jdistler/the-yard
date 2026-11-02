@@ -204,10 +204,27 @@ end
 -- ------------------------------------------------------------------ the scenes
 local D = {}
 
+-- a few stars twinkling over a painted night sky
+local function twinkle(n, ymax)
+  for i = 1, n do
+    local s = S.stars[i]
+    if s[2] < ymax then
+      lg.setColor(1, 1, 0.9, 0.5 + 0.5 * sin(S.t * (1.3 + i % 3) + i))
+      lg.rectangle("fill", s[1], s[2], 2, 2)
+    end
+  end
+end
+
 function D.open(lt, len)
-  G:gradient(0, 0, W, H, {0.12, 0.05, 0.02}, {0.45, 0.18, 0.02})
-  C.fx.glow(384, 420, 320, 260, 1, 0.45, 0.05, 0.35)
-  L.longhorn_head(384, 420, 2.1, ORANGE_HI, 1)
+  if S.art.open then
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.art.open, 0, 0)
+    C.fx.glow(384, 380, 300, 200, 1, 0.45, 0.05, 0.12 + 0.06 * sin(S.t * 2))
+  else
+    G:gradient(0, 0, W, H, {0.12, 0.05, 0.02}, {0.45, 0.18, 0.02})
+    C.fx.glow(384, 420, 320, 260, 1, 0.45, 0.05, 0.35)
+    L.longhorn_head(384, 420, 2.1, ORANGE_HI, 1)
+  end
   local a = L.window(lt, 0.5, 4.5, 0.8)
   G:caption("PARTYCADE", 640, 54, 0xff4fd8, a)
   G:caption("PRESENTS", 712, 26, 0x6ef0c8, a)
@@ -305,6 +322,31 @@ function D.campus(lt, len)
   G:plate("THE MAIN BUILDING  ·  THE TOWER", 170, 28, 0xffffff, a)
 end
 
+-- A strip of the crowd at y: from the painted close crowd (its front rows), else the made one.
+local function crowd_strip(y)
+  if S.art.crowd_close then
+    S.crowd_q = S.crowd_q or lg.newQuad(0, 420, W, 256, W, H)
+    lg.draw(S.art.crowd_close, S.crowd_q, 0, y)
+  elseif S.crowd then
+    lg.draw(S.crowd, 0, y)
+  end
+end
+
+-- The stadium across the field from the sideline: painted (tools/art), else the sky, the stands, the field.
+local function stadium_back()
+  if S.art.stadium_day then
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.art.stadium_day, 0, 0)
+    return
+  end
+  G:gradient(0, 0, W, 520, {0.25, 0.5, 0.9}, {0.75, 0.85, 1})
+  lg.setColor(1, 1, 1, 1)
+  lg.draw(S.stands, 0, 300)
+  G:gradient(0, 600, W, H, {0.25, 0.55, 0.22}, {0.2, 0.48, 0.18})
+  lg.setColor(1, 1, 1, 0.8)
+  for i = 0, 6 do lg.rectangle("fill", 0, 640 + i * 60, W, 3) end
+end
+
 -- the band, side view: rows marching, instruments shining; Big Bertha rolling through
 local function bandsman(x, y, s, t, inst)
   local step = sin(t * 8) * 4 * s
@@ -335,13 +377,7 @@ end
 
 function D.band(lt, len)
   if lt < 36 then
-    G:gradient(0, 0, W, 520, {0.25, 0.5, 0.9}, {0.75, 0.85, 1})
-    -- the stands across the field
-    lg.setColor(1, 1, 1, 1)
-    lg.draw(S.stands, 0, 300)
-    G:gradient(0, 600, W, H, {0.25, 0.55, 0.22}, {0.2, 0.48, 0.18})
-    lg.setColor(1, 1, 1, 0.8)
-    for i = 0, 6 do lg.rectangle("fill", 0, 640 + i * 60, W, 3) end
+    stadium_back()
     -- the band marching right, three rows
     local x0 = -900 + lt * 42
     for r = 0, 2 do
@@ -380,9 +416,14 @@ function D.band(lt, len)
     end
   else
     -- from above: the band forms TEXAS on the field
-    G:gradient(0, 0, W, H, {0.22, 0.52, 0.2}, {0.18, 0.45, 0.16})
-    lg.setColor(1, 1, 1, 0.7)
-    for i = 0, 10 do lg.rectangle("fill", 0, 60 + i * 86, W, 3) end
+    if S.art.field_long then
+      lg.setColor(1, 1, 1, 1)
+      lg.draw(S.art.field_long, 0, 830 - (110 - 50) * 14 - 400)      -- (midfield low, under the letters)
+    else
+      G:gradient(0, 0, W, H, {0.22, 0.52, 0.2}, {0.18, 0.45, 0.16})
+      lg.setColor(1, 1, 1, 0.7)
+      for i = 0, 10 do lg.rectangle("fill", 0, 60 + i * 86, W, 3) end
+    end
     local k = ease((lt - 40) / 14)
     for i, p in ipairs(S.form) do
       local x, y = lerp(p[1], p[3], k), lerp(p[2], p[4], k)
@@ -397,12 +438,7 @@ function D.band(lt, len)
 end
 
 function D.smokey(lt, len)
-  G:gradient(0, 0, W, 520, {0.25, 0.5, 0.9}, {0.75, 0.85, 1})
-  lg.setColor(1, 1, 1, 1)
-  lg.draw(S.stands, 0, 300)
-  G:gradient(0, 600, W, H, {0.25, 0.55, 0.22}, {0.2, 0.48, 0.18})
-  lg.setColor(1, 1, 1, 0.8)
-  for i = 0, 6 do lg.rectangle("fill", 0, 640 + i * 60, W, 3) end
+  stadium_back()
   -- Bevo watches from the south end zone the whole time
   L.steer(660, 720, 0.8, 0, {{0.82, 0.48, 0.18}, {0.97, 0.95, 0.9}}, {0.95, 0.92, 0.8})
   if lt < 24 then
@@ -504,10 +540,14 @@ function D.smokey(lt, len)
 end
 
 function D.hookem(lt, len)
-  G:gradient(0, 0, W, H, {0.08, 0.06, 0.12}, {0.2, 0.12, 0.08})
   -- the stands, the wave rolling through them
   lg.setColor(1, 1, 1, 1)
-  lg.draw(S.crowd, 0, 150)
+  if S.art.crowd_close then
+    lg.draw(S.art.crowd_close, 0, 0)
+  else
+    G:gradient(0, 0, W, H, {0.08, 0.06, 0.12}, {0.2, 0.12, 0.08})
+    lg.draw(S.crowd, 0, 150)
+  end
   local wave = (S.t * 0.35) % 1.4 - 0.2
   lg.setBlendMode("add")
   lg.setColor(1, 0.7, 0.3, 0.25)
@@ -564,6 +604,11 @@ function D.drive(lt, len)
   local cam = (play and los or 100) + 12
   local function sy(yd) return 640 - (yd - (cam - 12)) * YD end
   local function sx(xyd) return 384 + xyd * YD end
+  if S.art.field_long then
+    -- the painted field (tools/art: 14 px a yard, the far end zone's back line 400 px from its top)
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.art.field_long, 0, sy(110) - 400)
+  else
   G:gradient(0, 0, W, H, {0.2, 0.5, 0.2}, {0.17, 0.44, 0.17})
   -- stripes, yard lines, numbers, the end zone
   for yd = 0, 100, 5 do
@@ -582,6 +627,7 @@ function D.drive(lt, len)
     rgba(ORANGE)
     lg.rectangle("fill", 10, ez - 140, W - 20, 140)
     G:text("TEXAS", 0, ez - 100, 64, {1, 1, 1}, 1)
+  end
   end
   -- the first-down line
   if play then
@@ -768,26 +814,35 @@ function D.redriver(lt, len)
 end
 
 function D.tower(lt, len)
-  G:gradient(0, 0, W, 800, {0.02, 0.02, 0.08}, {0.12, 0.06, 0.16})
-  for i, s in ipairs(S.stars) do
-    lg.setColor(1, 1, 0.9, 0.5 + 0.5 * sin(S.t * (1 + i % 3) + i))
-    lg.rectangle("fill", s[1], s[2], 2, 2)
-  end
   -- first an orange top (a win: the real one, when there's one this week), then all orange with the 1
   local one = lt > 48
-  tower(384, 800, 1.2, one and "one" or "win")
+  if S.art.tower_win and S.art.tower_one then
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(one and S.art.tower_one or S.art.tower_win, 0, 0)
+    twinkle(50, 560)
+  else
+    G:gradient(0, 0, W, 800, {0.02, 0.02, 0.08}, {0.12, 0.06, 0.16})
+    for i, s in ipairs(S.stars) do
+      lg.setColor(1, 1, 0.9, 0.5 + 0.5 * sin(S.t * (1 + i % 3) + i))
+      lg.rectangle("fill", s[1], s[2], 2, 2)
+    end
+    tower(384, 800, 1.2, one and "one" or "win")
+  end
   if lt > 47.6 and lt < 48.6 then
     lg.setBlendMode("add")
     lg.setColor(1, 0.6, 0.2, 1 - abs(lt - 48.1) * 2)
     lg.rectangle("fill", 0, 0, W, 800)
     lg.setBlendMode("alpha")
   end
-  L.live_oak(90, 820, 1.2, S.t)
-  L.live_oak(680, 820, 1.1, S.t + 1)
-  G:gradient(0, 800, W, H, {0.06, 0.08, 0.05}, {0.03, 0.04, 0.03})
-  -- the crowd on the South Mall, horns up
+  if not S.art.tower_win then
+    L.live_oak(90, 820, 1.2, S.t)
+    L.live_oak(680, 820, 1.1, S.t + 1)
+    G:gradient(0, 800, W, H, {0.06, 0.08, 0.05}, {0.03, 0.04, 0.03})
+  end
+  -- the crowd on the South Mall, horns up, against the Tower's glow on the lawn
+  C.fx.glow(384, 900, 520, 110, 1, 0.45, 0.1, one and 0.5 or 0.38)
   for i = 0, 15 do
-    fan(30 + i * 48, 1000 - (i % 2) * 14, 1.1, {0.08, 0.06, 0.06}, S.t + i, true)
+    fan(30 + i * 48, 972 - (i % 2) * 20, 1.8, {0.07, 0.04, 0.03}, S.t + i, true)
   end
   local last = S.last
   if not one then
@@ -831,7 +886,7 @@ function D.season(lt, len)
     -- no schedule (no network yet, or never): the season, coming
     lg.clear(0.05, 0.03, 0.06, 1)
     lg.setColor(1, 1, 1, 0.9)
-    lg.draw(S.crowd, 0, 840)
+    crowd_strip(840)
     lg.setColor(0.02, 0.02, 0.04, 1)
     lg.rectangle("fill", bx, by, bw, bh)
     lg.setLineWidth(8)
@@ -846,7 +901,7 @@ function D.season(lt, len)
   -- (one layer where it can be: a clear, the crowd below, the frame as lines, the board's picture)
   lg.clear(0.05, 0.03, 0.06, 1)
   lg.setColor(1, 1, 1, 0.9)
-  lg.draw(S.crowd, 0, 840)
+  crowd_strip(840)
   lg.setColor(0.18, 0.18, 0.2, 1)
   lg.rectangle("fill", 360, by + bh + 16, 48, 60)
   lg.setLineWidth(12)
@@ -992,7 +1047,7 @@ function D.legends(lt, len)
     lg.setColor(0.8, 0.74, 0.6, 1)
     for i = 0, 7 do lg.rectangle("fill", 10 + i * 96, 180, 70, 60, 35, 35, 10) end
     lg.setColor(1, 1, 1, 1)
-    lg.draw(S.crowd, 0, 680)
+    crowd_strip(680)
     local a0 = clamp((lt - 1.5) * 2, 0, 1)
     G:text("NATIONAL CHAMPIONS", 0, 262, 34, ORANGE, a0, "center", W)
     for i, yr in ipairs({"1963", "1969", "1970", "2005"}) do
@@ -1111,14 +1166,21 @@ local HEX_LINES = {
   {27, 38, "THEY DID. TEXAS WON, 23-0.", "THE HEX HAS BEEN BURNING SINCE"},
 }
 function D.hex(lt, len)
-  G:gradient(0, 0, W, 760, {0.02, 0.02, 0.07}, {0.1, 0.04, 0.1})
-  for i, s in ipairs(S.stars) do
-    lg.setColor(1, 1, 0.9, 0.3 + 0.4 * abs(sin(S.t * 0.6 + i)))
-    lg.rectangle("fill", s[1], s[2], 2, 2)
-  end
   local warm = clamp((lt - 52) / 4, 0, 1)
-  tower(384, 700, 1.0, warm > 0.5 and "win" or "dark")
-  G:gradient(0, 700, W, H, {0.05, 0.04, 0.05}, {0.02, 0.02, 0.03})
+  if S.art.tower_dark then
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.art.tower_dark, 0, 0)
+    if warm > 0 and S.art.tower_win then lg.setColor(1, 1, 1, warm) lg.draw(S.art.tower_win, 0, 0) end
+    twinkle(40, 560)
+  else
+    G:gradient(0, 0, W, 760, {0.02, 0.02, 0.07}, {0.1, 0.04, 0.1})
+    for i, s in ipairs(S.stars) do
+      lg.setColor(1, 1, 0.9, 0.3 + 0.4 * abs(sin(S.t * 0.6 + i)))
+      lg.rectangle("fill", s[1], s[2], 2, 2)
+    end
+    tower(384, 700, 1.0, warm > 0.5 and "win" or "dark")
+    G:gradient(0, 700, W, H, {0.05, 0.04, 0.05}, {0.02, 0.02, 0.03})
+  end
   -- the crowd on the Main Mall, a candle each, lit from the front out
   for _, c in ipairs(S.candles) do
     lg.setColor(0.04, 0.03, 0.05, 1)
@@ -1239,8 +1301,11 @@ function M.start(seed, at)
   S.flag = G:cloth(L.paint_texas, 600, 400)
   -- the painted pictures, when the SD card has them (else each scene draws itself live)
   S.art = {}
-  for _, n in ipairs({"campus_dawn", "campus_day"}) do S.art[n] = G:art("longhorns", n) end
-  -- the stands (a band of crowd: orange and white dots), painted once
+  for _, n in ipairs({"open", "campus_dawn", "campus_day", "stadium_day", "field_long", "crowd_close", "tower_dark", "tower_win", "tower_one"}) do
+    S.art[n] = G:art("longhorns", n)
+  end
+  -- (the made crowds, only without the painted ones: 7400 rectangles painted at the start)
+  if not S.art.stadium_day or not S.art.crowd_close then
   S.stands = G:canvas(W, 300, function(w, h)
     lg.setColor(0.35, 0.33, 0.38, 1)
     lg.rectangle("fill", 0, 0, w, h)
@@ -1259,6 +1324,8 @@ function M.start(seed, at)
       lg.rectangle("fill", R:random() * w, R:random() * h, 5, 6)
     end
   end)
+  end
+  -- the stands (a band of crowd: orange and white dots), painted once
   -- the card stunt: a grid over the stands, TEXAS in white
   S.stunt = {}
   local word = letter_points("TEXAS", 13, 0, 0)

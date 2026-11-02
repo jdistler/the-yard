@@ -135,8 +135,11 @@ class Paint:
 
     # ------------------------------------------------------------------ layers: soft shadows, glows, grain
     def layer(self):
-        """A transparent layer the same size, to draw on and then blur/composite."""
-        return Paint(self.w, self.h)
+        """A transparent layer the same size, to draw on and then blur/composite (in the same coordinates as now:
+        a shape drawn translated or scaled lands in the same place)."""
+        lay = Paint(self.w, self.h)
+        lay.cr.set_matrix(self.cr.get_matrix())
+        return lay
 
     def composite(self, other, blur=0.0, alpha=1.0, op=cairo.OPERATOR_OVER):
         surf = other.surf

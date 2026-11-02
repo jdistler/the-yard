@@ -335,3 +335,492 @@ PAINTS = {
     "campus_dawn": lambda: campus("dawn"),
     "campus_day": lambda: campus("day"),
 }
+
+
+# ------------------------------------------------------------------ the longhorn (our own drawing)
+def longhorn_path(p, cx, cy, s):
+    """A longhorn steer's head, front on: horns sweeping out and up at the tips, ears under them, the face
+    tapering to a rounded muzzle. s: half the horns' span."""
+    R = [("M", 0, -0.19),
+         ("C", 0.08, -0.19, 0.15, -0.21, 0.21, -0.24),
+         ("C", 0.38, -0.30, 0.62, -0.25, 0.81, -0.35),
+         ("C", 0.91, -0.41, 0.97, -0.49, 1.00, -0.58),
+         ("C", 1.00, -0.47, 0.96, -0.37, 0.87, -0.29),
+         ("C", 0.68, -0.10, 0.44, -0.07, 0.26, -0.06),
+         ("C", 0.34, -0.03, 0.37, 0.02, 0.33, 0.05),
+         ("C", 0.27, 0.07, 0.21, 0.05, 0.18, 0.02),
+         ("C", 0.17, 0.16, 0.145, 0.33, 0.115, 0.47),
+         ("C", 0.095, 0.57, 0.055, 0.61, 0.0, 0.61)]
+    cr = p.cr
+    def pt(x, y, m):
+        return cx + x * s * m, cy + y * s
+    cr.move_to(*pt(R[0][1], R[0][2], 1))
+    for c in R[1:]:
+        cr.curve_to(*pt(c[1], c[2], 1), *pt(c[3], c[4], 1), *pt(c[5], c[6], 1))
+    # the left half: the same, mirrored, back up to the top
+    L = list(reversed(R))
+    for i in range(len(L) - 1):
+        c, prev = L[i], L[i + 1]
+        cr.curve_to(*pt(c[3], c[4], -1), *pt(c[1], c[2], -1), *pt(prev[-2], prev[-1], -1))
+    cr.close_path()
+
+
+def longhorn(p, cx, cy, s, glow=True):
+    if glow:
+        p.glow(cx, cy - 0.1 * s, 1.15 * s, "#ff7a1a", 0.32, 0.55)
+    # a soft shadow, the head, then light on the upper edges (a bevel)
+    sh = p.layer()
+    longhorn_path(sh, cx + 0.01 * s, cy + 0.025 * s, s)
+    sh.src(hexc("#000000", 0.45))
+    sh.cr.fill()
+    p.composite(sh, blur=0.012 * s)
+    longhorn_path(p, cx, cy, s)
+    p.src(p.lin(0, cy - 0.6 * s, 0, cy + 0.6 * s, [(0, "#ff8a2a"), (0.45, ORANGE), (1, "#8a3c00")]))
+    p.cr.fill_preserve()
+    hl = p.layer()
+    longhorn_path(hl, cx, cy - 0.012 * s, s)
+    hl.src(hexc("#ffd0a0", 0.55))
+    hl.cr.fill()
+    cut = p.layer()
+    longhorn_path(cut, cx, cy + 0.006 * s, s)
+    cut.src("#000000")
+    cut.cr.fill()
+    hl.composite(cut, op=9)                                 # DEST_OUT: only a sliver along the top edges
+    p.composite(hl, blur=0.003 * s)
+    # the brow and the nose's line, faint
+    p.line([(cx, cy - 0.12 * s), (cx, cy + 0.46 * s)], hexc("#6a2e00", 0.25), 0.012 * s)
+
+
+def open_screen():
+    p = Paint()
+    p.fill_rect(0, 0, W, H, p.lin(0, 0, 0, H, [(0, "#1a0b05"), (0.55, "#3a1606"), (1, "#5a2408")]))
+    p.glow(384, 420, 520, "#ff6a10", 0.28, 0.8)
+    # a few rays behind
+    for i in range(14):
+        a = i / 14 * 2 * math.pi
+        p.poly([(384, 420), (384 + math.cos(a - 0.05) * 900, 420 + math.sin(a - 0.05) * 900),
+                (384 + math.cos(a + 0.05) * 900, 420 + math.sin(a + 0.05) * 900)], hexc("#ff8a2a", 0.035))
+    longhorn(p, 384, 420, 330)
+    p.grain(0.02, 3)
+    return p
+
+
+# ------------------------------------------------------------------ the Tower at night
+def night_sky(p, seed=5):
+    p.fill_rect(0, 0, W, H, p.lin(0, 0, 0, H, [(0, "#04040f"), (0.6, "#120a24"), (1, "#24122a")]))
+    r = rng(seed)
+    for i in range(260):
+        x, y = r.random() * W, r.random() * 680
+        b = r.random()
+        p.circle(x, y, 0.5 + b * 1.1, hexc("#fff6e0", 0.35 + b * 0.6))
+
+
+def tower_night(mode):
+    """mode: "dark" (unlit, the Hex Rally's night), "win" (an orange top over a white shaft), "one" (all orange,
+    the 1 in the windows)."""
+    p = Paint()
+    night_sky(p)
+    cx = 384
+    orange_top = mode in ("win", "one")
+    shaft_orange = mode == "one"
+    # light pouring off it
+    if mode != "dark":
+        p.glow(cx, 230, 360, "#ff7a1a", 0.35 if mode == "one" else 0.22, 1.6)
+    dim = mode == "dark"
+    top_c = "#ff8c2a" if orange_top else ("#5c5a66" if dim else STONE)
+    top_sh = "#c25a10" if orange_top else ("#3e3c48" if dim else STONE_SH)
+    sh_c = "#ff8c2a" if shaft_orange else ("#fff6e6" if mode == "win" else "#4a4854")
+    sh_sh = "#c25a10" if shaft_orange else ("#d8cfc0" if mode == "win" else "#34323e")
+    sw, x0, x1, top_y, base_y = 92, cx - 46, cx + 46, 300, 640
+    win = "#ffe9b0" if mode != "dark" else "#1a1822"
+    p.fill_rect(x0, top_y, sw, base_y - top_y, p.lin(x0, 0, x1, 0, [(0, sh_sh), (0.3, sh_c), (1, sh_c)]))
+    p.poly([(x1, top_y), (x1 + 14, top_y + 6), (x1 + 14, base_y), (x1, base_y)], sh_sh)
+    bay_w = (sw - 20 - 18) / 4
+    for b in range(4):
+        bx = x0 + 10 + b * (bay_w + 6)
+        p.fill_rect(bx, top_y + 14, bay_w, base_y - top_y - 30, mix(sh_c, sh_sh, 0.5))
+        for f in range(21):
+            wy = top_y + 18 + f * 14.2
+            lit = (mode == "one" and b in (1, 2) and 0 < f < 20) or (mode == "dark" and (f * 7 + b * 3) % 11 == 0)
+            p.fill_rect(bx + 3, wy, bay_w - 6, 8.5, "#fff2c8" if lit else mix(win, sh_sh, 0.7 if mode != "dark" else 0))
+    if mode == "one":
+        # the 1: the two middle bays lit, a foot at the bottom, a flag at the top
+        p.fill_rect(x0 + 10 + bay_w + 6 - 2, top_y + 16, bay_w * 2 + 10, base_y - top_y - 34, hexc("#fff4d0", 0.92))
+        p.fill_rect(x0 + 6, base_y - 34, sw - 12, 16, hexc("#fff4d0", 0.92))
+        p.poly([(x0 + 10 + bay_w + 4, top_y + 16), (x0 + 6, top_y + 52), (x0 + 6, top_y + 70), (x0 + 10 + bay_w + 4, top_y + 44)],
+               hexc("#fff4d0", 0.92))
+        p.glow(cx, 470, 180, "#fff0c0", 0.25, 1.6)
+    # the top stack, as by day but in its light
+    cs_y = top_y - 84
+    p.fill_rect(x0 - 8, cs_y, sw + 16, 84, p.lin(x0, 0, x1, 0, [(0, top_sh), (0.3, top_c), (1, top_c)]))
+    p.fill_rect(x0 - 12, cs_y - 8, sw + 24, 10, top_c)
+    ccx, ccy = cx, cs_y + 42
+    p.circle(ccx, ccy, 31, "#c8a24a" if not dim else "#5a5040")
+    p.circle(ccx, ccy, 27, "#fff3d6" if not dim else "#6c6656")
+    p.line([(ccx, ccy), (ccx + 13, ccy + 4)], "#2b2116", 3)
+    p.line([(ccx, ccy), (ccx - 2, ccy - 22)], "#2b2116", 2.2)
+    od_y = cs_y - 62
+    p.fill_rect(x0 - 16, cs_y - 14, sw + 32, 14, top_sh)
+    p.fill_rect(x0 - 10, od_y, sw + 20, 48, "#2a1608" if orange_top else "#16141c")
+    for i in range(7):
+        colx = x0 - 8 + i * ((sw + 16) / 6) - 5
+        p.fill_rect(colx, od_y, 10, 48, p.lin(colx, 0, colx + 10, 0, [(0, top_sh), (0.5, top_c), (1, top_sh)]))
+    p.fill_rect(x0 - 16, od_y - 12, sw + 32, 12, top_c)
+    t_y = od_y - 64
+    tw = sw - 24
+    p.fill_rect(cx - tw / 2, t_y, tw, 52, p.lin(cx - tw / 2, 0, cx + tw / 2, 0, [(0, top_sh), (0.3, top_c), (1, top_c)]))
+    for i in range(5):
+        colx = cx - tw / 2 + 6 + i * ((tw - 12) / 4) - 4
+        if i < 4:
+            p.fill_rect(colx + 8, t_y + 12, (tw - 12) / 4 - 8, 34, "#2a1608" if orange_top else "#16141c")
+    p.fill_rect(cx - tw / 2 - 6, t_y - 8, tw + 12, 10, top_c)
+    p.poly([(cx - tw / 2 - 4, t_y - 8), (cx + tw / 2 + 4, t_y - 8), (cx + 14, t_y - 40), (cx - 14, t_y - 40)],
+           "#a04a20" if not dim else "#4a2a24")
+    p.fill_rect(cx - 9, t_y - 62, 18, 22, top_c)
+    p.poly([(cx - 11, t_y - 62), (cx + 11, t_y - 62), (cx, t_y - 84)], "#c07a3a" if not dim else "#4a3a30")
+    p.line([(cx, t_y - 84), (cx, t_y - 104)], "#d8b25a", 2.4)
+    if orange_top:
+        p.glow(cx, cs_y - 20, 140, "#ffa040", 0.35, 1.2)
+    # the Main Building, lit from below (or dark)
+    y0, y1 = 590, 720
+    mb = "#c9a77e" if mode != "dark" else "#2c2a34"
+    p.fill_rect(30, y0, W - 60, y1 - y0, p.lin(0, y0, 0, y1, [(0, mix(mb, "#000000", 0.2)), (1, mb)]))
+    p.poly([(24, y0 + 4), (W - 24, y0 + 4), (W - 54, y0 - 22), (54, y0 - 22)], "#5a2618" if mode != "dark" else "#24161a")
+    for i in range(22):
+        wx = 50 + i * 31
+        if abs(wx - cx) < 120:
+            continue
+        lit = mode != "dark" and (i * 5) % 7 < 3 or (mode == "dark" and i % 9 == 0)
+        p.fill_rect(wx, y0 + 20, 14, 16, "#ffd890" if lit else "#1c1820")
+        p.rrect(wx, y0 + 64, 14, 30, 7)
+        p.src("#ffcf80" if lit else "#1c1820")
+        p.cr.fill()
+    pw = 230
+    p.fill_rect(cx - pw / 2, y0 - 8, pw, y1 - y0 + 8, mb)
+    p.fill_rect(cx - pw / 2 + 6, y0 + 24, pw - 12, y1 - y0 - 40, "#ffd07a" if mode != "dark" else "#141218")
+    for i in range(7):
+        colx = cx - pw / 2 + 6 + i * (pw - 12) / 6 - 8
+        p.fill_rect(colx, y0 + 24, 16, y1 - y0 - 40, mix(mb, "#ffffff", 0.15))
+    # live oaks, black against it
+    for (x, s, fl) in ((30, 0.85, False), (740, 0.8, True)):
+        sil = p.layer()
+        live_oak(sil, x, 860, s, "day", 30 + x, fl)
+        data = sil.surf
+        cr = sil.cr
+        cr.save()
+        cr.identity_matrix()
+        cr.set_operator(5)                                  # ATOP: everything the tree is, made dark
+        cr.set_source_rgba(0.03, 0.03, 0.05, 1)
+        cr.paint()
+        cr.restore()
+        p.composite(sil)
+    # the South Mall, dark, and a soft orange on the lawn
+    p.fill_rect(0, 720, W, H - 720, p.lin(0, 720, 0, H, [(0, "#0c100c"), (1, "#050705")]))
+    if mode != "dark":
+        p.glow(cx, 740, 300, "#ff7a1a", 0.12, 0.35)
+    p.grain(0.018, 9)
+    return p
+
+
+PAINTS.update({
+    "open": open_screen,
+    "tower_dark": lambda: tower_night("dark"),
+    "tower_win": lambda: tower_night("win"),
+    "tower_one": lambda: tower_night("one"),
+})
+
+
+# ------------------------------------------------------------------ the stadium, across the field from the sideline
+def crowd_band(p, x0, y0, x1, y1, seed, rows, fill=0.8, light=1.0):
+    """Rows of fans, smaller toward the top (further away): heads and shirts, orange and white, here and there a
+    hand up."""
+    r = rng(seed)
+    for i in range(rows):
+        k = i / max(1, rows - 1)
+        y = y1 - (y1 - y0) * k
+        size = 7.5 - 4.5 * k
+        # the row's step
+        p.fill_rect(x0, y - size * 0.6, x1 - x0, size * 0.5, hexc("#5a5560", 0.6 * light))
+        x = x0 + r.random() * size
+        while x < x1:
+            if r.random() < fill:
+                shirt = "#e86a10" if r.random() < 0.72 else ("#f4f1ea" if r.random() < 0.85 else "#3a3a40")
+                p.fill_rect(x - size * 0.45, y - size * 1.5, size * 0.9, size * 1.0, mix(shirt, "#000000", 0.15 * (1 - light)))
+                skin = ["#f0c9a8", "#c99572", "#8a5a3c", "#f6d8c0", "#6a4430"][r.randrange(5)]
+                p.circle(x, y - size * 1.85, size * 0.38, skin)
+                if r.random() < 0.06:
+                    p.fill_rect(x + size * 0.2, y - size * 3.2, size * 0.22, size * 1.2, skin)
+            x += size * (1.0 + r.random() * 0.25)
+
+
+def stadium_day():
+    p = Paint()
+    p.fill_rect(0, 0, W, 330, p.lin(0, 0, 0, 330, [(0, "#2f6cc4"), (1, "#bcd8f2")]))
+    for i, (x, y, s) in enumerate([(130, 90, 0.8), (520, 60, 0.7), (680, 160, 0.5)]):
+        cloud(p, x, y, s, hexc("#ffffff", 0.95), hexc("#b9cbe2", 0.95), 40 + i)
+    # the far side: the upper deck and the suites, light towers above
+    for lx in (60, 708):
+        p.fill_rect(lx - 4, 60, 8, 200, "#8a8d96")
+        p.fill_rect(lx - 34, 46, 68, 34, "#3c3f48")
+        for i in range(4):
+            for j in range(2):
+                p.fill_rect(lx - 30 + i * 16, 50 + j * 15, 12, 11, "#f4f6ff")
+    p.fill_rect(0, 196, W, 70, p.lin(0, 196, 0, 266, [(0, "#d4cec4"), (1, "#a8a29a")]))      # the suites' face
+    for i in range(32):
+        p.fill_rect(8 + i * 24, 214, 18, 16, "#2c3a4c")
+        p.fill_rect(8 + i * 24, 214, 18, 4, hexc("#9fc4e8", 0.6))
+    p.fill_rect(0, 190, W, 8, "#bf5700")
+    p.cr.save()
+    p.cr.select_font_face("sans", 0, 1)
+    p.cr.set_font_size(16)
+    p.src("#ffffff")
+    t = "DARRELL K ROYAL - TEXAS MEMORIAL STADIUM"
+    e = p.cr.text_extents(t)
+    p.cr.move_to(W / 2 - e.width / 2, 252)
+    p.cr.show_text(t)
+    p.cr.restore()
+    # the stands: an upper bowl, a walkway, the lower bowl down to the wall
+    p.fill_rect(0, 266, W, 340, "#3e3a44")
+    crowd_band(p, 0, 270, W, 380, 7, 16, 0.85, 0.85)
+    p.fill_rect(0, 382, W, 12, "#2a2830")
+    p.fill_rect(0, 392, W, 4, "#bf5700")
+    crowd_band(p, 0, 396, W, 590, 8, 22, 0.88, 1.0)
+    # the aisles
+    for i in range(7):
+        x = 50 + i * 112
+        p.poly([(x - 3, 270), (x + 3, 270), (x + 5, 590), (x - 5, 590)], hexc("#d8d2c8", 0.55))
+    # the wall and the sideline
+    p.fill_rect(0, 590, W, 22, p.lin(0, 590, 0, 612, [(0, "#bf5700"), (1, "#8a3e00")]))
+    p.cr.save()
+    p.cr.select_font_face("sans", 0, 1)
+    p.cr.set_font_size(14)
+    p.src("#ffffff")
+    for i, t in enumerate(["HOOK 'EM", "TEXAS FOOTBALL", "THE EYES OF TEXAS", "HOOK 'EM"]):
+        p.cr.move_to(30 + i * 200, 606)
+        p.cr.show_text(t)
+    p.cr.restore()
+    # the field: perspective, the yard lines converging away
+    gy0 = 612
+    p.fill_rect(0, gy0, W, H - gy0, p.lin(0, gy0, 0, H, [(0, "#3c7a2e"), (1, "#2e6a22")]))
+    vx, vy = 384, -900                                       # where the yard lines meet
+    def at(x_near, y):                                       # a yard line's x at height y
+        k = (y - vy) / (H - vy)
+        return vx + (x_near - vx) * k
+    for i in range(-8, 9):
+        xn = 384 + i * 150
+        # mowing: alternate shades between lines
+        if i % 2 == 0:
+            p.poly([(at(xn, gy0), gy0), (at(xn + 150, gy0), gy0), (at(xn + 150, H), H), (at(xn, H), H)], hexc("#ffffff", 0.045))
+        p.poly([(at(xn - 2.5, gy0), gy0), (at(xn + 2.5, gy0), gy0), (at(xn + 3.5, H), H), (at(xn - 3.5, H), H)], hexc("#ffffff", 0.85))
+        # hash marks between
+        for j in range(1, 5):
+            xm = xn + j * 30
+            for yy in (680, 840):
+                p.line([(at(xm, yy - 8), yy - 8), (at(xm, yy + 8), yy + 8)], hexc("#ffffff", 0.8), 2)
+    # the sideline and the numbers
+    p.fill_rect(0, 618, W, 5, hexc("#ffffff", 0.9))
+    p.cr.save()
+    p.cr.select_font_face("serif", 0, 1)
+    for i, n in ((-2, "30"), (-1, "40"), (0, "50"), (1, "40"), (2, "30")):
+        xn = 384 + i * 150 * 2 / 2
+        x = at(384 + i * 300, 760)
+        p.cr.set_font_size(52)
+        p.src(hexc("#ffffff", 0.88))
+        e = p.cr.text_extents(n)
+        p.cr.move_to(x - e.width / 2, 790)
+        p.cr.show_text(n)
+    p.cr.restore()
+    # the longhorn at midfield, laid on the grass
+    p.cr.save()
+    p.cr.translate(384, 920)
+    p.cr.scale(1.0, 0.42)
+    longhorn(p, 0, 0, 150, glow=False)
+    p.cr.restore()
+    p.grain(0.02, 11)
+    return p
+
+
+PAINTS["stadium_day"] = stadium_day
+
+
+# ------------------------------------------------------------------ the field from above (the drive scrolls it)
+FIELD_YD = 14                       # pixels a yard, as longhorns.lua's drive
+FIELD_TOP = 400                     # beyond the far end zone's back line: the sideline, the wall (the camera goes there)
+
+
+def field_y(yd):
+    """Where yard line yd (0: our goal line, 100: theirs; the end zones -10..0 and 100..110) is in the picture."""
+    return FIELD_TOP + (110 - yd) * FIELD_YD
+
+
+def numeral(p, x, y, text, size, rot):
+    cr = p.cr
+    cr.save()
+    cr.translate(x, y)
+    cr.rotate(rot)
+    cr.select_font_face("serif", 0, 1)
+    cr.set_font_size(size)
+    e = cr.text_extents(text)
+    cr.move_to(-e.width / 2 - e.x_bearing, e.height / 2)
+    p.src(hexc("#ffffff", 0.92))
+    cr.show_text(text)
+    cr.restore()
+
+
+def field_long():
+    h = field_y(-10) + FIELD_TOP
+    p = Paint(W, h)
+    p.fill_rect(0, 0, W, h, "#2f6e26")
+    # beyond the end lines: the turf apron, a stripe, then the wall with its banner
+    for (y0, y1, wall_at_top) in ((0, field_y(110), True), (field_y(-10), h, False)):
+        p.fill_rect(0, y0, W, y1 - y0, "#27601f")
+        wy = y0 + 60 if wall_at_top else y1 - 120
+        p.fill_rect(0, wy, W, 60, p.lin(0, wy, 0, wy + 60, [(0, "#8a3e00"), (1, "#bf5700")]))
+        p.cr.save()
+        p.cr.select_font_face("sans", 0, 1)
+        p.cr.set_font_size(26)
+        p.src("#ffffff")
+        for i, t in enumerate(["HOOK 'EM", "TEXAS FIGHT", "HOOK 'EM"]):
+            p.cr.move_to(40 + i * 260, wy + 40)
+            p.cr.show_text(t)
+        p.cr.restore()
+        p.fill_rect(0, wy - 60 if wall_at_top else wy + 60, W, 60, "#3a3440")
+    # mowing: a shade every five yards
+    for yd in range(-10, 110, 5):
+        if (yd // 5) % 2 == 0:
+            p.fill_rect(0, field_y(yd + 5), W, 5 * FIELD_YD, hexc("#ffffff", 0.05))
+    # the end zones
+    for (a, b, word, col) in ((100, 110, "TEXAS", "#bf5700"), (-10, 0, "LONGHORNS", "#bf5700")):
+        y0, y1 = field_y(b), field_y(a)
+        p.fill_rect(12, y0, W - 24, y1 - y0, col)
+        for i in range(-10, 40):
+            x = i * 26
+            p.poly([(x, y0), (x + 10, y0), (x + 10 + (y1 - y0) * 0.6, y1), (x + (y1 - y0) * 0.6, y1)], hexc("#000000", 0.06))
+        cr = p.cr
+        cr.save()
+        cr.select_font_face("serif", 0, 1)
+        cr.set_font_size(96 if word == "TEXAS" else 78)
+        e = cr.text_extents(word)
+        ty = (y0 + y1) / 2 + e.height / 2
+        if word == "LONGHORNS":
+            cr.translate(W / 2, (y0 + y1) / 2)
+            cr.rotate(math.pi)
+            cr.translate(-W / 2, -(y0 + y1) / 2)
+        p.src(hexc("#000000", 0.25))
+        cr.move_to(W / 2 - e.width / 2 - e.x_bearing + 3, ty + 3)
+        cr.show_text(word)
+        p.src("#ffffff")
+        cr.move_to(W / 2 - e.width / 2 - e.x_bearing, ty)
+        cr.show_text(word)
+        cr.restore()
+    # the lines: sidelines, goal lines, every five yards; hashes every yard
+    white = hexc("#ffffff", 0.9)
+    p.fill_rect(8, field_y(110), 6, field_y(-10) - field_y(110), white)
+    p.fill_rect(W - 14, field_y(110), 6, field_y(-10) - field_y(110), white)
+    for yd in range(0, 101, 5):
+        p.fill_rect(12, field_y(yd) - 2, W - 24, 4 if yd % 10 == 0 else 3, white)
+    for yd in range(1, 100):
+        y = field_y(yd)
+        for x in (26, 300, 468, W - 26):
+            p.fill_rect(x - 7, y - 1, 14, 2, white)
+    p.fill_rect(12, field_y(110) - 3, W - 24, 5, white)
+    p.fill_rect(12, field_y(-10) - 2, W - 24, 5, white)
+    # the numbers, turned to face the sidelines, with the arrows toward the nearer goal
+    for yd in range(10, 100, 10):
+        n = yd if yd <= 50 else 100 - yd
+        t = f"{n // 10} {n % 10}"
+        y = field_y(yd)
+        numeral(p, 82, y, t, 44, math.pi / 2)
+        numeral(p, W - 82, y, t, 44, -math.pi / 2)
+        if yd != 50:
+            d = 1 if yd > 50 else -1                         # the arrow points at the nearer goal
+            for x in (82 + 14, W - 82 - 14):
+                p.poly([(x - 14 if x < W / 2 else x + 14, y - d * 44), (x - 20 if x < W / 2 else x + 8, y - d * 36),
+                        (x - 8 if x < W / 2 else x + 20, y - d * 36)], white)
+    # the longhorn at midfield
+    longhorn(p, W / 2, field_y(50) + 20, 170)
+    # the goal posts, from above: the crossbar and the two uprights' shadows
+    for yd, d in ((110, -1), (-10, 1)):
+        y = field_y(yd) + d * 4
+        p.fill_rect(W / 2 - 66, y - 3, 132, 6, "#f2d22a")
+    p.grain(0.025, 13)
+    return p
+
+
+PAINTS["field_long"] = field_long
+
+
+# ------------------------------------------------------------------ the crowd, close (Hook 'em)
+def fan_close(p, x, y, s, r):
+    """A fan in the stands, close: shoulders in the shirt, a head (a cap or a cowboy hat sometimes), an arm up."""
+    shirt = "#e86a10" if r.random() < 0.7 else ("#f4f1ea" if r.random() < 0.8 else "#2a2a30")
+    skin = ["#f0c9a8", "#c99572", "#8a5a3c", "#f6d8c0", "#6a4430"][r.randrange(5)]
+    hair = ["#2a1c14", "#5a3a20", "#b08a50", "#111111", "#7a4020"][r.randrange(5)]
+    # shoulders
+    p.fill_path([("M", x - 13 * s, y + 6 * s), ("C", x - 13 * s, y - 8 * s, x - 7 * s, y - 12 * s, x, y - 12 * s),
+                 ("C", x + 7 * s, y - 12 * s, x + 13 * s, y - 8 * s, x + 13 * s, y + 6 * s), ("Z",)],
+                p.lin(x - 13 * s, 0, x + 13 * s, 0, [(0, mix(shirt, "#000000", 0.25)), (0.5, shirt), (1, mix(shirt, "#000000", 0.15))]))
+    # an arm up: Hook 'em, or just a fist
+    if r.random() < 0.3:
+        ax = x + (9 if r.random() < 0.5 else -9) * s
+        p.fill_rect(ax - 2 * s, y - 34 * s, 4 * s, 24 * s, skin)
+        p.circle(ax, y - 34 * s, 3.2 * s, skin)
+        if r.random() < 0.7:
+            p.fill_rect(ax - 2.4 * s, y - 43 * s, 1.6 * s, 8 * s, skin)
+            p.fill_rect(ax + 1.0 * s, y - 42 * s, 1.6 * s, 7 * s, skin)
+    # the head
+    p.ellipse(x, y - 17 * s, 5.6 * s, 6.4 * s, skin)
+    k = r.random()
+    if k < 0.18:                                             # a cowboy hat
+        p.ellipse(x, y - 21 * s, 10 * s, 2.6 * s, "#e8d6b0" if r.random() < 0.6 else "#3a2a20")
+        p.fill_rect(x - 5 * s, y - 28 * s, 10 * s, 7 * s, "#e8d6b0" if r.random() < 0.6 else "#3a2a20")
+    elif k < 0.4:                                            # a cap
+        p.fill_path([("M", x - 6 * s, y - 19 * s), ("C", x - 6 * s, y - 26 * s, x + 6 * s, y - 26 * s, x + 6 * s, y - 19 * s), ("Z",)],
+                    "#bf5700" if r.random() < 0.7 else "#f4f1ea")
+    else:
+        p.fill_path([("M", x - 5.8 * s, y - 18 * s), ("C", x - 6 * s, y - 25 * s, x + 6 * s, y - 25 * s, x + 5.8 * s, y - 18 * s), ("Z",)], hair)
+
+
+def crowd_close():
+    p = Paint()
+    p.fill_rect(0, 0, W, H, p.lin(0, 0, 0, H, [(0, "#0a0a14"), (0.15, "#1a1622"), (0.65, "#2a1a18"), (1, "#120a08")]))
+    # the light banks up on the rim, their glare
+    for lx in (120, 384, 648):
+        p.glow(lx, 50, 260, "#fff4d8", 0.35, 0.6)
+        p.fill_rect(lx - 70, 30, 140, 40, "#2a2c34")
+        for i in range(6):
+            for j in range(2):
+                p.fill_rect(lx - 64 + i * 22, 34 + j * 18, 18, 14, "#fffbe8")
+    # the stands: rows of fans from the back (small) to the front (big)
+    r = rng(21)
+    p.fill_rect(0, 140, W, 540, "#2a2430")
+    rows = 13
+    for i in range(rows):
+        k = i / (rows - 1)
+        y = 160 + k * k * 380 + k * 120
+        s = 0.75 + k * 1.15
+        p.fill_rect(0, y + 4 * s, W, 6 * s, hexc("#4a4250", 0.8))
+        x = -10 + r.random() * 20 * s
+        while x < W + 20:
+            fan_close(p, x, y, s, r)
+            x += 22 * s * (0.9 + r.random() * 0.3)
+    # signs held up
+    for (x, y, t, col) in ((140, 330, "HOOK 'EM", "#ffffff"), (560, 300, "TEXAS FIGHT", "#ffffff"), (390, 470, "HORNS UP", "#ffffff")):
+        p.fill_rect(x - 58, y - 18, 116, 34, "#bf5700")
+        p.cr.save()
+        p.cr.select_font_face("sans", 0, 1)
+        p.cr.set_font_size(15)
+        e = p.cr.text_extents(t)
+        p.src(col)
+        p.cr.move_to(x - e.width / 2 - e.x_bearing, y + 5)
+        p.cr.show_text(t)
+        p.cr.restore()
+    # the rail, then the dark below where the hand comes up
+    p.fill_rect(0, 676, W, 10, "#8a8d96")
+    p.fill_rect(0, 686, W, H - 686, p.lin(0, 686, 0, H, [(0, "#1c120c"), (1, "#0a0604")]))
+    p.glow(384, 860, 360, "#ff7a1a", 0.18, 0.6)
+    p.grain(0.02, 15)
+    return p
+
+
+PAINTS["crowd_close"] = crowd_close
