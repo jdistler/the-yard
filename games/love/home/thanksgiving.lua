@@ -136,12 +136,21 @@ end
 -- ------------------------------------------------------------------ the scenes
 local D = {}
 
+-- the painted picture for a scene, if the SD card has it: drawn, true
+local function art(name, a)
+  local img = S.art[name]
+  if not img then return false end
+  lg.setColor(1, 1, 1, a or 1)
+  lg.draw(img, 0, 0)
+  return true
+end
+
 local function leaves_back()
   lg.setColor(1, 1, 1, 1)
 end
 
 function D.open(lt, len)
-  G:gradient(0, 0, W, H, {0.3, 0.12, 0.08}, {0.75, 0.38, 0.12})
+  if not art("open") then G:gradient(0, 0, W, H, {0.3, 0.12, 0.08}, {0.75, 0.38, 0.12}) end
   C.fx.glow(384, 460, 300, 260, 1, 0.6, 0.2, 0.3)
   local a = L.window(lt, 0.4, 4, 0.7)
   G:caption("PARTYCADE", 400, 54, 0xff4fd8, a)
@@ -150,6 +159,8 @@ function D.open(lt, len)
 end
 
 function D.parade(lt, len)
+  local painted = art("parade")
+  if not painted then
   G:gradient(0, 0, W, 560, {0.45, 0.62, 0.9}, {0.86, 0.9, 0.98})
   -- buildings both sides
   for i, b in ipairs({{0, 120, 380, {0.55, 0.45, 0.42}}, {120, 100, 300, {0.62, 0.55, 0.5}}, {548, 110, 340, {0.5, 0.48, 0.55}},
@@ -171,6 +182,7 @@ function D.parade(lt, len)
   end
   lg.setColor(0.6, 0.6, 0.65, 1)
   lg.rectangle("fill", 0, 636, W, 8)
+  end
   -- the balloons, one after another, with their handlers and ropes
   local order = {"pac", "ghost", "turkey"}
   for i, kind in ipairs(order) do
@@ -218,6 +230,8 @@ function D.parade(lt, len)
 end
 
 function D.chase(lt, len)
+  local painted = art("farm")
+  if not painted then
   G:gradient(0, 0, W, 600, {0.5, 0.7, 0.95}, {0.95, 0.85, 0.7})
   -- the barn, the fence, the field
   lg.setColor(0.65, 0.15, 0.12, 1)
@@ -246,6 +260,7 @@ function D.chase(lt, len)
     lg.setColor(0.3, 0.5, 0.2, 1)
     lg.rectangle("fill", 478 + i * 60, 936 - (i % 2) * 20, 4, 8)
   end
+  end
   -- the chase: laps of the yard; the turkey hides behind the bale, Pac-Man runs past, the turkey goes the other way
   local p = (lt % 30) / 30
   local tx, ty, tdir, px, pdir
@@ -272,8 +287,15 @@ function D.chase(lt, len)
   turkey(tx, ty, 1.5, tdir, S.t, lt < 60 or (lt > 60 and lt < 62), lt >= 80 and 1 or 0.8)
   C.fx.chomper(px, 820, 34, pdir, S.t, 1)
   if lt > 60 and lt < 80 then
-    lg.setColor(0.92, 0.78, 0.35, 1)
-    lg.rectangle("fill", 60, 790, 120, 60, 8, 8, 6)
+    if painted then
+      -- the painted bale, over the turkey hiding behind it
+      S.bale_q = S.bale_q or lg.newQuad(56, 786, 128, 68, W, H)
+      lg.setColor(1, 1, 1, 1)
+      lg.draw(S.art.farm, S.bale_q, 56, 786)
+    else
+      lg.setColor(0.92, 0.78, 0.35, 1)
+      lg.rectangle("fill", 60, 790, 120, 60, 8, 8, 6)
+    end
   end
   if lt >= 80 then
     lg.setColor(1, 0.82, 0.25, 1)
@@ -286,6 +308,11 @@ end
 
 function D.autumn(lt, len)
   local k = lt / len
+  local painted = S.art.autumn_day and S.art.autumn_dusk
+  if painted then
+    art("autumn_day")
+    art("autumn_dusk", ease(k))
+  else
   G:gradient(0, 0, W, 700, mix({0.4, 0.5, 0.85}, {0.3, 0.2, 0.45}, k), mix({1, 0.75, 0.45}, {1, 0.5, 0.3}, k))
   C.fx.glow(560, 560, 260, 160, 1, 0.6, 0.3, 0.45)
   -- the hills, the oak in its colours
@@ -313,6 +340,7 @@ function D.autumn(lt, len)
     lg.setColor(0.3, 0.5, 0.2, 1)
     lg.rectangle("fill", p[1] - 2, p[2] - p[3] * 1.4, 4, 10)
   end
+  end
   local rock = sin(S.t * 1.2) * 0.08
   lg.push()
   lg.translate(620, 760)
@@ -329,6 +357,8 @@ function D.autumn(lt, len)
 end
 
 function D.table(lt, len)
+  local painted = art("table")
+  if not painted then
   G:gradient(0, 0, W, H, {0.35, 0.2, 0.12}, {0.2, 0.1, 0.06})
   -- the window, the wallpaper stripes
   lg.setColor(0.4, 0.25, 0.15, 1)
@@ -345,6 +375,7 @@ function D.table(lt, len)
   lg.rectangle("fill", 40, 600, 688, 340, 12, 12, 6)
   lg.setColor(0.95, 0.92, 0.85, 1)
   lg.rectangle("fill", 70, 620, 628, 290, 10, 10, 6)
+  end
   -- the guests: ghosts left and right, Pac-Man at the head
   for i, c in ipairs(GHOSTS) do
     local side = i <= 2 and -1 or 1
@@ -354,6 +385,7 @@ function D.table(lt, len)
   end
   C.fx.chomper(384, 520, 50, 1, S.t * 0.3, 1)
   -- the feast
+  if not painted then
   roast(384, 720, 1)
   pie(170, 820, 50, "pumpkin", 0)
   pie(600, 820, 50, "pecan", 0)
@@ -367,6 +399,7 @@ function D.table(lt, len)
   lg.ellipse("fill", 580, 668, 34, 18, 20)
   lg.setColor(0.6, 0.4, 0.2, 1)
   lg.ellipse("fill", 580, 660, 14, 6, 12)
+  end
   -- the carving: a knife going up and down at Pac-Man's place
   local cut = abs(sin(S.t * 3)) * 18
   lg.setColor(0.8, 0.82, 0.86, 1)
@@ -378,10 +411,13 @@ function D.table(lt, len)
 end
 
 function D.football(lt, len)
+  local painted = art("football")
+  if not painted then
   G:gradient(0, 0, W, H, {0.18, 0.14, 0.2}, {0.1, 0.08, 0.12})
   -- the TV with a game on: Texas and A&M
   lg.setColor(0.08, 0.08, 0.1, 1)
   lg.rectangle("fill", 134, 140, 500, 320, 12, 12, 6)
+  end
   G:gradient(150, 156, 618, 444, {0.2, 0.55, 0.2}, {0.15, 0.45, 0.15})
   lg.setColor(1, 1, 1, 0.8)
   for i = 0, 6 do lg.rectangle("fill", 150 + i * 78, 156, 3, 288) end
@@ -393,6 +429,7 @@ function D.football(lt, len)
   lg.setColor(0, 0, 0, 0.7)
   lg.rectangle("fill", 150, 410, 468, 34)
   G:text("TEX 24   TA&M 17   4TH 2:00", 150, 416, 22, {1, 1, 1}, 1, "center", 468)
+  if not painted then
   lg.setColor(0.25, 0.2, 0.18, 1)
   lg.rectangle("fill", 360, 460, 48, 40)
   -- the couch, everyone on it
@@ -401,6 +438,7 @@ function D.football(lt, len)
   lg.rectangle("fill", 40, 700, 688, 90, 30, 30, 8)
   lg.setColor(0.55, 0.32, 0.22, 1)
   lg.rectangle("fill", 80, 800, 608, 80, 20, 20, 8)
+  end
   for i, c in ipairs(GHOSTS) do
     local x = 130 + (i - 1) * 110 + (i > 2 and 140 or 0)
     C.fx.ghost(x, 760 + (i == 3 and abs(sin(S.t * 6)) * -14 or 0), 38, c, 1, S.t + i, false, false, 1)
@@ -421,9 +459,11 @@ function D.football(lt, len)
 end
 
 function D.pie(lt, len)
-  G:gradient(0, 0, W, H, {0.98, 0.9, 0.78}, {0.92, 0.75, 0.55})
-  lg.setColor(0.85, 0.65, 0.45, 1)
-  lg.rectangle("fill", 0, 700, W, 324)
+  if not art("pie") then
+    G:gradient(0, 0, W, H, {0.98, 0.9, 0.78}, {0.92, 0.75, 0.55})
+    lg.setColor(0.85, 0.65, 0.45, 1)
+    lg.rectangle("fill", 0, 700, W, 324)
+  end
   local gone = floor(lt / 6) % 6
   pie(200, 520, 100, "pecan", gone)
   pie(570, 520, 100, "pumpkin", (gone + 2) % 6)
@@ -436,7 +476,7 @@ function D.pie(lt, len)
 end
 
 function D.finale(lt, len)
-  G:gradient(0, 0, W, H, {0.35, 0.15, 0.08}, {0.8, 0.42, 0.15})
+  if not art("finale") then G:gradient(0, 0, W, H, {0.35, 0.15, 0.08}, {0.8, 0.42, 0.15}) end
   C.fx.glow(384, 460, 340, 260, 1, 0.65, 0.25, 0.35)
   turkey(384, 640, 2.2, 1, S.t, false, 1)
   G:caption("HAPPY", 300, 56, 0xffffff, L.window(lt, 0.5, len, 1))
@@ -460,6 +500,10 @@ function M.start(seed, at)
   G:begin(seed)
   S = {t = at or 0}
   G.t, G.prev = S.t, S.t - 0.001
+  S.art = {}
+  for _, n in ipairs({"open", "parade", "farm", "autumn_day", "autumn_dusk", "table", "football", "pie", "finale"}) do
+    S.art[n] = G:art("thanksgiving", n)
+  end
   for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
   for _, l in ipairs({{"PARTYCADE", 54, 0xff4fd8}, {"PRESENTS", 26, 0x6ef0c8}, {"THANKSGIVING", 72, 0xffb347},
                       {"HAPPY", 56, 0xffffff}, {"PARDONED!", 56, 0xffd23f}, {"GRATEFUL FOR YOU", 40, 0xffd23f},
