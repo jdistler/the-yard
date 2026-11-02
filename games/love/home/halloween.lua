@@ -165,8 +165,17 @@ end
 -- ------------------------------------------------------------------ the scenes
 local D = {}
 
+-- the painted picture for a scene, if the SD card has it: drawn, true
+local function art(name, a)
+  local img = S.art[name]
+  if not img then return false end
+  lg.setColor(1, 1, 1, a or 1)
+  lg.draw(img, 0, 0)
+  return true
+end
+
 function D.open(lt, len)
-  G:gradient(0, 0, W, H, {0.04, 0.0, 0.08}, {0.15, 0.04, 0.12})
+  if not art("open") then G:gradient(0, 0, W, H, {0.04, 0.0, 0.08}, {0.15, 0.04, 0.12}) end
   local flash = (lt > 1.5 and lt < 1.7) or (lt > 6 and lt < 6.15)
   if flash then lg.setColor(0.8, 0.8, 1, 0.5) lg.rectangle("fill", 0, 0, W, H) end
   for i = 1, 6 do bat(((S.t * 60 + i * 140) % (W + 120)) - 60, 200 + sin(S.t + i) * 60 + i * 40, 1.2, S.t + i) end
@@ -177,6 +186,9 @@ function D.open(lt, len)
 end
 
 function D.house(lt, len)
+  local painted = art("house")
+  local hx, hy = 384, 600
+  if not painted then
   G:gradient(0, 0, W, 700, {0.05, 0.02, 0.12}, {0.3, 0.12, 0.3})
   for i, s in ipairs(S.stars) do
     lg.setColor(1, 1, 0.9, 0.3 + 0.4 * sin(S.t + i))
@@ -186,13 +198,13 @@ function D.house(lt, len)
   -- the hill, the house on it
   lg.setColor(0.06, 0.04, 0.1, 1)
   lg.ellipse("fill", 384, 760, 520, 200, 48)
-  local hx, hy = 384, 600
   lg.setColor(0.1, 0.07, 0.13, 1)
   lg.rectangle("fill", hx - 150, hy - 140, 300, 160)
   lg.polygon("fill", hx - 170, hy - 140, hx + 170, hy - 140, hx, hy - 260)
   lg.rectangle("fill", hx + 70, hy - 300, 50, 170)
   lg.polygon("fill", hx + 60, hy - 300, hx + 130, hy - 300, hx + 95, hy - 360)
   lg.rectangle("fill", hx - 140, hy - 210, 14, 70)
+  end
   -- the windows, flickering
   for i, w in ipairs({{-110, -110}, {-40, -110}, {40, -110}, {-110, -50}, {80, -50}, {95, -260}}) do
     local on = (floor(S.t * (1 + i * 0.3)) + i) % 4 ~= 0
@@ -201,6 +213,7 @@ function D.house(lt, len)
   end
   -- a ghost at the attic window, now and then
   if floor(S.t / 6) % 2 == 0 then C.fx.ghost(hx + 95, hy - 230, 14, GHOSTS[3], 1, S.t, false, false, 0.8) end
+  if not painted then
   lg.setColor(0.04, 0.03, 0.06, 1)
   lg.rectangle("fill", hx - 20, hy - 30, 40, 50)
   dead_tree(120, 760, 1.3)
@@ -212,6 +225,7 @@ function D.house(lt, len)
   lg.setColor(0.02, 0.02, 0.04, 1)
   for x = 0, W, 24 do lg.polygon("fill", x, 950, x + 6, 930, x + 12, 950, x + 12, 1024, x, 1024) end
   lg.rectangle("fill", 0, 960, W, 6)
+  end
   for i = 1, 5 do bat(((S.t * (40 + i * 6) + i * 180) % (W + 160)) - 80, 300 + sin(S.t * 0.8 + i * 2) * 120, 0.9, S.t + i) end
   -- lightning now and then
   local fl = (S.t % 13)
@@ -222,11 +236,13 @@ function D.house(lt, len)
 end
 
 function D.pumpkins(lt, len)
-  G:gradient(0, 0, W, H, {0.12, 0.06, 0.12}, {0.06, 0.03, 0.06})
-  lg.setColor(0.35, 0.22, 0.14, 1)
-  lg.rectangle("fill", 0, 620, W, 404)
-  lg.setColor(0.28, 0.17, 0.1, 1)
-  for y = 640, 1024, 46 do lg.rectangle("fill", 0, y, W, 3) end
+  if not art("kitchen") then
+    G:gradient(0, 0, W, H, {0.12, 0.06, 0.12}, {0.06, 0.03, 0.06})
+    lg.setColor(0.35, 0.22, 0.14, 1)
+    lg.rectangle("fill", 0, 620, W, 404)
+    lg.setColor(0.28, 0.17, 0.1, 1)
+    for y = 640, 1024, 46 do lg.rectangle("fill", 0, y, W, 3) end
+  end
   local faces = {"pac", "tri", "ghost", "tri", "tri", "pac"}
   local lit = lt > 50
   if lit then
@@ -253,17 +269,24 @@ function D.pumpkins(lt, len)
 end
 
 function D.trick(lt, len)
+  local painted = art("street")
+  if not painted then
   G:gradient(0, 0, W, 700, {0.05, 0.03, 0.15}, {0.2, 0.1, 0.25})
   moon(120, 140, 60)
+  end
   -- the street: three houses, porch lights, doors that open
   for i = 0, 2 do
     local x = 30 + i * 250
-    lg.setColor(0.14 + i * 0.03, 0.1, 0.16, 1)
-    lg.rectangle("fill", x, 420, 210, 330)
-    lg.polygon("fill", x - 10, 420, x + 220, 420, x + 105, 330)
     local door = ((lt + i * 9) % 27) < 5
-    lg.setColor(door and 1 or 0.3, door and 0.8 or 0.2, door and 0.4 or 0.1, 1)
-    lg.rectangle("fill", x + 80, 620, 50, 130)
+    if not painted then
+      lg.setColor(0.14 + i * 0.03, 0.1, 0.16, 1)
+      lg.rectangle("fill", x, 420, 210, 330)
+      lg.polygon("fill", x - 10, 420, x + 220, 420, x + 105, 330)
+    end
+    if door or not painted then
+      lg.setColor(door and 1 or 0.3, door and 0.8 or 0.2, door and 0.4 or 0.1, 1)
+      lg.rectangle("fill", x + 80, 620, 50, 130)
+    end
     lg.setColor(1, 0.85, 0.4, 0.9)
     lg.circle("fill", x + 145, 640, 6, 10)
     C.fx.glow(x + 145, 640, 50, 50, 1, 0.8, 0.3, 0.3)
@@ -273,7 +296,7 @@ function D.trick(lt, len)
       lg.ellipse("fill", x + 105, 690, 28, 12, 16)
     end
   end
-  G:gradient(0, 750, W, H, {0.18, 0.18, 0.2}, {0.12, 0.12, 0.14})
+  if not painted then G:gradient(0, 750, W, H, {0.18, 0.18, 0.2}, {0.12, 0.12, 0.14}) end
   -- the trick-or-treaters walking the street: Pac-Man under a sheet, the ghosts as Pac-Men
   local x0 = -200 + ((lt * 32) % (W + 500))
   -- Pac-Man as a ghost: a white sheet with eye holes (and the mouth wedge peeking at the bottom)
@@ -303,10 +326,12 @@ function D.trick(lt, len)
 end
 
 function D.graveyard(lt, len)
-  G:gradient(0, 0, W, 760, {0.03, 0.05, 0.12}, {0.12, 0.2, 0.25})
-  moon(384, 260, 150)
-  for i, t in ipairs({{80, 860}, {200, 880}, {560, 880}, {690, 860}}) do tombstone(t[1], t[2], 70, 60, nil) end
-  G:gradient(0, 760, W, H, {0.08, 0.12, 0.1}, {0.04, 0.06, 0.05})
+  if not art("graveyard") then
+    G:gradient(0, 0, W, 760, {0.03, 0.05, 0.12}, {0.12, 0.2, 0.25})
+    moon(384, 260, 150)
+    for i, t in ipairs({{80, 860}, {200, 880}, {560, 880}, {690, 860}}) do tombstone(t[1], t[2], 70, 60, nil) end
+    G:gradient(0, 760, W, H, {0.08, 0.12, 0.1}, {0.04, 0.06, 0.05})
+  end
   -- the dancers: skeletons and ghosts in a line, in step
   for i = 0, 3 do
     skeleton(160 + i * 150, 900, 1.1, S.t * 1.0 + i * 0.5)
@@ -320,8 +345,11 @@ function D.graveyard(lt, len)
 end
 
 function D.witch(lt, len)
-  G:gradient(0, 0, W, H, {0.04, 0.02, 0.1}, {0.25, 0.08, 0.25})
-  moon(384, 380, 220)
+  local painted = art("witch")
+  if not painted then
+    G:gradient(0, 0, W, H, {0.04, 0.02, 0.1}, {0.25, 0.08, 0.25})
+    moon(384, 380, 220)
+  end
   -- the witch on her broom, across the moon
   local p = (lt % 24) / 24
   local x, y = lerp(-150, W + 150, p), 420 - sin(p * pi) * 160
@@ -343,9 +371,11 @@ function D.witch(lt, len)
     if G.R:random() < 0.3 then G:spark(x - 110, y + 10, -40, (G.R:random() - 0.5) * 30, 1, {0.6, 1, 0.4}, 5, 30, true) end
   end
   -- the cauldron, bubbling
-  lg.setColor(0.08, 0.08, 0.1, 1)
-  lg.ellipse("fill", 384, 880, 140, 90, 32)
-  lg.rectangle("fill", 250, 820, 268, 30, 10, 10, 6)
+  if not painted then
+    lg.setColor(0.08, 0.08, 0.1, 1)
+    lg.ellipse("fill", 384, 880, 140, 90, 32)
+    lg.rectangle("fill", 250, 820, 268, 30, 10, 10, 6)
+  end
   lg.setColor(0.35, 0.9, 0.3, 1)
   lg.ellipse("fill", 384, 830, 120, 22, 32)
   for i = 0, 5 do
@@ -398,14 +428,17 @@ function D.dark(lt, len)
 end
 
 function D.finale(lt, len)
-  G:gradient(0, 0, W, H, {0.08, 0.02, 0.12}, {0.25, 0.08, 0.15})
-  moon(600, 160, 70)
+  local painted = art("finale")
+  if not painted then
+    G:gradient(0, 0, W, H, {0.08, 0.02, 0.12}, {0.25, 0.08, 0.15})
+    moon(600, 160, 70)
+  end
   for i = 1, 6 do bat(((S.t * 50 + i * 130) % (W + 120)) - 60, 120 + sin(S.t + i) * 40 + i * 30, 1, S.t + i) end
   G:caption("HAPPY", 300, 56, 0xffffff, L.window(lt, 0.5, len, 1))
   G:caption("HALLOWEEN", 370, 84, 0xff8000, L.window(lt, 1, len, 1))
   local faces = {"pac", "tri", "ghost", "tri", "pac"}
   for i = 1, 5 do pumpkin(110 + (i - 1) * 137, 760, 56, {faces[i], 1}, true, S.t) end
-  G:gradient(0, 840, W, H, {0.08, 0.05, 0.08}, {0.03, 0.02, 0.04})
+  if not painted then G:gradient(0, 840, W, H, {0.08, 0.05, 0.08}, {0.03, 0.02, 0.04}) end
 end
 
 -- ------------------------------------------------------------------ the show
@@ -425,6 +458,10 @@ function M.start(seed, at)
   G:begin(seed)
   S = {t = at or 0}
   G.t, G.prev = S.t, S.t - 0.001
+  S.art = {}
+  for _, n in ipairs({"open", "house", "kitchen", "street", "graveyard", "witch", "finale"}) do
+    S.art[n] = G:art("halloween", n)
+  end
   local R = G.R
   S.stars = {}
   for i = 1, 80 do S.stars[i] = {R:random() * W, R:random() * 600} end
