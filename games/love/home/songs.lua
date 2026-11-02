@@ -944,6 +944,71 @@ M.hw_finale = {
   order = {"A", "B", "A", "B"},
 }
 
+-- ------------------------------------------------------------------ New Year's Eve (newyear.lua): Auld Lang Syne
+-- (public domain) and ours
+M.ny_disco = {
+  bpm = 120, gain = 1, echo = {time = 0.375, fb = 0.3, mix = 0.2}, drums_send = 0.2,
+  inst = {lead = copy(LEAD, {duty = 0.5, vol = 0.1, send = 0.3}), bass = {wave = "saw", a = 0.003, d = 0.12, s = 0.5, r = 0.05, vol = 0.14, lp = 700},
+          stab = copy(BRASS_PAD, {a = 0.005, d = 0.15, s = 0.3, r = 0.1, vol = 0.08})},
+  parts = {
+    A = {lead = "e5*2 .*2 e5*2 g5*2 a5*4 g5*2 e5*2 | d5*2 .*2 d5*2 e5*2 g5*4 e5*4 | c5*2 .*2 c5*2 d5*2 e5*4 d5*2 c5*2 | b4*2 c5*2 d5*2 e5*2 g#5*8",
+         bass = string.rep("a2*2 a3*2 ", 4) .. string.rep("g2*2 g3*2 ", 4) .. string.rep("f2*2 f3*2 ", 4) .. string.rep("e2*2 e3*2 ", 4),
+         stab = ".*2 Am*2 .*4 .*2 Am*2 .*4 | .*2 G*2 .*4 .*2 G*2 .*4 | .*2 F*2 .*4 .*2 F*2 .*4 | .*2 E*2 .*4 .*2 E*2 .*4",
+         drums = "k*2 o*2 k+x*2 o*2"},
+  },
+  order = {"A", "A", "A", "A"},
+}
+
+M.ny_rag = {
+  bpm = 120, gain = 1,
+  inst = {lead = copy(GUITAR, {vol = 0.1, d = 0.3, s = 0.3}), chord = copy(CHOP, {vol = 0.06, oct = 4}),
+          bass = copy(BASS, {gate = 0.5, vol = 0.4})},
+  parts = {
+    A = {lead = "e5*2 c5*2 g4*2 c5*2 e5*4 g5*4 | f5*2 d5*2 a4*2 d5*2 f5*8 | e5*2 g5*2 c6*2 g5*2 a5*2 f5*2 d5*2 b4*2 | c5*4 g4*4 c5*8",
+         chord = ".*4 C*4 .*4 C*4 | .*4 Dm*4 .*4 Dm*4 | .*4 C*4 .*4 G7*4 | .*4 G7*4 .*4 C*4",
+         bass = "c2*4 .*4 g2*4 .*4 | d2*4 .*4 a2*4 .*4 | c2*4 .*4 g2*4 .*4 | g2*4 .*4 c2*4 .*4", drums = "k*4 s?*4"},
+  },
+  order = {"A", "A", "A+5", "A"},
+}
+
+M.ny_countdown = {
+  bpm = 100, gain = 1,
+  inst = {arp = copy(ARP, {arp = "up", oct = 4, vol = 0.05}), bass = copy(BASS, {vol = 0.4, gate = 0.5}),
+          pad = copy(BRASS_PAD, {vol = 0.05, a = 1})},
+  parts = {
+    A = {arp = "Am*16 | F*16 | C*16 | E*16", pad = "Am*16 F*16 C*16 E*16", bass = string.rep("a1*2 ", 8) .. string.rep("f1*2 ", 8) .. string.rep("c2*2 ", 8) .. string.rep("e1*2 ", 8),
+         drums = "k*4 s?*4 k*4 s?*4 | k*4 s?*4 k*4 s?*2 s?*2 | k*4 s*4 k*4 s*2 s*2 | s? s? s s s s s! s! s! s! s! s! s! s! s! s!"},
+  },
+  order = {"A"},
+}
+
+M.ny_midnight = {
+  bpm = 132, gain = 1,
+  inst = {lead = copy(TRUMPET, {vol = 0.12}), lead_2 = copy(BELL, {vol = 0.1}), brass = BRASS_PAD, bass = copy(BASS, {gate = 0.6, vol = 0.4})},
+  parts = {
+    A = {lead = "c5*4 e5*4 g5*4 c6*4 | b5*4 g5*4 d6*8 | c6*4 a5*4 f5*4 a5*4 | g5*16", brass = "C*16 G*16 F*16 G*16",
+         bass = eights("c2", "c3") .. eights("g1", "g2") .. eights("f1", "f2") .. eights("g1", "g2"),
+         drums = "c+k*2 s*2 k*2 s*2 k*2 s*2 k*2 s*2 | k*2 s*2 k*2 s*2 k*2 s*2 s s s! s!"},
+    B = {lead = "e6*4 d6*4 c6*4 g5*4 | a5*4 b5*4 c6*8 | f5*4 a5*4 c6*4 e6*4 | d6*4 b5*4 c6*8", lead_2 = "c7*16 | e7*16 | f7*16 | g7*8 c7*8",
+         brass = "C*16 Am*16 F*16 G*8 C*8",
+         bass = eights("c2", "c3") .. eights("a1", "a2") .. eights("f1", "f2") .. "g1*2 g2*2 g1*2 g2*2 c2*2 c3*2 c2*4 ",
+         drums = "c+k*2 s*2 k*2 s*2 k*2 s*2 k*2 s*2"},
+  },
+  order = {"A", "B", "A", "B"},
+}
+
+M.ny_auld = {
+  bpm = 72, gain = 1.2, echo = {time = 0.42, fb = 0.4, mix = 0.3},
+  inst = {lead = copy(BELL, {vol = 0.2, d = 0.9, s = 0.2}), pad = CHOIR, bass = copy(PLUCK, {vol = 0.26, d = 0.6})},
+  parts = {
+    A = {lead = ".*12 c4*4 | f4*6 f4*2 f4*4 a4*4 | g4*6 f4*2 g4*4 a4*4 | f4*6 f4*2 a4*4 c5*4 | d5*12 d5*4 |" ..
+                "c5*6 a4*2 a4*4 f4*4 | g4*6 f4*2 g4*4 a4*4 | f4*6 d4*2 d4*4 c4*4 | f4*12 .*4",
+         pad = "C*16 F*16 C7*16 F*16 Bb*16 F*16 C7*16 Bb*8 C7*8 F*16",
+         bass = "c3*16 | f2*16 | c3*16 | f2*16 | bb2*16 | f2*16 | c3*16 | bb2*8 c3*8 | f2*16"},
+  },
+  order = {"A", "A+2"},
+}
+
 -- ------------------------------------------------------------------ sound effects (loop = false; steps of 1/32 s)
 local function fx(inst, lane, beats, gain)
   return {bpm = 120, steps = 16, loop = false, gain = gain or 1, inst = {x = inst}, parts = {A = {x = lane}}, order = {"A"}}

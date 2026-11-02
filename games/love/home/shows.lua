@@ -21,12 +21,14 @@ S.LIST = {
    blurb = "A day across Texas: the Gulf, the Hill Country, Austin, the Panhandle, Big Bend."},
   {id = "longhorns", title = "LONGHORNS", tint = 0xff8c1a, module = "longhorns",
    blurb = "Game day on the Forty Acres. Hook 'em! Live scores on game days."},
-  {id = "thanksgiving", title = "THANKSGIVING", tint = 0xe0903a, module = "thanksgiving",
-   blurb = "The parade, the turkey on the run, and the table."},
   {id = "halloween", title = "HALLOWEEN", tint = 0xff8000, module = "halloween",
    blurb = "The ghosts' own holiday: the haunted house, jack-o'-lanterns, trick or treat, BOO!"},
+  {id = "thanksgiving", title = "THANKSGIVING", tint = 0xe0903a, module = "thanksgiving",
+   blurb = "The parade, the turkey on the run, and the table."},
   {id = "christmas", title = "CHRISTMAS", tint = 0x5fd16a, module = "christmas",
    blurb = "Snow on the fence, lights on the house, and a Texas Santa."},
+  {id = "newyear", title = "NEW YEAR'S EVE", tint = 0xffd23f, module = "newyear",
+   blurb = "The party, the resolutions, the ball, midnight. On the night, live: the countdown ends at midnight."},
 }
 S.BY_ID = {}
 for _, s in ipairs(S.LIST) do S.BY_ID[s.id] = s end
@@ -67,6 +69,7 @@ S.nth_weekday = nth_weekday
 function S.holiday(d)
   local m, day, y = d.month, d.day, d.year
   if m == 12 and day <= 26 then return "christmas", "Christmas" end
+  if (m == 12 and day >= 27) or (m == 1 and day == 1) then return "newyear", "the new year" end
   if m == 11 then
     local tg = nth_weekday(y, 11, 5, 4)                 -- Thanksgiving: the fourth Thursday
     if day >= tg - 3 and day <= tg + 3 then return "thanksgiving", "Thanksgiving week" end
@@ -101,6 +104,9 @@ function S.pick(now, game, rot)
   local d = os.date("*t", now)
   -- (Halloween night is the point of Halloween)
   if d.month == 10 and d.day == 31 and d.hour >= 17 and S.available("halloween") then return "halloween" end
+  -- (New Year's Eve: the countdown to midnight, live, from the evening to one in the morning)
+  if ((d.month == 12 and d.day == 31 and d.hour >= 18) or (d.month == 1 and d.day == 1 and d.hour < 1)) and
+     S.available("newyear") then return "newyear" end
   if d.hour >= 22 or d.hour < 8 then return "night" end
   local h = S.holiday(d)
   if h and S.available(h) then return h end
@@ -233,6 +239,36 @@ function S.icon(id, x, cy, sc, a, t)
     lg.ellipse("fill", bx + 42 * sc, by - 22 * sc, 4 * sc, 9 * sc, 10)
     lg.setColor(0, 0, 0, a)
     lg.circle("fill", bx + 34 * sc, by - 38 * sc, 2.5 * sc, 8)
+  elseif id == "halloween" then
+    local bx, by, r = x + 90 * sc, cy + 10 * sc, 56 * sc
+    C.fx.glow(bx, by, r * 1.8, r * 1.6, 1, 0.55, 0.1, 0.35 * a)
+    lg.setColor(0.85, 0.4, 0.05, a)
+    lg.ellipse("fill", bx - r * 0.45, by, r * 0.6, r * 0.85, 20)
+    lg.ellipse("fill", bx + r * 0.45, by, r * 0.6, r * 0.85, 20)
+    lg.setColor(0.95, 0.5, 0.08, a)
+    lg.ellipse("fill", bx, by, r * 0.65, r * 0.9, 20)
+    lg.setColor(0.3, 0.45, 0.15, a)
+    lg.rectangle("fill", bx - r * 0.08, by - r * 1.1, r * 0.16, r * 0.3)
+    lg.setColor(1, 0.9, 0.45, a)
+    lg.arc("fill", "pie", bx - r * 0.3, by - r * 0.25, r * 0.2, 0.6, 2 * math.pi - 0.6, 12)
+    lg.arc("fill", "pie", bx + r * 0.3, by - r * 0.25, r * 0.2, 0.6, 2 * math.pi - 0.6, 12)
+    lg.polygon("fill", bx - r * 0.45, by + r * 0.25, bx + r * 0.45, by + r * 0.25, bx, by + r * 0.6)
+  elseif id == "newyear" then
+    local bx, by = x + 90 * sc, cy
+    lg.setColor(0.6, 0.6, 0.65, a)
+    lg.rectangle("fill", bx - 2 * sc, by - 90 * sc, 4 * sc, 40 * sc)
+    lg.setColor(0.8, 0.8, 0.86, a)
+    lg.circle("fill", bx, by, 50 * sc, 24)
+    local cols = {{1, 0.3, 0.6}, {0.3, 0.7, 1}, {1, 0.85, 0.2}, {0.5, 1, 0.5}}
+    for i = 1, 30 do
+      local an = i * 2.4 + t * 0.5
+      local rr = 44 * sc * math.sqrt((i % 10) / 10)
+      local c = cols[i % 4 + 1]
+      lg.setColor(c[1], c[2], c[3], a * ((math.floor(t * 4) + i) % 3 == 0 and 0.4 or 1))
+      lg.rectangle("fill", bx + math.cos(an) * rr - 3 * sc, by + math.sin(an) * rr - 3 * sc, 6 * sc, 6 * sc)
+    end
+    star(bx + 70 * sc, by - 60 * sc, 10 * sc, {1, 0.85, 0.3}, a)
+    star(bx - 70 * sc, by + 50 * sc, 8 * sc, {1, 0.4, 0.8}, a)
   elseif id == "christmas" then
     local bx, by = x + 90 * sc, cy
     lg.setColor(0.4, 0.25, 0.12, a)
