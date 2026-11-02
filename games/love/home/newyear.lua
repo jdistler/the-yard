@@ -1,7 +1,7 @@
 -- New Year's Eve: Home's show for the end of December. On the night itself it is live: from the evening the
 -- real time is on screen, and as midnight comes the show jumps so that its countdown ends exactly at 00:00:00,
 -- when the fireworks go up with the new year's number. Otherwise (a demo, or the days around) it plays through:
---   0:00  PARTYCADE PRESENTS ... NEW YEAR'S EVE                                   (Midnight Disco)
+--   0:00  STARLIGHT PRESENTS ... NEW YEAR'S EVE                                   (Midnight Disco)
 --   0:08  The party: a disco ball, party hats, noisemakers, balloons, the clock on the wall
 --   2:00  Resolutions: the cast's list, one by one                                (Resolution Rag)
 --   3:20  The ball: lit up on its pole over the crowd, coming down; ten, nine, ... one   (Countdown)
@@ -142,7 +142,7 @@ end
 function D.open(lt, len)
   if not art("open") then G:gradient(0, 0, W, H, {0.02, 0.02, 0.08}, {0.12, 0.06, 0.2}) end
   local a = L.window(lt, 0.5, 4, 0.7)
-  G:caption("PARTYCADE", 400, 54, 0xff4fd8, a)
+  G:brand(400, a)
   G:caption("PRESENTS", 472, 26, 0x6ef0c8, a)
   G:caption("NEW YEAR'S EVE", 430, 70, 0xffd23f, L.window(lt, 4.2, 8, 0.7))
 end
@@ -389,7 +389,7 @@ function M.start(seed, at)
   S.stars = {}
   for i = 1, 80 do S.stars[i] = {R:random() * W, R:random() * 700} end
   for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
-  for _, l in ipairs({{"PARTYCADE", 54, 0xff4fd8}, {"PRESENTS", 26, 0x6ef0c8}, {"NEW YEAR'S EVE", 70, 0xffd23f},
+  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8}, {"NEW YEAR'S EVE", 70, 0xffd23f},
                       {"HAPPY NEW YEAR", 70, 0xffd23f}, {"(RESULTS MAY VARY)", 26, 0xffd23f},
                       {"SHOULD AULD ACQUAINTANCE BE FORGOT", 26, 0xffffff}, {"THANKS FOR PLAYING THIS YEAR", 32, 0xffd23f}}) do
     G:label(l[1], l[2], l[3])

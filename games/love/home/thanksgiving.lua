@@ -1,5 +1,5 @@
 -- Thanksgiving: Home's show for the week of it (shows.lua's calendar), eight minutes:
---   0:00  PARTYCADE PRESENTS ... THANKSGIVING, leaves falling                    (Harvest Moon)
+--   0:00  STARLIGHT PRESENTS ... THANKSGIVING, leaves falling                    (Harvest Moon)
 --   0:08  The parade: giant balloons down the avenue (Pac-Man, a ghost, a turkey) with their handlers,
 --         a float, the crowd, confetti                                              (Parade Day)
 --   1:50  The Great Turkey Chase: Pac-Man after the turkey round the farmyard; the turkey hides, doubles back,
@@ -153,7 +153,7 @@ function D.open(lt, len)
   if not art("open") then G:gradient(0, 0, W, H, {0.3, 0.12, 0.08}, {0.75, 0.38, 0.12}) end
   C.fx.glow(384, 460, 300, 260, 1, 0.6, 0.2, 0.3)
   local a = L.window(lt, 0.4, 4, 0.7)
-  G:caption("PARTYCADE", 400, 54, 0xff4fd8, a)
+  G:brand(400, a)
   G:caption("PRESENTS", 472, 26, 0x6ef0c8, a)
   G:caption("THANKSGIVING", 430, 72, 0xffb347, L.window(lt, 4.2, 8, 0.7))
 end
@@ -505,7 +505,7 @@ function M.start(seed, at)
     S.art[n] = G:art("thanksgiving", n)
   end
   for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
-  for _, l in ipairs({{"PARTYCADE", 54, 0xff4fd8}, {"PRESENTS", 26, 0x6ef0c8}, {"THANKSGIVING", 72, 0xffb347},
+  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8}, {"THANKSGIVING", 72, 0xffb347},
                       {"HAPPY", 56, 0xffffff}, {"PARDONED!", 56, 0xffd23f}, {"GRATEFUL FOR YOU", 40, 0xffd23f},
                       {"WHAT ARE YOU THANKFUL FOR?", 32, 0xffffff}, {"TOUCHDOWN!", 40, 0xff8c1a},
                       {"PECAN: THE OFFICIAL STATE PIE OF TEXAS", 26, 0xffd23f}}) do G:label(l[1], l[2], l[3]) end

@@ -1,6 +1,6 @@
 -- The Freedom Show: Home's other idle show (besides the night, night.lua). A satirical, very patriotic nine and a
 -- half minutes, then it plays again with a new roll of the dice:
---   0:00  PARTYCADE PRESENTS ... THE FREEDOM SHOW                                     (fanfare)
+--   0:00  STARLIGHT PRESENTS ... THE FREEDOM SHOW                                     (fanfare)
 --   0:06  I    Morning in America: dawn, the flag goes up the pole, the bald eagle lands on it, a Pac-Man parade
 --              in Uncle Sam's hat, jets over in red, white and blue smoke, fireworks in broad daylight  (march)
 --   2:10  II   Red Alert: the sky goes red, klaxon, searchlights, BREAKING NEWS, the invaders descend  (alert)
@@ -74,13 +74,13 @@ local SKY = {
 local TICKER = {
   morning = "FREEDOM NEWS  ·  LOCAL EAGLE NAMED EMPLOYEE OF THE MONTH FOR 248TH YEAR RUNNING  ·  HOT DOG FUTURES UP 1776%  ·" ..
             "  SCIENTISTS CONFIRM FIREWORKS ARE \"VERY COOL\"  ·  WEATHER: 100% CHANCE OF LIBERTY  ·  PAC-MAN WINS PIE-EATING CONTEST, AGAIN  ·",
-  alert = "BREAKING  ·  UNIDENTIFIED FLYING OBJECTS OVER THE PARTYCADE  ·  INVADERS DEMAND METRIC SYSTEM  ·" ..
+  alert = "BREAKING  ·  UNIDENTIFIED FLYING OBJECTS OVER STARLIGHT  ·  INVADERS DEMAND METRIC SYSTEM  ·" ..
           "  EAGLE UNAVAILABLE FOR COMMENT  ·  RESIDENTS URGED TO REMAIN CALM AND KEEP GRILLING  ·",
   battle = "LIVE  ·  THE BATTLE OF THE BACKYARD  ·  INVADERS FIRE ON FLAG; FLAG \"NOT IMPRESSED\"  ·  CANNON PAINTED IN RECORD TIME  ·" ..
            "  PENTAGON: \"WE HAVE A GUY\"  ·  EXPERTS: INVADERS \"PROBABLY FRENCH\", LATER RETRACTED  ·",
   victory = "VICTORY  ·  ALIENS AGREE TO USE INCHES  ·  FLAG REPAIRED WITH 100% AMERICAN DUCT TAPE  ·  EAGLE SHEDS SINGLE TEAR  ·" ..
             "  FREE REFILLS FOR EVERYONE  ·  HOT DOGS DECLARED A VEGETABLE  ·",
-  sunset = "GOOD NIGHT, AMERICA  ·  THE PARTYCADE THANKS YOU FOR YOUR SERVICE  ·  INSERT COIN TO CONTINUE FREEDOM  ·" ..
+  sunset = "GOOD NIGHT, AMERICA  ·  STARLIGHT THANKS YOU FOR YOUR SERVICE  ·  INSERT COIN TO CONTINUE FREEDOM  ·" ..
            "  TOMORROW: MORE OF THIS  ·",
 }
 
@@ -94,7 +94,7 @@ local CAPTIONS = {
   {286, 292, "FREEDOM PELLET!", 48, 0xffd23f}, {300, 306, "FREEDOM INTENSIFIES", 42, 0xff4a5a},
   {356, 364, "CELEBRATORY HOT DOGS INBOUND", 32, 0xffd23f},
   {412, 420, "TOO MUCH FREEDOM?", 46, 0xffffff}, {421, 428, "NO SUCH THING", 50, 0xff4a5a},
-  {476, 486, "GOD BLESS THE PARTYCADE", 40, 0xffd23f}, {500, 510, "THIS SCREEN SAVER WAS PAID FOR", 30, 0xffffff},
+  {476, 486, "GOD BLESS STARLIGHT", 40, 0xffd23f}, {500, 510, "THIS SCREEN SAVER WAS PAID FOR", 30, 0xffffff},
   {510, 518, "BY FREEDOM", 50, 0xff4a5a}, {534, 546, "PRESS ANY BUTTON TO PLAY", 34, 0xffffff},
   {556, 569, "FREEDOM WILL RETURN", 44, 0xffffff},
 }
@@ -661,7 +661,7 @@ function F.start(seed, at)
   paint_flag()
   -- the labels this show uses, painted a few a frame (a canvas switch mid-frame is costly on the Mali)
   for _, cp in ipairs(CAPTIONS) do S.labels[#S.labels + 1] = {cp[3], cp[4], cp[5]} end
-  for _, l in ipairs({{"PARTYCADE", 64, 0xff4fd8}, {"PRESENTS", 30, 0x6ef0c8}, {"THE FREEDOM SHOW", 58, 0xffffff},
+  for _, l in ipairs({{"PRESENTS", 30, 0x6ef0c8}, {"THE FREEDOM SHOW", 58, 0xffffff},
                       {"MISSION ACCOMPLISHED", 46, 0xffd23f}, {"U! S! A!", 96, 0xff3344}}) do
     S.labels[#S.labels + 1] = l
   end
@@ -1436,7 +1436,7 @@ local function draw_hud()
   if act == "open" then
     local a1 = clamp(t / 1, 0, 1) * (1 - ease((t - 2.6) / 0.6))
     if a1 > 0 then
-      C.neon_draw("PARTYCADE", 0, 380, 64, 0xff4fd8, 1.4, "center", W, a1)
+      if C.brand_draw then C.brand_draw(356, 80, a1) end
       C.neon_draw("PRESENTS", 0, 470, 30, 0x6ef0c8, 0.8, "center", W, a1)
     end
     local a2 = ease((t - 3) / 0.8)

@@ -1,6 +1,6 @@
 -- Longhorns: game day on the Forty Acres. Home's show for the University of Texas (our own drawings, no
 -- official marks), thirteen minutes:
---   0:00  PARTYCADE PRESENTS ... TEXAS LONGHORNS                                  (Game Day)
+--   0:00  STARLIGHT PRESENTS ... TEXAS LONGHORNS                                  (Game Day)
 --   0:10  Game day on the Forty Acres: the Tower at sunrise, live oaks, tailgates, Bevo, fans with Hook 'em
 --   1:20  The season on the video board: every game, the results, the record, the next kickoff (utgame.season)
 --                                                                                  (Scoreboard)
@@ -226,7 +226,7 @@ function D.open(lt, len)
     L.longhorn_head(384, 420, 2.1, ORANGE_HI, 1)
   end
   local a = L.window(lt, 0.5, 4.5, 0.8)
-  G:caption("PARTYCADE", 640, 54, 0xff4fd8, a)
+  G:brand(640, a)
   G:caption("PRESENTS", 712, 26, 0x6ef0c8, a)
   local b = L.window(lt, 4.8, 10, 0.8)
   G:caption("TEXAS", 640, 96, 0xff8c1a, b)
@@ -1428,7 +1428,7 @@ function M.start(seed, at)
   for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff, s[1]) end end
   local at = {}
   for _, s in ipairs(SCENES) do at[s[2]] = s[1] end
-  for _, l in ipairs({{"PARTYCADE", 54, 0xff4fd8, 0}, {"PRESENTS", 26, 0x6ef0c8, 0}, {"TEXAS", 96, 0xff8c1a, 0},
+  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8, 0}, {"TEXAS", 96, 0xff8c1a, 0},
                       {"LONGHORNS", 54, 0xffffff, 0}, {"TEXAS!", 80, 0xff8c1a, at.hookem}, {"FIGHT!", 80, 0xffffff, at.hookem},
                       {"TOUCHDOWN TEXAS!", 64, 0xff8c1a}, {"THE GOLDEN HAT STAYS IN AUSTIN", 26, 0xffd23f, at.redriver},
                       {"THE EYES OF TEXAS ARE UPON YOU", 30, 0xffffff, at.tower + 68},

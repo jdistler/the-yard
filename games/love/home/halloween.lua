@@ -1,6 +1,6 @@
 -- Halloween: the ghosts' own holiday. Home's show for the second half of October (shows.lua's calendar; on the
 -- 31st it plays into the night), nine minutes:
---   0:00  PARTYCADE PRESENTS ... HALLOWEEN, lightning                             (Toccata, Bach, 1704)
+--   0:00  STARLIGHT PRESENTS ... HALLOWEEN, lightning                             (Toccata, Bach, 1704)
 --   0:10  The haunted house on the hill: the moon, the dead oak, bats, flickering windows, fog, the graveyard
 --   1:30  Pumpkin carving: faces cut one by one (one of them Pac-Man, one a ghost), candles lit  (Pumpkin Patch)
 --   2:40  Trick or treat: Pac-Man went as a ghost, the ghosts went as Pac-Man, door to door  (In the Hall of the
@@ -180,7 +180,7 @@ function D.open(lt, len)
   if flash then lg.setColor(0.8, 0.8, 1, 0.5) lg.rectangle("fill", 0, 0, W, H) end
   for i = 1, 6 do bat(((S.t * 60 + i * 140) % (W + 120)) - 60, 200 + sin(S.t + i) * 60 + i * 40, 1.2, S.t + i) end
   local a = L.window(lt, 0.5, 4.5, 0.8)
-  G:caption("PARTYCADE", 400, 54, 0xff4fd8, a)
+  G:brand(400, a)
   G:caption("PRESENTS", 472, 26, 0x6ef0c8, a)
   G:caption("HALLOWEEN", 430, 84, 0xff8000, L.window(lt, 4.8, 10, 0.8))
 end
@@ -468,7 +468,7 @@ function M.start(seed, at)
   S.eyes = {}
   for i = 1, 12 do S.eyes[i] = {60 + R:random() * (W - 120), 120 + R:random() * 760} end
   for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
-  for _, l in ipairs({{"PARTYCADE", 54, 0xff4fd8}, {"PRESENTS", 26, 0x6ef0c8}, {"HALLOWEEN", 84, 0xff8000},
+  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8}, {"HALLOWEEN", 84, 0xff8000},
                       {"HAPPY", 56, 0xffffff}, {"BOO!", 120, 0xffffff}, {"GOTCHA", 50, 0xff8000},
                       {"THE CANDLES ARE LIT", 34, 0xff8000}, {"NICE COSTUMES, EVERYONE", 34, 0xff8000}}) do
     G:label(l[1], l[2], l[3])

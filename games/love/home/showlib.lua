@@ -352,6 +352,12 @@ function G:caption(text, y, px, colour, alpha, sc)
   self.C.neon_draw(text, 0, y, px, colour, 1, "center", self.W, alpha, sc)
 end
 
+-- Starlight's wordmark, script neon (the shows' "STARLIGHT PRESENTS"); y: where the old caption's top was.
+function G:brand(y, alpha)
+  if alpha <= 0 or not self.C.brand_draw then return end
+  self.C.brand_draw(y - 58, 62, alpha)
+end
+
 -- A caption on a dark plate (legible over a bright daytime sky).
 function G:plate(text, y, px, colour, alpha)
   if alpha <= 0 then return end

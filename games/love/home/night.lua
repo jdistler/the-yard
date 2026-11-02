@@ -352,7 +352,7 @@ scenes.city = function(st, s, k)
   lg.setColor(1, 0.4, 0.88, k)
   lg.rectangle("line", bx - 300, by - 14, 190, 34)
   lg.setFont(C.font(22))
-  lg.print("PARTYCADE", bx - 290, by - 10)
+  lg.print("STARLIGHT", bx - 290, by - 10)
 end
 
 -- 8. A UFO: it hums across, stops over a wandering ghost, beams it up, and goes.

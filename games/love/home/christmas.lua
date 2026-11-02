@@ -1,5 +1,5 @@
 -- Christmas: Home's show for December (shows.lua's calendar), nine minutes, snow falling through most of it:
---   0:00  PARTYCADE PRESENTS ... CHRISTMAS                                         (Carol of the Bells)
+--   0:00  STARLIGHT PRESENTS ... CHRISTMAS                                         (Carol of the Bells)
 --   0:10  Snow on the cul-de-sac: the house in its lights, the tree in the window, a snowman, the yard's
 --         inflatables (Pac-Man in a Santa hat, a longhorn in one too)
 --   1:40  Santa Pac-Man's sleigh: across the moon behind four ghost reindeer, the red one's nose glowing,
@@ -194,7 +194,7 @@ function D.open(lt, len)
   if not art("open") then G:gradient(0, 0, W, H, {0.03, 0.05, 0.15}, {0.1, 0.15, 0.35}) end
   snowfall()
   local a = L.window(lt, 0.5, 4.5, 0.8)
-  G:caption("PARTYCADE", 400, 54, 0xff4fd8, a)
+  G:brand(400, a)
   G:caption("PRESENTS", 472, 26, 0x6ef0c8, a)
   G:caption("CHRISTMAS", 430, 80, 0xff4040, L.window(lt, 4.8, 10, 0.8))
 end
@@ -609,7 +609,7 @@ function M.start(seed, at)
     S.tlights[i] = {(R:random() * 2 - 1) * w * 0.9, -50 - h}
   end
   for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
-  for _, l in ipairs({{"PARTYCADE", 54, 0xff4fd8}, {"PRESENTS", 26, 0x6ef0c8}, {"CHRISTMAS", 80, 0xff4040},
+  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8}, {"CHRISTMAS", 80, 0xff4040},
                       {"MERRY CHRISTMAS", 70, 0xff4040}, {"AND A HAPPY NEW YEAR", 34, 0x5fd16a},
                       {"MERRY CHRISTMAS, Y'ALL", 34, 0xff4040}, {"O CHRISTMAS TREE", 34, 0x5fd16a}}) do
     G:label(l[1], l[2], l[3])

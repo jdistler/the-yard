@@ -1,5 +1,5 @@
 -- Summer: a Central Texas summer, eight minutes (June to August in AUTO's rotation):
---   0:00  PARTYCADE PRESENTS ... SUMMER                                             (Lake Day)
+--   0:00  STARLIGHT PRESENTS ... SUMMER                                             (Lake Day)
 --   0:08  Lake Travis: limestone cliffs, boats and their wakes, a sailboat, Pac-Man on a float, the ghosts on a
 --         pontoon, a cannonball off the cliff
 --   1:30  Barton Springs: 68 degrees all year (one ghost shivering), the diving board, the hill  (Springs Bossa)
@@ -88,7 +88,7 @@ function D.open(lt, len)
     sun(384, 330, 90)
   end
   local a = L.window(lt, 0.4, 4, 0.7)
-  G:caption("PARTYCADE", 560, 54, 0xff4fd8, a)
+  G:brand(560, a)
   G:caption("PRESENTS", 632, 26, 0x6ef0c8, a)
   G:caption("SUMMER", 600, 96, 0xffd23f, L.window(lt, 4.2, 8, 0.7))
 end
@@ -471,7 +471,7 @@ function M.start(seed, at)
   for i = 1, 140 do S.rain[i] = {R:random() * W, R:random() * 1100} end
   for i = 1, 40 do S.flies[i] = {R:random() * W, 300 + R:random() * 600, 1 + R:random() * 2, R:random() * 6} end
   for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
-  for _, l in ipairs({{"PARTYCADE", 54, 0xff4fd8}, {"PRESENTS", 26, 0x6ef0c8}, {"SUMMER", 96, 0xffd23f},
+  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8}, {"SUMMER", 96, 0xffd23f},
                       {"IN TEXAS", 44, 0xffffff}, {"IT'S 68°. IT'S ALWAYS 68°.", 30, 0x9fd8ff}}) do
     G:label(l[1], l[2], l[3])
   end

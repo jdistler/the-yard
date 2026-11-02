@@ -474,7 +474,9 @@ local function curtain_step(dt)
   elseif cu.phase == "settle" then
     cur_show.update(0)                                      -- (its labels paint; its clock stays)
     cu.good = dt < 0.025 and cu.good + 1 or 0
-    if cu.good >= 8 or cu.n > 120 then cu.phase = "fade" end
+    cu.held = (cu.held or 0) + dt
+    -- (from idle: the NOW SHOWING card holds a moment, to be read)
+    if (cu.good >= 8 or cu.n > 240) and (not cu.card or cu.held > 3.2) then cu.phase = "fade" end
     return false
   end
   cu.f = cu.f + dt
@@ -485,9 +487,24 @@ end
 local function curtain_draw()
   local cu = curtain
   if not cu then return end
-  local a = cu.phase == "fade" and math.max(0, 1 - cu.f / 0.4) or 1
-  lg.setColor(0, 0, 0, a)
+  local a = cu.phase == "fade" and math.max(0, 1 - cu.f / 0.6) or 1
+  lg.setColor(0.02, 0.01, 0.05, a)
   lg.rectangle("fill", 0, 0, W, H)
+  if cu.card then
+    -- NOW SHOWING: the brand, the show's name in its own colour, what it is
+    local sh = shows.BY_ID[cu.card]
+    if sh then
+      local k = math.min(1, (cu.held or 0) / 0.5) * a
+      fx.glow(W / 2, 470, 360, 220, rgb(sh.tint, 0.18 * k))
+      ST.draw(0, 250, 72, k)
+      neon_draw("NOW SHOWING", 0, 380, 30, ST.ACCENT, 0.8, "center", W, k)
+      local px = math.min(72, 64 * 620 / (font(64):getWidth(sh.title) + 20))
+      neon_draw(sh.title, 0, 440, 64, sh.tint, 1.2, "center", W, k, px / 64)
+      lg.setFont(font(26))
+      lg.setColor(0.93, 0.9, 1, 0.9 * k)
+      lg.printf(sh.blurb, 80, 560, W - 160, "center")
+    end
+  end
 end
 local auto_night_t = 0            -- AUTO: how long the night sky has had its turn
 local menu_in = 0                 -- the menu fading in after the intro (seconds left)
@@ -1146,6 +1163,8 @@ local function draw_scene()
   if scene == "show" and cur_show then
     -- An idle show draws the whole picture (freedom.lua, texas.lua, ...).
     cur_show.draw()
+    -- the on-air bug: STARLIGHT, faint, in the corner
+    if not curtain then ST.draw(W - 190, 8, 30, 0.38, nil, "left", 180) end
     curtain_draw()
     draw_volume()
     return
@@ -1414,7 +1433,8 @@ local function play_show(id, seg, from_demo)
     cur_show = shows.module(id)
     if not cur_show then scene = "menu" restore_menu_pictures() return end
     scene = "show"
-    curtain = {phase = "cover", n = 0, good = 0, f = 0, seed = os.time() + math.random(1, 1e6), at = sg and sg[1] or nil}
+    curtain = {phase = "cover", n = 0, good = 0, f = 0, seed = os.time() + math.random(1, 1e6), at = sg and sg[1] or nil,
+               card = (not from_demo and not os.getenv("HOME_SHOW")) and id or nil}
   end
   log("show " .. id .. (sg and (": " .. sg[2]) or ""))
 end
@@ -1623,6 +1643,7 @@ function love.load()
   music.log = log
   if not RENDER then utgame.start(log) end
   local show_ctx = {W = W, H = H, font = font, neon_draw = neon_draw, neon_img = neon_img, neon_release = neon_release,
+                    brand_draw = function(y, px, a) ST.draw(0, y, px, a) end,
                     fx = fx, sfx = music.sfx,
                     log = log, rgb = rgb}
   for _, sh in ipairs(shows.LIST) do

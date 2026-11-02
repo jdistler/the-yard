@@ -1,5 +1,5 @@
 -- Mission Control: Houston's space show (Texas is where the missions were flown from), nine minutes:
---   0:00  PARTYCADE PRESENTS ... MISSION CONTROL, HOUSTON                          (Countdown Hum)
+--   0:00  STARLIGHT PRESENTS ... MISSION CONTROL, HOUSTON                          (Countdown Hum)
 --   0:08  Houston: the Saturn V lying in Rocket Park, the live oaks, the morning
 --   1:20  Mission Control: the consoles, the big screens, Pac-Man as flight director; the go/no-go poll
 --   2:30  Launch: the count from ten, ignition, liftoff, the smoke    (Also sprach Zarathustra's sunrise, 1896)
@@ -130,7 +130,7 @@ function D.open(lt, len)
     stars()
   end
   local a = L.window(lt, 0.5, 4, 0.7)
-  G:caption("PARTYCADE", 400, 54, 0xff4fd8, a)
+  G:brand(400, a)
   G:caption("PRESENTS", 472, 26, 0x6ef0c8, a)
   local b = L.window(lt, 4.2, 8, 0.7)
   G:caption("MISSION CONTROL", 420, 64, 0x8ab4ff, b)
@@ -553,7 +553,7 @@ function M.start(seed, at)
     S.art[n] = G:art("space", n)
   end
   for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
-  for _, l in ipairs({{"PARTYCADE", 54, 0xff4fd8}, {"PRESENTS", 26, 0x6ef0c8}, {"MISSION CONTROL", 64, 0x8ab4ff},
+  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8}, {"MISSION CONTROL", 64, 0x8ab4ff},
                       {"HOUSTON", 34, 0xffffff}, {"LIFTOFF!", 72, 0xffd23f}, {"IGNITION", 56, 0xffffff},
                       {"363 FEET  ·  THE MOON ROCKET", 28, 0xffffff}, {"FLIGHT: WE ARE GO FOR LAUNCH", 26, 0x7dff8a},
                       {"THAT'S TEXAS DOWN THERE", 28, 0xffffff}, {"STAGING", 56, 0x8ab4ff}, {"ONE SMALL HOP FOR PAC-MAN", 30, 0xffffff}}) do

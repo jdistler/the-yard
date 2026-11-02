@@ -210,7 +210,7 @@ function D.open(lt, len)
     hills_poly(900, 10, 0.006, 1, {0.05, 0.04, 0.08}, 1)
   end
   local a = L.window(lt, 0.5, 5, 0.8)
-  G:caption("PARTYCADE", 640, 54, 0xff4fd8, a)
+  G:brand(640, a)
   G:caption("PRESENTS", 712, 26, 0x6ef0c8, a)
   local b = L.window(lt, 5.2, 12, 0.8)
   G:caption("A DAY ACROSS", 650, 34, 0xffffff, b)
@@ -1023,7 +1023,7 @@ function T.start(seed, at)
   S.batb = G:track(lg.newSpriteBatch(S.batimg, 800, "stream"))
   -- the labels ahead
   for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
-  for _, l in ipairs({{"PARTYCADE", 54, 0xff4fd8}, {"PRESENTS", 26, 0x6ef0c8}, {"A DAY ACROSS", 34, 0xffffff},
+  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8}, {"A DAY ACROSS", 34, 0xffffff},
                       {"TEXAS", 96, 0xffb347}, {"TEXAS", 110, 0xffb347}, {"THE LONE STAR STATE", 34, 0xffffff},
                       {"FRIENDSHIP", 26, 0x9fd8ff}, {"REMEMBER", 44, 0xffffff}, {"THE MARFA LIGHTS", 34, 0xffe0a0},
                       {"LIVE MUSIC CAPITAL OF THE WORLD", 30, 0xffd23f}, {"LOCKHART  ·  TAYLOR  ·  LULING", 30, 0xffd23f}}) do

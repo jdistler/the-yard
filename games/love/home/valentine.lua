@@ -1,5 +1,5 @@
 -- Sweethearts: Valentine's Day, seven minutes (Feb 7-14 in AUTO):
---   0:00  PARTYCADE PRESENTS ... SWEETHEARTS                                       (Sweethearts)
+--   0:00  STARLIGHT PRESENTS ... SWEETHEARTS                                       (Sweethearts)
 --   0:08  They meet: Pac-Man and Ms. Pac-Man, each chased by a ghost, meet in the middle; the ghosts collide
 --                                                                                   (Chase Me)
 --   1:10  Candy hearts: conversation hearts filling a jar, arcade sayings on them   (Bubblegum)
@@ -110,7 +110,7 @@ function D.open(lt, len)
   lg.setColor(RED[1], RED[2], RED[3], 1)
   heart(384, 330, 120 * k * (1 + 0.04 * sin(S.t * 6)))
   local a = L.window(lt, 0.4, 4, 0.7)
-  G:caption("PARTYCADE", 620, 54, 0xff4fd8, a)
+  G:brand(620, a)
   G:caption("PRESENTS", 690, 26, 0x6ef0c8, a)
   G:caption("SWEETHEARTS", 650, 80, 0xff6fa8, L.window(lt, 4.2, 8, 0.7))
 end
@@ -461,7 +461,7 @@ function M.start(seed, at)
                   rot = (R:random() - 0.5) * 1.2, c = CANDY[R:random(#CANDY)], say = SAYINGS[(i * 7) % #SAYINGS + 1]}
   end
   for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
-  for _, l in ipairs({{"PARTYCADE", 54, 0xff4fd8}, {"PRESENTS", 26, 0x6ef0c8}, {"SWEETHEARTS", 80, 0xff6fa8},
+  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8}, {"SWEETHEARTS", 80, 0xff6fa8},
                       {"HAPPY", 50, 0xffffff}, {"VALENTINE'S DAY", 64, 0xff6fa8}, {"SHE SAID YES", 34, 0xff6fa8}}) do
     G:label(l[1], l[2], l[3])
   end

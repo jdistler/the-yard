@@ -1,5 +1,5 @@
 -- Easter Egg Hunt: six minutes (Easter week in AUTO; the date from the Gregorian computus in shows.lua):
---   0:00  PARTYCADE PRESENTS ... THE EGG HUNT                                        (Egg Hunt)
+--   0:00  STARLIGHT PRESENTS ... THE EGG HUNT                                        (Egg Hunt)
 --   0:08  The hunt: a bluebonnet field, eggs in the grass, Pac-Man's basket filling  (Egg Hunt)
 --   1:10  Dyeing eggs: the cups of dye, eggs dipped; Inky dips himself               (Dye Job)
 --   2:10  The Easter Bunny hops through; the ghosts follow in ears                   (Bunny Hop)
@@ -115,7 +115,7 @@ function D.open(lt, len)
   meadow()
   for i = 1, 5 do egg(160 + (i - 1) * 112, 760 + sin(S.t * 2 + i) * 6, 46, PASTEL[i], PASTEL[i % 6 + 1]) end
   local a = L.window(lt, 0.4, 4, 0.7)
-  G:caption("PARTYCADE", 340, 54, 0xff4fd8, a)
+  G:brand(340, a)
   G:caption("PRESENTS", 412, 26, 0x6ef0c8, a)
   G:caption("THE EGG HUNT", 360, 76, 0xffb6d9, L.window(lt, 4.2, 8, 0.7))
 end
@@ -390,7 +390,7 @@ function M.start(seed, at)
     t = t + 2.5 + R:random() * 2.5
   end
   for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
-  for _, l in ipairs({{"PARTYCADE", 54, 0xff4fd8}, {"PRESENTS", 26, 0x6ef0c8}, {"THE EGG HUNT", 76, 0xffb6d9},
+  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8}, {"THE EGG HUNT", 76, 0xffb6d9},
                       {"HAPPY EASTER", 80, 0xff6fb5}}) do
     G:label(l[1], l[2], l[3])
   end
