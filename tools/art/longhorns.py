@@ -5,6 +5,7 @@ campus_dawn, campus_day   the South Mall looking north: the Main Building and th
 import math
 
 from paint import Paint, W, H, hexc, mix, rng
+from scenery import cloud, live_oak, crowd_band, night_sky
 
 STONE = "#e9dcc0"          # the Tower's Texas limestone, in light
 STONE_SH = "#bfae8c"
@@ -24,33 +25,6 @@ def sky(p, light):
         p.fill_rect(0, 0, W, 760, p.lin(0, 0, 0, 760, [(0, "#2f6cc4"), (0.55, "#6fa3df"), (1, "#d9ecf8")]))
         p.glow(660, 120, 360, "#fffbe6", 0.35)
     clouds(p, light)
-
-
-def cloud(p, x, y, s, top, bottom, seed):
-    """A cumulus: puffs heaped in a dome over a soft, flattish base; lit from above, shaded under."""
-    r = rng(seed)
-    sh = p.layer()
-    lay = p.layer()
-    puffs = []
-    for i in range(22):
-        u = r.random() * 2 - 1
-        px = x + u * 120 * s
-        h = (1 - u * u) ** 0.8
-        py = y - h * 34 * s * r.random() + r.random() * 6 * s
-        pr = (16 + h * 26 + r.random() * 10) * s
-        puffs.append((px, py, pr))
-    for (px, py, pr) in puffs:
-        sh.circle(px, py + pr * 0.3, pr * 0.85, hexc(bottom[:3] if isinstance(bottom, tuple) else bottom, 0.35))
-    for (px, py, pr) in sorted(puffs, key=lambda q: q[1]):
-        lay.circle(px, py, pr * 0.92, lay.lin(0, py - pr, 0, py + pr * 0.6, [(0, top), (0.55, top), (1, mix(top, bottom, 0.55))]))
-    # the base: cut flat-ish and soft
-    cut = p.layer()
-    cut.composite(sh, blur=3)
-    cut.composite(lay, blur=1.2)
-    cut.cr.set_operator(0)                                  # CLEAR below the base line, feathered
-    cut.cr.rectangle(0, y + 26 * s, W, H)
-    cut.cr.fill()
-    p.composite(cut, blur=1.5)
 
 
 def clouds(p, light):
@@ -214,81 +188,6 @@ def main_building(p, cx, light):
 
 
 # ------------------------------------------------------------------ trees, the mall
-def live_oak(p, x, y, s, light, seed, flip=False):
-    """A live oak: a heavy, crooked trunk, great limbs reaching out low and wide and visible under a broad, flat
-    crown of leaf clumps (dark beneath, lit on top toward the light), with sky through it here and there."""
-    r = rng(seed)
-    warm = light == "dawn"
-    d = -1 if flip else 1
-    bark = "#35281f" if not warm else "#2f2228"
-    bark_lt = "#6a5140" if not warm else "#7a5038"
-    dk, md, lt, hi = (("#1b2e17", "#2b4621", "#44662d", "#6f9244") if not warm else
-                      ("#1a2220", "#29352a", "#4a5534", "#a08a52"))
-    cx0, cy0, rx, ry = x, y - 205 * s, 250 * s, 70 * s       # the crown: broad and flat
-    tree = p.layer()
-    # the great limbs, out from the trunk to the crown's edges, tapering
-    for i in range(6):
-        u = -1 + i / 5 * 2
-        ex = x + u * rx * 0.95
-        ey = cy0 + 20 * s + abs(u) * 18 * s
-        w0 = (12 - abs(u) * 4) * s
-        mx, my = x + (ex - x) * 0.35, y - 120 * s - (1 - abs(u)) * 30 * s
-        tree.cr.move_to(x - w0, y - 100 * s)
-        tree.cr.curve_to(mx - w0, my + 10 * s, ex - 10 * s * u, ey + 12 * s, ex, ey)
-        tree.cr.curve_to(ex + 2 * s, ey - 4 * s, mx + w0, my - 6 * s, x + w0, y - 104 * s)
-        tree.src(tree.lin(0, ey, 0, y - 100 * s, [(0, bark), (1, bark_lt)]))
-        tree.cr.fill()
-    # the trunk: thick, flaring at the root, lit on the light side
-    tree.fill_path([("M", x - 34 * s, y + 6 * s), ("C", x - 16 * s, y - 24 * s, x - 22 * s, y - 70 * s, x - 20 * s, y - 112 * s),
-                    ("L", x + 20 * s, y - 116 * s), ("C", x + 18 * s, y - 70 * s, x + 14 * s, y - 24 * s, x + 38 * s, y + 6 * s), ("Z",)],
-                   tree.lin(x - 34 * s, 0, x + 38 * s, 0, [(0, bark), (0.62 if not flip else 0.38, bark_lt), (1, bark)]))
-    # the crown, in clumps (each a few overlapping lumps), shadow to light
-    def clump(lay, px, py, size, col):
-        for _ in range(5):
-            lay.ellipse(px + (r.random() - 0.5) * size * 1.6, py + (r.random() - 0.5) * size * 0.7,
-                        size * (0.5 + r.random() * 0.5) * 1.3, size * (0.5 + r.random() * 0.5) * 0.85, col)
-    def spot():
-        while True:
-            u, v = r.random() * 2 - 1, r.random() * 2 - 1
-            if u * u + v * v <= 1:
-                return cx0 + u * rx, cy0 + v * ry
-    base = p.layer()
-    for _ in range(70):
-        px, py = spot()
-        clump(base, px, py + 8 * s, 22 * s, dk)
-    mid = p.layer()
-    for _ in range(80):
-        px, py = spot()
-        if py < cy0 + ry * 0.45:
-            clump(mid, px, py, 17 * s, md)
-    lit = p.layer()
-    for _ in range(60):
-        px, py = spot()
-        side = (px - cx0) / rx * d
-        if py < cy0 + ry * 0.05 and side > -0.5:
-            clump(lit, px, py - 4 * s, 12 * s, lt)
-    top = p.layer()
-    for _ in range(30):
-        px, py = spot()
-        side = (px - cx0) / rx * d
-        if py < cy0 - ry * 0.35 and side > -0.2:
-            clump(top, px, py - 6 * s, 7 * s, hi)
-    for lay, b in ((base, 0.8), (mid, 0.6), (lit, 0.5), (top, 0.4)):
-        tree.composite(lay, blur=b)
-    # sky through the leaves
-    for _ in range(10):
-        px, py = spot()
-        if cy0 - ry * 0.4 < py < cy0 + ry * 0.4:
-            tree.cr.save()
-            tree.cr.set_operator(0)
-            tree.ellipse(px, py, (4 + r.random() * 6) * s, (2.5 + r.random() * 3) * s, "#000000")
-            tree.cr.restore()
-    sh = p.layer()
-    sh.ellipse(x + 30 * s * d, y + 8 * s, 240 * s, 24 * s, hexc("#0f2210", 0.5))
-    p.composite(sh, blur=10)
-    p.composite(tree, blur=0.25)
-
-
 def mall(p, light):
     warm = light == "dawn"
     g0 = "#5f8a3a" if not warm else "#5a6a3e"
@@ -406,15 +305,6 @@ def open_screen():
 
 
 # ------------------------------------------------------------------ the Tower at night
-def night_sky(p, seed=5):
-    p.fill_rect(0, 0, W, H, p.lin(0, 0, 0, H, [(0, "#04040f"), (0.6, "#120a24"), (1, "#24122a")]))
-    r = rng(seed)
-    for i in range(260):
-        x, y = r.random() * W, r.random() * 680
-        b = r.random()
-        p.circle(x, y, 0.5 + b * 1.1, hexc("#fff6e0", 0.35 + b * 0.6))
-
-
 def tower_night(mode):
     """mode: "dark" (unlit, the Hex Rally's night), "win" (an orange top over a white shaft), "one" (all orange,
     the 1 in the windows)."""
@@ -531,31 +421,6 @@ PAINTS.update({
 
 
 # ------------------------------------------------------------------ the stadium, across the field from the sideline
-def crowd_band(p, x0, y0, x1, y1, seed, rows, fill=0.8, light=1.0, palette=None):
-    """Rows of fans, smaller toward the top (further away): heads and shirts, orange and white, here and there a
-    hand up."""
-    r = rng(seed)
-    for i in range(rows):
-        k = i / max(1, rows - 1)
-        y = y1 - (y1 - y0) * k
-        size = 7.5 - 4.5 * k
-        # the row's step
-        p.fill_rect(x0, y - size * 0.6, x1 - x0, size * 0.5, hexc("#5a5560", 0.6 * light))
-        x = x0 + r.random() * size
-        while x < x1:
-            if r.random() < fill:
-                if palette:
-                    shirt = palette[0] if r.random() < 0.72 else (palette[1] if r.random() < 0.85 else "#3a3a40")
-                else:
-                    shirt = "#e86a10" if r.random() < 0.72 else ("#f4f1ea" if r.random() < 0.85 else "#3a3a40")
-                p.fill_rect(x - size * 0.45, y - size * 1.5, size * 0.9, size * 1.0, mix(shirt, "#000000", 0.15 * (1 - light)))
-                skin = ["#f0c9a8", "#c99572", "#8a5a3c", "#f6d8c0", "#6a4430"][r.randrange(5)]
-                p.circle(x, y - size * 1.85, size * 0.38, skin)
-                if r.random() < 0.06:
-                    p.fill_rect(x + size * 0.2, y - size * 3.2, size * 0.22, size * 1.2, skin)
-            x += size * (1.0 + r.random() * 0.25)
-
-
 def stadium_day():
     p = Paint()
     p.fill_rect(0, 0, W, 330, p.lin(0, 0, 0, 330, [(0, "#2f6cc4"), (1, "#bcd8f2")]))

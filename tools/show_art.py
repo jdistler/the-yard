@@ -26,7 +26,7 @@ def main():
     ap.add_argument("--preview", action="store_true")
     a = ap.parse_args()
     shows = a.shows or sorted(f[:-3] for f in os.listdir(os.path.join(ROOT, "tools", "art"))
-                              if f.endswith(".py") and f != "paint.py")
+                              if f.endswith(".py") and f not in ("paint.py", "scenery.py"))
     for spec in shows:
         sid, _, names = spec.partition(":")
         mod = importlib.import_module(sid)

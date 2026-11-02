@@ -189,11 +189,26 @@ end
 local D = {}                                  -- drawing, by scene name
 
 -- The Lone Star at first light (the opening; the finale has its own sky)
+local hills_live, austin_live                   -- (below)
+-- the painted picture for a scene, if the SD card has it: drawn, true
+local function art(name, a)
+  local img = S.art[name]
+  if not img then return false end
+  lg.setColor(1, 1, 1, a or 1)
+  lg.draw(img, 0, 0)
+  return true
+end
+
 function D.open(lt, len)
-  G:gradient(0, 0, W, H, {0.05, 0.05, 0.2}, {0.75, 0.4, 0.35})
-  L.pole(150, 260, 900)
-  S.flag:draw(155, 280, 470, 313, S.t, 0.55 + 0.1 * sin(S.t * 0.4), {0.95, 0.85, 0.82})
-  hills_poly(900, 10, 0.006, 1, {0.05, 0.04, 0.08}, 1)
+  if art("open") then
+    L.pole(150, 260, 905)
+    S.flag:draw(155, 280, 470, 313, S.t, 0.55 + 0.1 * sin(S.t * 0.4), {0.95, 0.85, 0.82})
+  else
+    G:gradient(0, 0, W, H, {0.05, 0.05, 0.2}, {0.75, 0.4, 0.35})
+    L.pole(150, 260, 900)
+    S.flag:draw(155, 280, 470, 313, S.t, 0.55 + 0.1 * sin(S.t * 0.4), {0.95, 0.85, 0.82})
+    hills_poly(900, 10, 0.006, 1, {0.05, 0.04, 0.08}, 1)
+  end
   local a = L.window(lt, 0.5, 5, 0.8)
   G:caption("PARTYCADE", 640, 54, 0xff4fd8, a)
   G:caption("PRESENTS", 712, 26, 0x6ef0c8, a)
@@ -204,14 +219,26 @@ end
 
 function D.coast(lt, len)
   local k = lt / len
+  local painted = S.art.coast_dawn and S.art.coast_day
+  local sy = lerp(590, 360, ease(k * 1.2))
+  if painted then
+    art("coast_dawn")
+    art("coast_day", clamp(k * 1.4, 0, 1))
+    -- the sun comes up over the painted sea: above the horizon only
+    lg.setScissor(0, 0, W, 560)
+    C.fx.glow(560, sy, 260, 200, 1, 0.65, 0.35, 0.5)
+    lg.setColor(1, 0.85, 0.55, 1)
+    lg.circle("fill", 560, sy, 44, 40)
+    lg.setScissor()
+  else
   local top, hor = mix({0.08, 0.1, 0.32}, {0.22, 0.45, 0.85}, k), mix({1, 0.55, 0.35}, {0.95, 0.8, 0.7}, k)
   G:gradient(0, 0, W, 560, top, hor)
-  local sy = lerp(590, 360, ease(k * 1.2))
   C.fx.glow(560, sy, 260, 200, 1, 0.65, 0.35, 0.5)
   lg.setColor(1, 0.85, 0.55, 1)
   lg.circle("fill", 560, sy, 44, 40)
   -- the sea, the sun's path on it
   G:gradient(0, 560, W, 860, mix({0.15, 0.25, 0.4}, {0.1, 0.35, 0.55}, k), {0.1, 0.45, 0.55})
+  end
   lg.setBlendMode("add")
   for i = 0, 18 do
     local y = 566 + i * 15
@@ -230,11 +257,13 @@ function D.coast(lt, len)
   lg.line(bx + 3, 512, bx - 46, 540, bx - 50, 556)
   lg.line(bx + 3, 512, bx + 52, 540, bx + 56, 556)
   -- the pier, on the right
+  if not painted then
   lg.setColor(0.25, 0.18, 0.14, 1)
   lg.rectangle("fill", 470, 742, 298, 10)
   for x = 480, 768, 34 do lg.rectangle("fill", x, 752, 6, 70) end
   lg.setColor(0.18, 0.13, 0.1, 1)
   for x = 480, 768, 68 do lg.rectangle("fill", x + 1, 718, 3, 24) end
+  end
   -- waves coming in, the beach
   for i = 0, 2 do
     local y = 820 + i * 22
@@ -247,6 +276,7 @@ function D.coast(lt, len)
     lg.setLineWidth(3)
     lg.line(pts)
   end
+  if not painted then
   G:gradient(0, 880, W, H, {0.86, 0.76, 0.58}, {0.92, 0.84, 0.66})
   lg.setColor(0.7, 0.6, 0.45, 0.5)
   lg.rectangle("fill", 0, 880, W, 12)
@@ -259,6 +289,7 @@ function D.coast(lt, len)
     lg.setColor(0.12, 0.35 + i * 0.02, 0.15, 1)
     lg.polygon("fill", 120, 690, 120 + cos(a) * 110, 690 + sin(a) * 50 + 30, 120 + cos(a + 0.12) * 70, 690 + sin(a + 0.12) * 30 + 14)
   end
+  end
   -- pelicans gliding in a line, low over the water
   for i = 0, 4 do
     local px = -200 + ((S.t - 20) * 55) % (W + 500) - i * 70
@@ -270,6 +301,10 @@ function D.coast(lt, len)
 end
 
 function D.hills(lt, len)
+  if art("hills") then
+    hills_live(lt)
+    return
+  end
   G:gradient(0, 0, W, 620, {0.25, 0.5, 0.9}, {0.75, 0.88, 1})
   lg.setColor(1, 1, 1, 0.85)
   for i = 0, 2 do
@@ -289,6 +324,11 @@ function D.hills(lt, len)
   -- a fence post, the mockingbird
   lg.setColor(0.4, 0.3, 0.2, 1)
   lg.rectangle("fill", 650, 760, 14, 90)
+  hills_live(lt)
+end
+
+-- the Hill Country's live things: the mockingbird and its song, the monarchs, the armadillo
+function hills_live(lt)
   mockingbird(657, 752, 1.4, S.t)
   for i = 0, 1 do
     local ph = (S.t * 0.7 + i / 2) % 1
@@ -302,6 +342,28 @@ function D.hills(lt, len)
 end
 
 function D.roundrock(lt, len)
+  if lt < 26 and art("creek") then
+    lg.setColor(0.8, 0.95, 1, 0.5)
+    lg.setLineWidth(2)
+    for i = 0, 14 do
+      local y = 650 + i * 17
+      local x = ((i * 97 + S.t * (40 + i * 3)) % (W + 120)) - 60
+      if abs(y - 760) > 60 or abs(x - 384) > 140 then lg.line(x, y, x + 40 + (i % 3) * 20, y) end
+    end
+    lg.setColor(0.9, 0.97, 1, 0.7)
+    for i = 0, 3 do
+      local w = 120 + i * 18 + sin(S.t * 3 + i) * 4
+      lg.ellipse("line", 384, 815, w, 14 + i * 4, 40)
+    end
+    return
+  elseif lt >= 26 and art("donuts") then
+    for i = 1, 3 do
+      local k = ((S.t * 0.4 + i / 3) % 1)
+      lg.setColor(1, 1, 1, 0.25 * (1 - k))
+      lg.ellipse("fill", 210 + i * 110, 430 - k * 120, 16 + k * 10, 26 + k * 20, 16)
+    end
+    return
+  end
   if lt < 26 then
     -- Brushy Creek: the round rock in the low-water crossing
     G:gradient(0, 0, W, 520, {0.3, 0.55, 0.9}, {0.8, 0.9, 1})
@@ -384,6 +446,10 @@ local function capitol(x, base)
 end
 
 function D.austin(lt, len)
+  if art("austin") then
+    austin_live(lt)
+    return
+  end
   G:gradient(0, 0, W, 700, {0.2, 0.48, 0.9}, {0.7, 0.85, 1})
   -- the skyline behind, the Tower to the right
   lg.setColor(0.55, 0.65, 0.8, 1)
@@ -403,6 +469,11 @@ function D.austin(lt, len)
   lg.setColor(0.6, 0.62, 0.5, 1)
   lg.polygon("fill", 0, 700, 330, 700, 0, 820)
   lg.polygon("fill", 768, 700, 438, 700, 768, 820)
+  austin_live(lt, true)
+end
+
+-- Congress Avenue's live things: the lane's dashes, the cars, the busker's music (and, unpainted, the truck)
+function austin_live(lt, unpainted)
   lg.setColor(1, 0.85, 0.3, 1)
   for i = 0, 8 do
     local k = ((i / 9) + S.t * 0.15) % 1
@@ -425,6 +496,7 @@ function D.austin(lt, len)
     lg.circle("fill", x + 10 * s, y + 4 * s, 4 * s, 8)
   end
   -- the taco truck, the busker
+  if unpainted then
   lg.setColor(0.95, 0.95, 0.92, 1)
   lg.rectangle("fill", 600, 830, 150, 80, 8, 8, 6)
   lg.setColor(0.2, 0.6, 0.55, 1)
@@ -441,6 +513,8 @@ function D.austin(lt, len)
   lg.circle("fill", 102, 848, 9, 12)
   lg.setColor(0.55, 0.3, 0.15, 1)
   lg.ellipse("fill", 112, 888, 16, 12, 14)
+  end
+  lg.setColor(0.55, 0.3, 0.15, 1)
   lg.setLineWidth(4)
   lg.line(112, 888, 150, 860 + sin(S.t * 8) * 1)
   for i = 0, 2 do
@@ -454,6 +528,7 @@ end
 local COATS = {{{0.5, 0.3, 0.16}, {0.95, 0.92, 0.85}}, {{0.15, 0.12, 0.1}, {0.9, 0.88, 0.82}}, {{0.75, 0.55, 0.32}},
                {{0.88, 0.85, 0.78}, {0.5, 0.3, 0.16}}, {{0.55, 0.22, 0.12}}, {{0.82, 0.7, 0.5}, {0.4, 0.25, 0.14}}}
 function D.stockyards(lt, len)
+  if not art("stockyards") then
   G:gradient(0, 0, W, 520, {0.35, 0.55, 0.85}, {0.98, 0.85, 0.6})
   -- the storefronts
   local fronts = {{0, 200, {0.6, 0.35, 0.25}, "SALOON"}, {200, 170, {0.75, 0.62, 0.45}, "BOOTS"},
@@ -489,6 +564,7 @@ function D.stockyards(lt, len)
     lg.rectangle("fill", 0, y, W, 2)
     for x = (r % 2) * 22, W, 44 do lg.rectangle("fill", x, y, 2, 19) end
   end
+  end
   -- the drive: steers left to right, two drovers
   local x0 = -1000 + (lt - 1) * 30
   for i = 1, 9 do
@@ -506,6 +582,8 @@ function D.stockyards(lt, len)
 end
 
 function D.alamo(lt, len)
+  local painted = art("alamo")
+  if not painted then
   G:gradient(0, 0, W, 760, {0.25, 0.5, 0.88}, {0.82, 0.88, 0.95})
   live_oak(80, 760, 1.4, S.t)
   local stone, sh = {0.9, 0.84, 0.7}, {0.72, 0.66, 0.54}
@@ -541,10 +619,11 @@ function D.alamo(lt, len)
   lg.arc("fill", "pie", 384, 470, 14, pi, 2 * pi, 12)
   rgba(sh)
   lg.rectangle("fill", x0, 580, x1 - x0, 6)
+  end
   -- the flags: Texas and the United States, either side
   for i, fx in ipairs({120, 660}) do
     lg.setColor(0.7, 0.7, 0.74, 1)
-    lg.rectangle("fill", fx - 2, 300, 4, 460)
+    if not painted then lg.rectangle("fill", fx - 2, 300, 4, 460) end
     local w = sin(S.t * 3 + i) * 3
     if i == 1 then
       lg.setColor(0, 0.16, 0.41, 1)
@@ -562,13 +641,20 @@ function D.alamo(lt, len)
       lg.rectangle("fill", fx + 2, 304, 26, 22)
     end
   end
-  G:gradient(0, 760, W, H, {0.78, 0.72, 0.6}, {0.62, 0.56, 0.45})
+  if not painted then G:gradient(0, 760, W, H, {0.78, 0.72, 0.6}, {0.62, 0.56, 0.45}) end
   for i = 1, 3 do bird_v(300 + i * 90 + sin(S.t * 0.6 + i) * 60, 220 + cos(S.t * 0.7 + i) * 30, 1.1, S.t * 7 + i, {1, 1, 1}, 0.9) end
   local a = L.window(lt, 14, 34, 1.5)
   G:plate("REMEMBER", 220, 44, 0xffffff, a)
 end
 
 function D.bbq(lt, len)
+  if art("bbq") then
+    lg.setColor(1, 0.45, 0.1, 0.5 + 0.3 * sin(S.t * 9))
+    lg.rectangle("fill", 98, 400, 54, 34)
+    C.fx.glow(125, 418, 70, 40, 1, 0.5, 0.1, 0.3 + 0.15 * sin(S.t * 7))
+    G:plate("LOCKHART  ·  TAYLOR  ·  LULING", 120, 30, 0xffd23f, L.window(lt, 16, 32, 1))
+    return
+  end
   G:gradient(0, 0, W, H, {0.32, 0.2, 0.14}, {0.16, 0.1, 0.08})
   -- the smoker: a barrel on its firebox, a stack, post oak smoke
   lg.setColor(0.1, 0.1, 0.11, 1)
@@ -616,12 +702,20 @@ end
 
 function D.panhandle(lt, len)
   local k = lt / len
+  local painted = art("panhandle")
+  if painted then
+    -- the light going: the painted golden hour deepening
+    lg.setColor(0.25, 0.1, 0.25, 0.3 * k)
+    lg.rectangle("fill", 0, 0, W, H)
+  else
   G:gradient(0, 0, W, 640, mix({0.35, 0.3, 0.55}, {0.25, 0.15, 0.35}, k), mix({1, 0.72, 0.35}, {1, 0.5, 0.25}, k))
   C.fx.glow(250, 600, 300, 160, 1, 0.6, 0.25, 0.5)
   -- the supercell, far off on the right, lightning now and then
   -- (the anvil spreading flat at the top, the tower under it, a dark flat base, rain slanting down)
   lg.setColor(0.3, 0.27, 0.38, 0.95)
   lg.polygon("fill", 330, 250, 768, 210, 768, 270, 600, 292, 420, 280)
+  end
+  if not painted then
   lg.setColor(0.26, 0.24, 0.34, 1)
   for _, c in ipairs({{600, 330, 60}, {660, 350, 70}, {720, 330, 66}, {640, 400, 70}, {710, 410, 64}, {580, 410, 50}}) do
     lg.ellipse("fill", c[1], c[2], c[3] * 1.2, c[3], 28)
@@ -634,6 +728,7 @@ function D.panhandle(lt, len)
     local x = 530 + i * 11
     lg.line(x, 474, x - 40, 640)
   end
+  end
   local strike = (S.t * 0.35) % 1
   if strike < 0.04 then
     lg.setColor(1, 1, 0.95, 1)
@@ -644,6 +739,7 @@ function D.panhandle(lt, len)
     lg.line(pts)
     C.fx.glow(640, 440, 200, 160, 1, 1, 1, 0.25)
   end
+  if not painted then
   -- Palo Duro: layered red mesas
   local strata = {{0.72, 0.28, 0.16}, {0.85, 0.5, 0.3}, {0.95, 0.85, 0.7}, {0.7, 0.3, 0.2}, {0.55, 0.22, 0.15}}
   for m, mesa in ipairs({{-40, 340, 520}, {300, 280, 560}, {520, 300, 600}}) do
@@ -673,6 +769,8 @@ function D.panhandle(lt, len)
   lg.line(130, 900, 160, 600)
   lg.line(190, 900, 160, 600)
   for y = 640, 880, 60 do lg.line(130 + (900 - y) * 0.1, y, 190 - (900 - y) * 0.1, y) end
+  end
+  lg.setColor(0.12, 0.09, 0.08, 1)
   lg.push()
   lg.translate(160, 590)
   lg.rotate(S.t * 2.2)
@@ -682,12 +780,14 @@ function D.panhandle(lt, len)
   end
   lg.pop()
   lg.circle("fill", 160, 590, 7, 12)
-  lg.polygon("fill", 160, 586, 230, 576, 236, 600, 160, 594)
+  if not painted then lg.polygon("fill", 160, 586, 230, 576, 236, 600, 160, 594) end
   -- the pump jack, nodding
   local nod = sin(S.t * 1.4) * 0.25
   lg.setColor(0.12, 0.12, 0.14, 1)
-  lg.rectangle("fill", 520, 880, 180, 14)
-  lg.polygon("fill", 590, 880, 610, 790, 630, 880)
+  if not painted then
+    lg.rectangle("fill", 520, 880, 180, 14)
+    lg.polygon("fill", 590, 880, 610, 790, 630, 880)
+  end
   lg.push()
   lg.translate(610, 790)
   lg.rotate(nod)
@@ -701,6 +801,11 @@ end
 
 function D.bats(lt, len)
   local k = lt / len
+  local painted = S.art.bats_dusk and S.art.bats_night
+  if painted then
+    art("bats_dusk")
+    art("bats_night", clamp(k * 1.3, 0, 1))
+  else
   G:gradient(0, 0, W, 600, mix({0.3, 0.2, 0.45}, {0.1, 0.08, 0.25}, k), mix({1, 0.55, 0.35}, {0.6, 0.3, 0.4}, k))
   -- the skyline
   lg.setColor(0.1, 0.08, 0.16, 1)
@@ -734,6 +839,7 @@ function D.bats(lt, len)
     lg.circle("fill", 42 + i * 140, 612, 4, 8)
     lg.setColor(0.12, 0.1, 0.16, 1)
   end
+  end
   -- the bats: a ribbon rising from under the bridge, drifting east
   local b = S.batb
   b:clear()
@@ -752,6 +858,7 @@ function D.bats(lt, len)
   end
   lg.setColor(0.05, 0.03, 0.08, 1)
   lg.draw(b)
+  if painted then return end
   -- the crowd on the bank, watching
   lg.setColor(0.06, 0.05, 0.1, 1)
   for i = 0, 18 do
@@ -762,9 +869,12 @@ function D.bats(lt, len)
 end
 
 function D.bigbend(lt, len)
+  local painted = art("bigbend")
+  if not painted then
   G:gradient(0, 0, W, 760, {0.01, 0.01, 0.05}, {0.06, 0.05, 0.14})
   lg.setColor(1, 1, 1, 1)
   lg.draw(S.milky, 0, 0, 0, 2, 2)
+  end
   for i, s in ipairs(S.bright) do
     local tw = 0.6 + 0.4 * sin(S.t * (1 + i % 4) + i)
     lg.setColor(1, 1, 0.92, tw)
@@ -779,10 +889,12 @@ function D.bigbend(lt, len)
     lg.line(500 - p * 300, 120 + p * 120, 540 - p * 300, 100 + p * 120)
   end
   -- the Chisos
+  if not painted then
   lg.setColor(0.04, 0.03, 0.07, 1)
   local ridge = {0, 700, 80, 640, 140, 660, 210, 560, 260, 600, 330, 520, 380, 580, 450, 540, 520, 610, 600, 590, 680, 640, 768, 620}
   for i = 1, #ridge - 2, 2 do
     lg.polygon("fill", ridge[i], ridge[i + 1], ridge[i + 2], ridge[i + 3], ridge[i + 2], 780, ridge[i], 780)
+  end
   end
   -- the Marfa lights, on the horizon
   lg.setBlendMode("add")
@@ -795,6 +907,7 @@ function D.bigbend(lt, len)
   end
   lg.setBlendMode("alpha")
   -- the desert floor, ocotillo and prickly pear
+  if not painted then
   G:gradient(0, 770, W, H, {0.06, 0.05, 0.08}, {0.02, 0.02, 0.03})
   lg.setColor(0.02, 0.02, 0.03, 1)
   lg.setLineWidth(3)
@@ -808,6 +921,7 @@ function D.bigbend(lt, len)
     lg.ellipse("fill", p[1], p[2] - 20, 22, 30, 16)
     lg.ellipse("fill", p[1] - 22, p[2] - 64, 16, 22, 16)
     lg.ellipse("fill", p[1] + 20, p[2] - 60, 15, 20, 16)
+  end
   end
   -- the coyote on the ridge, howling at the end
   if lt > 30 then
@@ -823,9 +937,11 @@ function D.bigbend(lt, len)
 end
 
 function D.finale(lt, len)
-  G:gradient(0, 0, W, H, {0.01, 0.01, 0.06}, {0.08, 0.06, 0.2})
-  lg.setColor(1, 1, 1, 1)
-  lg.draw(S.milky, 0, 0, 0, 2, 2)
+  if not art("finale") then
+    G:gradient(0, 0, W, H, {0.01, 0.01, 0.06}, {0.08, 0.06, 0.2})
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.milky, 0, 0, 0, 2, 2)
+  end
   L.pole(150, 240, 1024)
   S.flag:draw(155, 260, 470, 313, S.t, 0.7 + 0.1 * sin(S.t * 0.4), {0.95, 0.95, 1})
   G:draw_back()
@@ -854,10 +970,16 @@ function T.start(seed, at)
   G.t, G.prev = S.t, S.t - 0.001
   S.R = G.R
   S.flag = G:cloth(L.paint_texas, 600, 400)
+  S.art = {}
+  for _, n in ipairs({"open", "coast_dawn", "coast_day", "hills", "creek", "donuts", "austin", "stockyards", "alamo", "bbq",
+                      "panhandle", "bats_dusk", "bats_night", "bigbend", "finale"}) do
+    S.art[n] = G:art("texas", n)
+  end
   -- the flowers: bluebonnets (blue, a white tip) and paintbrush (red-orange), farther ones smaller
-  S.flowers = G:track(lg.newSpriteBatch(G.dot, 1600, "static"))
   local R = G.R
-  for i = 1, 1500 do
+  -- (the made flowers and Milky Way only without the painted scenes)
+  S.flowers = G:track(lg.newSpriteBatch(G.dot, 1600, "static"))
+  for i = 1, S.art.hills and 0 or 1500 do
     local y = 700 + (R:random() ^ 1.6) * 324
     local k = (y - 700) / 324
     local x = R:random() * W
@@ -873,7 +995,7 @@ function T.start(seed, at)
     end
   end
   -- the Milky Way: painted once, at half size
-  S.milky = G:canvas(384, 380, function(w, h)
+  S.milky = (S.art.bigbend and S.art.finale) and G.px or G:canvas(384, 380, function(w, h)
     for i = 1, 2600 do
       local u = R:random()
       local band = (R:random() - 0.5) * (R:random() < 0.7 and 70 or 260)
