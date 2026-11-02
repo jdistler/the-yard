@@ -352,7 +352,9 @@ function D.storm(lt, len)
     lg.setLineWidth(4)
     local x, y = 300 + (floor(S.t / 7) % 3) * 120, 160
     local pts = {x, y}
-    for i = 1, 7 do x = x + (G.R:random() - 0.5) * 50 y = y + 70 pts[#pts + 1] = x pts[#pts + 1] = y end
+    -- (the bolt's shape from the strike's number: the same bolt every frame of its flash)
+    local bolt = floor(S.t / 7)
+    for i = 1, 7 do x = x + (((bolt * 7919 + i * 104729) % 1000) / 1000 - 0.5) * 50 y = y + 70 pts[#pts + 1] = x pts[#pts + 1] = y end
     lg.line(pts)
   end
   -- then the rainbow

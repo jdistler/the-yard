@@ -52,8 +52,7 @@ def tower(p, cx, light):
     top_y, base_y = 300, 600
     # the shaft: the front lit across, the right face in shade (or the sun's at dawn)
     p.fill_rect(x0, top_y, sw, base_y - top_y, p.lin(x0, 0, x1, 0, [(0, mid), (0.25, lit), (1, lit)]))
-    p.poly([(x1, top_y), (x1 + side, top_y + 6), (x1 + side, base_y), (x1, base_y)],
-           p.lin(x1, 0, x1 + side, 0, [(0, mid if not warm else mix(lit, "#ffb070", 0.4)), (1, dark if not warm else mid)]))
+
     # the corner piers and the four bays of windows between them
     p.fill_rect(x0, top_y, 10, base_y - top_y, mid)
     p.fill_rect(x1 - 10, top_y, 10, base_y - top_y, p.lin(0, 0, 0, 1, [(0, lit), (1, lit)]))
@@ -70,7 +69,7 @@ def tower(p, cx, light):
     # the clock stage
     cs_y = top_y - 84
     p.fill_rect(x0 - 8, cs_y, sw + 16, 84, p.lin(x0 - 8, 0, x1 + 8, 0, [(0, mid), (0.2, lit), (1, lit)]))
-    p.poly([(x1 + 8, cs_y), (x1 + 8 + side, cs_y + 6), (x1 + 8 + side, top_y), (x1 + 8, top_y)], mid if not warm else lit)
+
     p.fill_rect(x0 - 12, cs_y - 8, sw + 24, 10, lit)
     p.fill_rect(x0 - 12, top_y - 4, sw + 24, 8, mid)
     # the clock: a face with a gold ring, hands at the hour the light says
@@ -118,8 +117,8 @@ def tower(p, cx, light):
     p.circle(cx, t_y - 104, 3, "#d8b25a")
     if warm:
         # the sun's gold along the right edges
-        p.fill_rect(x1 + side - 3, top_y + 6, 3, base_y - top_y - 6, hexc("#ffc27a", 0.8))
-        p.fill_rect(x1 + 8 + side - 3, cs_y + 6, 3, 84 - 6, hexc("#ffc27a", 0.8))
+        p.fill_rect(x1 - 4, top_y, 4, base_y - top_y, hexc("#ffc27a", 0.7))
+        p.fill_rect(x1 + 4, cs_y, 4, 84, hexc("#ffc27a", 0.7))
 
 
 def main_building(p, cx, light):
@@ -324,7 +323,7 @@ def tower_night(mode):
     sw, x0, x1, top_y, base_y = 92, cx - 46, cx + 46, 300, 640
     win = "#ffe9b0" if mode != "dark" else "#1a1822"
     p.fill_rect(x0, top_y, sw, base_y - top_y, p.lin(x0, 0, x1, 0, [(0, sh_sh), (0.3, sh_c), (1, sh_c)]))
-    p.poly([(x1, top_y), (x1 + 14, top_y + 6), (x1 + 14, base_y), (x1, base_y)], sh_sh)
+
     bay_w = (sw - 20 - 18) / 4
     for b in range(4):
         bx = x0 + 10 + b * (bay_w + 6)
@@ -910,12 +909,20 @@ def legends_wall():
     p.fill_rect(0, 166, W, 6, "#a8946c")
     for i in range(8):
         x = 10 + i * 96
-        p.rrect(x, 180, 70, 64, 35)
-        p.src(p.lin(0, 180, 0, 244, [(0, "#3a3440"), (1, "#6a5e5a")]))
-        p.cr.fill()
-        p.rrect(x - 4, 176, 78, 6, 3)
-        p.src("#c8b48c")
-        p.cr.fill()
+        # an arch: a round head on straight jambs, a keystone, shade inside
+        cr = p.cr
+        cr.move_to(x, 246)
+        cr.line_to(x, 206)
+        cr.arc(x + 35, 206, 35, math.pi, 2 * math.pi)
+        cr.line_to(x + 70, 246)
+        cr.close_path()
+        p.src(p.lin(0, 171, 0, 246, [(0, "#2e2832"), (1, "#5a4e4a")]))
+        cr.fill()
+        cr.set_line_width(5)
+        cr.arc(x + 35, 206, 37, math.pi, 2 * math.pi)
+        p.src("#d8c8a4")
+        cr.stroke()
+        p.poly([(x + 30, 166), (x + 40, 166), (x + 42, 178), (x + 28, 178)], "#c8b48c")
     # the inscription band under the arches
     p.fill_rect(0, 250, W, 4, "#bf5700")
     p.grain(0.02, 93)

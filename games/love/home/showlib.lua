@@ -341,8 +341,13 @@ function L.sky_at(keys, t)
   return l[2], l[3]
 end
 
+-- L.top_busy: set when a show writes across the top 90 px this frame (Home's on-air bug steps aside)
+L.top_busy = 0
+local function mark_top(y, x, w) if y < 90 and (x or 0) + (w or 9999) > 560 then L.top_busy = 1 end end
+
 function G:caption(text, y, px, colour, alpha, sc)
   if alpha <= 0 then return end
+  mark_top(y)
   -- (a caption scaled every frame is resampled every frame, and soft: a pulse in size becomes one in brightness)
   if sc and sc ~= 1 then
     alpha = alpha * math.min(1, 0.82 + math.abs(sc - 1) * 3)
@@ -361,6 +366,7 @@ end
 -- A caption on a dark plate (legible over a bright daytime sky).
 function G:plate(text, y, px, colour, alpha)
   if alpha <= 0 then return end
+  mark_top(y)
   local sc = math.min(1, (self.W - 60) / (self.C.font(px):getWidth(text) + px * 1.2))
   local w = (self.C.font(px):getWidth(text) + px * 1.2) * sc
   local h = px * 1.55 * sc
@@ -372,6 +378,7 @@ end
 
 -- Plain text with a soft shadow (smaller writing: place names, credits).
 function G:text(s, x, y, px, c, a, align, w)
+  if (a or 1) > 0 then mark_top(y, x, w) end
   local f = self.C.font(px)
   lg.setFont(f)
   x, y = floor(x + 0.5), floor(y + 0.5)                   -- (whole pixels: crisp)

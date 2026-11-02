@@ -141,7 +141,7 @@ end
 local SKIN = {{0.93, 0.76, 0.62}, {0.78, 0.57, 0.42}, {0.55, 0.37, 0.26}, {0.97, 0.82, 0.7}, {0.42, 0.28, 0.2}}
 local HAIR = {{0.15, 0.1, 0.08}, {0.4, 0.26, 0.14}, {0.75, 0.6, 0.35}, {0.08, 0.07, 0.07}, {0.55, 0.3, 0.15}}
 local function fan(x, y, s, shirt, t, hook, who)
-  who = who or (floor(abs(t) * 7.31) % 5 + 1)
+  who = who or 1                        -- (who must be fixed per person: from the clock, they changed every frame)
   local sk, hr = SKIN[who], HAIR[(who * 3) % 5 + 1]
   local step = sin(t * 8) * 5 * s
   local dark = shirt[1] + shirt[2] + shirt[3] < 0.5            -- (a silhouette in the dark)
@@ -269,7 +269,7 @@ local function tailgate(x, y, s, col, t, seed)
   -- the folks
   for i = 0, 2 do
     local fx = x - 50 * s + i * 42 * s + sin(t * 0.7 + i + seed) * 6 * s
-    fan(fx, y, 1.05 * s, (i + seed) % 2 == 0 and ORANGE_HI or WHITE, t + i * 1.7 + seed, (i + seed) % 3 == 0)
+    fan(fx, y, 1.05 * s, (i + seed) % 2 == 0 and ORANGE_HI or WHITE, t + i * 1.7 + seed, (i + seed) % 3 == 0, (i + seed * 2) % 5 + 1)
   end
 end
 
@@ -316,7 +316,7 @@ function D.campus(lt, len)
   -- fans walking to the stadium
   for i = 0, 7 do
     local x = ((S.t * 24 + i * 120) % (W + 100)) - 50
-    fan(x, 1000 - (i % 2) * 18, 1.1, i % 3 == 0 and WHITE or ORANGE, S.t + i, i % 2 == 0)
+    fan(x, 1000 - (i % 2) * 18, 1.1, i % 3 == 0 and WHITE or ORANGE, S.t + i, i % 2 == 0, i % 5 + 1)
   end
   local a = L.window(lt, 22, 40, 1.5)
   G:plate("THE MAIN BUILDING  ·  THE TOWER", 170, 28, 0xffffff, a)
@@ -499,7 +499,7 @@ function D.smokey(lt, len)
       local x = kx - (i % 7) * 46 - floor(i / 7) * 20
       local y = 900 + floor(i / 7) * 50 + sin(S.t * 9 + i) * 4
       if x > -30 and x < W + 30 then
-        fan(x, y, 0.85, i % 3 == 0 and WHITE or ORANGE_HI, S.t * 2 + i, i % 2 == 0)
+        fan(x, y, 0.85, i % 3 == 0 and WHITE or ORANGE_HI, S.t * 2 + i, i % 2 == 0, (i * 3) % 5 + 1)
       end
     end
   else
@@ -548,16 +548,18 @@ function D.hookem(lt, len)
     G:gradient(0, 0, W, H, {0.08, 0.06, 0.12}, {0.2, 0.12, 0.08})
     lg.draw(S.crowd, 0, 150)
   end
+  -- the wave rolling through: a soft warm light (a hard-edged bar read as a glitch)
   local wave = (S.t * 0.35) % 1.4 - 0.2
-  lg.setBlendMode("add")
-  lg.setColor(1, 0.7, 0.3, 0.25)
-  lg.rectangle("fill", wave * W - 50, 150, 100, 520)
-  lg.setBlendMode("alpha")
+  C.fx.glow(wave * W, 410, 90, 280, 1, 0.7, 0.3, 0.3)
   -- the card stunt: TEXAS in white on orange, card by card
   local k = clamp((lt - 4) / 6, 0, 1)
   if lt > 4 then
     local cell = 13
     local n = 0
+    -- the section's own seats behind the cards (over the painted crowd the cards read as holes)
+    local c1, cN = S.stunt[1], S.stunt[#S.stunt]
+    lg.setColor(0.12, 0.06, 0.04, 0.9 * k)
+    lg.rectangle("fill", c1[1] - 6, c1[2] - 6, cN[1] - c1[1] + cell + 10, cN[2] - c1[2] + cell + 10, 6, 6, 4)
     for _, c in ipairs(S.stunt) do
       n = n + 1
       if n / #S.stunt <= k then
@@ -570,12 +572,12 @@ function D.hookem(lt, len)
   if lt > 14 then
     local a = clamp((lt - 14) / 1.5, 0, 1)
     local pump = abs(sin(S.t * 3.2)) * 18
-    C.fx.glow(384, 820 - pump, 220, 200, 1, 0.5, 0.1, 0.35 * a)
-    hookem_hand(384, 840 - pump, 1.3, ORANGE_HI, a)
+    C.fx.glow(384, 880 - pump, 220, 200, 1, 0.5, 0.1, 0.35 * a)
+    hookem_hand(384, 900 - pump, 1.3, ORANGE_HI, a)
   end
   if lt > 22 then
     local beat = floor((lt - 22) / 1.1) % 2
-    G:caption(beat == 0 and "TEXAS!" or "FIGHT!", 560, 80, beat == 0 and 0xff8c1a or 0xffffff, clamp((lt - 22) * 2, 0, 1))
+    G:caption(beat == 0 and "TEXAS!" or "FIGHT!", 600, 80, beat == 0 and 0xff8c1a or 0xffffff, clamp((lt - 22) * 2, 0, 1))
   end
 end
 
@@ -898,20 +900,20 @@ function D.tower(lt, len)
   -- the crowd on the South Mall, horns up, against the Tower's glow on the lawn
   C.fx.glow(384, 900, 520, 110, 1, 0.45, 0.1, one and 0.5 or 0.38)
   for i = 0, 15 do
-    fan(30 + i * 48, 972 - (i % 2) * 20, 1.8, {0.07, 0.04, 0.03}, S.t + i, true)
+    fan(30 + i * 48, 972 - (i % 2) * 20, 1.8, {0.07, 0.04, 0.03}, S.t + i, true, i % 5 + 1)
   end
   local last = S.last
   if not one then
     local a = L.window(lt, 5, 46, 1.2)
     if last and last.won and S.last_days and S.last_days <= 6 then
-      G:plate(string.format("TEXAS %d, %s %d", last.us or 0, string.upper(last.opp or last.opp_abbr or ""), last.them or 0), 150, 32, 0xffd23f, a)
-      G:plate("THE TOWER IS ORANGE TONIGHT", 210, 26, 0xffffff, L.window(lt, 8, 46, 1.2))
+      G:plate(string.format("TEXAS %d, %s %d", last.us or 0, string.upper(last.opp or last.opp_abbr or ""), last.them or 0), 760, 32, 0xffd23f, a)
+      G:plate("THE TOWER IS ORANGE TONIGHT", 820, 26, 0xffffff, L.window(lt, 8, 46, 1.2))
     else
-      G:plate("AFTER EVERY WIN: AN ORANGE TOP", 150, 30, 0xffd23f, a)
+      G:plate("AFTER EVERY WIN: AN ORANGE TOP", 780, 30, 0xffd23f, a)
     end
   else
-    G:plate("A NATIONAL TITLE: ALL ORANGE, WITH A 1", 150, 28, 0xffd23f, L.window(lt, 49, 66, 1.2))
-    G:plate("THE EYES OF TEXAS ARE UPON YOU", 150, 30, 0xffffff, L.window(lt, 68, len - 2, 1.2))
+    G:plate("A NATIONAL TITLE: ALL ORANGE, WITH A 1", 780, 28, 0xffd23f, L.window(lt, 49, 66, 1.2))
+    G:plate("THE EYES OF TEXAS ARE UPON YOU", 780, 30, 0xffffff, L.window(lt, 68, len - 2, 1.2))
   end
 end
 
@@ -956,10 +958,11 @@ function D.season(lt, len)
   end
   -- (one layer where it can be: a clear, the crowd below, the frame as lines, the board's picture)
   lg.clear(0.05, 0.03, 0.06, 1)
-  lg.setColor(1, 1, 1, 0.9)
-  crowd_strip(840)
+  -- the board's post first, behind the crowd
   lg.setColor(0.18, 0.18, 0.2, 1)
   lg.rectangle("fill", 360, by + bh + 16, 48, 60)
+  lg.setColor(1, 1, 1, 1)
+  crowd_strip(840)
   lg.setLineWidth(12)
   lg.rectangle("line", bx - 10, by - 10, bw + 20, bh + 20, 10, 10, 6)
   rgba(ORANGE)
@@ -1209,8 +1212,8 @@ function D.legends(lt, len)
   G:text(mid, 0, 20, 22, WHITE, 0.9)
   -- the words
   if r < snap then
-    G:plate("JAN 4, 2006  ·  PASADENA", 560, 30, 0xffffff, L.window(r, 0.3, snap - 0.3, 0.6))
-    G:plate("FOURTH AND FIVE. DOWN BY FIVE.", 620, 30, 0xffb347, L.window(r, 2, snap - 0.3, 0.6))
+    G:plate("JAN 4, 2006  ·  PASADENA", 760, 30, 0xffffff, L.window(r, 0.3, snap - 0.3, 0.6))
+    G:plate("FOURTH AND FIVE. DOWN BY FIVE.", 820, 30, 0xffb347, L.window(r, 2, snap - 0.3, 0.6))
   end
   if r > snap + run_t and r < 19 then
     G:caption("TOUCHDOWN TEXAS!", 520, 64, 0xff8c1a, clamp((r - snap - run_t) * 2, 0, 1), 1 + 0.06 * abs(sin(r * 5)))

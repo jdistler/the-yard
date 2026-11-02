@@ -735,7 +735,9 @@ function D.panhandle(lt, len)
     lg.setLineWidth(3)
     local x, y = 620 + (floor(S.t) % 4) * 20, 460
     local pts = {x, y}
-    for i = 1, 6 do x = x + (S.R:random() - 0.5) * 30 y = y + 30 pts[#pts + 1] = x pts[#pts + 1] = y end
+    -- (the bolt's shape from the strike's number: the same bolt every frame of its flash)
+    local bolt = floor(S.t * 0.35)
+    for i = 1, 6 do x = x + (((bolt * 7919 + i * 104729) % 1000) / 1000 - 0.5) * 30 y = y + 30 pts[#pts + 1] = x pts[#pts + 1] = y end
     lg.line(pts)
     C.fx.glow(640, 440, 200, 160, 1, 1, 1, 0.25)
   end

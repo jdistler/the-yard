@@ -266,7 +266,7 @@ end
 local fonts = {}
 local font_data
 -- Starlight's state, in one table (main.lua is at Lua's 200 locals): the script face, the world, the marquee
-local ST = {script_fonts = {}, face = "round", world_want = "base"}
+local ST = {script_fonts = {}, face = "round", world_want = "base", L = require("showlib")}
 local function font(px)
   if not fonts[px] then
     fonts[px] = font_data and lg.newFont(font_data, px) or lg.newFont(px)
@@ -1162,9 +1162,11 @@ local function draw_scene()
   end
   if scene == "show" and cur_show then
     -- An idle show draws the whole picture (freedom.lua, texas.lua, ...).
+    ST.L.top_busy = 0
     cur_show.draw()
-    -- the on-air bug: STARLIGHT, faint, in the corner
-    if not curtain then ST.draw(W - 190, 8, 30, 0.38, nil, "left", 180) end
+    -- the on-air bug: STARLIGHT, faint, in the corner; it fades away while the show writes up there
+    ST.bug = math.max(0, math.min(1, (ST.bug or 1) + (ST.L.top_busy > 0 and -0.08 or 0.03)))
+    if not curtain and ST.bug > 0 then ST.draw(W - 190, 8, 30, 0.38 * ST.bug, nil, "left", 180) end
     curtain_draw()
     draw_volume()
     return
