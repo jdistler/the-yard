@@ -776,10 +776,13 @@ function D.panhandle(lt, len)
   lg.push()
   lg.translate(160, 590)
   lg.rotate(S.t * 2.2)
-  for i = 0, 15 do
-    lg.rotate(pi / 8)
-    lg.polygon("fill", 6, -3, 46, -6, 46, 6, 6, 3)
+  -- (twelve blades with sky between: sixteen solid ones read as a black disc)
+  for i = 0, 11 do
+    lg.rotate(pi / 6)
+    lg.polygon("fill", 10, -1.5, 44, -4, 44, 4, 10, 1.5)
   end
+  lg.setLineWidth(2)
+  lg.circle("line", 0, 0, 44, 24)
   lg.pop()
   lg.circle("fill", 160, 590, 7, 12)
   if not painted then lg.polygon("fill", 160, 586, 230, 576, 236, 600, 160, 594) end
@@ -944,9 +947,10 @@ function D.finale(lt, len)
     lg.setColor(1, 1, 1, 1)
     lg.draw(S.milky, 0, 0, 0, 2, 2)
   end
+  -- the fireworks behind the flag (bursting over it, they read as holes in it)
+  G:draw_back()
   L.pole(150, 240, 1024)
   S.flag:draw(155, 260, 470, 313, S.t, 0.7 + 0.1 * sin(S.t * 0.4), {0.95, 0.95, 1})
-  G:draw_back()
   local a = L.window(lt, 1, 25, 1.5)
   G:caption("TEXAS", 640, 110, 0xffb347, a)
   G:caption("THE LONE STAR STATE", 790, 34, 0xffffff, a)

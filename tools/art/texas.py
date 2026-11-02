@@ -641,7 +641,7 @@ def panhandle():
     # the windmill's tower and tail (the wheel turns live), the pump jack's base and frame
     for (a, b) in (((130, 900), (160, 600)), ((190, 900), (160, 600))):
         p.line([a, b], "#1e1612", 4)
-    for y in range(640, 900, 60):
+    for y in range(640, 880, 60):
         p.line([(130 + (900 - y) * 0.1, y), (190 - (900 - y) * 0.1, y)], "#1e1612", 2.4)
         p.line([(130 + (900 - y) * 0.1, y), (190 - (900 - y - 60) * 0.1, y + 60)], "#1e1612", 1.4)
     p.poly([(160, 586), (230, 576), (236, 600), (160, 594)], "#1e1612")
