@@ -84,7 +84,13 @@ local function ears(x, y, r, a)
   lg.ellipse("fill", x + r * 0.35, y - r * 1.38, r * 0.08, r * 0.4, 8)
 end
 
-local function meadow()
+local function meadow(with_oak)
+  local img = with_oak and S.art.meadow_oak or S.art.meadow
+  if img then
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(img, 0, 0)
+    return true
+  end
   G:gradient(0, 0, W, 560, {0.4, 0.65, 1}, {0.85, 0.93, 1})
   lg.setColor(1, 1, 1, 0.9)
   for i = 0, 2 do
@@ -115,8 +121,7 @@ function D.open(lt, len)
 end
 
 function D.hunt(lt, len)
-  meadow()
-  L.live_oak(110, 600, 1.6, S.t)
+  if not meadow(true) or not S.art.meadow_oak then L.live_oak(110, 600, 1.6, S.t) end
   -- the eggs, hidden; Pac-Man goes from one to the next and takes it
   local per = (len - 6) / #S.eggs
   local k = clamp((lt - 2) / per, 0, #S.eggs)
@@ -151,12 +156,18 @@ function D.hunt(lt, len)
 end
 
 function D.dye(lt, len)
-  G:gradient(0, 0, W, H, {1, 0.96, 0.88}, {0.95, 0.85, 0.75})
-  -- the table, six cups
-  lg.setColor(0.85, 0.65, 0.45, 1)
-  lg.rectangle("fill", 0, 640, W, 384)
+  local painted = S.art.kitchen
+  if painted then
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.art.kitchen, 0, 0)
+  else
+    G:gradient(0, 0, W, H, {1, 0.96, 0.88}, {0.95, 0.85, 0.75})
+    -- the table, six cups
+    lg.setColor(0.85, 0.65, 0.45, 1)
+    lg.rectangle("fill", 0, 640, W, 384)
+  end
   local cols = {{1, 0.3, 0.45}, {0.3, 0.6, 1}, {1, 0.85, 0.2}, {0.3, 0.85, 0.4}, {0.65, 0.4, 0.95}, {1, 0.55, 0.2}}
-  for i, c in ipairs(cols) do
+  for i, c in ipairs(painted and {} or cols) do
     local x = 84 + (i - 1) * 120
     lg.setColor(0.95, 0.95, 1, 0.7)
     lg.rectangle("fill", x - 44, 560, 88, 110, 6, 6, 4)
@@ -214,9 +225,15 @@ function D.bunny(lt, len)
 end
 
 function D.cascarones(lt, len)
+  local painted = S.art.fiesta
+  if painted then
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.art.fiesta, 0, 0)
+  end
+  local cols = {{1, 0.3, 0.5}, {0.3, 0.7, 1}, {1, 0.85, 0.2}, {0.4, 0.85, 0.4}, {0.75, 0.45, 1}, {1, 0.55, 0.2}}
+  if not painted then
   G:gradient(0, 0, W, H, {0.55, 0.8, 1}, {1, 0.9, 0.7})
   -- the papel picado overhead
-  local cols = {{1, 0.3, 0.5}, {0.3, 0.7, 1}, {1, 0.85, 0.2}, {0.4, 0.85, 0.4}, {0.75, 0.45, 1}, {1, 0.55, 0.2}}
   for row = 0, 1 do
     lg.setColor(0.4, 0.4, 0.4, 1)
     lg.setLineWidth(2)
@@ -237,6 +254,7 @@ function D.cascarones(lt, len)
   lg.rectangle("fill", 200, 560, 368, 22, 4, 4, 4)
   lg.rectangle("fill", 220, 582, 16, 120)
   lg.rectangle("fill", 532, 582, 16, 120)
+  end
   for c = 0, 1 do
     lg.setColor(0.8, 0.75, 0.65, 1)
     lg.rectangle("fill", 222 + c * 170, 520, 156, 44, 6, 6, 4)
@@ -245,7 +263,7 @@ function D.cascarones(lt, len)
       if not e[3] or lt < e[3] then egg(240 + c * 170 + j * 24, 522, 15, e[1], e[2]) end
     end
   end
-  G:text("CASCARONES  50¢", 200, 470, 30, {0.85, 0.2, 0.45}, 1, "center", 368)
+  if not painted then G:text("CASCARONES  50¢", 200, 470, 30, {0.85, 0.2, 0.45}, 1, "center", 368) end
   -- the cast, standing about; every few seconds someone gets one on the head
   local who = {
     {130, 720, "pac"}, {300, 740, 1}, {470, 720, 2}, {640, 740, 3}, {384, 900, 4},
@@ -347,6 +365,8 @@ function M.start(seed, at)
   S = {t = at or 0}
   G.t, G.prev = S.t, S.t - 0.001
   local R = G.R
+  S.art = {}
+  for _, n in ipairs({"meadow", "meadow_oak", "kitchen", "fiesta"}) do S.art[n] = G:art("easter", n) end
   S.flowers, S.eggs, S.trail, S.cracks = {}, {}, {}, {}
   for i = 1, 260 do
     local y = 580 + R:random() * 440
