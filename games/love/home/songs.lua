@@ -757,6 +757,108 @@ M.tg_pie = {
   order = {"A", "A", "A+5", "A"},
 }
 
+-- ------------------------------------------------------------------ Christmas (christmas.lua): public-domain
+-- carols (Jingle Bells, Deck the Halls, We Wish You a Merry Christmas, Silent Night, the Carol of the Bells'
+-- ostinato) and one of ours (the Gingerbread Rag)
+local SLEIGH = "h h h h h h h h"
+local CHOIR = {wave = "sine", a = 0.3, d = 0.4, s = 0.8, r = 0.6, vol = 0.07, oct = 4, vib = {0.12, 5, 0.3}, detune = 6}
+
+local JINGLE = "e5*4 e5*4 e5*8 | e5*4 e5*4 e5*8 | e5*4 g5*4 c5*6 d5*2 | e5*16 | f5*4 f5*4 f5*6 f5*2 | f5*4 e5*4 e5*4 e5*2 e5*2 |" ..
+               "e5*4 d5*4 d5*4 e5*4 | d5*8 g5*8 | e5*4 e5*4 e5*8 | e5*4 e5*4 e5*8 | e5*4 g5*4 c5*6 d5*2 | e5*16 |" ..
+               "f5*4 f5*4 f5*6 f5*2 | f5*4 e5*4 e5*4 e5*2 e5*2 | g5*4 g5*4 f5*4 d5*4 | c5*16"
+local JINGLE_CHORDS = "C*16 C*16 C*16 C*16 F*16 C*16 D7*16 G7*16 C*16 C*16 C*16 C*16 F*16 C*16 G7*16 C*16"
+local JINGLE_BASS = oompah("c3", "g2") .. oompah("c3", "g2") .. oompah("c3", "g2") .. oompah("c3", "g2") .. oompah("f2", "c3") ..
+                    oompah("c3", "g2") .. oompah("d3", "a2") .. oompah("g2", "d3") .. oompah("c3", "g2") .. oompah("c3", "g2") ..
+                    oompah("c3", "g2") .. oompah("c3", "g2") .. oompah("f2", "c3") .. oompah("c3", "g2") .. oompah("g2", "d3") ..
+                    oompah("c3", "g2")
+
+M.xm_bells = {
+  bpm = 140, gain = 1, echo = {time = 0.43, fb = 0.4, mix = 0.3},
+  inst = {bell = copy(BELL, {vol = 0.18, d = 0.5}), bell_2 = copy(BELL, {vol = 0.1, d = 0.4}),
+          lead = copy(TRUMPET, {vol = 0.08, wave = "sine", detune = 0}), pad = copy(PAD, {vol = 0.05}),
+          bass = copy(BASS, {vol = 0.32, a = 0.03, r = 0.3})},
+  parts = {
+    A = {bell = "bb4*4 a4*2 bb4*2 g4*4"},
+    B = {bell = "bb4*4 a4*2 bb4*2 g4*4", bell_2 = "bb5*4 a5*2 bb5*2 g5*4", bass = "g2*12"},
+    C = {bell = "bb4*4 a4*2 bb4*2 g4*4", lead = "d6*12 | c6*12 | bb5*12 | a5*12 | g5*12 | f5*12 | eb5*12 | d5*12",
+         pad = "Gm*12 F*12 Eb*12 D*12 Cm*12 Bb*12 Cm*12 D*12",
+         bass = "g2*12 | f2*12 | eb2*12 | d2*12 | c2*12 | bb1*12 | c2*12 | d2*12"},
+  },
+  -- (A and B are one bar; repeated)
+  order = {"A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B", "B", "C", "C", "B", "B", "B", "B"},
+}
+
+M.xm_jingle = {
+  bpm = 132, gain = 1,
+  inst = {lead = copy(BELL, {vol = 0.2, d = 0.35, s = 0.2}), lead_2 = copy(LEAD, {vol = 0.06, duty = 0.5}),
+          pad = copy(CHOP, {vol = 0.05, d = 0.2}), bass = copy(BASS, {gate = 0.55, vol = 0.4})},
+  parts = {
+    A = {lead = JINGLE, lead_2 = JINGLE, pad = JINGLE_CHORDS, bass = JINGLE_BASS, drums = SLEIGH .. " " .. SLEIGH},
+  },
+  order = {"A", "A"},
+}
+
+M.xm_deck = {
+  bpm = 116, steps = 2, swing = 0.3, gain = 1, echo = {time = 0.26, fb = 0.2, mix = 0.15},
+  inst = {lead = FIDDLE, steel = STEEL, chop = copy(CHOP, {oct = 4}), bass = copy(BASS, {gate = 0.8, vol = 0.36})},
+  parts = {
+    A = {lead = "g5*3 f5 e5*2 d5*2 | c5*2 d5*2 e5*2 c5*2 | d5 e5 f5 d5 e5*3 d5 | c5*2 b4*2 c5*4",
+         steel = "e5*8 | g4*8 | b4*4 g4*4 | e4*8",
+         chop = ".*1 C .*1 C .*1 C .*1 C | .*1 C .*1 C .*1 C .*1 C | .*1 G7 .*1 G7 .*1 C .*1 C | .*1 C .*1 G7 .*1 C .*1 C",
+         bass = "c3*2 g2*2 c3*2 g2*2 | c3*2 e3*2 g3*2 e3*2 | g2*2 b2*2 c3*2 g2*2 | c3*2 g2*2 c3*4", drums = "k*2 s?*2"},
+    B = {lead = "d5*3 e5 f5*2 d5*2 | e5*3 f5 g5*2 d5*2 | e5 f#5 g5*2 a5 b5 c6*2 | b5*2 a5*2 g5*4",
+         steel = "b4*8 | c5*4 b4*4 | a4*8 | g4*8",
+         chop = ".*1 G .*1 G .*1 G .*1 G | .*1 C .*1 C .*1 G .*1 G | .*1 D .*1 D .*1 D7 .*1 D7 | .*1 G .*1 G .*1 G .*1 G",
+         bass = "g2*2 d3*2 g2*2 d3*2 | c3*2 g2*2 g2*2 d3*2 | d3*2 a2*2 d3*2 c3*2 | g2*2 d3*2 g2*4", drums = "k*2 s?*2"},
+  },
+  order = {"A", "A", "B", "A", "A", "A", "B", "A"},
+}
+
+M.xm_wish = {
+  bpm = 120, gain = 1, echo = {time = 0.3, fb = 0.3, mix = 0.25},
+  inst = {lead = copy(BELL, {vol = 0.2, d = 0.4, s = 0.25}), pad = CHOIR, bass = copy(PLUCK, {vol = 0.3})},
+  parts = {
+    A = {lead = ".*8 g4*4 | c5*4 c5*2 d5*2 c5*2 b4*2 | a4*4 a4*4 a4*4 | d5*4 d5*2 e5*2 d5*2 c5*2 | b4*4 g4*4 g4*4 |" ..
+                "e5*4 e5*2 f5*2 e5*2 d5*2 | c5*4 a4*4 g4*2 g4*2 | a4*4 d5*4 b4*4 | c5*12",
+         pad = "G*12 C*12 F*12 D7*12 G*12 E7*12 Am*12 G7*12 C*12",
+         bass = "g2*12 | c3*12 | f2*12 | d3*12 | g2*12 | e2*12 | a2*12 | g2*12 | c3*12"},
+  },
+  order = {"A", "A"},
+}
+
+M.xm_rag = {
+  bpm = 116, gain = 1,
+  inst = {lead = copy(GUITAR, {vol = 0.1, d = 0.3, s = 0.3}), chord = copy(CHOP, {vol = 0.06, oct = 4}),
+          bass = copy(BASS, {gate = 0.5, vol = 0.4})},
+  parts = {
+    A = {lead = "c5*2 e5*2 g5*2 a5*2 g5*4 e5*4 | f5*2 a5*2 c6*2 a5*2 g5*8 | e5*2 g5*2 c6*2 b5*2 a5*2 g5*2 f5*2 e5*2 | d5*4 g5*4 c5*8",
+         chord = ".*4 C*4 .*4 C*4 | .*4 F*4 .*4 F*4 | .*4 C*4 .*4 C*4 | .*4 G7*4 .*4 C*4",
+         bass = "c2*4 .*4 g2*4 .*4 | f2*4 .*4 c3*4 .*4 | c2*4 .*4 g2*4 .*4 | g2*4 .*4 c2*4 .*4", drums = "k*4 s?*4"},
+  },
+  order = {"A", "A", "A+5", "A"},
+}
+
+M.xm_silent = {
+  bpm = 72, gain = 1.6, echo = {time = 0.5, fb = 0.45, mix = 0.35},
+  inst = {box = copy(BELL, {vol = 0.2, d = 0.9}), pad = copy(CHOIR, {vol = 0.05}), bass = copy(PLUCK, {vol = 0.22, d = 0.6})},
+  parts = {
+    A = {box = "g4*6 a4*2 g4*4 | e4*12 | g4*6 a4*2 g4*4 | e4*12 | d5*8 d5*4 | b4*12 | c5*8 c5*4 | g4*12 | a4*8 a4*4 |" ..
+               "c5*6 b4*2 a4*4 | g4*6 a4*2 g4*4 | e4*12 | a4*8 a4*4 | c5*6 b4*2 a4*4 | g4*6 a4*2 g4*4 | e4*12 | d5*8 d5*4 |" ..
+               "f5*6 d5*2 b4*4 | c5*12 | e5*12 | c5*6 g4*2 e4*4 | g4*6 f4*2 d4*4 | c4*12 | .*12",
+         pad = "C*12 C*12 C*12 C*12 G7*12 G7*12 C*12 C*12 F*12 F*12 C*12 C*12 F*12 F*12 C*12 C*12 G7*12 G7*12 C*12 C*12 C*12 G7*12 C*12 C*12",
+         bass = "c3*12 | c3*12 | c3*12 | c3*12 | g2*12 | g2*12 | c3*12 | c3*12 | f2*12 | f2*12 | c3*12 | c3*12 | f2*12 | f2*12 |" ..
+                "c3*12 | c3*12 | g2*12 | g2*12 | c3*12 | c3*12 | c3*12 | g2*12 | c3*12 | c3*12"},
+  },
+  order = {"A"},
+}
+
+M.xm_finale = {
+  bpm = 152, gain = 1,
+  inst = M.xm_jingle.inst,
+  parts = {A = M.xm_jingle.parts.A},
+  order = {"A+2", "A+2"},
+}
+
 -- ------------------------------------------------------------------ sound effects (loop = false; steps of 1/32 s)
 local function fx(inst, lane, beats, gain)
   return {bpm = 120, steps = 16, loop = false, gain = gain or 1, inst = {x = inst}, parts = {A = {x = lane}}, order = {"A"}}
