@@ -1009,6 +1009,74 @@ M.ny_auld = {
   order = {"A", "A+2"},
 }
 
+-- ------------------------------------------------------------------ Mission Control (space.lua): Richard Strauss's
+-- Also sprach Zarathustra (its sunrise, 1896) and Johann Strauss II's The Blue Danube (1866), public domain; ours
+local TIMP = "t*2 T*2 t*2 T*2 t*2 T*2 t*2 T*2"
+M.mc_hum = {
+  bpm = 96, gain = 1, echo = {time = 0.47, fb = 0.4, mix = 0.3},
+  inst = {arp = copy(ARP, {arp = "up", oct = 4, vol = 0.045}), pad = copy(PAD, {vol = 0.05}), bass = copy(BASS, {vol = 0.3, gate = 0.5}),
+          lead = copy(BELL, {vol = 0.12})},
+  parts = {
+    A = {arp = "Am*16 F*16 C*16 G*16", pad = "Am*16 F*16 C*16 G*16", bass = string.rep("a1*4 ", 4) .. string.rep("f1*4 ", 4) .. string.rep("c2*4 ", 4) .. string.rep("g1*4 ", 4),
+         drums = "k?*4 .*4 k?*4 .*4"},
+    B = {arp = "Am*16 F*16 C*16 E*16", pad = "Am*16 F*16 C*16 E*16", lead = "e5*8 c5*8 | a4*16 | g4*8 c5*8 | b4*16",
+         bass = string.rep("a1*4 ", 4) .. string.rep("f1*4 ", 4) .. string.rep("c2*4 ", 4) .. string.rep("e1*4 ", 4), drums = "k?*4 h?*4 k?*4 h?*4"},
+  },
+  order = {"A", "B", "A", "B"},
+}
+
+M.mc_sunrise = {
+  bpm = 60, gain = 1, loop = false, after = "mc_tranquil", echo = {time = 0.6, fb = 0.45, mix = 0.35}, drums_gain = 1.4,
+  inst = {lead = copy(TRUMPET, {vol = 0.14, vib = {0.05, 5, 0.5}}), pad = copy(BRASS_PAD, {vol = 0.1, a = 0.05, r = 1.5}),
+          bass = copy(ORGAN, {vol = 0.12, lp = 500, oct = 2})},
+  parts = {
+    A = {lead = ".*16 | c4*16 | g4*16 | c5*16 | e5*4 eb5*12 | .*16 | c4*16 | g4*16 | c5*16 | eb5*4 e5*12 | .*16 |" ..
+                "c4*16 | g4*16 | c5*16 | a5*8 b5*8 | c6*32",
+         pad = ".*64 | C*4 Cm*12 | .*64 | Cm*4 C*12 | .*64 | F*8 G*8 | C*32",
+         bass = "c2*272",
+         drums = ".*80 | " .. TIMP .. " | .*64 | " .. TIMP .. " | .*64 | c+k!*16 | " .. TIMP},
+  },
+  order = {"A"},
+}
+
+M.mc_danube = {
+  bpm = 150, gain = 1.4, echo = {time = 0.4, fb = 0.3, mix = 0.25},
+  inst = {lead = copy(BELL, {vol = 0.2, d = 0.7, s = 0.3}), pad = copy(PAD, {vol = 0.05, a = 0.2}), chord = copy(CHOP, {vol = 0.05, oct = 4}),
+          bass = copy(PLUCK, {vol = 0.3})},
+  parts = {
+    A = {lead = "d4*4 d4*4 f#4*4 | a4*12 | .*4 a5*4 a5*4 | .*4 f#5*4 f#5*4 | d4*4 d4*4 f#4*4 | a4*12 | .*4 b5*4 b5*4 | .*4 g5*4 g5*4 |" ..
+                "c#4*4 c#4*4 e4*4 | b4*12 | .*4 b5*4 b5*4 | .*4 g5*4 g5*4 | c#4*4 c#4*4 e4*4 | b4*12 | .*4 a5*4 a5*4 | .*4 f#5*4 f#5*4",
+         pad = "D*72 G*24 A7*72 D*24",
+         chord = string.rep(".*4 D*4 D*4 ", 6) .. string.rep(".*4 G*4 G*4 ", 2) .. string.rep(".*4 A7*4 A7*4 ", 6) .. string.rep(".*4 D*4 D*4 ", 2),
+         bass = string.rep("d2*12 ", 6) .. string.rep("g2*12 ", 2) .. string.rep("a2*12 ", 6) .. string.rep("d2*12 ", 2)},
+  },
+  order = {"A", "A"},
+}
+
+M.mc_tranquil = {
+  bpm = 60, gain = 2.0, echo = {time = 0.6, fb = 0.5, mix = 0.45},
+  inst = {pad = copy(PAD, {vol = 0.05, a = 1.5, r = 2}), lead = copy(BELL, {vol = 0.15, d = 1.2})},
+  parts = {
+    A = {pad = "Em*16 Cmaj7*16 G*16 D*16", lead = "e5*8 .*8 | b4*8 d5*8 | e5*16 | .*16"},
+    B = {pad = "Am7*16 Em*16 C*16 D*16", lead = ".*8 a4*8 | b4*16 | g4*8 e5*8 | d5*16"},
+  },
+  order = {"A", "B"},
+}
+
+M.mc_home = {
+  bpm = 110, gain = 1,
+  inst = {lead = copy(TRUMPET, {vol = 0.12}), brass = BRASS_PAD, bass = copy(BASS, {gate = 0.6, vol = 0.4})},
+  parts = {
+    A = {lead = "d5*4 a4*4 d5*4 f#5*4 | e5*8 a5*8 | g5*4 f#5*4 e5*4 d5*4 | e5*16 | d5*4 a4*4 d5*4 f#5*4 | b5*8 a5*8 |" ..
+                "g5*4 e5*4 c#5*4 e5*4 | d5*16",
+         brass = "D*16 A*16 G*16 A*16 D*16 G*16 A*16 D*16",
+         bass = eights("d2", "d3") .. eights("a1", "a2") .. eights("g1", "g2") .. eights("a1", "a2") .. eights("d2", "d3") ..
+                eights("g1", "g2") .. eights("a1", "a2") .. eights("d2", "d3"),
+         drums = "k*4 s*4 k*4 s*4 | k*4 s*4 k*2 k*2 s*4"},
+  },
+  order = {"A", "A"},
+}
+
 -- ------------------------------------------------------------------ sound effects (loop = false; steps of 1/32 s)
 local function fx(inst, lane, beats, gain)
   return {bpm = 120, steps = 16, loop = false, gain = gain or 1, inst = {x = inst}, parts = {A = {x = lane}}, order = {"A"}}

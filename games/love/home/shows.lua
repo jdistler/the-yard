@@ -21,6 +21,8 @@ S.LIST = {
    blurb = "A day across Texas: the Gulf, the Hill Country, Austin, the Panhandle, Big Bend."},
   {id = "longhorns", title = "LONGHORNS", tint = 0xff8c1a, module = "longhorns",
    blurb = "Game day on the Forty Acres. Hook 'em! Live scores on game days."},
+  {id = "space", title = "MISSION CONTROL", tint = 0x8ab4ff, module = "space",
+   blurb = "Houston: the Saturn V, a launch, the station over Texas, the Moon, splashdown."},
   {id = "halloween", title = "HALLOWEEN", tint = 0xff8000, module = "halloween",
    blurb = "The ghosts' own holiday: the haunted house, jack-o'-lanterns, trick or treat, BOO!"},
   {id = "thanksgiving", title = "THANKSGIVING", tint = 0xe0903a, module = "thanksgiving",
@@ -84,6 +86,7 @@ function S.holiday(d)
     local ld = nth_weekday(y, 9, 2, 1)                  -- Labor Day: the first Monday
     if day >= ld - 2 and day <= ld then return "freedom", "Labor Day" end
   end
+  if m == 7 and day >= 16 and day <= 24 then return "space", "the Moon landing's anniversary" end
   if m == 3 and day == 2 then return "texas", "Texas Independence Day" end
   if (m == 3 and day >= 15) or (m == 4) then return "texas", "bluebonnet season" end
   return nil
@@ -111,7 +114,7 @@ function S.pick(now, game, rot)
   local h = S.holiday(d)
   if h and S.available(h) then return h end
   local r = {}
-  for _, id in ipairs({"texas", "freedom", "longhorns"}) do
+  for _, id in ipairs({"texas", "space", "freedom", "longhorns"}) do
     if S.available(id) and (id ~= "longhorns" or football_season(d)) then r[#r + 1] = id end
   end
   if #r == 0 then return "night" end
@@ -239,6 +242,21 @@ function S.icon(id, x, cy, sc, a, t)
     lg.ellipse("fill", bx + 42 * sc, by - 22 * sc, 4 * sc, 9 * sc, 10)
     lg.setColor(0, 0, 0, a)
     lg.circle("fill", bx + 34 * sc, by - 38 * sc, 2.5 * sc, 8)
+  elseif id == "space" then
+    local bx, by = x + 90 * sc, cy + 10 * sc
+    C.fx.glow(bx, by + 60 * sc, 40 * sc, 60 * sc, 1, 0.6, 0.2, 0.5 * a)
+    lg.setColor(0.95, 0.95, 0.95, a)
+    lg.rectangle("fill", bx - 14 * sc, by - 60 * sc, 28 * sc, 100 * sc)
+    lg.polygon("fill", bx - 14 * sc, by - 60 * sc, bx + 14 * sc, by - 60 * sc, bx, by - 96 * sc)
+    lg.setColor(0.1, 0.1, 0.12, a)
+    lg.rectangle("fill", bx - 14 * sc, by - 20 * sc, 28 * sc, 6 * sc)
+    lg.rectangle("fill", bx - 14 * sc, by + 14 * sc, 28 * sc, 6 * sc)
+    lg.setColor(0.8, 0.1, 0.12, a)
+    lg.polygon("fill", bx - 14 * sc, by + 20 * sc, bx - 30 * sc, by + 44 * sc, bx - 14 * sc, by + 40 * sc)
+    lg.polygon("fill", bx + 14 * sc, by + 20 * sc, bx + 30 * sc, by + 44 * sc, bx + 14 * sc, by + 40 * sc)
+    lg.setColor(1, 0.7, 0.2, a * (0.7 + 0.3 * math.sin(t * 20)))
+    lg.polygon("fill", bx - 10 * sc, by + 40 * sc, bx + 10 * sc, by + 40 * sc, bx, by + 74 * sc)
+    for i, p in ipairs({{-60, -70}, {60, -40}, {-50, 40}, {64, 60}}) do star(bx + p[1] * sc, by + p[2] * sc, 6 * sc, {1, 1, 0.9}, a) end
   elseif id == "halloween" then
     local bx, by, r = x + 90 * sc, cy + 10 * sc, 56 * sc
     C.fx.glow(bx, by, r * 1.8, r * 1.6, 1, 0.55, 0.1, 0.35 * a)
