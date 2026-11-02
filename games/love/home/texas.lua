@@ -24,6 +24,7 @@ local LEN = 600
 T.LEN = LEN
 local sin, cos, floor, min, max, abs, pi = math.sin, math.cos, math.floor, math.min, math.max, math.abs, math.pi
 local clamp, ease, lerp, mix = L.clamp, L.ease, L.lerp, L.mix
+local steer, live_oak = L.steer, L.live_oak
 
 -- {start, name, song, title, place}
 local SCENES = {
@@ -100,37 +101,6 @@ local function pelican(x, y, s, flap)
   lg.pop()
 end
 
--- A longhorn steer, side view, walking (facing right); coat {base, patch}.
-local function steer(x, y, s, step, coat, horn)
-  lg.push()
-  lg.translate(x, y)
-  lg.scale(s, s)
-  rgba(coat[1])
-  for i, lx in ipairs({-26, -14, 16, 28}) do
-    local sw = sin(step + (i % 2) * pi) * 6
-    lg.rectangle("fill", lx + sw * 0.5 - 3, 6, 6, 30)
-  end
-  lg.ellipse("fill", 0, 0, 40, 18, 20)
-  if coat[2] then
-    rgba(coat[2])
-    lg.ellipse("fill", -12, -2, 12, 9, 12)
-    lg.ellipse("fill", 14, 6, 9, 7, 12)
-  end
-  rgba(coat[1])
-  lg.polygon("fill", 30, -12, 48, -10, 54, 8, 40, 8)
-  lg.ellipse("fill", 52, 4, 9, 12, 12)
-  lg.setColor(0.15, 0.1, 0.08, 1)
-  lg.circle("fill", 55, 0, 1.8, 6)
-  -- the horns: a long sweep out to each side (one toward us, one away), tips up
-  lg.setColor(horn[1], horn[2], horn[3], 1)
-  lg.setLineWidth(4)
-  lg.line(48, -8, 34, -14, 14, -18, 0, -28, -4, -34)
-  lg.line(50, -8, 62, -16, 82, -20, 96, -30, 100, -36)
-  lg.setColor(0.25, 0.2, 0.15, 1)
-  lg.line(-40, -2, -48, 14)
-  lg.pop()
-end
-
 -- A cowboy on a horse (facing right), walking.
 local function rider(x, y, s, step)
   lg.push()
@@ -157,20 +127,6 @@ local function rider(x, y, s, step)
   lg.ellipse("fill", 1, -53, 16, 3, 12)
   lg.rectangle("fill", -6, -64, 14, 11, 3, 3, 4)
   lg.pop()
-end
-
--- A live oak: a short trunk, a wide spreading crown.
-local function live_oak(x, y, s, sway)
-  lg.setColor(0.28, 0.2, 0.14, 1)
-  lg.polygon("fill", x - 8 * s, y, x + 8 * s, y, x + 5 * s, y - 40 * s, x - 5 * s, y - 40 * s)
-  lg.setLineWidth(5 * s)
-  lg.line(x, y - 34 * s, x - 34 * s, y - 56 * s)
-  lg.line(x, y - 34 * s, x + 38 * s, y - 52 * s)
-  for i, c in ipairs({{-46, -62, 30}, {-14, -74, 34}, {24, -70, 32}, {52, -58, 26}, {0, -56, 30}, {-30, -50, 22}, {34, -48, 22}}) do
-    local g = 0.28 + (i % 3) * 0.04
-    lg.setColor(0.12, g, 0.12, 1)
-    lg.circle("fill", x + (c[1] + sin(sway + i) * 1.5) * s, y + c[2] * s, c[3] * s, 20)
-  end
 end
 
 -- A monarch butterfly.

@@ -698,6 +698,24 @@ static int logos(int argc, char **argv)
     return 0;
 }
 
+/* tvnet get URL OUT: a public URL's body into OUT (written whole, then renamed into place), at most 2 MB.
+ * Home's game-day data (games/love/home/utgame.lua: ESPN's public team endpoint). */
+static int get(int argc, char **argv)
+{
+    if (argc < 4) return 2;
+    Buf b = {0};
+    char err[256] = "";
+    if (fetch(argv[2], &b, 2 << 20, err, sizeof err) < 0) { printf("error %s\n", err); return 1; }
+    char tmp[1024];
+    snprintf(tmp, sizeof tmp, "%s.new", argv[3]);
+    FILE *f = fopen(tmp, "wb");
+    if (!f || fwrite(b.p, 1, b.n, f) != b.n) { if (f) fclose(f); printf("error write\n"); return 1; }
+    fclose(f);
+    rename(tmp, argv[3]);
+    printf("ok %zu\n", b.n);
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     if (nice(10) < 0) { /* the guide's frames come first; never mind if not */ }
@@ -705,6 +723,7 @@ int main(int argc, char **argv)
     avformat_network_init();
     if (argc >= 2 && !strcmp(argv[1], "sync")) return sync_list(argc, argv);
     if (argc >= 2 && !strcmp(argv[1], "logos")) return logos(argc, argv);
-    fprintf(stderr, "tvnet sync CONF NAME LISTDIR EPGDIR | tvnet logos LISTFILE OUTDIR W H\n");
+    if (argc >= 2 && !strcmp(argv[1], "get")) return get(argc, argv);
+    fprintf(stderr, "tvnet sync CONF NAME LISTDIR EPGDIR | tvnet logos LISTFILE OUTDIR W H | tvnet get URL OUT\n");
     return 2;
 }

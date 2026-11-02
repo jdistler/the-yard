@@ -566,6 +566,117 @@ M.tx_lonestar = {
   order = {"A", "A"},
 }
 
+-- ------------------------------------------------------------------ Longhorns (longhorns.lua): all original
+local CARILLON = {wave = "sine", a = 0.002, d = 1.2, s = 0.0, r = 0.6, vol = 0.2, send = 0.5, detune = 1200}
+local CALLIOPE = {wave = "pulse", duty = 0.5, a = 0.01, d = 0.1, s = 0.8, r = 0.06, vol = 0.08, vib = {0.3, 7, 0}, lp = 3000}
+
+M.lh_gameday = {
+  bpm = 92, gain = 0.9, echo = {time = 0.5, fb = 0.4, mix = 0.35},
+  inst = {bell = CARILLON, pad = copy(BRASS_PAD, {vol = 0.05, a = 0.6}), bass = copy(BASS, {vol = 0.3, a = 0.05, r = 0.4}),
+          lead = copy(TRUMPET, {vol = 0.08})},
+  parts = {
+    A = {bell = "c5*8 a4*4 f4*4 | g4*8 c5*8 | d5*8 f5*4 d5*4 | bb4*16 | a4*8 c5*4 f5*4 | e5*8 g5*8 | f5*4 d5*4 e5*4 c5*4 | f5*16",
+         pad = "F*16 C*16 Dm*16 Bb*16 F*16 C*16 Bb*8 C*8 F*16", bass = "f2*16 c2*16 d2*16 bb1*16 f2*16 c2*16 bb1*8 c2*8 f2*16"},
+    B = {bell = "c5*8 a4*4 f4*4 | g4*8 c5*8 | d5*8 f5*4 d5*4 | bb4*16 | a4*8 c5*4 f5*4 | e5*8 g5*8 | f5*4 d5*4 e5*4 c5*4 | f5*16",
+         lead = "f4*16 | e4*16 | f4*16 | d4*16 | f4*16 | g4*16 | f4*8 g4*8 | a4*16",
+         pad = "F*16 C*16 Dm*16 Bb*16 F*16 C*16 Bb*8 C*8 F*16", bass = "f2*16 c2*16 d2*16 bb1*16 f2*16 c2*16 bb1*8 c2*8 f2*16",
+         drums = "k*8 s?*8"},
+  },
+  order = {"A", "B"},
+}
+
+M.lh_march = {
+  bpm = 132, gain = 1,
+  inst = {lead = copy(TRUMPET, {vol = 0.12}), pad = copy(BRASS_PAD, {vol = 0.06, a = 0.02}), pic = PICCOLO,
+          bass = copy(BASS, {gate = 0.5, vol = 0.42})},
+  parts = {
+    A = {lead = "f4*4 bb4*4 d5*4 f5*4 | d5*8 bb4*8 | c5*4 eb5*4 a5*4 c6*4 | a5*8 f5*8 | eb5*4 f5*4 g5*4 a5*4 | c6*8 a5*8 |" ..
+                "bb5*4 f5*4 d5*4 bb4*4 | bb4*8 .*8",
+         pad = "Bb*16 Bb*16 F7*16 F7*16 F7*16 F7*16 Bb*16 Bb*16",
+         bass = oompah("bb2", "f2") .. oompah("bb2", "f2") .. oompah("f2", "c3") .. oompah("f2", "c3") .. oompah("f2", "c3") ..
+                oompah("f2", "c3") .. oompah("bb2", "f2") .. oompah("bb2", "f2"),
+         drums = MARCH_DRUMS},
+    B = {lead = "g5*4 bb5*4 g5*4 eb5*4 | f5*8 d5*8 | e5*4 g5*4 bb5*4 g5*4 | f5*8 c5*8 | g5*4 bb5*4 eb6*4 g5*4 | f5*8 d5*8 |" ..
+                "c5*4 eb5*4 a5*4 c6*4 | bb5*16",
+         pic = "bb6 c7 bb6 c7 bb6 c7 bb6 c7 bb6*8 | .*16 | g6 a6 g6 a6 g6 a6 g6 a6 g6*8 | .*16 | bb6 c7 bb6 c7 bb6 c7 bb6 c7 g6*8 | .*16 |" ..
+               "a6 bb6 a6 bb6 a6 bb6 a6 bb6 f6*8 | d7*16",
+         pad = "Eb*16 Bb*16 C7*16 F7*16 Eb*16 Bb*16 F7*16 Bb*16",
+         bass = oompah("eb2", "bb2") .. oompah("bb2", "f2") .. oompah("c3", "g2") .. oompah("f2", "c3") .. oompah("eb2", "bb2") ..
+                oompah("bb2", "f2") .. oompah("f2", "c3") .. oompah("bb2", "f2"),
+         drums = MARCH_DRUMS .. " | " .. MARCH_DRUMS:gsub("k%*2 s%?%*2", "c+k*2 s?*2", 1)},
+  },
+  order = {"A", "B", "A", "B"},
+}
+
+M.lh_drumline = {
+  bpm = 120, gain = 1, drums_gain = 1.2,
+  inst = {bass = {wave = "sine", a = 0.002, d = 0.4, s = 0.0, r = 0.1, vol = 0.5}},
+  parts = {
+    A = {drums = "k . s? s? s! s? s? s? k . s? s? s! s? s . | k . s? s? s! s? s? s? k k s! s? s! s! s! .",
+         drums_2 = "t . . . T . T . t . . . T T T . | t . . . T . T . t t . . T . T .",
+         bass = "a1*4 .*12 | a1*4 .*4 a1*4 .*4"},
+    B = {drums = "s? s? s? s? s s s s s! s! s! s! s! s! c+k! . | k . k . s! . k . k k s! . c+k! . . .",
+         drums_2 = "t*16 | t . t . T . t . t t T . T . . .",
+         bass = "a1*16 | a1*4 a1*4 .*8"},
+  },
+  order = {"A", "A", "A", "B"},
+}
+
+M.lh_hookem = {
+  bpm = 100, gain = 1, drums_gain = 1.1,
+  inst = {lead = copy(TRUMPET, {vol = 0.12}), brass = copy(BRASS_PAD, {a = 0.01, d = 0.2, s = 0.4, r = 0.15, vol = 0.09}),
+          bass = copy(BASS, {gate = 0.6, vol = 0.4})},
+  parts = {
+    A = {drums = "k*2 .*2 k*2 x*2 .*2 k*2 x*4 | k*2 .*2 k*2 x*2 k*2 k*2 x*4",
+         brass = "Bb*4 .*4 Bb*2 F*6 | Eb*4 .*4 F*8",
+         lead = "f5*2 .*2 f5*2 bb5*6 .*4 | eb5*2 .*2 eb5*2 f5*10",
+         bass = "bb1*4 .*4 bb1*2 f1*6 | eb2*4 .*4 f2*8"},
+  },
+  order = {"A", "A", "A", "A"},
+}
+
+M.lh_drive = {
+  bpm = 150, gain = 1,
+  inst = {lead = copy(LEAD, {duty = 0.5, vol = 0.1}), bass = copy(BASS, {gate = 0.7, vol = 0.38}), brass = BRASS_PAD},
+  parts = {
+    A = {lead = "a4*2 d5*2 f5*2 a5*2 g5*4 f5*2 e5*2 | d5*4 a4*4 f5*8 | bb4*2 d5*2 f5*2 bb5*2 a5*4 g5*2 f5*2 | e5*4 c#5*4 a4*8",
+         bass = sixteens("d2", "d3") .. sixteens("d2", "d3") .. sixteens("bb1", "bb2") .. sixteens("a1", "a2"),
+         drums = "k*2 h*2 s*2 h*2 k*2 k*2 s*2 h*2"},
+    B = {lead = "d5*4 f#5*4 a5*4 d6*4 | c#6*4 a5*4 e5*8 | b5*4 g5*4 d5*4 g5*4 | a5*16",
+         brass = "D*16 A*16 G*16 A*16",
+         bass = eights("d2", "d3") .. eights("a1", "a2") .. eights("g1", "g2") .. eights("a1", "a2"),
+         drums = "c+k*2 h*2 s*2 h*2 k*2 k*2 s*2 h*2 | k*2 h*2 s*2 h*2 k*2 k*2 s*2 h*2"},
+  },
+  order = {"A", "A", "B", "A", "B"},
+}
+
+M.lh_fair = {
+  bpm = 132, gain = 0.95,
+  inst = {lead = CALLIOPE, chord = copy(CHOP, {vol = 0.06, oct = 4}), bass = copy(PLUCK, {vol = 0.32})},
+  parts = {
+    A = {lead = "e5*4 g5*4 c6*4 | e6*8 c6*4 | d6*4 b5*4 g5*4 | f5*12 | d5*4 f5*4 b5*4 | d6*8 b5*4 | c6*4 g5*4 e5*4 | c5*12",
+         chord = ".*4 C*4 C*4 | .*4 C*4 C*4 | .*4 G7*4 G7*4 | .*4 G7*4 G7*4 | .*4 G7*4 G7*4 | .*4 G7*4 G7*4 | .*4 C*4 C*4 | .*4 C*4 C*4",
+         bass = "c3*12 | g2*12 | g2*12 | d3*12 | g2*12 | d3*12 | c3*12 | g2*12", drums = "k*4 h*4 h*4"},
+    B = {lead = "a5*4 c6*4 f6*4 | e6*8 c6*4 | g5*4 c6*4 e6*4 | d6*12 | c6*4 a5*4 f#5*4 | g5*8 b5*4 | c6*4 e5*4 g5*4 | c6*12",
+         chord = ".*4 F*4 F*4 | .*4 F*4 F*4 | .*4 C*4 C*4 | .*4 C*4 C*4 | .*4 D7*4 D7*4 | .*4 G7*4 G7*4 | .*4 C*4 C*4 | .*4 C*4 C*4",
+         bass = "f2*12 | c3*12 | c3*12 | g2*12 | d3*12 | g2*12 | c3*12 | c3*12", drums = "k*4 h*4 h*4"},
+  },
+  order = {"A", "B", "A", "B"},
+}
+
+M.lh_tower = {
+  bpm = 72, gain = 0.95, echo = {time = 0.42, fb = 0.35, mix = 0.3},
+  inst = {lead = copy(TRUMPET, {vol = 0.11}), bell = copy(CARILLON, {vol = 0.12}), pad = copy(PAD, {vol = 0.06}),
+          bass = copy(BASS, {vol = 0.32, a = 0.05, r = 0.3})},
+  parts = {
+    A = {lead = "f4*8 bb4*4 d5*4 | f5*12 eb5*4 | d5*8 c5*4 bb4*4 | c5*16 | d5*8 f5*4 bb5*4 | a5*12 g5*4 | f5*8 eb5*4 c5*4 | bb4*16",
+         bell = "bb5*16 | .*16 | g5*16 | .*16 | bb5*16 | .*16 | f5*16 | d6*16",
+         pad = "Bb*16 Bb7*16 Gm*16 F*16 Bb*16 F*16 Cm*8 F*8 Bb*16",
+         bass = "bb1*16 | bb1*16 | g1*16 | f1*16 | bb1*16 | f1*16 | c2*8 f1*8 | bb1*16", drums = "c+k*4 .*12 | k*4 .*12"},
+  },
+  order = {"A", "A"},
+}
+
 -- ------------------------------------------------------------------ sound effects (loop = false; steps of 1/32 s)
 local function fx(inst, lane, beats, gain)
   return {bpm = 120, steps = 16, loop = false, gain = gain or 1, inst = {x = inst}, parts = {A = {x = lane}}, order = {"A"}}

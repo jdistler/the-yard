@@ -24,6 +24,7 @@ local night = require("night")
 local tv = require("tv")
 local music = require("music")
 local shows = require("shows")
+local utgame = require("utgame")
 
 local W, H = 768, 1024                       -- the upright picture; the panel shows the framebuffer turned
 local headless = os.getenv("HOME_HEADLESS") == "1"
@@ -1331,6 +1332,7 @@ function love.load()
   fx.load()
   night.load({W = W, H = H, HORIZON = HORIZON, font = font, neon_draw = neon_draw, fx = fx, log = log})
   music.log = log
+  if not RENDER then utgame.start(log) end
   local show_ctx = {W = W, H = H, font = font, neon_draw = neon_draw, neon_img = neon_img, fx = fx, sfx = music.sfx,
                     log = log, rgb = rgb}
   for _, sh in ipairs(shows.LIST) do
@@ -1545,6 +1547,8 @@ function love.update(dt)
   t = t + dt
   frame = frame + 1
   if frame == 3 and not headless then music.start() end
+  utgame.update(dt)
+  if frame % 60 == 0 then game_now = utgame.window() end
   local merr = music.check()
   if merr then log("music: " .. merr) end
   if worker then

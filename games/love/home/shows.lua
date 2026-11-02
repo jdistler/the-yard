@@ -181,35 +181,7 @@ local function star(x, y, r, c, a)
 end
 S.star = star
 
--- The longhorn: a steer's head with its sweep of horns (our own drawing), centred on x, y.
-function S.longhorn(x, y, s, c, a)
-  lg.setColor(c[1], c[2], c[3], a)
-  local L, R = {}, {}
-  -- the horns: a long shallow curve each side, tips turned up
-  local horn = {{0, 0}, {18, -6}, {40, -9}, {62, -10}, {80, -14}, {92, -24}, {96, -34}, {92, -30}, {80, -20},
-                {62, -2}, {40, 4}, {18, 8}, {0, 10}}
-  for _, p in ipairs(horn) do
-    L[#L + 1] = x - 22 * s - p[1] * s L[#L + 1] = y - 18 * s + p[2] * s
-    R[#R + 1] = x + 22 * s + p[1] * s R[#R + 1] = y - 18 * s + p[2] * s
-  end
-  local function fill_strip(pts)
-    local n = #pts / 2
-    for i = 1, n / 2 - 1 do
-      local a1, b1 = i, n - i + 1
-      local a2, b2 = i + 1, n - i
-      lg.polygon("fill", pts[a1 * 2 - 1], pts[a1 * 2], pts[a2 * 2 - 1], pts[a2 * 2], pts[b2 * 2 - 1], pts[b2 * 2],
-                 pts[b1 * 2 - 1], pts[b1 * 2])
-    end
-  end
-  fill_strip(L)
-  fill_strip(R)
-  -- the head: wide brow, long face to the muzzle
-  lg.polygon("fill", x - 30 * s, y - 26 * s, x + 30 * s, y - 26 * s, x + 24 * s, y + 6 * s, x + 14 * s, y + 40 * s,
-             x - 14 * s, y + 40 * s, x - 24 * s, y + 6 * s)
-  lg.ellipse("fill", x, y + 40 * s, 16 * s, 10 * s, 16)
-  lg.polygon("fill", x - 30 * s, y - 20 * s, x - 46 * s, y - 8 * s, x - 26 * s, y - 2 * s)
-  lg.polygon("fill", x + 30 * s, y - 20 * s, x + 46 * s, y - 8 * s, x + 26 * s, y - 2 * s)
-end
+S.longhorn = function(...) return require("showlib").longhorn_head(...) end
 
 local ORANGE = {0.75, 0.34, 0}
 function S.icon(id, x, cy, sc, a, t)

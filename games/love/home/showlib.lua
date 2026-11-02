@@ -411,4 +411,79 @@ function L.paint_texas(w, h)
   for x = 0, w, 4 do lg.rectangle("fill", x, 0, 1, h) end
 end
 
+-- A longhorn steer, side view, walking (facing right); coat {base, patch}.
+function L.steer(x, y, s, step, coat, horn)
+  lg.push()
+  lg.translate(x, y)
+  lg.scale(s, s)
+  lg.setColor(coat[1][1], coat[1][2], coat[1][3], 1)
+  for i, lx in ipairs({-26, -14, 16, 28}) do
+    local sw = sin(step + (i % 2) * pi) * 6
+    lg.rectangle("fill", lx + sw * 0.5 - 3, 6, 6, 30)
+  end
+  lg.ellipse("fill", 0, 0, 40, 18, 20)
+  if coat[2] then
+    lg.setColor(coat[2][1], coat[2][2], coat[2][3], 1)
+    lg.ellipse("fill", -12, -2, 12, 9, 12)
+    lg.ellipse("fill", 14, 6, 9, 7, 12)
+  end
+  lg.setColor(coat[1][1], coat[1][2], coat[1][3], 1)
+  lg.polygon("fill", 30, -12, 48, -10, 54, 8, 40, 8)
+  lg.ellipse("fill", 52, 4, 9, 12, 12)
+  lg.setColor(0.15, 0.1, 0.08, 1)
+  lg.circle("fill", 55, 0, 1.8, 6)
+  -- the horns: a long sweep out to each side (one toward us, one away), tips up
+  lg.setColor(horn[1], horn[2], horn[3], 1)
+  lg.setLineWidth(4)
+  lg.line(48, -8, 34, -14, 14, -18, 0, -28, -4, -34)
+  lg.line(50, -8, 62, -16, 82, -20, 96, -30, 100, -36)
+  lg.setColor(0.25, 0.2, 0.15, 1)
+  lg.line(-40, -2, -48, 14)
+  lg.pop()
+end
+
+-- A live oak: a short trunk, a wide spreading crown.
+function L.live_oak(x, y, s, sway)
+  lg.setColor(0.28, 0.2, 0.14, 1)
+  lg.polygon("fill", x - 8 * s, y, x + 8 * s, y, x + 5 * s, y - 40 * s, x - 5 * s, y - 40 * s)
+  lg.setLineWidth(5 * s)
+  lg.line(x, y - 34 * s, x - 34 * s, y - 56 * s)
+  lg.line(x, y - 34 * s, x + 38 * s, y - 52 * s)
+  for i, c in ipairs({{-46, -62, 30}, {-14, -74, 34}, {24, -70, 32}, {52, -58, 26}, {0, -56, 30}, {-30, -50, 22}, {34, -48, 22}}) do
+    local g = 0.28 + (i % 3) * 0.04
+    lg.setColor(0.12, g, 0.12, 1)
+    lg.circle("fill", x + (c[1] + sin(sway + i) * 1.5) * s, y + c[2] * s, c[3] * s, 20)
+  end
+end
+
+-- The longhorn: a steer's head with its sweep of horns (our own drawing), centred on x, y.
+function L.longhorn_head(x, y, s, c, a)
+  lg.setColor(c[1], c[2], c[3], a)
+  local L, R = {}, {}
+  -- the horns: a long shallow curve each side, tips turned up
+  local horn = {{0, 0}, {18, -6}, {40, -9}, {62, -10}, {80, -14}, {92, -24}, {96, -34}, {92, -30}, {80, -20},
+                {62, -2}, {40, 4}, {18, 8}, {0, 10}}
+  for _, p in ipairs(horn) do
+    L[#L + 1] = x - 22 * s - p[1] * s L[#L + 1] = y - 18 * s + p[2] * s
+    R[#R + 1] = x + 22 * s + p[1] * s R[#R + 1] = y - 18 * s + p[2] * s
+  end
+  local function fill_strip(pts)
+    local n = #pts / 2
+    for i = 1, n / 2 - 1 do
+      local a1, b1 = i, n - i + 1
+      local a2, b2 = i + 1, n - i
+      lg.polygon("fill", pts[a1 * 2 - 1], pts[a1 * 2], pts[a2 * 2 - 1], pts[a2 * 2], pts[b2 * 2 - 1], pts[b2 * 2],
+                 pts[b1 * 2 - 1], pts[b1 * 2])
+    end
+  end
+  fill_strip(L)
+  fill_strip(R)
+  -- the head: wide brow, long face to the muzzle
+  lg.polygon("fill", x - 30 * s, y - 26 * s, x + 30 * s, y - 26 * s, x + 24 * s, y + 6 * s, x + 14 * s, y + 40 * s,
+             x - 14 * s, y + 40 * s, x - 24 * s, y + 6 * s)
+  lg.ellipse("fill", x, y + 40 * s, 16 * s, 10 * s, 16)
+  lg.polygon("fill", x - 30 * s, y - 20 * s, x - 46 * s, y - 8 * s, x - 26 * s, y - 2 * s)
+  lg.polygon("fill", x + 30 * s, y - 20 * s, x + 46 * s, y - 8 * s, x + 26 * s, y - 2 * s)
+end
+
 return L
