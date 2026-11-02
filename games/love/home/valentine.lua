@@ -79,6 +79,11 @@ local function blush(x, y, r, a)
 end
 
 local function sky_night()
+  if S.art.night then
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.art.night, 0, 0)
+    return
+  end
   G:gradient(0, 0, W, H, {0.08, 0.03, 0.16}, {0.3, 0.06, 0.25})
   for i, s in ipairs(S.stars) do
     lg.setColor(1, 0.9, 1, 0.3 + 0.4 * abs(sin(S.t * 0.7 + i)))
@@ -171,11 +176,16 @@ function D.meet(lt, len)
 end
 
 function D.candy(lt, len)
-  G:gradient(0, 0, W, H, {1, 0.8, 0.86}, {0.95, 0.55, 0.7})
-  floaters(0.6)
-  -- the table
-  lg.setColor(0.6, 0.3, 0.35, 1)
-  lg.rectangle("fill", 0, 900, W, 124)
+  if S.art.candy then
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.art.candy, 0, 0)
+  else
+    G:gradient(0, 0, W, H, {1, 0.8, 0.86}, {0.95, 0.55, 0.7})
+    floaters(0.6)
+    -- the table
+    lg.setColor(0.6, 0.3, 0.35, 1)
+    lg.rectangle("fill", 0, 900, W, 124)
+  end
   -- the hearts, one a second, into the jar (a pile in rows)
   local n = min(#S.candy, floor(lt / 1.0) + 1)
   for i = 1, n do
@@ -218,6 +228,12 @@ function D.candy(lt, len)
 end
 
 function D.card(lt, len)
+  local painted = S.art.door
+  if painted then
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.art.door, 0, 0)
+    floaters(0.4)
+  else
   sky_night()
   floaters(0.5)
   -- Pinky's door: a little house in the maze
@@ -231,6 +247,7 @@ function D.card(lt, len)
   lg.setColor(0.04, 0.02, 0.08, 1)
   lg.rectangle("fill", 500, 660, 140, 260, 70, 70, 16)
   G:gradient(0, 920, W, H, {0.2, 0.08, 0.2}, {0.1, 0.04, 0.1})
+  end
   -- Blinky comes along with his card, trembling
   local bx = lerp(-80, 360, ease(lt / 16))
   local tremble = lt < 30 and sin(S.t * 30) * 2 or 0
@@ -267,13 +284,20 @@ function D.card(lt, len)
 end
 
 function D.diner(lt, len)
-  sky_night()
-  -- the diner window, the neon, the booth
-  lg.setColor(0.12, 0.06, 0.15, 1)
-  lg.rectangle("fill", 0, 300, W, 724)
+  local painted = S.art.diner
+  if painted then
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.art.diner, 0, 0)
+  else
+    sky_night()
+    -- the diner window, the neon, the booth
+    lg.setColor(0.12, 0.06, 0.15, 1)
+    lg.rectangle("fill", 0, 300, W, 724)
+  end
   local on = (floor(S.t * 2) % 7 ~= 0) and 1 or 0.3
   G:text("PAC'S DINER", 0, 150, 64, {1, 0.3, 0.55}, on, "center", W)
   C.fx.glow(384, 190, 300, 80, 1, 0.3, 0.6, 0.25 * on)
+  if not painted then
   lg.setColor(0.25, 0.75, 0.75, 1)
   lg.rectangle("fill", 0, 300, W, 26)
   for i = 0, 15 do
@@ -283,23 +307,35 @@ function D.diner(lt, len)
   -- the window behind the booth: Inky and Clyde peeking in
   lg.setColor(0.03, 0.03, 0.1, 1)
   lg.rectangle("fill", 80, 360, 608, 260, 10, 10, 4)
+  end
   local peek = lt % 20
   local pk = peek < 3 and ease(peek / 1) or peek < 6 and 1 or ease(1 - (peek - 6) / 1)
   C.fx.ghost(180, 640 - 120 * pk, 40, GHOSTS[3], 1, S.t, false, false, 1)
   C.fx.ghost(590, 640 - 110 * clamp(pk * 1.3 - 0.3, 0, 1), 40, GHOSTS[4], -1, S.t, false, false, 1)
+  if painted then
+    -- the sill again, in front of the peeking ghosts
+    S.sill_q = S.sill_q or lg.newQuad(80, 600, 608, 60, W, H)
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(S.art.diner, S.sill_q, 80, 600)
+  else
   lg.setColor(0.12, 0.06, 0.15, 1)
   lg.rectangle("fill", 80, 620, 608, 40)
   lg.setColor(0.9, 0.9, 1, 0.12)
   lg.polygon("fill", 120, 360, 200, 360, 120, 470)
+  end
   -- the booth and the table
+  if not painted then
   lg.setColor(0.8, 0.12, 0.2, 1)
   lg.rectangle("fill", 20, 640, 160, 260, 20, 20, 8)
   lg.rectangle("fill", 588, 640, 160, 260, 20, 20, 8)
+  end
   C.fx.chomper(220, 740, 46, 1, 0, 1)
   ms(548, 740, 46, -1, 0, 1)
+  if not painted then
   lg.setColor(0.85, 0.85, 0.9, 1)
   lg.rectangle("fill", 160, 790, 448, 24, 6, 6, 4)
   lg.rectangle("fill", 370, 814, 28, 90)
+  end
   -- the milkshake, two straws
   local level = 1 - clamp(lt / (len - 10), 0, 0.85)
   lg.setColor(0.9, 0.9, 0.95, 0.6)
@@ -410,6 +446,8 @@ function M.start(seed, at)
   S = {t = at or 0}
   G.t, G.prev = S.t, S.t - 0.001
   local R = G.R
+  S.art = {}
+  for _, n in ipairs({"night", "candy", "door", "diner"}) do S.art[n] = G:art("valentine", n) end
   S.stars, S.floaters, S.candy = {}, {}, {}
   for i = 1, 80 do S.stars[i] = {R:random() * W, R:random() * H * 0.7} end
   for i = 1, 16 do
