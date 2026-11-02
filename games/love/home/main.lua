@@ -1127,8 +1127,8 @@ end
 
 -- ------------------------------------------------------------------ the idle shows
 local SHOW_BLURB = {
-  auto = "Follows the calendar: holiday shows in season, the Longhorns on game days, Texas and the Freedom Show " ..
-         "by day, the night sky at night. LOWER BUTTON: watch now.",
+  auto = "Follows the calendar: Halloween to New Year's in season, the Longhorns on game days, Texas, Mission " ..
+         "Control and the Freedom Show by day, the night sky at night. LOWER BUTTON: watch now.",
 }
 local function show_card()
   for _, it in ipairs(items) do
@@ -1204,6 +1204,34 @@ local function start_show()
   end
   play_show(id)
 end
+-- The cards that say what's coming: the SCHEDULE (AUTO: what the calendar picks next) and the LONGHORNS (the
+-- next game, the live score, the final). Every half minute, and when the mode changes.
+local function update_cards()
+  for _, it in ipairs(items) do
+    if it.kind == "show" and show_mode == "auto" then
+      local id = shows.pick(os.time(), game_now, auto_rot)
+      it.sub = "AUTO   ·   UP NEXT: " .. (SHOW_NAMES[id] or "") .. "   ·   top buttons change it"
+    elseif it.kind == "showcard" and it.show == "longhorns" then
+      local g = utgame.game
+      local text = shows.BY_ID.longhorns.blurb
+      if g and g.kickoff then
+        local now = utgame.now()
+        local where = (g.home and "VS " or "AT ") .. string.upper(g.opp_loc ~= "" and g.opp_loc or g.opp)
+        if g.state == "in" then
+          text = string.format("LIVE NOW: TEXAS %d, %s %d  ·  %s%s", g.us or 0, g.opp_abbr, g.them or 0, string.upper(g.detail),
+                               g.net and ("  ·  " .. g.net) or "")
+        elseif g.state == "post" and now - g.kickoff < 24 * 3600 then
+          text = string.format("FINAL: TEXAS %d, %s %d%s", g.us or 0, g.opp_abbr, g.them or 0, (g.us or 0) > (g.them or 0) and "  ·  HOOK 'EM!" or "")
+        elseif g.state == "pre" and g.kickoff - now < 10 * 86400 then
+          text = "NEXT: " .. where .. "  ·  " .. string.upper(os.date("%a %b %d, %I:%M %p", g.kickoff)):gsub(" 0", " ") ..
+                 (g.net and ("  ·  " .. g.net) or "")
+        end
+      end
+      it.blurb = text
+    end
+  end
+end
+
 local shows_ctx                          -- for the SHOWS tiles (love.load)
 local function open_tiles(id)
   free_menu_pictures()
@@ -1294,6 +1322,7 @@ local function handle(name)
     if name == "tr" then i = i % #SHOW_MODES + 1 else i = (i - 2) % #SHOW_MODES + 1 end
     show_mode = SHOW_MODES[i]
     show_card()
+    update_cards()
     save_state()
     play("toggle")
   elseif (name == "low" or name == "1p") and it.kind == "show" then
@@ -1490,7 +1519,10 @@ end
 
 -- The TV guide, attract, and the idle shows (night sky, Freedom Show), with their music. (Out of love.update:
 -- LuaJIT allows a function 60 upvalues.)
+local cards_t = 0
 local function update_idle(dt)
+  cards_t = cards_t - dt
+  if cards_t <= 0 then cards_t = 30 update_cards() end
   if scene == "tv" then
     idle = 0
     if tv.update(dt) == "exit" then scene = "menu" end

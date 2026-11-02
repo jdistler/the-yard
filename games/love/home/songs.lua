@@ -161,8 +161,10 @@ M.stars = {
          lead = "g#5*8 b5*4 d#6*4 | c#6*12 b5*4 | e5*8 g#5*8 | f#5*16"},
     B = {arp = "Amaj7*16 G#m7*16 F#m7*16 Bsus4*16", pad = "Amaj7*16 G#m7*16 F#m7*16 B*16",
          lead = "a5*8 g#5*4 e5*4 | d#5*12 b4*4 | c#5*4 e5*4 f#5*4 a5*4 | g#5*8 f#5*8"},
+    C = {arp = "Emaj7*16 B*16 Amaj7*16 B*16", pad = "Emaj7*16 B*16 Amaj7*16 B*16",
+         lead = "b5*4 c#6*4 e6*8 | d#6*8 b5*8 | a5*4 g#5*4 f#5*4 e5*4 | f#5*16"},
   },
-  order = {"A", "B"},
+  order = {"A", "B", "C", "A"},
 }
 
 M.fireflies = {
@@ -205,8 +207,11 @@ M.meteors = {
     B = {arp = "Fm*16 Ab*16 Bb*16 Cm*16", bass = eights("f2", "f3") .. eights("ab2", "ab1") .. eights("bb2", "bb1") .. eights("c3", "c2"),
          lead = "c6*4 bb5*4 ab5*4 f5*4 | eb5*4 f5*4 ab5*8 | bb5*4 ab5*4 g5*4 f5*4 | g5*16",
          drums = "k*4 h?*4 s?*4 h?*4"},
+    C = {arp = "Ab*16 Eb*16 Fm*16 G*16", bass = eights("ab2", "ab1") .. eights("eb2", "eb3") .. eights("f2", "f3") .. eights("g2", "g1"),
+         lead = "c6*4 eb6*4 c6*4 ab5*4 | g5*4 bb5*4 eb6*8 | f5*4 ab5*4 c6*4 f6*4 | d6*8 b5*8",
+         drums = "k*4 h?*4 s?*4 h?*4"},
   },
-  order = {"A", "B"},
+  order = {"A", "B", "A", "C"},
 }
 
 M.city = {
@@ -277,8 +282,10 @@ M.dawn = {
          bass = "g2*16 f#2*16 e2*16 c3*16", bird = ".*10 g7 a7 .*4 | .*16 | .*6 e7 g7 e7 .*7 | .*16"},
     B = {lead = "e6*4 d6*4 b5*4 g5*4 | a5*8 d6*8 | c6*4 b5*4 a5*4 g5*4 | g5*16", arp = "Cmaj7*16 D*16 Am7*16 G*16",
          bass = "c3*16 d3*16 a2*16 g2*16", bird = ".*16 | .*4 b7 g7 .*10 | .*16 | .*12 d7 e7 d7 ."},
+    C = {lead = "b5*4 d6*4 g6*8 | f#6*8 d6*8 | e6*4 c6*4 a5*4 f#5*4 | g5*16", arp = "G*16 D*16 C*16 G*16",
+         bass = "g2*16 d3*16 c3*16 g2*16", bird = ".*12 a7 b7 .*2 | .*16 | .*16 | .*8 g7 a7 g7 .*5"},
   },
-  order = {"A", "B"},
+  order = {"A", "B", "C", "A"},
 }
 
 -- ------------------------------------------------------------------ the Freedom Show
@@ -618,8 +625,11 @@ M.lh_drumline = {
     B = {drums = "s? s? s? s? s s s s s! s! s! s! s! s! c+k! . | k . k . s! . k . k k s! . c+k! . . .",
          drums_2 = "t*16 | t . t . T . t . t t T . T . . .",
          bass = "a1*16 | a1*4 a1*4 .*8"},
+    C = {drums = "k k s? s? s! . s s k k s? s? s! . s s | c+k . s s s! . s s k . s! s! s! s! s! .",
+         drums_2 = "t t . . T T . . t t . . T T T T | t . . . T . . . t t t t T T T T",
+         bass = "a1*2 a1*2 .*12 | a1*4 .*4 a1*4 .*4"},
   },
-  order = {"A", "A", "A", "B"},
+  order = {"A", "A", "C", "A", "B"},
 }
 
 M.lh_hookem = {
@@ -631,8 +641,12 @@ M.lh_hookem = {
          brass = "Bb*4 .*4 Bb*2 F*6 | Eb*4 .*4 F*8",
          lead = "f5*2 .*2 f5*2 bb5*6 .*4 | eb5*2 .*2 eb5*2 f5*10",
          bass = "bb1*4 .*4 bb1*2 f1*6 | eb2*4 .*4 f2*8"},
+    B = {drums = "k*2 .*2 k*2 x*2 .*2 k*2 x*4 | k*2 k*2 k*2 x*2 k*2 k*2 x!*4",
+         brass = "Eb*4 .*4 Eb*2 Bb*6 | F*4 .*4 Bb*8",
+         lead = "g5*2 .*2 g5*2 bb5*6 .*4 | a5*2 .*2 a5*2 bb5*10",
+         bass = "eb2*4 .*4 eb2*2 bb1*6 | f2*4 .*4 bb1*8"},
   },
-  order = {"A", "A", "A", "A"},
+  order = {"A", "A", "B", "A", "B", "B"},
 }
 
 M.lh_drive = {
@@ -741,8 +755,11 @@ M.tg_football = {
     A = {lead = "bb4*4 d5*4 f5*8 | eb5*4 g5*4 bb5*8 | a5*4 f5*4 c5*4 a4*4 | bb4*16", brass = "Bb*16 Eb*16 F*16 Bb*16",
          bass = eights("bb1", "bb2") .. eights("eb2", "eb3") .. eights("f1", "f2") .. eights("bb1", "bb2"),
          drums = "c+k*2 h*2 s*2 h*2 k*2 k*2 s*2 t*2 | k*2 h*2 s*2 h*2 k*2 k*2 s*2 T*2"},
+    B = {lead = "f5*4 a5*4 c6*8 | bb5*4 g5*4 eb5*8 | d5*4 f5*4 bb5*4 d6*4 | c6*16", brass = "F*16 Eb*16 Bb*16 F*16",
+         bass = eights("f1", "f2") .. eights("eb2", "eb3") .. eights("bb1", "bb2") .. eights("f1", "f2"),
+         drums = "c+k*2 h*2 s*2 h*2 k*2 k*2 s*2 t*2 | k*2 h*2 s*2 h*2 k*2 k*2 s*2 T*2"},
   },
-  order = {"A", "A"},
+  order = {"A", "A", "B", "A"},
 }
 
 M.tg_pie = {
@@ -753,8 +770,11 @@ M.tg_pie = {
          chord = ".*2 G*2 .*2 G*2 | .*2 Am*2 .*2 Am*2 | .*2 D7*2 .*2 D7*2 | .*2 G*2 .*2 G*2",
          bass = "g2*2 .*2 d3*2 .*2 | a2*2 .*2 e3*2 .*2 | d3*2 .*2 a2*2 .*2 | g2*2 .*2 d3*2 .*2",
          drums = "k*2 s?*2 k*2 s?*2"},
+    B = {lead = "b5*2 a5*2 g5*2 f#5*2 | e5*2 g5*2 c6*4 | a5*2 g5*2 f#5*2 e5*2 | d5*4 .*4",
+         chord = ".*2 G*2 .*2 G*2 | .*2 C*2 .*2 C*2 | .*2 D7*2 .*2 D7*2 | .*2 G*2 .*2 G*2",
+         bass = "g2*2 .*2 d3*2 .*2 | c3*2 .*2 g2*2 .*2 | d3*2 .*2 a2*2 .*2 | g2*2 .*2 d3*2 .*2", drums = "k*2 s?*2 k*2 s?*2"},
   },
-  order = {"A", "A", "A+5", "A"},
+  order = {"A", "A", "B", "A", "A+5", "B+5", "A"},
 }
 
 -- ------------------------------------------------------------------ Christmas (christmas.lua): public-domain
