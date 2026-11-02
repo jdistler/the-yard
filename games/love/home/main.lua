@@ -1425,6 +1425,8 @@ local function play_show(id, seg, from_demo)
   cur_show_id = id
   local sg = seg and seg > 0 and shows.segments(id)[seg] or nil
   if id == "night" then
+    -- the night sky is the menu's world, darkened: its painting stays (384 KB)
+    ST.world_load(ST.world_want)
     scene = "night"
     auto_night_t = 0
     night.set_only(sg and sg[3] or nil)
