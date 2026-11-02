@@ -422,6 +422,7 @@ local COLS, X0, Y0, GAP = 2, 30, 214, 18
 
 function S.set_ctx(ctx) C = ctx end
 local gen = 0
+local THUMBS = os.getenv("HOME_THUMBS") or "/mnt/sdcard/partycade/thumbs"
 function S.open(ctx, id)
   C = ctx
   cur = S.BY_ID[id]
@@ -434,13 +435,19 @@ function S.open(ctx, id)
   thumbs = {}
   -- the pictures decoded by Home's worker, off the frame (11 at once on the frame: a 155 ms freeze), arriving
   -- in S.thumb_ready; without a worker, here
+  -- (from the SD card: cart push puts them there; HOME_THUMBS for tests)
   gen = gen + 1
   for i, tl in ipairs(tiles) do
-    local p = string.format("thumbs/%s_%d.png", id, tl.seg)
-    if love.filesystem.getInfo(p) then
+    local p = string.format("%s/%s_%d.png", THUMBS, id, tl.seg)
+    local f = io.open(p, "rb")
+    if f then
+      f:close()
       if C.request_art then C.request_art("thumb:" .. gen .. ":" .. i, p)
       else
-        local ok, img = pcall(lg.newImage, p)
+        local fh = io.open(p, "rb")
+        local bytes = fh:read("*a")
+        fh:close()
+        local ok, img = pcall(function() return lg.newImage(love.filesystem.newFileData(bytes, "t.png")) end)
         if ok then img:setFilter("linear", "linear") thumbs[i] = img end
       end
     end

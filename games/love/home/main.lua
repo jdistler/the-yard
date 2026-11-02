@@ -1495,7 +1495,7 @@ function love.load()
              if ok then splash.save(bytes, path, true) end
            end})
   shows_ctx = {request_art = worker and function(key, path)
-                 love.thread.getChannel("home_work"):push({"art", key, path, "love"})
+                 love.thread.getChannel("home_work"):push({"art", key, path})
                end or nil, backdrop = backdrop, rgb = rgb, neon_draw = neon_draw, font = font, fx = fx, rrect = rrect, play = play}
   shows.set_ctx(shows_ctx)
   for k, it in ipairs(items) do

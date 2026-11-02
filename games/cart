@@ -427,10 +427,8 @@ def home_pack(out=None):
     src = os.path.join(HERE, "love", "home")
     files = [(os.path.join(src, f), f) for f in os.listdir(src) if f.endswith(".lua")]
     files.append((os.path.join(HERE, "engine", "fonts", "Fredoka-SemiBold.ttf"), "fonts/Fredoka-SemiBold.ttf"))
-    # the SHOWS section's tiles (tools/show_thumbs.py)
-    thumbs = os.path.join(src, "thumbs")
-    if os.path.isdir(thumbs):
-        files += [(os.path.join(thumbs, f), "thumbs/" + f) for f in sorted(os.listdir(thumbs)) if f.endswith(".png")]
+    # the SHOWS section's tiles (tools/show_thumbs.py) are on the SD card (cart push), not in home.love: /data is
+    # ~96% full and an install needs room for the new package beside the old one
     for cid, shot in HOME_SHOTS.items():
         p = os.path.join(HERE, "out", "shots", cid, shot)
         if not os.path.exists(p):
@@ -688,6 +686,11 @@ def cmd_push(a):
     files["/data/home/boot.fb.gz"] = (home_picture("boot", os.path.join(stage, "boot.fb.gz"), art), False)
     # The shows' painted pictures (tools/show_art.py) go to the SD card, when one is mounted (never to /data, ~96%
     # full; without them the shows draw their scenes live).
+    thumbs = os.path.join(HERE, "love", "home", "thumbs")
+    if os.path.isdir(thumbs) and ssh("grep -q ' /mnt/sdcard ' /proc/mounts && echo card").stdout.strip() == "card":
+        for f in sorted(os.listdir(thumbs)):
+            if f.endswith(".png"):
+                files[f"/mnt/sdcard/partycade/thumbs/{f}"] = (os.path.join(thumbs, f), False)
     show_art = os.path.join(HERE, "out", "show-art")
     if os.path.isdir(show_art) and ssh("grep -q ' /mnt/sdcard ' /proc/mounts && echo card").stdout.strip() == "card":
         for sid in sorted(os.listdir(show_art)):
