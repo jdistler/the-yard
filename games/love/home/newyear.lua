@@ -130,8 +130,17 @@ end
 -- ------------------------------------------------------------------ the scenes
 local D = {}
 
+-- the painted picture for a scene, if the SD card has it: drawn, true
+local function art(name, a)
+  local img = S.art[name]
+  if not img then return false end
+  lg.setColor(1, 1, 1, a or 1)
+  lg.draw(img, 0, 0)
+  return true
+end
+
 function D.open(lt, len)
-  G:gradient(0, 0, W, H, {0.02, 0.02, 0.08}, {0.12, 0.06, 0.2})
+  if not art("open") then G:gradient(0, 0, W, H, {0.02, 0.02, 0.08}, {0.12, 0.06, 0.2}) end
   local a = L.window(lt, 0.5, 4, 0.7)
   G:caption("PARTYCADE", 400, 54, 0xff4fd8, a)
   G:caption("PRESENTS", 472, 26, 0x6ef0c8, a)
@@ -170,7 +179,7 @@ local function disco_ball(x, y, r, t)
 end
 
 function D.party(lt, len)
-  G:gradient(0, 0, W, H, {0.08, 0.04, 0.14}, {0.18, 0.08, 0.22})
+  if not art("party") then G:gradient(0, 0, W, H, {0.08, 0.04, 0.14}, {0.18, 0.08, 0.22}) end
   -- the dance floor
   for r = 0, 5 do
     for c = 0, 7 do
@@ -207,12 +216,14 @@ function D.party(lt, len)
 end
 
 function D.resolutions(lt, len)
-  G:gradient(0, 0, W, H, {0.15, 0.1, 0.08}, {0.1, 0.07, 0.05})
-  -- the chalkboard
-  lg.setColor(0.4, 0.25, 0.15, 1)
-  lg.rectangle("fill", 40, 150, 688, 700, 10, 10, 6)
-  lg.setColor(0.12, 0.2, 0.15, 1)
-  lg.rectangle("fill", 60, 170, 648, 660)
+  if not art("chalkboard") then
+    G:gradient(0, 0, W, H, {0.15, 0.1, 0.08}, {0.1, 0.07, 0.05})
+    -- the chalkboard
+    lg.setColor(0.4, 0.25, 0.15, 1)
+    lg.rectangle("fill", 40, 150, 688, 700, 10, 10, 6)
+    lg.setColor(0.12, 0.2, 0.15, 1)
+    lg.rectangle("fill", 60, 170, 648, 660)
+  end
   G:text("RESOLUTIONS", 60, 190, 40, {0.95, 0.95, 0.9}, 1, "center", 648)
   local n = floor(clamp((lt - 6) / 10, 0, #RESOLUTIONS))
   for i, r in ipairs(RESOLUTIONS) do
@@ -236,6 +247,8 @@ function D.resolutions(lt, len)
 end
 
 function D.ball(lt, len)
+  local painted = art("square")
+  if not painted then
   G:gradient(0, 0, W, 760, {0.01, 0.01, 0.06}, {0.08, 0.04, 0.16})
   -- the buildings round the square, lit
   for i = 0, 7 do
@@ -248,6 +261,7 @@ function D.ball(lt, len)
         if on then lg.setColor(1, 0.85, 0.5, 0.7) lg.rectangle("fill", wx, wy, 10, 14) end
       end
     end
+  end
   end
   -- the pole and the ball, coming down over the last minute
   lg.setColor(0.5, 0.5, 0.55, 1)
@@ -271,7 +285,7 @@ function D.ball(lt, len)
   local yr = year_next()
   G:text(yr, 234, 480, 72, {1, 0.85, 0.3}, 1, "center", 300)
   -- the crowd in the square: hats and waving
-  G:gradient(0, 760, W, H, {0.1, 0.08, 0.14}, {0.05, 0.04, 0.08})
+  if not painted then G:gradient(0, 760, W, H, {0.1, 0.08, 0.14}, {0.05, 0.04, 0.08}) end
   for i = 0, 40 do
     local x = (i * 37) % W
     local y = 790 + (i * 53) % 200
@@ -292,7 +306,7 @@ function D.ball(lt, len)
 end
 
 function D.midnight(lt, len)
-  G:gradient(0, 0, W, H, {0.02, 0.02, 0.1}, {0.1, 0.04, 0.18})
+  if not art("midnight") then G:gradient(0, 0, W, H, {0.02, 0.02, 0.1}, {0.1, 0.04, 0.18}) end
   G:draw_back()
   local pulse = 1 + 0.06 * sin(S.t * 6)
   G:caption("HAPPY NEW YEAR", 330, 70, 0xffd23f, L.window(lt, 0, len, 0.5), pulse)
@@ -320,10 +334,12 @@ function D.midnight(lt, len)
 end
 
 function D.auld(lt, len)
-  G:gradient(0, 0, W, H, {0.02, 0.02, 0.08}, {0.08, 0.06, 0.16})
-  for i, s in ipairs(S.stars) do
-    lg.setColor(1, 1, 0.9, 0.4 + 0.4 * sin(S.t + i))
-    lg.rectangle("fill", s[1], s[2], 2, 2)
+  if not art("rooftop") then
+    G:gradient(0, 0, W, H, {0.02, 0.02, 0.08}, {0.08, 0.06, 0.16})
+    for i, s in ipairs(S.stars) do
+      lg.setColor(1, 1, 0.9, 0.4 + 0.4 * sin(S.t + i))
+      lg.rectangle("fill", s[1], s[2], 2, 2)
+    end
   end
   -- arm in arm, swaying; sparklers
   local sway = sin(S.t * 1.2) * 14
@@ -365,6 +381,10 @@ function M.start(seed, at)
   S = {t = at or 0, clock = 0}
   S.midnight = (not at) and live_midnight() or nil
   G.t, G.prev = S.t, S.t - 0.001
+  S.art = {}
+  for _, n in ipairs({"open", "party", "chalkboard", "square", "midnight", "rooftop"}) do
+    S.art[n] = G:art("newyear", n)
+  end
   local R = G.R
   S.stars = {}
   for i = 1, 80 do S.stars[i] = {R:random() * W, R:random() * 700} end
