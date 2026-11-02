@@ -180,8 +180,18 @@ local function snowfall(dense)
   lg.draw(b)
 end
 
+local street_live                     -- (below)
+-- the painted picture for a scene, if the SD card has it: drawn, true
+local function art(name, a)
+  local img = S.art[name]
+  if not img then return false end
+  lg.setColor(1, 1, 1, a or 1)
+  lg.draw(img, 0, 0)
+  return true
+end
+
 function D.open(lt, len)
-  G:gradient(0, 0, W, H, {0.03, 0.05, 0.15}, {0.1, 0.15, 0.35})
+  if not art("open") then G:gradient(0, 0, W, H, {0.03, 0.05, 0.15}, {0.1, 0.15, 0.35}) end
   snowfall()
   local a = L.window(lt, 0.5, 4.5, 0.8)
   G:caption("PARTYCADE", 400, 54, 0xff4fd8, a)
@@ -190,6 +200,17 @@ function D.open(lt, len)
 end
 
 function D.street(lt, len)
+  if art("street") then
+    lights(130, 474, 640, 474, 26, S.t, 6)
+    lights(250, 334, 520, 334, 14, S.t + 1, 4)
+    for i = 0, 5 do
+      local c = BULBS[i % #BULBS + 1]
+      lg.setColor(c[1], c[2], c[3], (floor(S.t * 2) + i) % 2 == 0 and 1 or 0.4)
+      lg.circle("fill", 250 + i * 10, 640 - (i % 3) * 25, 3, 6)
+    end
+    street_live()
+    return
+  end
   G:gradient(0, 0, W, 700, {0.03, 0.04, 0.14}, {0.12, 0.14, 0.32})
   for i, s in ipairs(S.stars) do
     lg.setColor(1, 1, 0.9, 0.4 + 0.4 * sin(S.t * 2 + i))
@@ -233,7 +254,11 @@ function D.street(lt, len)
   lg.setColor(0.97, 0.97, 1, 1)
   lg.rectangle("fill", 0, 720, W, 8)
   snowman(110, 880, 1.1)
-  -- the inflatables, swaying
+  street_live()
+end
+
+-- the yard's inflatables swaying, the snow
+function street_live()
   local sw = sin(S.t * 1.4) * 0.06
   lg.push()
   lg.translate(560, 900)
@@ -251,6 +276,8 @@ function D.street(lt, len)
 end
 
 function D.sleigh(lt, len)
+  local painted = art("sleigh")
+  if not painted then
   G:gradient(0, 0, W, 800, {0.02, 0.03, 0.12}, {0.1, 0.12, 0.3})
   for i, s in ipairs(S.stars) do
     lg.setColor(1, 1, 0.9, 0.5 + 0.4 * sin(S.t * 2 + i))
@@ -271,6 +298,7 @@ function D.sleigh(lt, len)
     lg.setColor(1, 0.85, 0.5, 0.9)
     lg.rectangle("fill", x + 20, 860, 24, 30)
     lg.rectangle("fill", x + 70, 860, 24, 30)
+  end
   end
   -- the sleigh's path: across the moon, a long arc, twice
   local p = ((lt + 6) % 26) / 26
@@ -315,6 +343,8 @@ function D.sleigh(lt, len)
 end
 
 function D.texas(lt, len)
+  local painted = art("texas")
+  if not painted then
   G:gradient(0, 0, W, 640, {0.3, 0.6, 0.95}, {0.85, 0.92, 1})
   C.fx.glow(620, 120, 140, 140, 1, 0.9, 0.5, 0.4)
   lg.setColor(1, 0.95, 0.7, 1)
@@ -329,11 +359,14 @@ function D.texas(lt, len)
   lg.rectangle("fill", 70, 470, 220, 70, 6, 6, 4)
   G:text("IT'S 72°", 70, 478, 28, {0.75, 0.15, 0.1}, 1, "center", 220)
   G:text("AND SUNNY", 70, 508, 22, {0.3, 0.3, 0.35}, 1, "center", 220)
+  end
   -- the prickly pear in lights
   local px, py = 560, 760
+  if not painted then
   lg.setColor(0.25, 0.5, 0.3, 1)
   for _, p in ipairs({{0, 0, 40, 54}, {-44, -64, 30, 40}, {40, -70, 32, 42}, {-10, -120, 26, 34}}) do
     lg.ellipse("fill", px + p[1], py + p[2], p[3], p[4], 20)
+  end
   end
   lg.setBlendMode("add")
   for i = 0, 22 do
@@ -345,7 +378,7 @@ function D.texas(lt, len)
   end
   lg.setBlendMode("alpha")
   -- the tumbleweed snowman, the armadillo, cowboy Santa riding through
-  snowman(420, 930, 0.9, true)
+  if not painted then snowman(420, 930, 0.9, true) end
   local ax = -60 + ((lt * 35) % (W + 120))
   lg.setColor(0.55, 0.48, 0.42, 1)
   lg.arc("fill", "pie", ax, 980, 26, pi, 2 * pi, 20)
@@ -378,6 +411,8 @@ function D.texas(lt, len)
 end
 
 function D.tree(lt, len)
+  local painted = art("room")
+  if not painted then
   G:gradient(0, 0, W, H, {0.25, 0.12, 0.1}, {0.15, 0.07, 0.06})
   lg.setColor(0.3, 0.16, 0.12, 1)
   for x = 0, W, 52 do lg.rectangle("fill", x, 0, 22, 760) end
@@ -386,10 +421,13 @@ function D.tree(lt, len)
   lg.rectangle("fill", 470, 520, 260, 260)
   lg.setColor(0.1, 0.06, 0.05, 1)
   lg.rectangle("fill", 520, 600, 160, 180)
+  end
+  C.fx.glow(600, 720, 120, 90, 1, 0.5, 0.15, 0.35 + 0.1 * sin(S.t * 8))
   lg.setColor(1, 0.5, 0.1, 0.7 + 0.3 * sin(S.t * 10))
   lg.polygon("fill", 560, 780, 600, 640 + sin(S.t * 7) * 10, 640, 780)
   lg.setColor(1, 0.85, 0.3, 0.8)
   lg.polygon("fill", 580, 780, 600, 690 + sin(S.t * 9) * 8, 620, 780)
+  if not painted then
   lg.setColor(0.4, 0.2, 0.14, 1)
   lg.rectangle("fill", 450, 500, 300, 26)
   for i, name in ipairs({"PAC", "BLINKY", "PINKY", "INKY", "CLYDE"}) do
@@ -403,11 +441,14 @@ function D.tree(lt, len)
     rgba(c)
     lg.circle("fill", sx + 17, 560, 7, 10)
   end
+  end
   -- the tree: ornaments hung one by one, then the lights, then the star
   local orn = floor(clamp((lt - 6) / 30, 0, 1) * #S.ornaments)
   xmas_tree(230, 900, 1.2, S.t, lt > 42, orn)
+  if not painted then
   for i, p in ipairs({{80, 860, {0.2, 0.5, 0.9}}, {300, 880, {0.85, 0.15, 0.2}}, {170, 900, {0.3, 0.65, 0.3}}}) do
     present(p[1], p[2], 70, 50, p[3], {1, 0.85, 0.2})
+  end
   end
   -- the ghosts hanging ornaments, Pac-Man with the star
   for i, c in ipairs(GHOSTS) do
@@ -427,12 +468,15 @@ function D.tree(lt, len)
 end
 
 function D.cookies(lt, len)
+  local painted = art("cookies")
+  if not painted then
   G:gradient(0, 0, W, H, {0.95, 0.88, 0.75}, {0.85, 0.7, 0.55})
   lg.setColor(0.6, 0.4, 0.25, 1)
   lg.rectangle("fill", 0, 620, W, 404)
   -- the plate: the cookies going one by one, the gingerbread men, the milk
   lg.setColor(0.95, 0.95, 0.97, 1)
   lg.ellipse("fill", 300, 700, 200, 70, 40)
+  end
   local left = 8 - floor(clamp((lt - 6) / 40, 0, 1) * 7)
   for i = 1, 8 do
     if i <= left then
@@ -444,7 +488,7 @@ function D.cookies(lt, len)
       for k = 0, 2 do lg.circle("fill", x - 12 + k * 12, y - 3 + (k % 2) * 5, 3, 6) end
     end
   end
-  for i = 0, 1 do
+  for i = 0, painted and -1 or 1 do
     local x = 250 + i * 100
     lg.setColor(0.7, 0.42, 0.2, 1)
     lg.circle("fill", x, 640, 18, 14)
@@ -456,12 +500,12 @@ function D.cookies(lt, len)
     lg.circle("fill", x - 6, 636, 2, 6)
     lg.circle("fill", x + 6, 636, 2, 6)
   end
-  lg.setColor(0.95, 0.97, 1, 0.9)
+  lg.setColor(0.95, 0.97, 1, painted and 0 or 0.9)
   lg.rectangle("fill", 560, 560, 90, 150, 8, 8, 6)
   lg.setColor(1, 1, 1, 1)
   lg.rectangle("fill", 566, 600 + clamp((lt - 20) * 2, 0, 60), 78, 104 - clamp((lt - 20) * 2, 0, 60))
   -- the note for Santa
-  lg.setColor(1, 1, 0.94, 1)
+  lg.setColor(1, 1, 0.94, painted and 0 or 1)
   lg.push()
   lg.translate(560, 800)
   lg.rotate(-0.1)
@@ -480,15 +524,19 @@ function D.cookies(lt, len)
 end
 
 function D.silent(lt, len)
+  local painted = art("silent")
+  if not painted then
   G:gradient(0, 0, W, 760, {0.01, 0.02, 0.08}, {0.08, 0.1, 0.25})
   for i, s in ipairs(S.stars) do
     lg.setColor(1, 1, 0.9, 0.4 + 0.4 * sin(S.t + i))
     lg.rectangle("fill", s[1], s[2], 2, 2)
   end
+  end
   C.fx.glow(560, 160, 120, 120, 1, 0.95, 0.7, 0.5)
   lg.setColor(1, 0.97, 0.8, 1)
   L.star(560, 160, 16, 0)
   -- the town asleep: snowy roofs, warm windows, the steeple
+  if painted then snowfall(160) return end
   for i, h in ipairs({{20, 120, 640}, {150, 110, 660}, {270, 90, 620}, {380, 140, 650}, {540, 120, 670}, {670, 100, 640}}) do
     lg.setColor(0.08, 0.08, 0.16, 1)
     lg.rectangle("fill", h[1], h[3], h[2], 760 - h[3] + 100)
@@ -510,7 +558,7 @@ function D.silent(lt, len)
 end
 
 function D.finale(lt, len)
-  G:gradient(0, 0, W, H, {0.02, 0.03, 0.1}, {0.12, 0.05, 0.08})
+  if not art("finale") then G:gradient(0, 0, W, H, {0.02, 0.03, 0.1}, {0.12, 0.05, 0.08}) end
   G:draw_back()
   G:caption("MERRY CHRISTMAS", 360, 70, 0xff4040, L.window(lt, 0.5, len, 1))
   G:caption("AND A HAPPY NEW YEAR", 460, 34, 0x5fd16a, L.window(lt, 2, len, 1))
@@ -537,6 +585,10 @@ function M.start(seed, at)
   G:begin(seed)
   S = {t = at or 0}
   G.t, G.prev = S.t, S.t - 0.001
+  S.art = {}
+  for _, n in ipairs({"open", "street", "sleigh", "texas", "room", "cookies", "silent", "finale"}) do
+    S.art[n] = G:art("christmas", n)
+  end
   local R = G.R
   S.snow = {}
   for i = 1, 240 do
