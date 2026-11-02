@@ -1514,6 +1514,7 @@ local function update_idle(dt)
   if scene == "show" and cur_show then
     idle = 0
     if cur_show.update(dt) then
+      if os.getenv("HOME_SHOW_ONCE") then love.event.quit(0) return end   -- (tools/show_lint.py)
       -- The show is over: its tiles again (watching one), the same show (one show only), or the night sky's
       -- turn (AUTO; the Longhorns go on while the game is on).
       if demo then open_tiles(demo)

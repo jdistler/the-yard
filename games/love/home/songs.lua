@@ -859,6 +859,91 @@ M.xm_finale = {
   order = {"A+2", "A+2"},
 }
 
+-- ------------------------------------------------------------------ Halloween (halloween.lua): Bach's Toccata in
+-- D minor (its opening) and Grieg's In the Hall of the Mountain King (public domain), and ours
+local ORGAN = {wave = "saw", a = 0.01, d = 0.2, s = 0.9, r = 0.5, vol = 0.1, detune = 8, lp = 2600, send = 0.5, oct = 3}
+local THEREMIN = {wave = "sine", a = 0.15, d = 0.3, s = 0.9, r = 0.5, vol = 0.18, slide = 0.3, vib = {0.35, 6, 0.1}, send = 0.5}
+
+M.hw_toccata = {
+  bpm = 54, gain = 2.0, echo = {time = 0.55, fb = 0.5, mix = 0.4},
+  inst = {organ = ORGAN, pad = copy(ORGAN, {vol = 0.07}), bass = copy(ORGAN, {vol = 0.12, lp = 600})},
+  parts = {
+    A = {organ = "a5 g5 a5*10 .*4 | g5*2 f5*2 e5*2 d5*2 c#5*6 d5*2 | d5*12 .*4 | a4 g4 a4*10 .*4 | e4*3 f4*3 c#4*4 d4*6 |" ..
+                 "d4*12 .*4 | a3 g3 a3*10 .*4 | g3*2 f3*2 e3*2 d3*2 c#3*6 d3*2 | d3*12 .*4"},
+    B = {pad = "C#dim7*16 | Dm*16 | Gm*8 A7*8 | Dm*16", bass = "a1*16 | d2*16 | g1*8 a1*8 | d2*16", drums = "k?*16 | .*16 | .*16 | k*16"},
+  },
+  order = {"A", "B"},
+}
+
+M.hw_pumpkin = {
+  bpm = 132, gain = 1,
+  inst = {lead = XYLO, bass = TUBA},
+  parts = {
+    A = {lead = "e5 . g5 . b5 . e5 . d#5*4 b4*4 | e5 . g5 . c6 . b5 . a5*4 f#5*4 | g5 . e5 . c5 . e5 . b4*4 d#5*4 | e5*8 .*8",
+         bass = "e2*4 b2*4 b1*4 b2*4 | c3*4 g2*4 b1*4 d#2*4 | c3*4 e2*4 b1*4 f#2*4 | e2*4 b2*4 e2*8", drums = "k*4 s?*4"},
+  },
+  order = {"A", "A", "A+5", "A"},
+}
+
+local MOUNTAIN = "b3*2 c#4*2 d4*2 e4*2 f#4*2 d4*2 f#4*4 | f4*2 c#4*2 f4*4 e4*2 c4*2 e4*4 |" ..
+                 "b3*2 c#4*2 d4*2 e4*2 f#4*2 d4*2 f#4*2 b4*2 | a4*2 f#4*2 d4*2 f#4*2 a4*8"
+local function mountain(bpm, n, after, drums, loud)
+  return {
+    bpm = bpm, gain = 1, loop = after == nil, after = after,
+    inst = {lead = loud and copy(LEAD, {vol = 0.11, duty = 0.5}) or copy(PLUCK, {vol = 0.3}),
+            lead_2 = copy(PLUCK, {vol = loud and 0.22 or 0}), bass = copy(BASS, {gate = 0.4, vol = 0.4})},
+    parts = {A = {lead = MOUNTAIN, lead_2 = octave_up(MOUNTAIN), bass = string.rep("b1*4 f#2*4 b1*4 f#2*4 ", 4), drums = drums}},
+    order = n == 1 and {"A", "A+7"} or {"A", "A+7", "A", "A+7"},
+  }
+end
+M.hw_mountain1 = mountain(92, 1, "hw_mountain2", ".*16")
+M.hw_mountain2 = mountain(112, 1, "hw_mountain3", "k*4 .*12")
+M.hw_mountain3 = mountain(136, 1, "hw_mountain4", "k*4 s?*4 k*4 s?*4", true)
+M.hw_mountain4 = mountain(168, 2, nil, "k*2 s*2 k*2 s*2 k*2 s*2 k*2 s!*2 | c+k*2 s*2 k*2 s*2 k*2 s*2 s s s! s!", true)
+
+M.hw_skeleton = {
+  bpm = 150, steps = 2, swing = 0.33, gain = 1,
+  inst = {lead = XYLO, bass = copy(BASS, {gate = 0.8, vol = 0.38})},
+  parts = {
+    A = {lead = "a4 c5 e5 a5 g5*2 e5*2 | f5 a5 c6 a5 g5*4 | e5 g#5 b5 e6 d6*2 b5*2 | a5*8",
+         bass = "a2*2 c3*2 e3*2 g3*2 | f2*2 a2*2 c3*2 e3*2 | e2*2 g#2*2 b2*2 d3*2 | a2*2 e2*2 a2*4", drums = "k h s h"},
+  },
+  order = {"A", "A", "A+5", "A", "A", "A+5"},
+}
+
+M.hw_witch = {
+  bpm = 96, gain = 1, echo = {time = 0.47, fb = 0.4, mix = 0.35},
+  inst = {lead = THEREMIN, chord = copy(CHOP, {vol = 0.05, oct = 4}), bass = copy(PLUCK, {vol = 0.3})},
+  parts = {
+    A = {lead = "d5*8 f5*4 | a5*12 | g5*4 f5*4 e5*4 | f5*12 | e5*8 g5*4 | bb5*12 | a5*4 g5*4 f5*4 | e5*12",
+         chord = ".*4 Dm*4 Dm*4 | .*4 Dm*4 Dm*4 | .*4 C*4 C*4 | .*4 F*4 F*4 | .*4 C*4 C*4 | .*4 Gm*4 Gm*4 | .*4 Dm*4 Dm*4 | .*4 A*4 A*4",
+         bass = "d2*12 | a1*12 | c2*12 | f2*12 | c2*12 | g1*12 | d2*12 | a1*12"},
+  },
+  order = {"A", "A"},
+}
+
+M.hw_dark = {
+  bpm = 60, gain = 1.5,
+  inst = {pad = copy(PAD, {vol = 0.06, lp = 500, trem = {0.5, 3}}), ping = copy(BELL, {vol = 0.08})},
+  parts = {
+    A = {pad = "Dm*32 | C#dim7*32", drums = "k*2 .*2 k?*2 .*10", ping = ".*24 g#6*4 .*36 | .*8 f6*4 .*20 d6*4 .*28"},
+  },
+  order = {"A"},
+}
+
+M.hw_finale = {
+  bpm = 128, gain = 1,
+  inst = {lead = copy(LEAD, {duty = 0.5, vol = 0.11}), lead_2 = copy(XYLO, {vol = 0.16}), bass = copy(BASS, {gate = 0.6, vol = 0.38})},
+  parts = {
+    A = {lead = "e5*4 g5*4 b5*4 e6*4 | d6*4 b5*4 g5*8 | c6*4 a5*4 f#5*4 d#5*4 | e5*16",
+         bass = eights("e2", "e3") .. eights("g2", "g3") .. eights("b1", "b2") .. eights("e2", "e3"), drums = "k*2 h*2 s*2 h*2"},
+    B = {lead = "g5*4 b5*4 d6*4 g6*4 | f#6*4 d6*4 a5*8 | b5*4 g5*4 e5*4 c6*4 | b5*16",
+         lead_2 = "g6 . b6 . d7 . b6 . g6*8 | f#6 . a6 . d7 . a6 . f#6*8 | e6 . g6 . b6 . g6 . e6*8 | b6*16",
+         bass = eights("g2", "g3") .. eights("d2", "d3") .. eights("c3", "c4") .. eights("e2", "e3"), drums = "c+k*2 h*2 s*2 h*2 k*2 h*2 s*2 h*2"},
+  },
+  order = {"A", "B", "A", "B"},
+}
+
 -- ------------------------------------------------------------------ sound effects (loop = false; steps of 1/32 s)
 local function fx(inst, lane, beats, gain)
   return {bpm = 120, steps = 16, loop = false, gain = gain or 1, inst = {x = inst}, parts = {A = {x = lane}}, order = {"A"}}
@@ -888,6 +973,10 @@ M.SFX = {
   power = fx({wave = "pulse", duty = 0.25, a = 0.002, d = 0.08, s = 0.4, r = 0.03, vol = 0.2}, "c5 e5 g5 c6 e6 g6 c7*4"),
   -- the saucer's warble
   saucer = fx({wave = "sine", a = 0.05, d = 0.5, s = 0.9, r = 0.3, vol = 0.12, vib = {2, 9, 0}}, "e6*60"),
+  -- thunder: a long low rumble
+  thunder = fx({wave = "noise", a = 0.05, d = 2.5, s = 0, r = 0.5, vol = 0.5, lp = 300}, "c2*90"),
+  -- BOO!: a ghostly swoop down
+  boo = fx({wave = "saw", a = 0.02, d = 0.8, s = 0.3, r = 0.3, vol = 0.2, slide = 0.2, vib = {0.8, 7, 0}, lp = 2000}, "c5 g3*30"),
   -- "U! S! A!": three claps and the crowd
   usa = {bpm = 120, steps = 4, loop = false, gain = 1, inst = {},
          parts = {A = {drums = "x+k!*4 x+k!*4 x+k!*8"}}, order = {"A"}},

@@ -23,6 +23,8 @@ S.LIST = {
    blurb = "Game day on the Forty Acres. Hook 'em! Live scores on game days."},
   {id = "thanksgiving", title = "THANKSGIVING", tint = 0xe0903a, module = "thanksgiving",
    blurb = "The parade, the turkey on the run, and the table."},
+  {id = "halloween", title = "HALLOWEEN", tint = 0xff8000, module = "halloween",
+   blurb = "The ghosts' own holiday: the haunted house, jack-o'-lanterns, trick or treat, BOO!"},
   {id = "christmas", title = "CHRISTMAS", tint = 0x5fd16a, module = "christmas",
    blurb = "Snow on the fence, lights on the house, and a Texas Santa."},
 }
@@ -69,6 +71,7 @@ function S.holiday(d)
     local tg = nth_weekday(y, 11, 5, 4)                 -- Thanksgiving: the fourth Thursday
     if day >= tg - 3 and day <= tg + 3 then return "thanksgiving", "Thanksgiving week" end
   end
+  if m == 10 and day >= 15 then return "halloween", "Halloween" end
   if m == 7 and day <= 7 then return "freedom", "the Fourth of July" end
   if m == 5 then
     local md = nth_weekday(y, 5, 2, -1)                 -- Memorial Day: the last Monday
@@ -96,6 +99,8 @@ function S.pick(now, game, rot)
     return r[(rot or 0) % #r + 1]
   end
   local d = os.date("*t", now)
+  -- (Halloween night is the point of Halloween)
+  if d.month == 10 and d.day == 31 and d.hour >= 17 and S.available("halloween") then return "halloween" end
   if d.hour >= 22 or d.hour < 8 then return "night" end
   local h = S.holiday(d)
   if h and S.available(h) then return h end
