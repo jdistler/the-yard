@@ -1,6 +1,9 @@
--- Chest: walk to the key, open the chest, take the sword, duel Zam.
+-- Chest: walk to the key past Zam's purple fairies, open the chest, take the sword, duel Zam.
 -- Walk-up band (CONTROLS.md). The stick walks. Any button shoots.
--- In the fight the sword points at Zam by itself, so every shot flies at him and the
+-- On the path the button blows a bubble from his wand, and the game aims it: at a purple
+-- bubble about to reach him, else at the nearest purple fairy, else the way he faces. A
+-- bubbled fairy turns gold, follows him, and in the fight flies at Zam to wrap him.
+-- In the fight the sword points at Zam by itself (or at a purple fairy close to him), so the
 -- stick is for dodging, for stars, and for stepping out of purple rings.
 -- Zam learns a new trick as the pile grows: a teleport, a shield, three bubbles at once.
 -- A grown-up reads the cream band. chest.sav is "gems N". The spec is DESIGN.md beside this.
@@ -12,6 +15,12 @@ local WIN_FRAMES, RESTART_FRAMES, SHOT_GAP, HOLD_GAP = 160, 60, 12, 30
 local MARKS_WIN, ZX, ZY, FIGHT_TOP, TELE_FRAMES, SHIELD_FRAMES = 9, 192, 118, 300, 40, 90
 local SPOTS = {128, 192, 256}
 local KEY_SPOTS = {{128, 348}, {300, 356}, {72, 268}, {318, 270}, {84, 420}}
+-- The path's purple fairies: where they hover (one always guards the key), how fast their
+-- bubbles drift (slower than he walks), and his wand's bubbles.
+local FOE_SPOTS = {{300, 300}, {76, 300}, {312, 410}, {70, 410}, {300, 250}}
+local PUFF_FRAMES, PUFF_SPEED, PUFF_GAP, PATH_GRACE = 30, 1.3, 50, 120
+local WAND_SPEED, WAND_LIFE, WAND_MAX, SAVE_FRAMES, STUCK_FRAMES = 4.5, 80, 4, 30, 30
+local START_X, START_Y = 200, 420
 local C = pics.C
 
 local function trunc(v) return v >= 0 and floor(v) or ceil(v) end
@@ -25,7 +34,10 @@ local S = {
   ring = nil, star = nil, splash = nil, hurt_cool = 0, shot_once = false, spoon_flash = 0, goodbye = false,
   zx = ZX, zy = ZY, spot = 2, tele_t = 0, tele_to = 2, shield_t = 0, flinch_t = 0, dizzy_t = 0, bend_t = 0,
   bubbles = {}, beam = nil, walk_t = 0, pile_hop = 0, moving = false, prize_t = 0, prize_kind = 0, deco = {},
-  TELE_FRAMES = TELE_FRAMES, SHIELD_FRAMES = SHIELD_FRAMES, ZX = ZX, ZY = ZY,
+  TELE_FRAMES = TELE_FRAMES, SHIELD_FRAMES = SHIELD_FRAMES, ZX = ZX, ZY = ZY, PUFF_FRAMES = PUFF_FRAMES, SAVE_FRAMES = SAVE_FRAMES,
+  -- the path: purple fairies, his wand's bubbles, what the next one will go for, gold friends following him
+  foes = {}, shots = {}, aim = nil, friends = 0, friend_next = 0, trail = {}, path_t = 0, puff_gap = 0,
+  stuck = 0, back_line = "", saved_any = false, START_X = START_X, START_Y = START_Y,
 }
 pics.S = S
 
@@ -53,6 +65,7 @@ local function clear_fight()
   S.marks, S.pips, S.fight_t, S.telegraph, S.spray = 0, 0, 0, 0, false
   S.bubbles, S.fairy, S.wrap, S.wrap_alive, S.ring, S.star = {}, nil, 0, false, nil, nil
   S.shot_once, S.hurt_cool, S.tele_t, S.shield_t, S.spot, S.zx = false, 0, 0, 0, 2, ZX
+  S.shots, S.foes, S.stuck, S.friend_next = {}, {}, 0, 40
   -- He learns a trick for each of the first three gems, and takes three more zaps each time.
   S.level = min(S.gems, 3)
   S.marks_win = MARKS_WIN + 3 * S.level
@@ -71,6 +84,13 @@ local function begin_pop()
   if S.phase ~= "path" or not S.has_key then return end
   S.phase, S.pop_t = "pop", 0
   log("chest pop " .. game.frame)
+  -- A fairy still turning gold comes along too.
+  for _, f in ipairs(S.foes) do
+    if f.state == "saving" then
+      f.state, S.friends = "gold", S.friends + 1
+      particles.burst(f.x, f.y, 16, 2.5, 30, 2.5, C.GOLD, "star")
+    end
+  end
   notes({72, 76, 79, 84}, 0.08, 0.35)
   gfx.shake(4)
   particles.burst(ZX, 170, 30, 3.5, 40, 3, C.GOLD, "star")
@@ -117,15 +137,38 @@ local function add_marks(n, big)
   if S.marks >= S.marks_win and S.phase == "fight" then begin_win() end
 end
 
+-- Three purple hurts on the path: a soft start-over. The key floats back to its spot, he
+-- hops back to the start, the gold friends he made stay with him.
+local function path_back()
+  S.phase, S.bow_t = "pathback", 0
+  S.back_line = S.has_key and "Pop! The key went back." or "Pop! Back to the start."
+  log("chest pathback " .. game.frame)
+  notes({79, 76}, 0.14, 0.3)
+  if S.has_key then
+    S.has_key = false
+    particles.burst(S.key_x, S.key_y - 20, 18, 2.5, 34, 2.5, C.GOLD, "star")
+  end
+  S.bubbles, S.shots = {}, {}
+end
+
 local function hurt()
-  if S.phase ~= "fight" or S.hurt_cool > 0 then return end
-  S.pips, S.hurt_cool = S.pips + 1, 40
-  S.ny = min(S.ny + 16, 450)
+  local on_path = S.phase == "path"
+  if (S.phase ~= "fight" and not on_path) or S.hurt_cool > 0 then return end
+  S.pips = S.pips + 1
+  if on_path then
+    -- A purple bubble wraps him for half a second, then pops; he blinks a while after.
+    S.hurt_cool, S.stuck = 90, STUCK_FRAMES
+  else
+    S.hurt_cool = 40
+    S.ny = min(S.ny + 16, 450)
+  end
   log(fmt("chest hurt %d %d", S.pips, game.frame))
   sfx.slide("tri", 300, 110, 0.25, 0.35)
   gfx.shake(4)
   particles.burst(S.nx, S.ny - 10, 14, 2.5, 30, 3, C.PURPLE, "ring")
-  if S.pips >= 3 then
+  if on_path then
+    if S.pips >= 3 then path_back() else react_to("A purple bubble got him.") end
+  elseif S.pips >= 3 then
     S.phase, S.bow_t = "restart", 0
     log("chest restart " .. game.frame)
     notes({79, 76}, 0.14, 0.3)
@@ -135,19 +178,186 @@ local function hurt()
   end
 end
 
--- Before the sword: a short spark the way he faces, which can also tap the key and the lock.
-local function spark()
-  local x, y, dx, dy = S.nx, S.ny - 8, S.face_x, S.face_y
-  if dx == 0 and dy == 0 then dy = -1 end
-  log("chest bolt")
-  sfx.tone("sine", 1300, 0.07, 0.2)
-  local x0, y0 = x, y
-  for _ = 1, 52 do
-    x, y = x + dx, y + dy
-    if not S.has_key and (x - S.key_x) ^ 2 + (y - S.key_y) ^ 2 < 30 * 30 then take_key() end
-    if S.has_key and S.phase == "path" and y < 268 and x > 156 and x < 236 then begin_pop() end
+-- A purple fairy is rescued: wrapped in his bubble, she spins, turns gold, and follows him.
+local function save_fairy(f)
+  f.state, f.save_t, f.tele = "saving", SAVE_FRAMES, 0
+  S.saved_any = true
+  log("chest rescue " .. game.frame)
+  sfx.slide("sine", 600, 1200, 0.15, 0.2)
+  particles.burst(f.x, f.y, 12, 2, 24, 2.5, C.AQUA, "dot")
+end
+
+-- What the next wand bubble will go for: a purple bubble coming at him, else the nearest
+-- purple fairy, else nothing (it flies the way he faces).
+local function pick_aim()
+  local best, bd = nil, 150 * 150
+  for _, b in ipairs(S.bubbles) do
+    local dx, dy = S.nx - b.x, S.ny - b.y
+    local d = dx * dx + dy * dy
+    if d < bd and dx * b.vx + dy * b.vy > 0 then best, bd = b, d end
   end
-  S.beam = {x0 = x0, y0 = y0, x1 = x, y1 = y, t = 7, blocked = false}
+  if best then return best end
+  bd = 1e9
+  for _, f in ipairs(S.foes) do
+    if f.state == "purple" then
+      local d = (S.nx - f.x) ^ 2 + (S.ny - f.y) ^ 2
+      if d < bd then best, bd = f, d end
+    end
+  end
+  return best
+end
+
+-- Before the sword: the wand. A bubble the game aims; it can also tap the key and the lock.
+local function wand()
+  log("chest bolt")
+  sfx.slide("sine", 700, 1150, 0.1, 0.2)
+  local x, y = S.nx + (S.face_x ~= 0 and S.face_x * 14 or -14), S.ny - 14
+  local tgt = pick_aim()
+  local vx, vy
+  if tgt then
+    local dx, dy = tgt.x - x, tgt.y - y
+    local d = max(1, sqrt(dx * dx + dy * dy))
+    vx, vy = dx / d * WAND_SPEED, dy / d * WAND_SPEED
+  else
+    local fx, fy = S.face_x, S.face_y
+    if fx == 0 and fy == 0 then fy = -1 end
+    vx, vy = fx * WAND_SPEED, fy * WAND_SPEED
+  end
+  if #S.shots >= WAND_MAX then table.remove(S.shots, 1) end
+  S.shots[#S.shots + 1] = {x = x, y = y, vx = vx, vy = vy, tgt = tgt, life = WAND_LIFE}
+  particles.burst(x, y, 5, 1.2, 14, 2, C.AQUA, "dot")
+end
+
+local function pop_at(x, y, c)
+  sfx.tone("sine", 1250, 0.05, 0.16)
+  particles.burst(x, y, 10, 2, 18, 2, c, "dot")
+end
+
+-- His bubbles: they steer to what they were aimed at while it is still there.
+local function step_shots()
+  for _, s in ipairs(S.shots) do
+    local t = s.tgt
+    if t and not t.gone and (t.state == nil or t.state == "purple") then
+      local dx, dy = t.x - s.x, t.y - s.y
+      local d = max(1, sqrt(dx * dx + dy * dy))
+      s.vx, s.vy = lerp(s.vx, dx / d * WAND_SPEED, 0.25), lerp(s.vy, dy / d * WAND_SPEED, 0.25)
+    end
+    s.x, s.y, s.life = s.x + s.vx, s.y + s.vy, s.life - 1
+    for _, b in ipairs(S.bubbles) do
+      if not b.gone and (b.x - s.x) ^ 2 + (b.y - s.y) ^ 2 < 30 * 30 then
+        b.gone, s.gone = true, true
+        log("chest popped " .. game.frame)
+        pop_at(b.x, b.y, C.PURPLE)
+        break
+      end
+    end
+    if not s.gone then
+      for _, f in ipairs(S.foes) do
+        if f.state == "purple" and (f.x - s.x) ^ 2 + (f.y - s.y) ^ 2 < 30 * 30 then
+          s.gone = true
+          save_fairy(f)
+          break
+        end
+      end
+    end
+    -- A bubble with nothing to aim at (blown the way he faces) can also tap the key and the lock.
+    if not s.gone and S.phase == "path" and not s.tgt then
+      if not S.has_key and (s.x - S.key_x) ^ 2 + (s.y - S.key_y + 16) ^ 2 < 30 * 30 then
+        s.gone = true
+        take_key()
+      elseif S.has_key and s.y < 200 and s.x > 156 and s.x < 236 then
+        s.gone = true
+        begin_pop()
+      end
+    end
+    if not s.gone and (s.life <= 0 or s.x < -20 or s.x > W + 20 or s.y < -20 or s.y > H - 30) then
+      s.gone = true
+      pop_at(s.x, s.y, C.AQUA)
+    end
+  end
+  sweep(S.shots, function(s) return not s.gone end)
+end
+
+-- Purple bubbles (Zam's in the fight, the fairies' on the path) drift until they touch him.
+local function step_bubbles(reach)
+  for _, b in ipairs(S.bubbles) do
+    if not b.gone then
+      b.x, b.y = b.x + b.vx, b.y + b.vy
+      if (b.x - S.nx) ^ 2 + (b.y - S.ny) ^ 2 < reach * reach then
+        b.gone = true
+        hurt()
+      elseif b.y > H - 40 or b.y < -20 or b.x < 0 or b.x > W then
+        b.gone = true
+      end
+    end
+  end
+  sweep(S.bubbles, function(b) return not b.gone end)
+end
+
+-- A new walk to the key: purple fairies (one more for each gem, up to three), one guarding the key.
+local function setup_path()
+  S.foes, S.shots, S.bubbles, S.friends, S.pips, S.path_t, S.puff_gap = {}, {}, {}, 0, 0, 0, 0
+  S.saved_any, S.stuck, S.trail = false, 0, {}
+  local n = min(1 + S.gems, 3)
+  local spots = {{S.key_x, S.key_y - 76}}
+  for _, p in ipairs(FOE_SPOTS) do
+    local far_key = (p[1] - S.key_x) ^ 2 + (p[2] - S.key_y) ^ 2 > 90 * 90
+    local far_start = (p[1] - START_X) ^ 2 + (p[2] - START_Y) ^ 2 > 110 * 110
+    if far_key and far_start then spots[#spots + 1] = p end
+  end
+  for i = 1, n do
+    local p = spots[i]
+    S.foes[i] = {hx = p[1], hy = p[2], x = p[1], y = p[2], ph = i * 2.1, state = "purple", tele = 0,
+      cool = PATH_GRACE + (i - 1) * 55, save_t = 0}
+  end
+  log("chest fairies " .. n)
+end
+
+local function step_foes()
+  S.path_t = S.path_t + 1
+  if S.puff_gap > 0 then S.puff_gap = S.puff_gap - 1 end
+  local period = S.gems == 0 and 170 or 140
+  for _, f in ipairs(S.foes) do
+    if f.state == "purple" then
+      -- Hover round her spot.
+      local t = S.path_t
+      f.x = f.hx + sin(t * 0.021 + f.ph) * 30
+      f.y = f.hy + sin(t * 0.033 + f.ph * 1.7) * 14
+      if f.tele > 0 then
+        f.tele = f.tele - 1
+        if f.tele == 0 then
+          local a = atan2(S.ny - f.y, S.nx - f.x)
+          S.bubbles[#S.bubbles + 1] = {x = f.x, y = f.y + 8, vx = cos(a) * PUFF_SPEED, vy = sin(a) * PUFF_SPEED}
+          sfx.slide("sine", 500, 300, 0.2, 0.15)
+          log("chest puff " .. game.frame)
+          f.cool = period
+        end
+      elseif f.cool > 0 then
+        f.cool = f.cool - 1
+      else
+        -- She warns before she blows, never two at once, never point-blank, never while he blinks.
+        local d2 = (S.nx - f.x) ^ 2 + (S.ny - f.y) ^ 2
+        if S.puff_gap == 0 and S.hurt_cool == 0 and d2 > 80 * 80 and d2 < 300 * 300 then
+          f.tele, S.puff_gap = PUFF_FRAMES, PUFF_GAP + PUFF_FRAMES
+          sfx.slide("sine", 300, 620, 0.45, 0.1)
+        else
+          f.cool = 20
+        end
+      end
+    elseif f.state == "saving" then
+      f.save_t = f.save_t - 1
+      f.y = f.y - 0.4
+      if f.save_t <= 0 then
+        f.state = "gold"
+        S.friends = S.friends + 1
+        log("chest friends " .. S.friends)
+        notes({76, 79, 84}, 0.07, 0.3)
+        particles.burst(f.x, f.y, 16, 2.5, 30, 2.5, C.GOLD, "star")
+        react_to("She's a gold fairy now!")
+      end
+    end
+  end
+  sweep(S.foes, function(f) return f.state ~= "gold" end)
 end
 
 -- With the sword: a laser that flies at Zam. A shield stops it, an empty spot lets it pass.
@@ -158,6 +368,17 @@ local function laser()
   S.beam = {x0 = sx, y0 = sy, x1 = S.zx, y1 = S.zy, t = 10, blocked = false}
   S.shot_once = true
   if S.phase ~= "fight" then return end
+  -- A purple fairy close to him comes first: the laser bubbles her and she turns gold.
+  if S.fairy == "purple" and (S.fairy_x - sx) ^ 2 + (S.fairy_y - sy) ^ 2 < 140 * 140 then
+    S.beam.x1, S.beam.y1 = S.fairy_x, S.fairy_y
+    S.fairy, S.friends = nil, S.friends + 1
+    S.friend_next = max(S.friend_next, S.fight_t + 60)
+    log("chest rescue " .. game.frame)
+    notes({76, 79, 84}, 0.07, 0.3)
+    particles.burst(S.fairy_x, S.fairy_y, 16, 2.5, 30, 2.5, C.GOLD, "star")
+    react_to("She's a gold fairy now!")
+    return
+  end
   if not zam_solid() then
     -- He is not there: the laser flies on to the top of the meadow.
     S.beam.x1, S.beam.y1 = trunc(sx + (S.zx - sx) * 1.6), 8
@@ -182,7 +403,7 @@ local function laser()
 end
 
 local function fire()
-  if S.has_sword and S.phase ~= "path" then laser() else spark() end
+  if S.has_sword and S.phase ~= "path" then laser() else wand() end
   if S.splash then particles.burst(S.splash[1], S.splash[2], 8, 2, 18, 2, S.beam.blocked and C.CYAN or C.CREAM, "dot") end
 end
 
@@ -262,19 +483,17 @@ local function fight_step()
     tone(S.spray and 587 or 659, 0.12, 0.2)
     if S.spray then react_to("Three bubbles! Step away.") end
   end
-  for _, b in ipairs(S.bubbles) do
-    b.x, b.y = b.x + b.vx, b.y + b.vy
-    if (b.x - S.nx) ^ 2 + (b.y - S.ny) ^ 2 < 28 * 28 then
-      b.gone = true
-      hurt()
-    elseif b.y > H - 40 or b.x < 0 or b.x > W then
-      b.gone = true
-    end
-  end
-  sweep(S.bubbles, function(b) return not b.gone end)
+  step_bubbles(28)
   if not S.fairy and S.wrap == 0 and not S.ring and not S.star then
     local t = S.fight_t
-    if t == 70 or t == 460 then S.fairy, S.fairy_x, S.fairy_y = "gold", 40, 180
+    if S.friends > 0 and t >= S.friend_next then
+      -- One of his own gold fairies leaves his side and flies at Zam.
+      local f = table.remove(S.trail, S.friends) or {S.nx, S.ny - 20}
+      S.fairy, S.fairy_x, S.fairy_y = "gold", floor(f[1]), floor(f[2])
+      S.friends, S.friend_next = S.friends - 1, t + 240
+      log("chest friend " .. game.frame)
+      react_to("His gold fairy flies to Zam!")
+    elseif t == 70 or t == 460 then S.fairy, S.fairy_x, S.fairy_y = "gold", 40, 180
     elseif t == 250 then S.fairy, S.fairy_x, S.fairy_y = "blue", 340, 240
     elseif (S.shot_once and t == 190) or t == 520 then S.fairy, S.fairy_x, S.fairy_y = "purple", 48, 300 end
     if S.fairy then sfx.note("sine", S.fairy == "purple" and 67 or 88, 0.2, 0.18) end
@@ -336,6 +555,7 @@ local function rest_line()
   if p == "pop" then return "Pop! He threw the sword." end
   if p == "winbow" then return "Treasure for the pile." end
   if p == "restart" then return "Pop. The sword stayed." end
+  if p == "pathback" then return S.back_line end
   if p == "fight" then
     if S.tele_t > 0 then return "Zam jumped! Find him." end
     if S.telegraph > 0 then return S.spray and "Three bubbles! Step away." or "A bubble is coming." end
@@ -347,6 +567,12 @@ local function rest_line()
     if not S.shot_once then return "The sword can zap him." end
     return "Gold one. He's the boss."
   end
+  if S.stuck > 0 then return "A purple bubble got him." end
+  for _, f in ipairs(S.foes) do
+    if f.tele > 0 then return "She's blowing a bubble. Step away." end
+  end
+  if #S.bubbles > 0 then return "A purple bubble! Pop it." end
+  if #S.foes > 0 and not S.saved_any then return "Purple fairy! Bubble her." end
   if not S.has_key then
     if S.hop > 0 then return "The lock wants the key." end
     local dx, dy = input.dir()
@@ -380,6 +606,8 @@ function bot()
   end
   -- With the sword, shoot whenever the shield is down.
   if S.phase == "fight" and S.shield_t == 0 and game.frame % 2 == 1 then input.bot("low") end
+  -- On the path, blow bubbles whenever there is something to aim at.
+  if S.phase == "path" and S.aim and game.frame % 2 == 1 then input.bot("low") end
 end
 
 -- ------------------------------------------------------------------ the cart
@@ -394,6 +622,7 @@ function init()
     repeat x = rnd(16, W - 16) until not (x > 128 and x < 256)
     S.deco[i] = {x, rnd(80, H - 32 - 8), rndi(0, 4)}
   end
+  setup_path()
   music.play(path_bed)
 end
 
@@ -407,7 +636,7 @@ function update()
     -- He hops back to the fighting line while Zam unfolds.
     S.nx = S.nx + trunc((ZX - S.nx) * 0.08)
     if S.ny < 400 then S.ny = S.ny + 3 end
-  elseif S.phase ~= "winbow" and S.phase ~= "restart" then
+  elseif S.phase ~= "winbow" and S.phase ~= "restart" and S.phase ~= "pathback" and S.stuck == 0 then
     local top = S.phase == "fight" and FIGHT_TOP or 230
     S.nx = clamp(S.nx + mx * SPEED, 24, W - 24)
     S.ny = clamp(S.ny + my * SPEED, top, 450)
@@ -419,7 +648,26 @@ function update()
       if S.walk_t % 16 == 0 then particles.spawn(S.nx, S.ny + 32, rnd(-0.5, 0.5), -0.3, 18, 2.5, alpha(0xe8f0d0, 160), "dot") end
     end
   end
-  if not S.has_key and near_key() then take_key() end
+  -- His gold friends drift after him, one each side, a little behind.
+  for k = 1, min(S.friends, 5) do
+    local f = S.trail[k]
+    if not f then
+      f = {S.nx, S.ny - 30}
+      S.trail[k] = f
+    end
+    local side = k % 2 == 1 and 30 or -30
+    f[1] = approach(f[1], S.nx + side, 0.06 / k + 0.02)
+    f[2] = approach(f[2], S.ny - 18 + k * 6, 0.06 / k + 0.02)
+  end
+  if S.stuck > 0 then S.stuck = S.stuck - 1 end
+  if S.phase == "path" then
+    if S.hurt_cool > 0 then S.hurt_cool = S.hurt_cool - 1 end
+    step_foes()
+    step_bubbles(22)
+  end
+  if S.phase == "path" or S.phase == "pop" then step_shots() end
+  if S.phase == "path" then S.aim = pick_aim() else S.aim = nil end
+  if not S.has_key and S.phase == "path" and near_key() then take_key() end
   if S.phase == "path" and near_chest() then
     if S.has_key then
       begin_pop()
@@ -431,7 +679,7 @@ function update()
   end
   if S.shot_cool > 0 then S.shot_cool = S.shot_cool - 1 end
   -- A press fires at once (no faster than five a second); a held button repeats twice a second.
-  if S.saw_release and S.phase ~= "winbow" and S.phase ~= "restart"
+  if S.saw_release and S.phase ~= "winbow" and S.phase ~= "restart" and S.phase ~= "pathback" and S.stuck == 0
       and ((pressed and S.shot_cool <= HOLD_GAP - SHOT_GAP) or (held and not pressed and S.shot_cool == 0)) then
     fire()
     S.shot_cool = HOLD_GAP
@@ -461,7 +709,18 @@ function update()
       clear_fight()
       local k = KEY_SPOTS[rndi(2, 5)]
       S.key_x, S.key_y = k[1], k[2]
+      setup_path()
       S.react, S.react_left = "The key is back. Go on.", REACT_FRAMES
+    end
+  elseif S.phase == "pathback" then
+    S.bow_t = S.bow_t + 1
+    if S.bow_t == 30 then
+      S.nx, S.ny = START_X, START_Y
+      particles.burst(S.nx, S.ny, 14, 2, 24, 2.5, C.AQUA, "star")
+    end
+    if S.bow_t >= 60 then
+      S.phase, S.pips, S.path_t, S.hurt_cool, S.stuck = "path", 0, 0, 0, 0
+      for i, f in ipairs(S.foes) do f.cool, f.tele = 60 + (i - 1) * 55, 0 end
     end
   elseif S.phase == "restart" then
     S.bow_t = S.bow_t + 1

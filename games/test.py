@@ -336,6 +336,21 @@ def stress():
         f.write("gems 3\n")
     rc, err = run("chest", d, script=script("Chest", *walk, "1400 quit"))
     check("Three bubbles" in err, "chest: after three gems he throws three bubbles at once")
+    check("chest fairies 3" in err, "chest: three purple fairies on the path after three gems")
+    shutil.rmtree(d, ignore_errors=True)
+
+    # Chest: the path's purple fairies and the bubble wand.
+    d = tmpdir()
+    rc, err = run("chest", d, script=script("Chest", "900 quit"))
+    check("chest fairies 1" in err and "chest puff" in err and "chest hurt 3" in err and "chest pathback" in err,
+          "chest: the first path has one purple fairy; three of her bubbles send him back to the start")
+    rc, err = run("chest", d, script=script("Chest", "10 down LOW", "12 up LOW", "120 quit"))
+    check("chest rescue" in err and "chest friends 1" in err, "chest: the wand aims itself; a bubbled fairy turns gold")
+    rc, err = run("chest", d, script=script("Chest", "180 down LOW", "182 up LOW", "260 quit"))
+    check("chest puff" in err and "chest popped" in err and "chest hurt" not in err,
+          "chest: a wand bubble pops a purple bubble coming at him")
+    rc, err = run("chest", d, script=script("Chest", "5 down LOW", "7 up LOW", *walk, "420 quit"))
+    check("chest friend " in err and "chest wrap" in err, "chest: in the fight his gold fairy flies to Zam and wraps him")
     shutil.rmtree(d, ignore_errors=True)
 
     # Tea: the song after the cheer, sixteen notes.

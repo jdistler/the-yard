@@ -2,13 +2,25 @@
 
 A cart: `games/carts/chest/` (main.lua has the rules, pictures.lua the drawing). The Yard lists it under Tea, blurb "the key, the chest, Zam," band 5+. `games/test.py` (run by `stress.sh`) plays the checks at the bottom.
 
-Where it runs: the first build is on the cabinet, flashed to tile 10 on 2026-10-23. This note is version 2 (2026-10-24), played on the PC with `games/playtest.py` through the cabinet's framebuffer path and not flashed.
+Where it runs: the first build is on the cabinet, flashed to tile 10 on 2026-10-23. Version 2 (2026-10-24) aims the sword. This note is version 3 (2026-11-05): the bubble wand and the path's purple fairies, asked for by the player himself. It is installed with `games/cart push`.
 
 Audience is a five-year-old who can already steer in Mario Kart, in a short turn, with a grown-up beside him reading the line and ready to hold the button. He said: you are a person walking to a treasure chest, first you need the key, the key unlocks it, a gold boss pops out and gives you a sword because he is the boss, you shoot lasers at him, a laser that hits you puts a bubble around you, good fairies bubble him, some fairies bubble you and that means start over, some good fairies bubble you and then it pops and you collect it and it goes around him, and bad fairies bubble you and that is how you get hurt.
 
 He loves Alakazam. Zam is drawn after him: a tall gold psychic with long pointed ears, a fox's face, a long drooping mustache, brown armor on his shoulders, chest, elbows, and knees, and a spoon in each hand. Zam's name, the rest of the game, and every line are ours. Alakazam and Pokémon belong to Nintendo, Creatures, and Game Freak. This drawing is a fan tribute for one family's cabinet. It is not licensed by them, and it is not covered by this repository's MIT license.
 
 This is the walk-up band in [CONTROLS.md](../../../CONTROLS.md). The stick walks. The lower button shoots. He can win with the stick alone. The button is how the win becomes his.
+
+## What changed in version 3, and why
+
+He asked for two things: to shoot bubbles too, and for fairies to bubble him on the way to the key, so the key is not free, and to bubble them back.
+
+1. **The bubble wand.** Before the sword, the button blows a slow aqua bubble from a wand in his other hand. It replaces the spark. **The game aims it**, as the sword does: at a purple bubble coming at him (inside about 150 px), else at the nearest purple fairy, else the way he faces. Four gold stars turn round whatever the next bubble will go for, so the reason is on screen. The bubble steers to its target while the target is there. Only an unaimed bubble can tap the key or the lock, so the key is still won by walking.
+2. **Purple fairies on the path**, one more for each gem, up to three. The first always hovers above the key. Each warns before she blows: she glows, a bubble swells at her mouth, a soft rising hum, and the line says "She's blowing a bubble. Step away." for half a second. Her bubble drifts at 1.3 px a frame; he walks at 2. Two never blow within about 1.3 s of each other, none blows from closer than 80 px or while he blinks, and there are two quiet seconds at the start of every walk.
+3. **Bubbling a fairy rescues her.** His bubble wraps her, she spins, turns gold, and follows him. **In the fight his gold fairies fly at Zam one at a time** (the first about two-thirds of a second in, then every four seconds) and wrap him, so the next zap is the big pop. Rescuing fairies is how the path makes the fight easier. A fight with none is still winnable.
+4. **Three hearts on the path too.** A purple bubble wraps him for half a second (he cannot move, he stays visible), then pops; he blinks for a second and a half and cannot be hit. Three hurts on the path is a soft start-over: the key floats back to its spot if he had it, he hops back to the start, his hearts refill, and his gold friends stay.
+5. **In the fight, a purple fairy close to him (about 140 px) comes first:** the sword's laser bubbles her and she turns gold too.
+
+Nothing dies. Purple is the only hurt, and gold and blue are always friends: his bubbles go through them.
 
 ## What changed in version 2, and why
 
@@ -53,7 +65,8 @@ One meadow. A person, a glowing key, a chest. He walks to the key and it jumps i
 | **Zam** | See above: gold, long ears, fox face, long mustache, brown armor, two spoons. He hovers | The boss. Bubbles from the spoons. Teleports, shields, sprays as he learns. Bows when he loses and when Ned does |
 | **Gold fairy** | Round, gold, two wings | Flies to Zam and wraps him. While wrapped he cannot shield or shoot |
 | **Blue fairy** | Round, blue, holding a star | Wraps Ned in a safe blue bubble that pops into a star. Walking over the star wraps Zam |
-| **Purple fairy** | Round, purple, empty hands | Wraps Ned in a ring that grows. Walking out breaks it. If it closes, that is a hurt |
+| **Purple fairy** | Round, purple, empty hands | On the path: hovers, warns, blows slow bubbles at Ned. In the fight: wraps Ned in a ring that grows; walking out breaks it, if it closes that is a hurt. His bubble (or, close by, his laser) turns her gold |
+| **His gold friends** | Small gold fairies at his sides | Fairies he rescued. They follow him, and in the fight fly at Zam one at a time and wrap him |
 
 ## Controls
 
@@ -62,7 +75,7 @@ One sentence: the stick walks, and `LOW` shoots.
 | Input | On the path | In the fight |
 | :--- | :--- | :--- |
 | Stick | Walks. He faces the way he last walked. Opposing directions cancel. The game is finishable with pure up, down, left, right | Walks between the fighting line and the bottom. For dodging, stars, and leaving purple rings |
-| `LOW` press | A short gold spark the way he faces; it can also tap the key or the lock | A laser at Zam. Up to five a second |
+| `LOW` press | A wand bubble, aimed by the game: a purple bubble coming at him, else the nearest purple fairy, else the way he faces (that one can also tap the key or the lock) | A laser at Zam, or at a purple fairy close to him. Up to five a second |
 | `LOW` held | Repeats twice a second, after a press made in this game | Same |
 | `TL`, `TR` | The same as `LOW` | The same as `LOW` |
 | `1P` + `2P` held | Quit | Quit |
@@ -142,7 +155,10 @@ Synth only, capped at 3000 of 32767 (`sfx_limit`). A quiet walking tune on the p
 | :--- | :--- |
 | Key | C6 |
 | Chest opens | C5 E5 G5 C6 |
-| Spark | A short high blip |
+| Wand bubble | A short rising sine |
+| A fairy about to blow | A soft rising hum |
+| A bubble pops | A tiny high blip |
+| A fairy turns gold | E5 G5 C6 |
 | Laser | A short falling square |
 | Mark | A quick drop |
 | Big pop | G5 C6 |
@@ -185,11 +201,18 @@ Synth only, capped at 3000 of 32767 (`sfx_limit`). A quiet walking tune on the p
 | Big pop | `The big bubble popped.` |
 | Win | `Treasure for the pile.` |
 | Path again | `The key is back. Go on.` |
+| Path, a purple fairy, none rescued yet | `Purple fairy! Bubble her.` |
+| A fairy about to blow | `She's blowing a bubble. Step away.` |
+| A purple bubble in the air | `A purple bubble! Pop it.` |
+| A fairy turns gold | `She's a gold fairy now!` |
+| A purple bubble wraps him | `A purple bubble got him.` |
+| Three hurts on the path | `Pop! The key went back.` (or `Pop! Back to the start.`) |
+| His gold fairy leaves for Zam | `His gold fairy flies to Zam!` |
 | Goodbye | `The gems will stay.` |
 
 ## What this game will not do
 
-* No second verb. No mode: the button shoots before and after the chest.
+* No second verb. No mode: the button shoots before and after the chest (a bubble before, the laser after).
 * His own laser never wraps him and never bounces onto him. The shield stops a laser; it never returns it.
 * A bad fairy never wraps Zam into a heal.
 * No maze, no scrolling, no second room.
@@ -202,6 +225,9 @@ Synth only, capped at 3000 of 32767 (`sfx_limit`). A quiet walking tune on the p
 `games/test.py` (`stress.sh`):
 
 * Autoplay goes key, chest, sword, and wins gems; the pile keeps every win.
+* One purple fairy on the first path, three after three gems. Standing still, three of her bubbles send him back to the start.
+* A press with no stick bubbles the fairy (the wand aims itself) and she turns gold. A press as her bubble comes pops it.
+* In the fight his gold fairy flies to Zam and wraps him.
 * A held button waits for a new press; `TL` and `TR` shoot.
 * A broken save opens with no gems.
 * Walking to the key and chest by hand, then stepping sideways and pressing, still marks Zam: the sword aims itself.

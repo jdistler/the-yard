@@ -4,7 +4,7 @@ local P = {}
 local C = {
   CREAM = 0xfff6ea, INK = 0x3a2a44, CAPE = 0x3a6ea5, SKIN = 0xf4c7a1, GOLD = 0xf2c14e, WOOD = 0xc4844a,
   BROWN = 0x8a5a32, SPOON = 0xbabec8, BLUE = 0x6eb5ff, PURPLE = 0x7a5af5, ROSE = 0xe86b9a, WHITE = 0xfffcf8,
-  HELM = 0xc8d0e0, FUR = 0xf2c14e, FUR_DARK = 0xd89a2a, CYAN = 0x7fe8ff,
+  HELM = 0xc8d0e0, FUR = 0xf2c14e, FUR_DARK = 0xd89a2a, CYAN = 0x7fe8ff, AQUA = 0x9fe6ff,
 }
 P.C = C
 local INK, GOLD = C.INK, C.GOLD
@@ -84,15 +84,17 @@ local function draw_key(x, y)
   if fr() % 20 == 0 then particles.spawn(x + rnd(-12, 12), y - 26 + rnd(-12, 12), 0, -0.4, 30, 3, GOLD, "star") end
 end
 
-local function draw_fairy(x, y, c, full)
-  local wing = abs(sin(fr() * 0.5)) * 5
-  gfx.glow(x, y, 22, alpha(c, 120))
-  gfx.ellipse(x - 10, y - 4, 7, 4 + wing, alpha(0xffffff, 200))
-  gfx.ellipse(x + 10, y - 4, 7, 4 + wing, alpha(0xffffff, 200))
-  gfx.circle_o(x, y, 8, c, INK, 2)
-  gfx.circle(x - 2.5, y - 1, 1.3, INK)
-  gfx.circle(x + 2.5, y - 1, 1.3, INK)
+local function draw_fairy(x, y, c, full, puff, s)
+  s = s or 1
+  local wing = abs(sin(fr() * 0.5)) * 5 * s
+  gfx.glow(x, y, (22 + (puff or 0) * 18) * s, alpha(c, 120 + floor((puff or 0) * 100)))
+  gfx.ellipse(x - 10 * s, y - 4 * s, 7 * s, 4 * s + wing, alpha(0xffffff, 200))
+  gfx.ellipse(x + 10 * s, y - 4 * s, 7 * s, 4 * s + wing, alpha(0xffffff, 200))
+  gfx.circle_o(x, y, 8 * s, c, INK, 2)
+  gfx.circle(x - 2.5 * s, y - 1 * s, 1.3 * s, INK)
+  gfx.circle(x + 2.5 * s, y - 1 * s, 1.3 * s, INK)
   if full then gfx.star(x, y + 10, 5, fr() * 0.1, GOLD) end
+  if puff and puff > 0 then soap(x, y + 12, 3 + puff * 10, C.PURPLE) end
   if fr() % 3 == 0 then particles.spawn(x, y + 6, rnd(-0.3, 0.3), 0.5, 20, 2, alpha(c, 200), "glow") end
 end
 
@@ -286,7 +288,7 @@ local function draw_ned()
   local step = S.moving and sin(S.walk_t * 0.35) or 0
   local x, y = S.nx, S.ny
   local fx, fy = S.face_x, (S.face_x == 0 and S.face_y == 0) and -1 or S.face_y
-  if S.hurt_cool > 0 and idiv(S.hurt_cool, 4) % 2 == 1 then return end
+  if S.hurt_cool > 0 and S.stuck == 0 and idiv(S.hurt_cool, 4) % 2 == 1 then return end
   if sword and not S.moving then fx, fy = 0, -1 end
   gfx.ellipse(x, y + 34, 16, 5, alpha(0x2a5a2a, 110))
   toon(function()
@@ -315,6 +317,13 @@ local function draw_ned()
     gfx.ellipse(x + 8 + ex, y - 3, 3, 2, alpha(0xff8fa0, 120))
     gfx.line(x - 3 + ex, y - 2, x + 3 + ex, y - 2, 1.5, INK)
   end
+  if not sword and (S.phase == "path" or S.phase == "pop") then
+    -- The bubble wand, in his other hand.
+    gfx.line(x - 14, y + 10, x - 18, y - 8, 5, INK)
+    gfx.line(x - 14, y + 10, x - 18, y - 8, 2.5, 0xb07a50)
+    gfx.ring(x - 19, y - 15, 7, 4.5, INK)
+    gfx.ring(x - 19, y - 15, 7, 2, C.AQUA)
+  end
   if S.has_key and not sword and S.phase == "path" then
     gfx.glow(x + 14, y + 4, 12, alpha(0xffe080, 120))
     gfx.rrect_o(x + 12, y - 2, 5, 14, 2, GOLD, INK, 1.5)
@@ -333,7 +342,7 @@ local function draw_ned()
     gfx.line(sx - uy * 6, sy + ux * 6, sx + uy * 6, sy - ux * 6, 3.5, C.BROWN)
     gfx.glow(tx, ty, 10, alpha(0xffe080, 120))
   end
-  if S.phase == "fight" or S.phase == "restart" or S.phase == "winbow" then
+  if S.phase ~= "pop" then
     for i = 0, 2 do
       local px, py = x - 16 + i * 16, y - 46
       gfx.circle(px, py, 6, INK)
@@ -349,7 +358,8 @@ function P.draw()
   local flash = S.spoon_flash > 0
   backdrop("ground", paint_ground)
   draw_pile()
-  draw_chest_box(S.phase ~= "path")
+  local on_path = S.phase == "path" or S.phase == "pathback"
+  draw_chest_box(not on_path)
   if not S.has_key then draw_key(S.key_x, S.key_y) end
   if S.phase == "pop" then
     local k = ease.out_back(clamp(S.pop_t / 40, 0, 1))
@@ -360,7 +370,7 @@ function P.draw()
       gfx.glow(sx, sy, 16, alpha(0xffe080, 200))
       gfx.star(sx, sy, 8, fr() * 0.4, GOLD)
     end
-  elseif S.phase ~= "path" then
+  elseif not on_path then
     draw_zam(S.zx, S.zy, flash, S.phase == "winbow" or S.phase == "restart")
   end
   if S.shield_t > 0 and S.phase == "fight" then draw_shield(S.zx, S.zy) end
@@ -374,7 +384,37 @@ function P.draw()
     -- Where the bubble will go: a faint purple ring under him.
     gfx.ring(S.nx, S.ny + 20, 30 + (30 - S.telegraph), 2, alpha(0x7a5af5, 60 + S.telegraph * 4))
   end
+  -- His gold friends, following a little behind him.
+  for k = 1, min(S.friends, 5) do
+    local p = S.trail[k]
+    local fx, fy = p and p[1] or S.nx, p and p[2] or S.ny
+    draw_fairy(fx + sin(fr() * 0.05 + k) * 4, fy + sin(fr() * 0.07 + k * 2) * 4, GOLD, false, nil, 1.2)
+  end
   draw_ned()
+  if S.stuck > 0 then soap(S.nx, S.ny, 34 + sin(fr() * 0.3) * 2, C.PURPLE) end
+  -- The purple fairies on the path; one being rescued spins in his bubble and turns gold.
+  for _, f in ipairs(S.foes) do
+    if f.state == "saving" then
+      local k = 1 - f.save_t / S.SAVE_FRAMES
+      draw_fairy(f.x + sin(fr() * 0.6) * 3, f.y, k < 0.5 and C.PURPLE or GOLD, false, nil, 1.5)
+      soap(f.x, f.y, 26 + k * 6, C.AQUA)
+    else
+      draw_fairy(f.x, f.y, C.PURPLE, false, f.tele > 0 and 1 - f.tele / S.PUFF_FRAMES or nil, 1.5)
+    end
+  end
+  -- What the next wand bubble will go for: four little gold stars turning round it.
+  local aim = S.aim
+  if aim then
+    for k = 0, 3 do
+      local a = fr() * 0.08 + k * 1.571
+      gfx.star(aim.x + cos(a) * 28, aim.y + sin(a) * 28, 6, a, INK)
+      gfx.star(aim.x + cos(a) * 28, aim.y + sin(a) * 28, 4.5, a, GOLD)
+    end
+  end
+  for _, s in ipairs(S.shots) do
+    soap(s.x, s.y, 12, C.AQUA)
+    gfx.circle(s.x + 3, s.y + 3, 1.6, alpha(0xffffff, 180))
+  end
   local ring = S.ring
   if ring then
     soap(ring.x, ring.y, ring.r + 14, ring.safe and C.BLUE or C.PURPLE)
