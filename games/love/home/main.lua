@@ -1746,6 +1746,18 @@ function love.load()
       end
     end
     f:close()
+    if os.getenv("HOME_SHOW_SEGS") then
+      -- tools/show_pulse.py: each segment's start (seconds) and title, and each show's length
+      f = io.open(os.getenv("HOME_SHOW_SEGS"), "w")
+      for _, sh in ipairs(shows.LIST) do
+        local m = shows.module(sh.id)
+        if m or sh.id == "night" then
+          f:write(sh.id, " len ", m and m.LEN or 0, "\n")
+          for _, sg in ipairs(shows.segments(sh.id)) do f:write(sh.id, " seg ", sg[1], " ", sg[2], "\n") end
+        end
+      end
+      f:close()
+    end
     love.event.quit(0)
     return
   end
