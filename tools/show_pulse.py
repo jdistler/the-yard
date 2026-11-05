@@ -151,8 +151,7 @@ def main():
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     love = os.path.join(a.out, "home.love")
-    if not os.path.exists(love):
-        subprocess.check_call([os.path.join(GAMES, "cart"), "home-pack", "--out", love], stdout=subprocess.DEVNULL)
+    subprocess.check_call([os.path.join(GAMES, "cart"), "home-pack", "--out", love], stdout=subprocess.DEVNULL)
     listing = os.path.join(a.out, "segs.txt")
     if not os.path.exists(listing):
         subprocess.run([RUN, love], env=dict(ENV, HOME_SHOW_LIST=os.path.join(a.out, "shows.txt"), HOME_SHOW_SEGS=listing),

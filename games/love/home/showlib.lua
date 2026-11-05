@@ -13,6 +13,8 @@
 --   G:draw_back() / G:draw_front()  the particles behind the scenery (fireworks) and in front (smoke, confetti)
 --   G:caption(text, y, px, colour, alpha)  (painted labels: G:label(text, px, colour) to paint ahead)
 --   G:ticker(label, colour, text)
+--   L.shot(lt, keys) G:look(x, y, z) G:unlook()   the camera: pushes, pans, cuts inside a scene
+--   L.ghost(...) L.pac(...) L.hop(...) G:say(...)  the cast, big, with eyes that look and moods; speech bubbles
 local lg = love.graphics
 local ffi = require("ffi")
 local L = {}
@@ -347,6 +349,7 @@ local function mark_top(y, x, w) if y < 90 and (x or 0) + (w or 9999) > 560 then
 
 function G:caption(text, y, px, colour, alpha, sc)
   if alpha <= 0 then return end
+  if self.cam then return self:after_cam(function() self:caption(text, y, px, colour, alpha, sc) end) end
   mark_top(y)
   -- (a caption scaled every frame is resampled every frame, and soft: a pulse in size becomes one in brightness)
   if sc and sc ~= 1 then
@@ -366,6 +369,7 @@ end
 -- A caption on a dark plate (legible over a bright daytime sky).
 function G:plate(text, y, px, colour, alpha)
   if alpha <= 0 then return end
+  if self.cam then return self:after_cam(function() self:plate(text, y, px, colour, alpha) end) end
   mark_top(y)
   local sc = math.min(1, (self.W - 60) / (self.C.font(px):getWidth(text) + px * 1.2))
   local w = (self.C.font(px):getWidth(text) + px * 1.2) * sc
@@ -564,6 +568,163 @@ function L.longhorn_head(x, y, s, c, a)
   lg.ellipse("fill", x, y + 40 * s, 16 * s, 10 * s, 16)
   lg.polygon("fill", x - 30 * s, y - 20 * s, x - 46 * s, y - 8 * s, x - 26 * s, y - 2 * s)
   lg.polygon("fill", x + 30 * s, y - 20 * s, x + 46 * s, y - 8 * s, x + 26 * s, y - 2 * s)
+end
+
+-- ------------------------------------------------------------------ the camera (SHOWS_BLUEPRINT.md: the camera moves too)
+-- A scene's shots: keys {t, x, y, zoom[, "cut"]}, (x, y) the point of the picture at the screen's centre at time t.
+-- Between keys the camera eases from one to the next; a key marked "cut" is jumped to at its time. The view is
+-- kept inside the picture (W x H), so a painted backdrop never shows its edge.
+function L.shot(lt, keys, W, H)
+  W, H = W or 768, H or 1024
+  local x, y, z
+  local k1 = keys[1]
+  if lt <= k1[1] then
+    x, y, z = k1[2], k1[3], k1[4]
+  else
+    x, y, z = nil, nil, nil
+    for i = 2, #keys do
+      local k2 = keys[i]
+      if lt < k2[1] then
+        if k2[5] == "cut" then x, y, z = k1[2], k1[3], k1[4]
+        else
+          local f = L.ease((lt - k1[1]) / (k2[1] - k1[1]))
+          x, y, z = L.lerp(k1[2], k2[2], f), L.lerp(k1[3], k2[3], f), L.lerp(k1[4], k2[4], f)
+        end
+        break
+      end
+      k1 = k2
+    end
+    if not x then x, y, z = k1[2], k1[3], k1[4] end
+  end
+  z = max(1, z)
+  local hw, hh = W / 2 / z, H / 2 / z
+  return L.clamp(x, hw, W - hw), L.clamp(y, hh, H - hh), z
+end
+
+-- Look through the camera (x, y at the screen's centre, zoomed z): everything drawn until G:unlook() is in the
+-- picture's own coordinates. shake: a few pixels of jolt (a launch, a landing).
+function G:look(x, y, z, shake)
+  lg.push()
+  lg.translate(self.W / 2, self.H / 2)
+  if shake and shake > 0 then lg.translate((self.R:random() - 0.5) * shake, (self.R:random() - 0.5) * shake) end
+  lg.scale(z, z)
+  lg.translate(-x, -y)
+  self.cam = {x, y, z}
+end
+function G:unlook()
+  lg.pop()
+  self.cam = nil
+  -- speech bubbles said under the camera: drawn now, at the screen's size (crisp, readable at any zoom)
+  local q = self.says
+  if q then
+    self.says = nil
+    for _, b in ipairs(q) do self:say(b[1], b[2], b[3], b[4], b[5], b[6]) end
+  end
+  -- captions and plates: on the screen, not in the picture
+  q = self.afters
+  if q then
+    self.afters = nil
+    for _, f in ipairs(q) do f() end
+  end
+end
+function G:after_cam(f)
+  self.afters = self.afters or {}
+  self.afters[#self.afters + 1] = f
+end
+-- A point of the picture on the screen, through the camera (if one is looking).
+function G:to_screen(x, y)
+  local c = self.cam
+  if not c then return x, y end
+  return (x - c[1]) * c[3] + self.W / 2, (y - c[2]) * c[3] + self.H / 2
+end
+
+-- ------------------------------------------------------------------ the cast, big enough to follow
+-- A ghost with eyes that look where it looks (lx, ly from -1 to 1), and a mood: nil, "sleep" (eyes shut),
+-- "happy" (eyes as arcs), "scared" (blue, wavy mouth), "wide" (surprised: big pupils). al: alpha.
+local function wobble_hem(x, y, r, t)
+  local wob = floor(t * 8) % 2
+  for i = 0, 2 do
+    lg.circle("fill", x - r + r / 3 + i * r * 2 / 3, y + r * 0.75, r / 3 + (wob == i % 2 and 1 or -1) * r * 0.05, 12)
+  end
+end
+function L.ghost(x, y, r, c, t, lx, ly, mood, al)
+  al = al or 1
+  lx, ly = lx or 0, ly or 0
+  local body = mood == "scared" and {0.2, 0.3, 1} or c
+  lg.setColor(body[1], body[2], body[3], al)
+  lg.arc("fill", "pie", x, y, r, pi, 2 * pi, 24)
+  lg.rectangle("fill", x - r, y, r * 2, r * 0.75)
+  wobble_hem(x, y, r, t)
+  if mood == "scared" then
+    lg.setColor(1, 0.85, 0.75, al)
+    lg.circle("fill", x - r * 0.35, y - r * 0.2, r * 0.13, 8)
+    lg.circle("fill", x + r * 0.35, y - r * 0.2, r * 0.13, 8)
+    lg.setLineWidth(max(1.5, r * 0.07))
+    local pts = {}
+    for i = 0, 6 do pts[#pts + 1] = x - r * 0.6 + i * r * 0.2 pts[#pts + 1] = y + r * 0.3 + (i % 2 == 0 and 0 or -r * 0.12) end
+    lg.line(pts)
+    return
+  end
+  for sx = -1, 1, 2 do
+    local ex, ey = x + sx * r * 0.38, y - r * 0.15
+    if mood == "sleep" then
+      lg.setColor(0.1, 0.1, 0.2, al)
+      lg.setLineWidth(max(1.5, r * 0.08))
+      lg.line(ex - r * 0.2, ey, ex + r * 0.2, ey)
+    elseif mood == "happy" then
+      lg.setColor(1, 1, 1, al)
+      lg.setLineWidth(max(2, r * 0.12))
+      lg.arc("line", "open", ex, ey + r * 0.08, r * 0.2, pi * 1.1, pi * 1.9, 10)
+    else
+      lg.setColor(1, 1, 1, al)
+      lg.ellipse("fill", ex, ey, r * 0.26, r * 0.32, 14)
+      lg.setColor(0.15, 0.25, 0.9, al)
+      local pr = mood == "wide" and r * 0.17 or r * 0.13
+      lg.circle("fill", ex + lx * r * 0.12, ey + 0.03 * r + ly * r * 0.15, pr, 10)
+    end
+  end
+end
+
+-- Pac-Man: mouth chomping with t (open: a fixed opening instead, 0 shut to 1 wide), facing dir (radians;
+-- 0 right, pi left).
+function L.pac(x, y, r, dir, t, open, al)
+  al = al or 1
+  local o = (open or (0.15 + 0.85 * abs(sin(t * 14)))) * 0.42
+  lg.setColor(1, 0.86, 0.15, al)
+  lg.arc("fill", "pie", x, y, r, dir + o, dir + 2 * pi - o, 28)
+  lg.setColor(0.1, 0.05, 0.1, al)
+  local f = cos(dir) >= 0 and 1 or -1
+  lg.circle("fill", x + r * 0.12 * f, y - r * 0.5, r * 0.11, 8)
+end
+
+-- A hop: how high (0 to h) something bouncing every period seconds is at time t.
+function L.hop(t, period, h)
+  return abs(sin(t / period * pi)) * h
+end
+
+-- A speech bubble pointing down at (x, y): white, round, the words in ink. a: alpha (0 hides it).
+function G:say(text, x, y, px, a, ink)
+  if (a or 1) <= 0 then return end
+  if self.cam then
+    -- (under the camera: kept for G:unlook, at the screen's position)
+    local sx, sy = self:to_screen(x, y)
+    self.says = self.says or {}
+    self.says[#self.says + 1] = {text, sx, sy, px, a, ink}
+    return
+  end
+  local f = self.C.font(px)
+  local w, h = f:getWidth(text) + px * 1.1, px * 1.7
+  local bx = L.clamp(x - w / 2, 8, self.W - w - 8)
+  local by = y - h - px * 0.7
+  lg.setColor(0, 0, 0, 0.35 * a)
+  lg.rectangle("fill", bx + 3, by + 4, w, h, h / 2, h / 2, 12)
+  lg.setColor(1, 1, 1, a)
+  lg.rectangle("fill", bx, by, w, h, h / 2, h / 2, 12)
+  lg.polygon("fill", x - px * 0.35, by + h - 1, x + px * 0.35, by + h - 1, x, y)
+  lg.setFont(f)
+  ink = ink or {0.08, 0.08, 0.14}
+  lg.setColor(ink[1], ink[2], ink[3], a)
+  lg.printf(text, floor(bx + 0.5), floor(by + px * 0.32 + 0.5), w, "center")
 end
 
 return L

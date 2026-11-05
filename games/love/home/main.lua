@@ -1768,7 +1768,7 @@ function love.load()
       if how == "@" then play_show(id, tonumber(n))
       else
         play_show(id)
-        if how == ":" and cur_show then cur_show.start(1, tonumber(n)) end
+        if how == ":" and curtain then curtain.at = tonumber(n) curtain.seed = 1 end
       end
     end
   end

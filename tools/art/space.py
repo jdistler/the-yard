@@ -223,7 +223,7 @@ def orbit():
     return p
 
 
-# ------------------------------------------------------------------ the Moon (Earthrise, the flags, the hop are live; the lander is painted)
+# ------------------------------------------------------------------ the Moon (Earthrise, the lander, the walk, the flags, the rover are live)
 def moon_surface():
     p = Paint()
     p.fill_rect(0, 0, W, H, "#020206")
@@ -239,20 +239,6 @@ def moon_surface():
         p.ellipse(x, y + rr * 0.06, rr * 0.7, rr * 0.18, hexc("#7a7a82", 0.6))
     for i in range(600):
         p.circle(r.random() * W, 650 + r.random() * 374, 0.6 + r.random(), hexc("#ffffff" if r.random() < 0.5 else "#2a2a30", 0.25))
-    # the lander: gold foil descent stage, legs and pads, the ascent stage
-    lx, ly = 200, 760
-    p.poly([(lx - 60, ly - 40), (lx + 60, ly - 40), (lx + 70, ly), (lx - 70, ly)], p.lin(lx - 70, 0, lx + 70, 0, [(0, "#a8862a"), (0.5, "#f0c84a"), (1, "#8a6a1a")]))
-    for i in range(10):
-        p.line([(lx - 60 + i * 12, ly - 38), (lx - 62 + i * 13, ly - 2)], hexc("#6a4a10", 0.35), 1)
-    for d in (-1, 1):
-        p.line([(lx + d * 60, ly - 10), (lx + d * 100, ly + 50)], "#c8c8cc", 5)
-        p.line([(lx + d * 40, ly), (lx + d * 100, ly + 50)], "#a8a8b0", 3)
-        p.ellipse(lx + d * 100, ly + 52, 14, 4, "#c8c8cc")
-    p.poly([(lx - 44, ly - 40), (lx + 44, ly - 40), (lx + 30, ly - 110), (lx - 30, ly - 110)], p.lin(lx - 44, 0, lx + 44, 0, [(0, "#8a8a92"), (0.4, "#d8d8dc"), (1, "#7a7a82")]))
-    p.poly([(lx - 14, ly - 90), (lx + 14, ly - 90), (lx + 10, ly - 70), (lx - 10, ly - 70)], "#1a1a24")
-    p.fill_rect(lx - 2, ly - 140, 4, 32, "#c8c8cc")
-    p.ellipse(lx, ly - 140, 16, 5, "#d8d8dc")
-    p.ellipse(lx + 6, ly + 56, 90, 12, hexc("#000000", 0.25))
     p.grain(0.015, 762)
     return p
 

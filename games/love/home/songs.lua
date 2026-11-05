@@ -1425,6 +1425,18 @@ M.SFX = {
   thunder = fx({wave = "noise", a = 0.05, d = 2.5, s = 0, r = 0.5, vol = 0.5, lp = 300}, "c2*90"),
   -- BOO!: a ghostly swoop down
   boo = fx({wave = "saw", a = 0.02, d = 0.8, s = 0.3, r = 0.3, vol = 0.2, slide = 0.2, vib = {0.8, 7, 0}, lp = 2000}, "c5 g3*30"),
+  -- (the blueprint's kit, every show) a big switch thrown: the lights come on
+  clunk = fx({wave = "noise", a = 0.001, d = 0.09, s = 0, r = 0.03, vol = 0.35, lp = 700}, "c3*3"),
+  -- a ding: a lamp goes green, a job done
+  ding = fx({wave = "sine", a = 0.001, d = 0.6, s = 0.1, r = 0.4, vol = 0.18}, "e6 e7*20"),
+  -- a boing: a hop, a bonk on the head
+  boing = fx({wave = "tri", a = 0.001, d = 0.3, s = 0.2, r = 0.1, vol = 0.22, slide = 0.15, vib = {0.3, 18, 0}}, "c4 c6*8"),
+  -- a splash: water thrown up
+  splash = fx({wave = "noise", a = 0.002, d = 0.6, s = 0, r = 0.2, vol = 0.32, lp = 2400}, "c5*20"),
+  -- a whoosh: something fast going by
+  whoosh = fx({wave = "noise", a = 0.15, d = 0.35, s = 0, r = 0.1, vol = 0.2, lp = 1500, slide = 0.1}, "c4*14"),
+  -- a chime: sparkle, fixed, found
+  chime = fx({wave = "sine", a = 0.001, d = 0.5, s = 0.1, r = 0.4, vol = 0.14}, "c6 e6 g6 c7*12"),
   -- "U! S! A!": three claps and the crowd
   usa = {bpm = 120, steps = 4, loop = false, gain = 1, inst = {},
          parts = {A = {drums = "x+k!*4 x+k!*4 x+k!*8"}}, order = {"A"}},
