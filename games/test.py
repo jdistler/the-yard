@@ -1078,6 +1078,25 @@ def home():
     check(req == "", f"Home: a long 1-player hold is not a tap ({req!r})")
 
 
+def shows():
+    """SHOWS_BLUEPRINT.md's gate: no scene of a show goes more than 15 s without something happening
+    (tools/show_pulse.py, every show start to end: ~25 minutes, so not part of "all"). The night sky has its own
+    gentler rules and is checked by eye."""
+    import json, tempfile
+    out = tempfile.mkdtemp(prefix="show-pulse-")
+    ids = ["freedom", "texas", "longhorns", "space", "summer", "halloween", "thanksgiving", "christmas", "newyear",
+           "easter", "valentine"]
+    subprocess.run([sys.executable, os.path.join(os.path.dirname(HERE), "tools", "show_pulse.py")] + ids + ["--out", out],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=7200)
+    for sid in ids:
+        path = os.path.join(out, sid + ".json")
+        if not os.path.exists(path):
+            check(False, f"show {sid}: measured")
+            continue
+        for r in json.load(open(path)):
+            check(r["stale"] <= 15, f"show {sid}, {r['title']}: longest still stretch {r['stale']} s (at most 15)")
+
+
 def main():
     which = sys.argv[1] if len(sys.argv) > 1 else "all"
     subprocess.run(["make", "-s", "TARGET=pc"], cwd=HERE, check=True)
@@ -1093,6 +1112,8 @@ def main():
         love()
     if which in ("home", "all"):
         home()
+    if which == "shows":
+        shows()
     say(f"== {passes} passed, {len(failures)} failed ==")
     for f in failures:
         say(f"  FAIL {f}")
