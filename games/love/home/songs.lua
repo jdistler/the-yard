@@ -939,7 +939,7 @@ M.xm_jingle = {
   parts = {
     A = {lead = JINGLE, lead_2 = JINGLE, pad = JINGLE_CHORDS, bass = JINGLE_BASS, drums = SLEIGH .. " " .. SLEIGH},
   },
-  order = {"A", "A"},
+  order = {"A", "A", "A+2", "A+2"},
 }
 
 M.xm_deck = {
@@ -967,7 +967,7 @@ M.xm_wish = {
          pad = "G*12 C*12 F*12 D7*12 G*12 E7*12 Am*12 G7*12 C*12",
          bass = "g2*12 | c3*12 | f2*12 | d3*12 | g2*12 | e2*12 | a2*12 | g2*12 | c3*12"},
   },
-  order = {"A", "A"},
+  order = {"A", "A", "A+2", "A+2", "A+5", "A+5"},
 }
 
 M.xm_rag = {
@@ -1000,7 +1000,7 @@ M.xm_finale = {
   bpm = 152, gain = 1,
   inst = M.xm_jingle.inst,
   parts = {A = M.xm_jingle.parts.A},
-  order = {"A+2", "A+2"},
+  order = {"A+2", "A+2", "A+4", "A+4"},
 }
 
 -- ------------------------------------------------------------------ Halloween (halloween.lua): Bach's Toccata in
