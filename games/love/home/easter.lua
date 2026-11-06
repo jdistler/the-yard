@@ -75,6 +75,7 @@ local function bunny(x, y, s, hop, a)
   lg.circle("fill", x + 48 * s, yy - 42 * s, 4 * s, 8)
 end
 
+local CAM
 local function ears(x, y, r, a)
   lg.setColor(0.97, 0.97, 0.97, a or 1)
   lg.ellipse("fill", x - r * 0.35, y - r * 1.4, r * 0.18, r * 0.55, 10)
@@ -127,7 +128,15 @@ function D.hunt(lt, len)
   local k = clamp((lt - 2) / per, 0, #S.eggs)
   local found = floor(k)
   for i, e in ipairs(S.eggs) do
-    if i > found then egg(e[1], e[2], 22, e[3], e[4]) end
+    if i > found then
+      if i == 5 then
+        lg.setColor(0.6, 0.58, 0.55, 1)
+        lg.ellipse("fill", e[1], e[2], 20, 16, 14)
+      elseif i == #S.eggs then
+        C.fx.glow(e[1], e[2], 40, 40, 1, 0.85, 0.3, 0.5 + 0.3 * sin(S.t * 5))
+        egg(e[1], e[2], 26, {1, 0.82, 0.25}, {1, 1, 0.8})
+      else egg(e[1], e[2], 26, e[3], e[4]) end
+    end
   end
   local i = min(found + 1, #S.eggs)
   local prev = S.eggs[max(found, 1)]
@@ -136,7 +145,11 @@ function D.hunt(lt, len)
   local px = found == 0 and lerp(-40, cur[1], f) or lerp(prev[1], cur[1], f)
   local py = found == 0 and lerp(900, cur[2], f) or lerp(prev[2], cur[2], f)
   local dir = (cur[1] >= (found == 0 and -40 or prev[1])) and 1 or -1
-  C.fx.chomper(px, py - 20, 26, dir, S.t, 1)
+  S.hunt_px, S.hunt_py = px, py
+  C.fx.chomper(px, py - 30, 36, dir, S.t, 1)
+  local per2 = (len - 6) / #S.eggs
+  if found >= 5 and lt < 2 + 5 * per2 + 2.5 then G:say("...A ROCK.", px, py - 80, 22, 1) end
+  if found >= #S.eggs and lt > 2 + #S.eggs * per2 then G:say("THE GOLDEN EGG!", px, py - 80, 24, 1) end
   -- the basket in the corner with its count
   lg.setColor(0.7, 0.5, 0.25, 1)
   lg.rectangle("fill", 560, 880, 160, 80, 10, 10, 6)
@@ -155,6 +168,12 @@ function D.hunt(lt, len)
   end
 end
 
+CAM = {}
+CAM.hunt = function(lt)
+  if lt < 3 or not S.hunt_px then return L.shot(lt, {{0, 384, 512, 1}, {3, 384, 760, 1.2}}, W, H) end
+  local z = (lt > 56) and lerp(1.5, 1.05, clamp((lt - 56) / 3, 0, 1)) or 1.5
+  return L.shot(0, {{0, lerp(S.hunt_px, 560, clamp((lt - 56) / 3, 0, 1)), lerp(S.hunt_py - 60, 760, clamp((lt - 56) / 3, 0, 1)), z}}, W, H)
+end
 function D.dye(lt, len)
   local painted = S.art.kitchen
   if painted then
@@ -186,6 +205,10 @@ function D.dye(lt, len)
   lg.setLineWidth(3)
   lg.line(x, y - 120, x, y + 20)
   egg(x, y, 40, c, k > 0.5 and {1, 1, 1} or nil)
+  -- Pinky beside the cup, watching every dip and cheering the colour
+  local cheer = k > 0.5 and k < 0.75
+  C.fx.ghost(x + 90, 520 - (cheer and abs(sin(S.t * 12)) * 20 or 0), 30, GHOSTS[2], -1, S.t, false, false, 1)
+  if cheer then G:say(({"PINK!", "BLUE!", "YELLOW!", "GREEN!", "PURPLE!", "ORANGE!"})[i], x + 90, 470, 22, 1) end
   -- the done ones, drying
   for j = 1, min(floor(lt / per), 12) do
     local cc = cols[(j - 1) % 6 + 1]
@@ -202,28 +225,53 @@ function D.dye(lt, len)
   end
 end
 
+CAM.dye = function(lt)
+  local g = lt % 30
+  if g > 18 and g < 28 then return L.shot(0, {{0, 600, 520, 1.5}}, W, H) end
+  local i = floor(lt / 7) % 6 + 1
+  local k = (lt % 7) / 7
+  local x = 84 + (i - 1) * 120
+  if k < 0.8 then return L.shot(0, {{0, x + lerp(-40, 40, k / 0.8), lerp(600, 520, k / 0.8), lerp(1.45, 1.95, k / 0.8)}}, W, H) end
+  return L.shot(0, {{0, lerp(x, 384, (k - 0.8) / 0.2), lerp(560, 760, (k - 0.8) / 0.2), lerp(1.7, 1.2, (k - 0.8) / 0.2)}}, W, H)
+end
 function D.bunny(lt, len)
   meadow()
   -- the bunny hops across, the ghosts in ears behind it, copying every hop; a 30 s loop
   local c = lt % 30
   local x0 = lerp(-120, W + 600, c / 30)
   local hop = c * pi * 1.6
+  local stop = c > 12 and c < 17
+  if stop then x0 = lerp(-120, W + 600, 12 / 30) hop = 0 end
+  if c >= 17 then x0 = lerp(-120, W + 600, (c - 5) / 30) end
+  S.bun_x = x0
   bunny(x0, 820, 1.2, hop)
   for i, col in ipairs(GHOSTS) do
     local gx = x0 - 150 - (i - 1) * 110
     local gy = 820 - abs(sin(hop - i * 0.6)) * 60
+    if stop then
+      -- bump: each into the one ahead, squashed up
+      local f = clamp((c - 12 - i * 0.25) / 0.4, 0, 1)
+      gx = lerp(gx, x0 - 90 - (i - 1) * 50, f)
+      gy = 820 - (c < 15 and f * 30 * (i % 2) or 0)
+    end
     C.fx.ghost(gx, gy, 30, col, 1, S.t, false, false, 1)
     ears(gx, gy, 30, 1)
   end
   local px = x0 - 150 - 4 * 110
+  if stop then px = lerp(px, x0 - 300, clamp((c - 13.2) / 0.4, 0, 1)) end
   C.fx.chomper(px, 830 - abs(sin(hop - 3)) * 60, 30, 1, S.t, 1)
   ears(px, 830 - abs(sin(hop - 3)) * 60, 30, 1)
+  if stop and c > 13.5 and c < 16 then G:say("BONK! BONK! BONK!", x0 - 200, 700, 22, 1) end
   -- eggs left behind where the bunny's been
   for i, e in ipairs(S.trail) do
     if e[1] < x0 - 60 then egg(e[1], e[2], 18, e[3], e[4]) end
   end
 end
 
+CAM.bunny = function(lt)
+  local x0 = S.bun_x or 384
+  return L.shot(0, {{0, x0 - 220, 760, 1.4}}, W, H)
+end
 function D.cascarones(lt, len)
   local painted = S.art.fiesta
   if painted then
@@ -295,6 +343,17 @@ function D.cascarones(lt, len)
   end
 end
 
+CAM.cascarones = function(lt)
+  local who = {{130, 720}, {300, 740}, {470, 720}, {640, 740}, {384, 900}}
+  local best
+  for _, h in ipairs(S.cracks) do
+    if lt > h.t - 1.4 and lt < h.t + 1.6 then best = h end
+  end
+  if not best or lt < 9 then return L.shot(0, {{0, 384, 640, 1.1}}, W, H) end
+  local p = who[best.who]
+  local f = clamp((lt - (best.t - 1.4)) / 0.6, 0, 1)
+  return L.shot(0, {{0, lerp(384, p[1], f), lerp(640, p[2] - 60, f), lerp(1.1, 1.7, f)}}, W, H)
+end
 function D.secret(lt, len)
   -- the glitch: stripes and noise, then the hidden room
   if lt < 6 then
@@ -326,6 +385,7 @@ function D.secret(lt, len)
   end
   local k = clamp((lt - 8) / 20, 0, 1)
   local mx = lerp(120, 384, k)
+  C.fx.chomper(mx - 60 + sin(S.t * 3) * 6, 560, 26, 1, S.t, k < 1 and 1 or 0)
   local reveal = clamp((lt - 28) / 2, 0, 1)
   lg.setColor(1, 1, 1, 1)
   lg.rectangle("fill", mx - 8, 560 - 8, 16, 16)
@@ -338,8 +398,23 @@ function D.secret(lt, len)
   egg(384, 560, 60 * clamp((lt - 40) / 2, 0, 1) + 0.01, {1, 0.85, 0.3}, {1, 0.5, 0.7}, clamp((lt - 40) / 2, 0, 1))
 end
 
+CAM.secret = function(lt)
+  return L.shot(lt, {{0, 384, 512, 1}, {8, 160, 560, 1.6}, {28, 384, 500, 1.3}, {32, 384, 512, 1}, {38, 384, 760, 1.4}, {44, 384, 560, 1.5},
+                     {52, 384, 512, 1}}, W, H)
+end
+CAM.finale = function(lt) return L.shot(lt, {{0, 384, 512, 1}, {10, 384, 700, 1.25}, {22, 384, 600, 1.05}}, W, H) end
 function D.finale(lt, len)
   meadow()
+  -- the cast hopping in with their ears on
+  for i = 1, 4 do
+    local t0 = 1 + i * 1.2
+    if lt > t0 then
+      local gx = 200 + (i - 1) * 100
+      local gy = lerp(H + 60, 700, clamp((lt - t0) / 0.6, 0, 1)) - abs(sin(S.t * 5 + i)) * 20
+      C.fx.ghost(gx + 160, gy, 30, GHOSTS[i], -1, S.t + i, false, false, 1)
+      ears(gx + 160, gy, 30, 1)
+    end
+  end
   for i = 1, 7 do egg(84 + (i - 1) * 100, 900 + sin(S.t * 2 + i) * 6, 40, PASTEL[(i - 1) % 6 + 1], PASTEL[i % 6 + 1]) end
   bunny(140, 790, 1, S.t * 3)
   C.fx.chomper(580, 780, 34, -1, 0, 1)
@@ -422,9 +497,14 @@ end
 function M.draw()
   if not S then return end
   local sc, lt, len = scene_at(S.t)
+  local cam = CAM[sc[2]]
+  local x, y, z = 384, 512, 1
+  if cam then x, y, z = cam(lt, len) end
+  G:look(x, y, z)
   D[sc[2]](lt, len)
   G:draw_back()
   G:draw_front()
+  G:unlook()
   if sc[4] and not (sc[2] == "secret" and lt < 6) then
     G:plate(sc[4], 30, 56, 0xffffff, L.window(lt, 1.5, 9, 1))
     local b = L.window(lt, 2, len - 1.5, 1)
