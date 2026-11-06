@@ -50,6 +50,14 @@ local G = {}
 G.__index = G
 
 function L.new(ctx)
+  -- (the trace: the cast drawn with fx's own ghost and chomper, as Valentine's and Easter do, counted too)
+  local fx = ctx.fx
+  if ctx.trace and fx and not fx.traced then
+    fx.traced = true
+    local g, c = fx.ghost, fx.chomper
+    if g then fx.ghost = function(x, y, r, ...) if L.tracing then L.note_cast(x, y, r) end return g(x, y, r, ...) end end
+    if c then fx.chomper = function(x, y, r, ...) if L.tracing then L.note_cast(x, y, r) end return c(x, y, r, ...) end end
+  end
   return setmetatable({C = ctx, W = ctx.W or 768, H = ctx.H or 1024, made = {}, labels = {}}, G)
 end
 
@@ -684,6 +692,7 @@ local function note_cast(x, y, r)
   local seen = L.cast_seen
   if d >= 20 and #seen < 24 then seen[#seen + 1] = string.format("%.0f %.0f %.0f", d * 2, sx, sy) end
 end
+L.note_cast = note_cast
 function L.ghost(x, y, r, c, t, lx, ly, mood, al)
   al = al or 1
   if L.tracing then note_cast(x, y, r) end

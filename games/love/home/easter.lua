@@ -15,6 +15,8 @@ local LEN = 360
 M.LEN = LEN
 local sin, cos, floor, min, max, abs, pi = math.sin, math.cos, math.floor, math.min, math.max, math.abs, math.pi
 local clamp, ease, lerp, mix = L.clamp, L.ease, L.lerp, L.mix
+local function prog(lt, a, b) return ease((lt - a) / (b - a)) end
+local function lin(lt, a, b) return clamp((lt - a) / (b - a), 0, 1) end
 
 local SCENES = {
   {0, "open", "eg_hunt"},

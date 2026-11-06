@@ -1117,11 +1117,17 @@ function D.tower(lt, len)
   local floors = floor(clamp((lt - TOWER_UP) / TOWER_STEP, 0, TOWER_FLOORS))
   local one_k = prog(lt, 46, 48.5)
   if S.art.tower_win and S.art.tower_one and S.art.tower_dark then
+    -- (one full-screen picture a frame where it can be: the cabinet is fill-bound, three layers took it to 38 fps)
     lg.setColor(1, 1, 1, 1)
-    lg.draw(S.art.tower_dark, 0, 0)
-    if floors > 0 then reveal(S.art.tower_win, lerp(TOWER_BASE, TOWER_TOP, floors / TOWER_FLOORS)) end
-    if floors >= TOWER_FLOORS then lg.setColor(1, 1, 1, 1) lg.draw(S.art.tower_win, 0, 0) end
-    if one_k > 0 then lg.setColor(1, 1, 1, 1) reveal(S.art.tower_one, lerp(H, 0, one_k)) end
+    if one_k >= 1 then
+      lg.draw(S.art.tower_one, 0, 0)
+    elseif floors >= TOWER_FLOORS then
+      lg.draw(S.art.tower_win, 0, 0)
+      if one_k > 0 then reveal(S.art.tower_one, lerp(H, 0, one_k)) end
+    else
+      lg.draw(S.art.tower_dark, 0, 0)
+      if floors > 0 then reveal(S.art.tower_win, lerp(TOWER_BASE, TOWER_TOP, floors / TOWER_FLOORS)) end
+    end
     twinkle(50, 560)
   else
     G:gradient(0, 0, W, 800, {0.02, 0.02, 0.08}, {0.12, 0.06, 0.16})
@@ -1163,7 +1169,7 @@ function D.tower(lt, len)
       local sx = 30 + i * 48 + 14 + sin(S.t * 5 + i) * 10
       local sy = 972 - (i % 2) * 20 - cheer - 108
       sparklers[#sparklers + 1] = {sx, sy}
-      if G.R:random() < 0.5 then
+      if G.R:random() < 0.18 then
         G:spark(sx, sy, (G.R:random() - 0.5) * 160, -40 - G.R:random() * 100, 0.5, {1, 0.85, 0.5}, 3, 200, true)
       end
     end

@@ -716,7 +716,6 @@ function D.tubing(lt, len)
   local spin = (lt > RAPIDS[1] and lt < RAPIDS[2]) and S.t * 3 or 0
   for i = 0, 4 do
     local x, y = tube_pos(lt, i)
-    if who ~= nil then end
     local mood = (lt > RAPIDS[1] and lt < RAPIDS[2]) and "wide" or ((lt > 46 and i == 0) and "sleep" or nil)
     if i == 3 and lt > 40 and lt < 48 then
       x = lerp(x, 640, prog(lt, 40, 44)) - lerp(0, 120, prog(lt, 44, 48))

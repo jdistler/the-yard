@@ -82,6 +82,23 @@ SONGS = {}
 SFX_NAMES = set()
 
 
+# the globals a show may read; any other is a local it forgot (a missing helper: an error the moment that line runs)
+OK_GLOBALS = {"ipairs", "pairs", "math", "string", "table", "type", "require", "love", "tostring", "tonumber", "os", "io",
+              "select", "unpack", "pcall", "error", "setmetatable", "getmetatable", "collectgarbage", "print", "next",
+              "rawget", "rawset", "assert", "jit", "bit"}
+
+
+def check_globals(show):
+    """The show's Lua file read for globals it uses but nothing defines (LuaJIT's bytecode listing)."""
+    path = os.path.join(GAMES, "love", "home", show + ".lua")
+    if not os.path.exists(path):
+        return []
+    r = subprocess.run([LUAJIT, "-bl", path], capture_output=True, text=True)
+    names = set(re.findall(r'GGET .*?"([A-Za-z_][A-Za-z0-9_]*)"', r.stdout))
+    sets = set(re.findall(r'GSET .*?"([A-Za-z_][A-Za-z0-9_]*)"', r.stdout))
+    return sorted(n for n in names - OK_GLOBALS - sets)
+
+
 def build(out):
     love = os.path.join(out, "home.love")
     subprocess.check_call([os.path.join(GAMES, "cart"), "home-pack", "--out", love], stdout=subprocess.DEVNULL)
@@ -593,6 +610,10 @@ def main():
     SONGS.update(songs)
     bad = 0
     for show in a.shows:
+        bad_globals = check_globals(show)
+        if bad_globals:
+            print(f"{show}: reads globals nothing defines (a missing local helper?): {', '.join(bad_globals)}")
+            bad += 1
         scenes = scenes_of(listing, show)
         if not scenes:
             print(f"{show}: no scenes (not a show?)")
