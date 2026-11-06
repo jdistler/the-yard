@@ -1099,8 +1099,16 @@ M.ny_disco = {
          bass = string.rep("a2*2 a3*2 ", 4) .. string.rep("g2*2 g3*2 ", 4) .. string.rep("f2*2 f3*2 ", 4) .. string.rep("e2*2 e3*2 ", 4),
          stab = ".*2 Am*2 .*4 .*2 Am*2 .*4 | .*2 G*2 .*4 .*2 G*2 .*4 | .*2 F*2 .*4 .*2 F*2 .*4 | .*2 E*2 .*4 .*2 E*2 .*4",
          drums = "k*2 o*2 k+x*2 o*2"},
+    -- the dance-off: the bass alone, then everyone back in
+    B = {lead = "a5*4 .*4 a5*2 c6*2 a5*4 | g5*4 .*4 g5*2 a5*2 g5*4 | f5*4 .*4 f5*2 a5*2 c6*4 | e5*4 g#5*4 b5*4 e6*4",
+         bass = string.rep("a2*2 a3*2 ", 4) .. string.rep("g2*2 g3*2 ", 4) .. string.rep("f2*2 f3*2 ", 4) .. string.rep("e2*2 e3*2 ", 4),
+         drums = "k*2 .*2 k+x*2 .*2"},
+    C = {lead = "c6*2 b5*2 a5*2 g5*2 a5*8 | b5*2 a5*2 g5*2 f5*2 g5*8 | a5*2 g5*2 f5*2 e5*2 f5*4 a5*4 | g#5*8 b5*8",
+         bass = string.rep("a2*2 a3*2 ", 4) .. string.rep("g2*2 g3*2 ", 4) .. string.rep("f2*2 f3*2 ", 4) .. string.rep("e2*2 e3*2 ", 4),
+         stab = ".*2 Am*2 .*4 .*2 Am*2 .*4 | .*2 G*2 .*4 .*2 G*2 .*4 | .*2 F*2 .*4 .*2 F*2 .*4 | .*2 E*2 .*4 .*2 E*2 .*4",
+         drums = "k*2 o*2 k+x*2 o*2"},
   },
-  order = {"A", "A", "A", "A"},
+  order = {"A", "A", "B", "A", "C", "C", "B", "A+2", "C+2", "A+2"},
 }
 
 M.ny_rag = {
@@ -1116,14 +1124,27 @@ M.ny_rag = {
 }
 
 M.ny_countdown = {
-  bpm = 100, gain = 1,
+  bpm = 96, gain = 1,
   inst = {arp = copy(ARP, {arp = "up", oct = 4, vol = 0.05}), bass = copy(BASS, {vol = 0.4, gate = 0.5}),
-          pad = copy(BRASS_PAD, {vol = 0.05, a = 1})},
+          pad = copy(BRASS_PAD, {vol = 0.05, a = 1}), lead = copy(BELL, {vol = 0.16, d = 0.5})},
   parts = {
     A = {arp = "Am*16 | F*16 | C*16 | E*16", pad = "Am*16 F*16 C*16 E*16", bass = string.rep("a1*2 ", 8) .. string.rep("f1*2 ", 8) .. string.rep("c2*2 ", 8) .. string.rep("e1*2 ", 8),
          drums = "k*4 s?*4 k*4 s?*4 | k*4 s?*4 k*4 s?*2 s?*2 | k*4 s*4 k*4 s*2 s*2 | s? s? s s s s s! s! s! s! s! s! s! s! s! s!"},
+    -- the clock ticking: the pad and a tick-tock only
+    T = {pad = "Am*16 F*16 C*16 E*16", bass = "a1*16 | f1*16 | c2*16 | e1*16", drums = "r*4 r?*4 r*4 r?*4"},
+    -- the tune over the crowd
+    M = {arp = "Am*16 | F*16 | C*16 | E*16", pad = "Am*16 F*16 C*16 E*16",
+         lead = "e5*4 a5*4 c6*4 b5*4 | a5*8 f5*8 | g5*4 c6*4 e6*4 d6*4 | b5*16",
+         bass = string.rep("a1*4 ", 4) .. string.rep("f1*4 ", 4) .. string.rep("c2*4 ", 4) .. string.rep("e1*4 ", 4),
+         drums = "k*4 h*4 s*4 h*4"},
+    -- the build: the drums doubling
+    D = {arp = "Am*16 | F*16 | C*16 | E*16", pad = "Am*16 F*16 C*16 E*16",
+         lead = "a5*2 a5*2 c6*4 b5*2 a5*2 e5*4 | f5*2 a5*2 c6*4 a5*8 | c6*2 e6*2 g6*4 e6*2 c6*2 g5*4 | g#5*16",
+         bass = string.rep("a1*2 ", 8) .. string.rep("f1*2 ", 8) .. string.rep("c2*2 ", 8) .. string.rep("e1*2 ", 8),
+         drums = "k*2 h*2 s*2 h*2"},
   },
-  order = {"A"},
+  -- (nine parts at 96: exactly the ball scene's 90 s, the roll of A landing on midnight)
+  order = {"T", "T", "M", "M", "T", "D", "M", "D", "A"},
 }
 
 M.ny_midnight = {
@@ -1137,8 +1158,11 @@ M.ny_midnight = {
          brass = "C*16 Am*16 F*16 G*8 C*8",
          bass = eights("c2", "c3") .. eights("a1", "a2") .. eights("f1", "f2") .. "g1*2 g2*2 g1*2 g2*2 c2*2 c3*2 c2*4 ",
          drums = "c+k*2 s*2 k*2 s*2 k*2 s*2 k*2 s*2"},
+    C = {lead = "a5*4 c6*4 e6*8 | d6*4 c6*4 b5*8 | c6*4 d6*4 e6*4 f6*4 | g6*16", brass = "Am*16 G*16 F*16 G*16",
+         bass = eights("a1", "a2") .. eights("g1", "g2") .. eights("f1", "f2") .. eights("g1", "g2"),
+         drums = "k*2 s*2 k*2 s*2 k*2 s*2 k*2 s*2 | k*2 s*2 k*2 s*2 s s s s s! s! s! s!"},
   },
-  order = {"A", "B", "A", "B"},
+  order = {"A", "B", "A", "B", "C", "A+2", "B+2", "C+2", "B+2"},
 }
 
 M.ny_auld = {

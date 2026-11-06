@@ -400,15 +400,18 @@ local function actor(i, lt)
   elseif i == 3 then
     -- Pinky: BOO! ...sorry
     local up = f > 2 and f < 3.5
-    L.ghost(x0, y - (up and 30 or 0), 34, GH[2], S.t, 0, 0, (f > 3.5) and "happy" or nil)
+    local sneak = f < 2 and sin(f * 8) * 6 or 0
+    L.ghost(x0 + (f < 2 and lerp(-200, 0, f / 2) or 0), y - (up and L.hop(f - 2, 1.5, 90) or 0) - abs(sneak), 34, GH[2], S.t, 1, 0, (f > 3.5) and "happy" or nil)
     L.pac(x0 + 120, y, 30, pi, S.t, up and 0.9 or nil)
     if up then G:say("BOO!", x0, y - 70, 28, 1) end
     if f > 3.6 and f < 6.5 then G:say("SORRY! HABIT.", x0, y - 60, 22, 1) end
   elseif i == 4 then
     -- Inky: left? right? left?
     local look = floor(f * 1.5) % 2 == 0 and -1 or 1
-    L.ghost(x0, y, 34, GH[3], S.t, look, 0, nil)
-    G:say(look < 0 and "LEFT?" or "RIGHT?", x0, y - 60, 24, 1)
+    -- a step one way, a step the other, faster and faster
+    local dx = sin(f * (2 + f * 0.8)) * 110
+    L.ghost(x0 + dx, y - L.hop(f * (1 + f * 0.4), 0.5, 18), 34, GH[3], S.t, look, 0, f > 6 and "wide" or nil)
+    G:say(look < 0 and "LEFT?" or "RIGHT?", x0 + dx, y - 60, 24, 1)
   elseif i == 5 then
     -- Clyde: left... then right after all
     local x = f < 3 and lerp(x0, x0 - 140, f / 3) or (f < 4 and x0 - 140 or lerp(x0 - 140, W + 60, (f - 4) / 4))
@@ -465,7 +468,13 @@ function D.resolutions(lt, len)
   else
     lg.rectangle("fill", 600, 872, 40, 10, 3, 3, 4)
   end
+  -- (the acting, bigger: drawn scaled about the floor's middle)
+  lg.push()
+  lg.translate(384, 960)
+  lg.scale(1.45, 1.45)
+  lg.translate(-384, -960)
   for i = 1, #RESOLUTIONS do actor(i, lt) end
+  lg.pop()
   G:plate("(RESULTS MAY VARY)", 900, 26, 0xffd23f, L.window(lt, 72, len, 1))
 end
 CAM.resolutions = function(lt)
@@ -495,6 +504,10 @@ CUES.resolutions[#CUES.resolutions + 1] = {res_t(3) + 5, "boo"}
 local TOWER = {384, 470}                          -- the pole's top, where the ball starts
 local function ball_y(lt) return lerp(150, 430, prog(lt, 4, BALL_LEN)) end
 local function crowd_n(lt) return floor(lerp(20, 70, lin(lt, 0, 60))) end
+local function hat_xy(lt)
+  local f = lin(lt, 24, 30)
+  return 560 - 90 + sin(f * 9) * 90 + f * 60, 860 - sin(f * pi) * 320
+end
 function D.ball(lt, len)
   local painted = art("square")
   if not painted then G:gradient(0, 0, W, 760, {0.01, 0.01, 0.06}, {0.08, 0.04, 0.16}) end
@@ -533,6 +546,10 @@ function D.ball(lt, len)
     local x = (i * 37 + (i % 3) * 11) % W
     local y = 790 + (i * 53) % 200
     local hop = jump and L.hop(lt, 1, 26) or abs(sin(S.t * 3 + i)) * 3
+    if lt > 74 and lt < 77.5 then
+      local wx = lerp(-100, W + 100, lin(lt, 74, 77))
+      hop = hop + max(0, 1 - abs(x - wx) / 70) * 30
+    end
     lg.setColor(0.15, 0.12, 0.2, 1)
     lg.circle("fill", x, y - hop, 14, 10)
     party_hat(x, y - 12 - hop, 9, PARTY[i % #PARTY + 1], sin(S.t * 3 + i) * 0.2)
@@ -555,11 +572,49 @@ function D.ball(lt, len)
   -- Pinky's hat blowing off, up and away, caught by Pac-Man
   if lt > 24 and lt < 31 then
     local f = lin(lt, 24, 30)
-    local hx, hy = cx - 90 + sin(f * 9) * 60 + f * 40, 860 - sin(f * pi) * 220
-    party_hat(hx, hy, 18, PARTY[2], f * 12)
+    local hx, hy = hat_xy(lt)
+    party_hat(hx, hy, 30, PARTY[2], f * 12)
     if lt > 26 and lt < 28.5 then G:say("MY HAT!", cx - 90, 850, 20, 1) end
   end
   if lt > 30 and lt < 33 then G:say("GOT IT!", cx, 760, 22, 1) end
+  -- the blimp (52-64): across the sky, the year flashing on its side
+  if lt > 52 and lt < 64 then
+    local bx = lerp(W + 220, -260, lin(lt, 52, 64))
+    local bob = sin(S.t * 1.5) * 6
+    lg.setColor(0.75, 0.78, 0.85, 1)
+    lg.ellipse("fill", bx, 230 + bob, 170, 56, 32)
+    lg.setColor(0.6, 0.62, 0.7, 1)
+    lg.polygon("fill", bx + 150, 230 + bob, bx + 200, 190 + bob, bx + 200, 270 + bob)
+    lg.rectangle("fill", bx - 30, 280 + bob, 60, 20, 6, 6, 4)
+    lg.setColor(0.05, 0.05, 0.1, 1)
+    lg.rectangle("fill", bx - 120, 206 + bob, 240, 48, 8, 8, 4)
+    local flash = floor(S.t * 3) % 2 == 0
+    G:text(flash and year_next() or "HAPPY NEW YEAR", bx - 120, 214 + bob, flash and 34 or 22,
+           flash and {1, 0.85, 0.3} or {0.4, 1, 0.8}, 1, "center", 240)
+  end
+  -- the dance cam (64-74): the big screen on the building, each of the cast dancing in turn
+  if lt > 63.5 and lt < 74.5 then
+    local sx, sy, sw, sh = 60, 250, 250, 190
+    local on = prog(lt, 63.5, 64.2) * (1 - prog(lt, 74, 74.5))
+    lg.setColor(0.05, 0.05, 0.08, on)
+    lg.rectangle("fill", sx - 10, sy - 10, sw + 20, sh + 20, 8, 8, 4)
+    lg.setColor(0.15, 0.1, 0.3, on)
+    lg.rectangle("fill", sx, sy, sw, sh)
+    local who = ({1, 2, 0, 3, 4})[clamp(floor((lt - 64) / 2) + 1, 1, 5)]
+    local ph = (lt - 64) % 2
+    local dx = sin(ph * pi * 2) * 30
+    local dy = L.hop(ph, 0.5, 26)
+    if on > 0.9 then
+      guest(who, sx + sw / 2 + dx, sy + sh / 2 + 30 - dy, 56, S.t * 2, 0, 0, "happy", nil, who == 0 and 0.8 or nil)
+      G:text("DANCE CAM!", sx, sy + 6, 22, {1, 0.85, 0.3}, 1, "center", sw)
+    end
+  end
+  -- the wave and the noisemakers (74-80)
+  if lt > 74 and lt < 80 then
+    local wx = lerp(-100, W + 100, lin(lt, 74, 77))
+    lg.setColor(1, 1, 1, 0.12)
+    lg.rectangle("fill", wx - 60, 760, 120, 260)
+  end
   -- the time, and the last ten huge
   local tt = show_time()
   G:text(os.date("%I:%M:%S %p", tt):gsub("^0", ""), 0, 640, 44, {1, 1, 1}, 1)
@@ -571,11 +626,29 @@ function D.ball(lt, len)
 end
 CAM.ball = function(lt)
   local by = ball_y(lt)
+  if lt > 24.5 and lt < 29.5 then local hx, hy = hat_xy(lt) return L.shot(0, {{0, hx, hy + 60, 1.6}}, W, H) end
+  if lt > 13 and lt < 16 then return L.shot(lt, {{13, 384, 420, 1.05}, {16, 384, 420, 1.05}}, W, H) end
+  if lt > 33 and lt < 36.5 then return L.shot(lt, {{33, 384, 420, 1.05}, {36.5, 384, 420, 1.05}}, W, H) end
   return L.shot(lt, {{0, 384, 512, 1}, {4, 384, by, 1.8}, {12, 384, by + 40, 1.7}, {16, 470, 860, 1.4}, {23, 520, 860, 1.4},
-                     {26, 520, 760, 1.4}, {31, 540, 820, 1.5}, {36, 384, by + 120, 1.3}, {40, 640, 860, 1.6}, {52, 640, 860, 1.6},
-                     {56, 384, 420, 1.2}, {66, 384, 460, 1.3}, {74, 384, 500, 1.1}, {80, 384, 512, 1}}, W, H)
+                     {24, 470, 830, 1.6}, {31, 540, 830, 1.6}, {36, 384, by + 120, 1.3}, {40, 640, 860, 1.6}, {52, 640, 860, 1.6},
+                     {53, 384, 300, 1.15}, {63, 384, 300, 1.15}, {64.2, 185, 345, 1.8}, {74, 185, 345, 1.8},
+                     {75, 384, 820, 1.2}, {78, 384, 820, 1.2}, {80, 384, 512, 1}}, W, H)
 end
-CUES.ball = {{1, "clunk"}, {24, "whoosh"}, {30, "boing"}, {40, "ding", 0.5}}
+CUES.ball = {{14, "boom", 0.5}, {14.6, "crackle"}, {34, "boom", 0.5}, {34.6, "crackle"}, {14.2, "cheer", 0.5}, {1, "clunk"}, {24, "whoosh"}, {30, "boing"}, {40, "ding", 0.5}, {52.5, "jet", 0.4}, {64, "clunk"}, {64.2, "chime"},
+             {74, "cheer", 0.6}, {75, "whoosh"}}
+for k = 1, 4 do CUES.ball[#CUES.ball + 1] = {64 + k * 2, "pop", 0.4} end
+-- the confetti cannons on the rooftops, tested (14, 34): a burst from each side
+for _, t in ipairs({14, 34}) do
+  CUES.ball[#CUES.ball + 1] = {t, function()
+    for side = -1, 1, 2 do
+      local x = 384 + side * 300
+      for i = 1, 70 do
+        local c = PARTY[G.R:random(1, #PARTY)]
+        G:spark(x, 380, -side * (60 + G.R:random() * 260), -200 - G.R:random() * 300, 2.6, c, 8, 160, false)
+      end
+    end
+  end}
+end
 
 -- ------------------------------------------------------------------ midnight: fireworks that draw pictures
 -- points along a shape (unit size, centred): heart, Pac-Man, a ghost
@@ -681,6 +754,7 @@ end
 local ROW = {110, 247, 384, 521, 658}
 local CASTI = {0, 1, 2, 3, 4}
 local function lit_at(i) return 14 + (i - 1) * 1.6 end
+local NOD_T = 81                       -- Auld Lang Syne: the first to nod off; the rest, every 2 s
 function D.auld(lt, len)
   if not art("rooftop") then G:gradient(0, 0, W, H, {0.02, 0.02, 0.08}, {0.08, 0.06, 0.16}) end
   G:draw_back()
@@ -700,9 +774,24 @@ function D.auld(lt, len)
       local f = prog(lt, t0, t0 + 1.8)
       local x = lerp(384, ROW[i], f) + sway
       local y = lerp(920, 770, prog(lt, t0, t0 + 0.6))
-      if lt > 86 then y = y + 20 * prog(lt, 86, 90) end
-      local mood = lt > 74 and (lt > 86 and "sleep" or "happy") or nil
-      guest(who, x, y, who == 0 and 40 or 38, S.t, 1, (lt > 50 and lt < 62) and -1 or 0, mood, nil, who == 0 and (lt > 86 and 0.05 or 0.1) or nil)
+      -- nodding off one by one (80-90), each leaning on the next
+      local nod = NOD_T + (i - 1) * 2
+      local asleep = lt > nod
+      local lean = asleep and prog(lt, nod, nod + 0.8) or 0
+      x = x + lean * 18
+      y = y + lean * 14
+      local mood = lt > 66 and (asleep and "sleep" or "happy") or nil
+      if lt > 66 and lt < 80 then mood = "happy" end
+      lg.push()
+      lg.translate(x, y)
+      lg.rotate(lean * 0.35)
+      guest(who, 0, 0, who == 0 and 40 or 38, S.t, 1, ((lt > 50 and lt < 62) or (lt > 66 and lt < 80)) and -1 or 0, mood, nil,
+            who == 0 and (asleep and 0.05 or 0.1) or nil)
+      lg.pop()
+      if asleep and lt < len - 1 then
+        local ph = (S.t * 0.6 + i * 0.2) % 1
+        G:text("z", x + 20 + ph * 20, y - 50 - ph * 50, 20 + ph * 8, {1, 1, 1}, 1 - ph, "left", 30)
+      end
       -- the sparkler: lit from the one before
       if lt > lit_at(i) - 0.5 then
         local sx, sy = x + 30, y - 10
@@ -732,6 +821,25 @@ function D.auld(lt, len)
       end
     end
   end
+  -- the towns around setting off their own (66-80): bursts all along the skyline, near and far
+  if lt > 66 and lt < 80 then
+    for k = 0, 9 do
+      local t0 = 66 + k * 1.35
+      local a = lt - t0
+      if a > 0 and a < 1.6 then
+        local fx, fy = 120 + (k * 263) % 530, 380 + (k * 97) % 160
+        local c = ({{1, 0.4, 0.4}, {0.4, 0.8, 1}, {1, 0.85, 0.3}, {0.6, 1, 0.5}, {1, 0.5, 0.9}})[k % 5 + 1]
+        lg.setBlendMode("add")
+        for d = 0, 23 do
+          local ang = d / 24 * 2 * pi
+          local r = a * 70 * (0.7 + (k % 3) * 0.2)
+          lg.setColor(c[1], c[2], c[3], 1 - a / 1.6)
+          lg.circle("fill", fx + cos(ang) * r * 2.2, fy + sin(ang) * r * 2.2 + a * a * 14, 8, 6)
+        end
+        lg.setBlendMode("alpha")
+      end
+    end
+  end
   -- the shooting star
   if lt > 48 and lt < 50 then
     local f = lin(lt, 48, 50)
@@ -741,7 +849,8 @@ function D.auld(lt, len)
   end
   if lt > 14 and lt < 16.5 then G:say("PASS IT ON!", ROW[1] + 30, 690, 22, 1) end
   if lt > 49 and lt < 52 then G:say("MAKE A WISH!", ROW[3], 680, 24, 1) end
-  if lt > 88 and lt < 92 then G:say("*YAWN*", ROW[3], 700, 24, 1) end
+  if lt > NOD_T - 2 and lt < NOD_T then G:say("*YAWN*", ROW[1], 700, 24, 1) end
+  if lt > 67 and lt < 70 then G:say("LOOK, ALL THE TOWNS!", ROW[3], 680, 22, 1) end
   for i = 1, 5 do
     local t0 = 24 + (i - 1) * 4
     if lt > t0 + 0.5 and lt < t0 + 3.5 then
@@ -761,12 +870,15 @@ CAM.auld = function(lt)
     keys[#keys + 1] = {26.5 + (i - 1) * 4, ROW[i] + 40, 730, 1.6}
   end
   for _, k in ipairs({{45, 384, 600, 1.05}, {47, 384, 420, 1.2}, {50, 384, 420, 1.2}, {53, 384, 700, 1.25},
-                      {62, 384, 700, 1.25}, {70, 384, 560, 1.05}, {84, 384, 740, 1.4}, {94, 384, 740, 1.5}, {100, 384, 512, 1}}) do
+                      {62, 384, 700, 1.25}, {66, 384, 560, 1.15}, {79, 384, 600, 1.15}, {81, ROW[1] + 60, 760, 1.6},
+                      {90, ROW[5] - 60, 760, 1.6}, {96, 384, 740, 1.3}, {100, 384, 512, 1}}) do
     keys[#keys + 1] = k
   end
   return L.shot(lt, keys, W, H)
 end
-CUES.auld = {{48, "whoosh", 0.5}, {52, "chime"}, {88, "boing", 0.4}}
+CUES.auld = {{48, "whoosh", 0.5}, {52, "chime"}}
+for k = 0, 9 do CUES.auld[#CUES.auld + 1] = {66 + k * 1.35, k % 2 == 0 and "pop" or "crackle", 0.25} end
+for i = 1, 5 do CUES.auld[#CUES.auld + 1] = {NOD_T + (i - 1) * 2, "boing", 0.2} end
 for i = 1, 5 do
   CUES.auld[#CUES.auld + 1] = {1 + (i - 1) * 2.2, "pop", 0.4}
   CUES.auld[#CUES.auld + 1] = {lit_at(i), "crackle", 0.6}
