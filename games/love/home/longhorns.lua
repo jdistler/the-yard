@@ -288,6 +288,14 @@ function D.campus(lt, len)
       local x = ((S.t * 22 + i * 130) % (W + 120)) - 60
       fan(x, 962 - (i % 2) * 12, 1.2, i % 3 == 0 and WHITE or ORANGE, S.t + i, i % 2 == 0, i % 5 + 1)
     end
+    -- more and more of them up the mall toward the Tower as the morning goes on
+    local n = floor(clamp(lt / 50, 0, 1) * 30)
+    for i = 1, n do
+      local f = ((S.t * 0.05 + i * 0.137) % 1)
+      local x = 384 + ((i * 53) % 120 - 60) * (1 - f * 0.6)
+      local y = lerp(1000, 760, f)
+      fan(x, y, 1.1 - f * 0.6, i % 3 == 0 and WHITE or ORANGE, S.t + i, i % 4 == 0, i % 5 + 1)
+    end
     G:plate("THE MAIN BUILDING  ·  THE TOWER", 96, 28, 0xffffff, L.window(lt, 12, 40, 1.5))
     return
   end
@@ -950,10 +958,82 @@ function D.season(lt, len)
     lg.setLineWidth(8)
     rgba(ORANGE)
     lg.rectangle("line", bx - 4, by - 4, bw + 8, bh + 8, 8, 8, 6)
-    G:text("LONGHORNS FOOTBALL", bx, by + 120, 44, ORANGE_HI, 1, "center", bw)
-    G:text("THE SEASON KICKS OFF", bx, by + 300, 34, WHITE, 1, "center", bw)
-    G:text("LATE AUGUST", bx, by + 350, 44, ORANGE_HI, 0.6 + 0.4 * abs(sin(S.t * 3)), "center", bw)
-    G:text("SCHEDULE AND SCORES FROM ESPN WHEN THE CABINET IS ONLINE", bx + 40, by + 560, 18, {0.7, 0.7, 0.75}, 1, "center", bw - 80)
+    G:text("LONGHORNS FOOTBALL", bx, by + 24, 40, ORANGE_HI, 1, "center", bw)
+    -- the countdown to the season (the last Saturday of August), counting up to it as the scene opens
+    local now = os.date("*t")
+    local ky = now.year
+    local kick = os.time({year = ky, month = 8, day = 30, hour = 12})
+    if kick < os.time() then kick = os.time({year = ky + 1, month = 8, day = 30, hour = 12}) end
+    local days = floor((kick - os.time()) / 86400)
+    local shown = floor(days * clamp((lt - 1) / 4, 0, 1))
+    G:text("KICKOFF IN", bx, by + 76, 26, WHITE, 1, "center", bw)
+    G:text(shown .. " DAYS", bx, by + 104, 48, ORANGE_HI, 0.75 + 0.25 * abs(sin(S.t * 3)), "center", bw)
+    -- the chalkboard: a play drawn up, then run, every 12 s (three of them)
+    local fx, fy, fw, fh = bx + 30, by + 180, bw - 60, 470
+    lg.setColor(0.08, 0.22, 0.12, 1)
+    lg.rectangle("fill", fx, fy, fw, fh, 8, 8, 4)
+    lg.setColor(1, 1, 1, 0.25)
+    for k = 1, 4 do lg.rectangle("fill", fx + 10, fy + k * fh / 5, fw - 20, 2) end
+    lg.setColor(0.75, 0.34, 0, 0.6)
+    lg.rectangle("fill", fx + 10, fy + 8, fw - 20, 50)
+    G:text("END ZONE", fx, fy + 18, 24, WHITE, 0.8, "center", fw)
+    local p = floor(math.max(0, lt - 6) / 12) % 3 + 1
+    local pt = math.max(0, lt - 6) % 12
+    local los = fy + fh - 120
+    local cxp = fx + fw / 2
+    local O = {{cxp, los + 50}, {cxp - 90, los + 6}, {cxp + 90, los + 6}, {cxp - 200, los + 6}, {cxp + 200, los + 6}}
+    local routes = ({
+      {{4, {{cxp - 200, los - 200}, {cxp - 120, fy + 40}}}},                         -- the long pass left
+      {{1, {{cxp, los - 80}, {cxp + 60, los - 200}, {cxp + 40, fy + 40}}}},           -- the run up the middle
+      {{5, {{cxp + 200, los - 160}, {cxp + 60, los - 260}, {cxp + 20, fy + 40}}}},    -- the post route right
+    })[p]
+    -- the players: O's (Texas) and X's
+    G:text(({"PLAY 1: THE BOMB", "PLAY 2: UP THE GUT", "PLAY 3: THE POST"})[p], fx, fy + fh - 40, 22, {1, 1, 1}, 0.8, "center", fw)
+    lg.setLineWidth(4)
+    for i, o in ipairs(O) do
+      lg.setColor(1, 0.6, 0.2, clamp(pt * 3 - i * 0.3, 0, 1))
+      lg.circle("line", o[1], o[2], 14, 14)
+      local xx, xy = o[1] + (i % 2 == 0 and 20 or -20), los - 46
+      lg.setColor(1, 1, 1, clamp(pt * 3 - i * 0.3 - 0.5, 0, 1))
+      lg.line(xx - 10, xy - 10, xx + 10, xy + 10)
+      lg.line(xx + 10, xy - 10, xx - 10, xy + 10)
+    end
+    -- the route chalked in, then run
+    local who, path = routes[1][1], routes[1][2]
+    local pts = {O[who][1], O[who][2]}
+    for _, q in ipairs(path) do pts[#pts + 1] = q[1] pts[#pts + 1] = q[2] end
+    local draw = clamp((pt - 2) / 3, 0, 1)
+    local seg = #path
+    lg.setColor(1, 1, 0.85, 0.9)
+    lg.setLineWidth(3)
+    for k = 1, seg do
+      local a0 = (k - 1) / seg
+      if draw > a0 then
+        local f = clamp((draw - a0) * seg, 0, 1)
+        local x1, y1, x2, y2 = pts[k * 2 - 1], pts[k * 2], pts[k * 2 + 1], pts[k * 2 + 2]
+        lg.line(x1, y1, lerp(x1, x2, f), lerp(y1, y2, f))
+      end
+    end
+    -- running it: the carrier along the route with the ball (a pass: thrown from the QB)
+    if pt > 5.5 then
+      local f = clamp((pt - 5.5) / 3.5, 0, 1)
+      local k = min(seg, floor(f * seg) + 1)
+      local g = f * seg - (k - 1)
+      local x = lerp(pts[k * 2 - 1], pts[k * 2 + 1], min(g, 1))
+      local y = lerp(pts[k * 2], pts[k * 2 + 2], min(g, 1))
+      lg.setColor(1, 0.55, 0.1, 1)
+      lg.circle("fill", x, y, 14, 14)
+      if who ~= 1 and f < 0.6 then
+        local bf = f / 0.6
+        lg.setColor(0.6, 0.35, 0.15, 1)
+        lg.ellipse("fill", lerp(O[1][1], x, bf), lerp(O[1][2], y, bf) - sin(bf * pi) * 80, 9, 6, 10)
+      end
+    end
+    if pt > 9 then
+      local a = min(1, (pt - 9) * 3) * (1 - clamp((pt - 11.5) * 2, 0, 1))
+      G:text("TOUCHDOWN!", fx, fy + 170, 56, ORANGE_HI, a, "center", fw)
+    end
+    S.chalk = {fx, fy, fw, fh, pt}
     return
   end
   -- (one layer where it can be: a clear, the crowd below, the frame as lines, the board's picture)
@@ -1197,6 +1277,7 @@ function D.legends(lt, len)
     lg.circle("fill", x, y, 4.5, 8)
   end
   local x, y = rb_xy(qx, qy)
+  S.rb_x, S.rb_y = x, y
   C.fx.glow(x, y, 50, 50, 1, 0.6, 0.2, 0.5)
   rgba(ORANGE_HI)
   lg.circle("fill", x, y, 15, 16)
@@ -1290,6 +1371,77 @@ function D.hex(lt, len)
     end
     G:plate(line, 240, 26, 0xffd0a0, clamp((lt - 42) * 1.5, 0, 1) * L.window(lt, 42, len - 1, 1))
   end
+end
+
+-- ------------------------------------------------------------------ the camera (SHOWS_BLUEPRINT.md)
+local CAM = {}
+CAM.campus = function(lt)
+  return L.shot(lt, {{0, 384, 512, 1}, {12, 384, 300, 1.35}, {20, 384, 300, 1.35}, {26, 220, 860, 1.6}, {34, 220, 860, 1.6},
+                     {40, 620, 880, 1.6}, {48, 620, 880, 1.6}, {54, 384, 900, 1.3}, {60, 384, 700, 1.05}, {70, 384, 512, 1}}, W, H)
+end
+CAM.season = function(lt)
+  if (S.games and #S.games > 0) and S.board then
+    local n = S.board.n
+    local t_end = 2.5 + n * 1.1
+    if lt < t_end then
+      local i = clamp(floor((lt - 2.5) / 1.1) + 1, 1, n)
+      return L.shot(0, {{0, 384, 96 + BOARD_TOP + (i - 1) * S.board.rh, lerp(1, 1.5, clamp((lt - 1) / 2, 0, 1))}}, W, H)
+    end
+    return L.shot(lt, {{t_end, 384, 600, 1.4}, {t_end + 3, 384, 700, 1.4}, {t_end + 6, 384, 512, 1}}, W, H)
+  end
+  -- the chalkboard: in on the play as it is drawn and run, out for each touchdown
+  if lt < 6 then return L.shot(lt, {{0, 384, 512, 1}, {3, 384, 200, 1.6}, {6, 384, 200, 1.6}}, W, H) end
+  local pt = (lt - 6) % 12
+  return L.shot(pt, {{0, 384, 600, 1.05}, {2, 384, 640, 1.45}, {5.5, 384, 600, 1.5}, {9, 384, 420, 1.35}, {11.5, 384, 512, 1.05}}, W, H)
+end
+CAM.hookem = function(lt)
+  local c1, cN = S.stunt[1], S.stunt[#S.stunt]
+  local sx, sy = (c1[1] + cN[1]) / 2, (c1[2] + cN[2]) / 2
+  return L.shot(lt, {{0, 384, 512, 1}, {4, c1[1] + 60, sy, 2.0}, {10, cN[1] - 60, sy, 2.0}, {13, sx, sy, 1.3}, {16, 384, 860, 1.5},
+                     {24, 384, 860, 1.5}, {28, 384, 512, 1}, {36, sx, sy, 1.4}, {44, 384, 760, 1.2}, {52, 384, 512, 1}}, W, H)
+end
+CAM.redriver = function(lt)
+  return L.shot(lt, {{0, 384, 512, 1}, {6, 160, 380, 1.6}, {14, 160, 380, 1.6}, {20, 600, 320, 1.5}, {30, 600, 320, 1.5}, {34, 384, 900, 1.5},
+                     {46, 384, 900, 1.5}, {52, 384, 512, 1}, {66, 160, 380, 1.4}, {72, 384, 900, 1.4}, {80, 384, 512, 1}}, W, H)
+end
+CAM.drive = function(lt)
+  local los, play, pt = drive_state(lt)
+  if not play then
+    local t = lt - (#PLAYS * PLAY_T + 4)
+    return L.shot(t, {{0, 384, 512, 1}, {4, 384, 400, 1.4}, {10, 384, 640, 1.3}, {16, 384, 400, 1.3}, {22, 384, 512, 1}}, W, H)
+  end
+  -- in on the line before the snap, following the play upfield, out for the next huddle
+  local gain = play[2]
+  local k = clamp((pt - 1.2) / 3.2, 0, 1)
+  local y = 640 - ease(k) * gain * YD * 0.8
+  local z = pt < 1 and lerp(1, 1.6, pt) or (pt < 6 and 1.6 or lerp(1.6, 1.05, clamp((pt - 6) / 2, 0, 1)))
+  return L.shot(0, {{0, 384 + (play[3] or 0) * YD * 0.5 * k, y, z}}, W, H)
+end
+CAM.legends = function(lt)
+  if lt < 34 then
+    return L.shot(lt, {{0, 384, 512, 1}, {3, 200, 400, 1.6}, {8, 560, 400, 1.6}, {12, 384, 400, 1.3}, {18, 384, 640, 1.5},
+                       {26, 384, 640, 1.5}, {30, 384, 512, 1}}, W, H)
+  end
+  local r = lt - 34
+  if r > 6 and r < 22 and S.rb_x then return L.shot(0, {{0, S.rb_x, S.rb_y - 40, 1.6}}, W, H) end
+  return L.shot(r, {{0, 384, 512, 1}, {4, 384, 560, 1.3}, {6, 384, 560, 1.5}, {22, 384, 512, 1.1}, {30, 384, 400, 1.3}, {40, 384, 512, 1}}, W, H)
+end
+CAM.smokey = function(lt)
+  return L.shot(lt, {{0, 384, 512, 1}, {2, 480, 760, 1.6}, {10, 480, 760, 1.6}, {14, 384, 640, 1.1}, {24, 200, 700, 1.4}, {34, 560, 700, 1.4},
+                     {44, 384, 760, 1.3}, {50, 100, 880, 1.6}, {58, 384, 800, 1.3}, {66, 384, 512, 1}}, W, H)
+end
+CAM.band = function(lt)
+  return L.shot(lt, {{0, 384, 512, 1}, {6, 150, 820, 1.5}, {16, 500, 820, 1.5}, {26, 384, 700, 1.1}, {32, 384, 512, 1}, {40, 384, 420, 1.3},
+                     {50, 384, 560, 1.2}, {60, 384, 512, 1}}, W, H)
+end
+CAM.hex = function(lt)
+  return L.shot(lt, {{0, 384, 512, 1}, {4, 384, 940, 1.6}, {14, 200, 900, 1.6}, {24, 560, 880, 1.6}, {34, 384, 820, 1.3}, {39, 384, 512, 1},
+                     {48, 384, 512, 1}, {52, 384, 360, 1.5}, {60, 384, 360, 1.5}, {66, 384, 512, 1}}, W, H)
+end
+CAM.tower = function(lt)
+  return L.shot(lt, {{0, 384, 512, 1}, {5, 384, 300, 1.6}, {14, 384, 300, 1.6}, {20, 384, 860, 1.4}, {30, 384, 860, 1.4}, {36, 384, 512, 1},
+                     {46, 384, 400, 1.3}, {48, 384, 400, 1.6}, {49, 384, 512, 1, "cut"}, {58, 384, 512, 1}, {64, 384, 320, 1.4}, {70, 384, 880, 1.5},
+                     {76, 200, 880, 1.5}, {80, 560, 880, 1.5}, {85, 384, 512, 1}}, W, H)
 end
 
 -- ------------------------------------------------------------------ the scorebug (game days)
@@ -1480,6 +1632,11 @@ function M.update(dt)
       S.last_days = floor((os.time() - os.time({year = tonumber(y), month = tonumber(m), day = tonumber(d), hour = 12})) / 86400 + 0.5)
     end
   end
+  if sc[2] == "season" and not (S.games and #S.games > 0) and lt > 6 then
+    local pt, p0 = (lt - 6) % 12, (lt - dt - 6) % 12
+    if pt >= 9 and p0 < 9 then C.sfx("cheer", 0.6) end
+    if pt >= 5.5 and p0 < 5.5 then C.sfx("pew", 0.3) end
+  end
   if sc[2] == "season" and lt > 2.5 then
     local i = floor((lt - 2.5) / 1.1)
     if i >= 1 and i <= #(S.games or {}) and floor((lt - dt - 2.5) / 1.1) ~= i then C.sfx("tape", 0.25) end
@@ -1508,7 +1665,9 @@ function M.update(dt)
       for i = 1, 5 do G:rocket(150 + i * 100, 200 + G.R:random() * 150, {from = 1024, colours = {ORANGE_HI, WHITE}}) end
     end
   end
-  if (sc[2] == "tower" and lt > 4 and (lt > 48 or lt % 6 < 3)) or (sc[2] == "redriver" and lt > 54 and lt < 80) then
+  if (sc[2] == "tower" and lt > 4 and (lt > 48 or lt % 6 < 3)) or (sc[2] == "redriver" and lt > 54 and lt < 80)
+     or (sc[2] == "drive" and lt > #PLAYS * PLAY_T + 5) or (sc[2] == "legends" and lt > 34 + 25) then
+    if (sc[2] == "drive" or sc[2] == "legends") and G.R:random() < dt * 3 then G:confetti(6, {ORANGE_HI, WHITE}) end
     S.fw = (S.fw or 0) - dt
     if S.fw <= 0 then
       S.fw = 0.7 + G.R:random() * 0.9
@@ -1544,9 +1703,14 @@ end
 function M.draw()
   if not S then return end
   local sc, lt, len = scene_at(S.t)
+  local cam = (not S.celebrate) and CAM[sc[2]]
+  local x, y, z = 384, 512, 1
+  if cam then x, y, z = cam(lt, len) end
+  G:look(x, y, z)
   D[sc[2]](lt, len)
   G:draw_back()
   G:draw_front()
+  G:unlook()
   if sc[4] and sc[2] ~= "drive" then
     local hide_bug = sc[2] == "season" or sc[2] == "legends"
     G:plate(sc[4], (bug_lines() and not hide_bug) and 150 or 30, 56, 0xffffff, L.window(lt, 1.5, 9, 1))
