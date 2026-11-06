@@ -697,6 +697,24 @@ function L.pac(x, y, r, dir, t, open, al)
   lg.circle("fill", x + r * 0.12 * f, y - r * 0.5, r * 0.11, 8)
 end
 
+-- Where something on a path is at time t: keys {t, x, y[, "lin"]}, eased between keys (or straight, "lin"),
+-- held before the first and after the last. Also returns the way it is going (-1 left, 1 right, 0 still).
+function L.path(t, keys)
+  local k1 = keys[1]
+  if t <= k1[1] then return k1[2], k1[3], 0 end
+  for i = 2, #keys do
+    local k2 = keys[i]
+    if t < k2[1] then
+      local f = (t - k1[1]) / (k2[1] - k1[1])
+      if k2[4] ~= "lin" then f = L.ease(f) end
+      local dx = k2[2] - k1[2]
+      return L.lerp(k1[2], k2[2], f), L.lerp(k1[3], k2[3], f), dx > 0.5 and 1 or (dx < -0.5 and -1 or 0)
+    end
+    k1 = k2
+  end
+  return k1[2], k1[3], 0
+end
+
 -- A hop: how high (0 to h) something bouncing every period seconds is at time t.
 function L.hop(t, period, h)
   return abs(sin(t / period * pi)) * h

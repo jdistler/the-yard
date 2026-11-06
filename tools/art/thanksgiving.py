@@ -186,7 +186,7 @@ def farm():
     return p
 
 
-# ------------------------------------------------------------------ autumn on the porch (the rocking chair is live)
+# ------------------------------------------------------------------ autumn on the porch (the raking, the leaf pile, the porch's cast are live)
 def autumn(light):
     p = Paint()
     dusk = light == "dusk"
@@ -206,8 +206,9 @@ def autumn(light):
         rr = r.random() ** 0.6
         x, y = 200 + math.cos(a) * 170 * rr, 480 + math.sin(a) * 100 * rr
         leaf(p, x, y, 1.2 + r.random(), r.random() * 6.28, LEAVES[r.randrange(len(LEAVES))])
-    for i in range(160):
-        leaf(p, 60 + r.random() * 320, 880 + r.random() * 60, 1.0 + r.random() * 0.6, r.random() * 6.28, LEAVES[r.randrange(len(LEAVES))])
+    # (a few leaves scattered on the grass: the pile is raked live)
+    for i in range(46):
+        leaf(p, 20 + r.random() * 370, 760 + r.random() * 240, 1.0 + r.random() * 0.6, r.random() * 6.28, LEAVES[r.randrange(len(LEAVES))])
     # the porch: boards, steps, the rail, pumpkins, a hay bale, a corn stalk bundle
     p.fill_rect(400, 760, 368, 200, p.lin(0, 760, 0, 960, [(0, "#8a5a3a"), (1, "#5a3a24")]))
     for y in range(780, 960, 20):
@@ -228,7 +229,7 @@ def autumn(light):
     return p
 
 
-# ------------------------------------------------------------------ the table (the guests, the knife and the steam are live)
+# ------------------------------------------------------------------ the table (the guests, the feast brought in and eaten, the candles are live)
 def table():
     p = Paint()
     p.fill_rect(0, 0, W, H, p.lin(0, 0, 0, H, [(0, "#5a3020"), (1, "#2a140a")]))
@@ -253,37 +254,15 @@ def table():
     p.fill_rect(40, 600, 688, 340, "#8a2a18", r=12)
     p.fill_rect(70, 620, 628, 290, p.lin(0, 620, 0, 910, [(0, "#fbf6ea"), (1, "#e8dcc4")]), r=10)
     p.fill_rect(70, 700, 628, 70, hexc("#c8642a", 0.5))
-    for (x, y) in ((140, 650), (628, 650), (140, 880), (628, 880)):
-        p.ellipse(x, y, 40, 18, "#ffffff")
-        p.ellipse(x, y, 28, 12, "#e8e4dc")
-    for x in (300, 468):
-        p.fill_rect(x - 4, 610, 8, 40, "#f6efd8")
-        p.ellipse(x, 606, 4, 8, "#ffd060")
-        p.glow(x, 604, 30, "#ffc060", 0.6)
-    # the feast: the roast on its platter, the sides, the pies
-    p.ellipse(384, 724, 120, 46, "#d8d8dc")
-    p.ellipse(384, 722, 108, 38, "#f4f4f6")
-    p.ellipse(384, 706, 84, 46, p.lin(300, 660, 468, 750, [(0, "#e8a050"), (0.5, "#b8642a"), (1, "#7a3a14")]))
-    p.ellipse(360, 690, 30, 12, hexc("#ffe0a0", 0.4))
-    for dx in (-80, 80):
-        p.ellipse(384 + dx, 714, 18, 12, "#c87a3a")
-        p.circle(384 + dx * 1.3, 708, 7, "#f4efe0")
-    for k in range(8):
-        a = k / 8 * 2 * math.pi
-        p.circle(384 + math.cos(a) * 100, 726 + math.sin(a) * 30, 6, "#4a8a2a")
-    p.ellipse(190, 680, 44, 20, "#f4f4f6")
-    p.ellipse(190, 676, 32, 13, "#8a1020")
-    p.ellipse(186, 672, 10, 4, hexc("#ff6a7a", 0.5))
-    p.ellipse(580, 680, 50, 22, "#f4f4f6")
-    p.ellipse(580, 668, 34, 18, "#fbf2dc")
-    p.ellipse(580, 660, 14, 6, "#d8a040")
-    for (x, kind) in ((170, "pumpkin"), (600, "pecan")):
-        p.ellipse(x, 822, 54, 24, "#c89a5a")
-        p.ellipse(x, 818, 48, 20, "#d8822a" if kind == "pumpkin" else "#6a3a14")
-        if kind == "pecan":
-            for k in range(12):
-                a = k / 12 * 2 * math.pi
-                p.ellipse(x + math.cos(a) * 30, 818 + math.sin(a) * 12, 6, 3, "#4a2408")
+    # the places: five plates along the far side (the guests sit behind them), two candlesticks (the flames are
+    # live); the feast itself is live, brought in dish by dish and eaten
+    for x in (150, 270, 384, 498, 618):
+        p.ellipse(x, 655, 42, 18, "#ffffff")
+        p.ellipse(x, 655, 30, 12, "#e8e4dc")
+        p.fill_rect(x + 46, 640, 4, 30, "#c8c8cc")
+    for x in (96, 672):
+        p.fill_rect(x - 5, 700, 10, 50, "#f6efd8")
+        p.ellipse(x, 752, 18, 7, "#c8a040")
     p.grain(0.02, 341)
     return p
 
