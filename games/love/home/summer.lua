@@ -95,7 +95,7 @@ local function tube(x, y, s, who, mood, spin)
   lg.setColor(0.25, 0.25, 0.28, 1)
   lg.ellipse("fill", 0, -3 * s, 34 * s, 12 * s, 24)
   lg.pop()
-  guest(who, x, y - 18 * s, (who == 0 and 20 or 18) * s, 1, 0, mood, mood == nil)
+  guest(who, x, y - 24 * s, (who == 0 and 27 or 25) * s, 1, 0, mood, mood == nil)
   lg.setColor(0.15, 0.15, 0.17, 1)
   lg.ellipse("fill", x, y + 4 * s, 40 * s, 10 * s, 24)
 end
@@ -195,13 +195,13 @@ function D.lake(lt, len)
     lg.setLineWidth(1.5)
     if not wiped then lg.line(bx - 50, 640, kx + 20, 660) end
     if not wiped then
-      guest(4, kx + wob, 650, 26, 1, 0, lt > 42 and "wide" or nil, true)
+      guest(4, kx + wob, 642, 34, 1, 0, lt > 42 and "wide" or nil, true)
       lg.setColor(0.9, 0.85, 0.2, 1)
       lg.rectangle("fill", kx - 30, 678, 60, 6, 3, 3, 4)
     end
   end
   if lt > 44 and lt < 50 then
-    guest(4, 560 + (lt - 44) * 4, 690 - min(1, (lt - 46) / 2) * 20, 26, 1, 0, "wide", false)
+    guest(4, 560 + (lt - 44) * 4, 684 - min(1, (lt - 46) / 2) * 20, 34, 1, 0, "wide", false)
   end
   -- the pontoon with whoever isn't jumping
   local px = pontoon_x(lt)
@@ -230,7 +230,7 @@ function D.lake(lt, len)
           gx, gy = lerp(gx, ex, f), lerp(gy, ey, f) - sin(f * pi) * 80
         end
       end
-      guest(i, gx, gy, 20, 1, 0, cheer and "happy" or nil, not cheer)
+      guest(i, gx, gy, 27, 1, 0, cheer and "happy" or nil, not cheer)
     end
   end
   -- Pac-Man on his donut float, the judge (until his own turn)
@@ -248,7 +248,7 @@ function D.lake(lt, len)
   lg.setColor(0.15, 0.4, 0.5, 1)
   lg.ellipse("fill", fx, fy - 2, 24, 8, 16)
   local pac_on = lt < 47 or lt > 62
-  if pac_on then guest(0, fx, fy - 26, 24, 1, lt > 72 and lt < 78 and -1 or 0, nil, lt < 75.3, lt > 75.3 and lt < 79 and 0.9 or nil) end
+  if pac_on then guest(0, fx, fy - 30, 30, 1, lt > 72 and lt < 78 and -1 or 0, nil, lt < 75.3, lt > 75.3 and lt < 79 and 0.9 or nil) end
   -- the seagull: down, the sunglasses, away
   if lt > 72 and lt < 80 then
     local gx, gy = L.path(lt, {{72, -60, 260}, {75.3, fx + 10, fy - 70}, {80, W + 80, 160}})
@@ -361,7 +361,7 @@ function D.springs(lt, len)
     local racing = lt > 34 and lt < 50 and who ~= 0
     local floating = lt > 50
     if not dive and not racing and not floating then
-      guest(who, x, y - 30 + (lt > 18 and lt < 34 and 0 or 0), 28, 1, 0, mood, shades)
+      guest(who, x, y - 38, 36, 1, 0, mood, shades)
       if who == 3 and lt > 10.5 and lt < 18 then
         lg.setColor(0.8, 0.95, 1, 0.55)
         lg.rectangle("fill", x - 34, y - 64, 68, 70, 8, 8, 4)
@@ -381,7 +381,7 @@ function D.springs(lt, len)
       lg.translate(gx, gy)
       if who == 1 and lt > t0 + 2 and lt < t0 + 3.4 then lg.rotate(-f * 2.6) end
       if who == 2 and lt > t0 + 2 and lt < t0 + 3.4 then lg.scale(1.3, 0.75) end
-      guest(who, 0, 0, 28, -1, who == 2 and 1 or 0, (who == 2 and lt > t0 + 2) and "wide" or nil, false)
+      guest(who, 0, 0, 38, -1, who == 2 and 1 or 0, (who == 2 and lt > t0 + 2) and "wide" or nil, false)
       lg.pop()
     end
     -- the race: three lanes, Clyde ahead at the end
@@ -392,15 +392,15 @@ function D.springs(lt, len)
       local gx = lerp(40, 720, f)
       if lt < 36 then gx = lerp(x, 40, prog(lt, 34, 36)) end
       local stroke = sin(S.t * 10 + who) * 4
-      guest(who, gx, lane - 10 + stroke, 24, 1, 0, (f >= 1 and who == 4) and "happy" or nil, false)
+      guest(who, gx, lane - 14 + stroke, 34, 1, 0, (f >= 1 and who == 4) and "happy" or nil, false)
       lg.setColor(0.9, 0.97, 1, 0.8)
-      for k = 1, 3 do lg.circle("fill", gx - 30 - k * 12, lane + 6 + sin(S.t * 12 + k) * 3, 4, 8) end
+      for k = 1, 4 do lg.circle("fill", gx - 40 - k * 14, lane + 8 + sin(S.t * 12 + k) * 4, 5 + k, 8) end
     end
     if floating then
       local a = (i - 1) / 5 * 2 * pi + S.t * 0.15
       local gx, gy = 384 + cos(a) * 180, 830 + sin(a) * 70
       if lt > 58 and lt < 66 then gx = gx + (gx < 384 and -60 or 60) * prog(lt, 58, 60) * (1 - prog(lt, 64, 66)) end
-      guest(who, gx, gy, 26, 0, -1, nil, true)
+      guest(who, gx, gy, 34, 0, -1, nil, true)
     end
   end
   -- the ducklings, through the middle of the ring
@@ -425,7 +425,7 @@ end
 CAM.springs = function(lt)
   return L.shot(lt, {{0, 384, 512, 1}, {4, 300, 560, 1.4}, {9, 240, 560, 1.6}, {15, 240, 560, 1.6}, {18, 400, 620, 1.2},
                      {20, 600, 600, 1.5}, {22.5, 480, 760, 1.35}, {26, 500, 620, 1.2}, {28, 600, 600, 1.5}, {30.5, 480, 760, 1.4},
-                     {34, 384, 760, 1.1}, {37, 180, 800, 1.35}, {48, 640, 800, 1.35}, {51, 384, 800, 1.1}, {56, 384, 820, 1.25},
+                     {34, 384, 760, 1.1}, {37, 200, 800, 1.6}, {48, 620, 800, 1.6}, {51, 384, 800, 1.1}, {56, 384, 820, 1.4},
                      {66, 384, 820, 1.25}, {70, 384, 600, 1.05}}, W, H)
 end
 CUES.springs = {{10.5, "boing"}, {20, "whoosh"}, {21.4, function() splash(470, 820, false) end}, {28, "whoosh"},
@@ -433,7 +433,7 @@ CUES.springs = {{10.5, "boing"}, {20, "whoosh"}, {21.4, function() splash(470, 8
 
 -- ------------------------------------------------------------------ snow cones
 local CUST = {1, 2, 3, 4}
-local function serve_t(k) return 6 + (k - 1) * 7 end
+local function serve_t(k) return 6 + (k - 1) * 5.5 end
 local function temp_at(lt) return floor(96 + clamp(lt / 44, 0, 1) * 8) end
 local function cone(x, y, s, flavours, ice, melt)
   lg.setColor(0.95, 0.95, 0.9, 1)
@@ -474,7 +474,10 @@ function D.snocone(lt, len)
   local busy = false
   for k = 1, 4 do if lt > serve_t(k) and lt < serve_t(k) + 4 then busy = true end end
   local px = 384
-  guest(0, px, 500 + (busy and abs(sin(S.t * 10)) * 5 or 0), 44, 1, 0, nil, false, busy and 0.3 or nil)
+  local catch = lt > 49.4 and lt < 50.6
+  local full = lt > 50.6 and lt < 58
+  guest(0, px, 500 + (busy and abs(sin(S.t * 10)) * 5 or 0), full and 52 or 44, 1, catch and -1 or 0, nil, false,
+        catch and 1 or (full and 0.05 or (busy and 0.3 or nil)))
   lg.setColor(1, 1, 1, 1)
   lg.polygon("fill", px - 34, 466, px + 34, 466, px + 26, 446, px - 26, 446)
   -- the syrup bottles on the counter
@@ -491,8 +494,9 @@ function D.snocone(lt, len)
     if lt > t0 - 1.5 then x = lerp(qx, 330, prog(lt, t0 - 1.5, t0)) end
     if lt > t0 + 4 then x = lerp(330, 120 + (k - 1) * 150, prog(lt, t0 + 4, t0 + 6)) y = lerp(790, 860, prog(lt, t0 + 4, t0 + 6)) end
     if k > 1 and lt < serve_t(k - 1) + 4 then x = qx + 0 end
-    local freeze = who == 1 and lt > 24 and lt < 29
-    guest(who, x, y - 30, 30, 1, 0, freeze and "wide" or nil, not freeze)
+    local freeze = who == 1 and lt > 22 and lt < 27
+    local got = lt > t0 + 3.2 and lt < t0 + 4.2
+    guest(who, x, y - 40 - (got and L.hop(lt - t0 - 3.2, 1, 24) or 0), 40, 1, 0, freeze and "wide" or (got and "happy" or nil), not freeze)
     if freeze then
       lg.setColor(0.8, 0.95, 1, 0.6)
       lg.rectangle("fill", x - 20, y - 64, 40, 18, 4, 4, 4)
@@ -501,33 +505,70 @@ function D.snocone(lt, len)
     if lt > t0 then
       local ice = prog(lt, t0, t0 + 2)
       local fl = lt > t0 + 2.5 and {FLAV[k]} or {}
-      local cx, cy = x + 34, y - 30
-      if lt < t0 + 4 then cx, cy = 384, 420 end
+      local cx, cy = x + 44, y - 40
+      local making = lt < t0 + 4
+      if making then cx, cy = 384, 430 end
       local eaten = clamp((lt - (t0 + 6)) / 8, 0, 1)
-      if eaten < 1 then cone(cx, cy, 0.6, fl, ice * (1 - eaten), 0) end
-      -- the syrup pouring
+      if eaten < 1 then cone(cx, cy, making and 1.1 or 0.7, fl, ice * (1 - eaten), 0) end
+      -- the ice shaved: flakes flying off; the syrup pouring, a thick stream
+      if lt > t0 and lt < t0 + 2 and G.R:random() < 0.7 then
+        G:spark(cx + (G.R:random() - 0.5) * 30, cy - 50, (G.R:random() - 0.5) * 160, -80 - G.R:random() * 80, 0.6, {1, 1, 1}, 5, 300, false)
+      end
       if lt > t0 + 2 and lt < t0 + 3 then
         rgba(FLAV[k])
-        lg.setLineWidth(4)
-        lg.line(cx + 20, cy - 40, cx + 4, cy - 10)
+        lg.setLineWidth(9)
+        lg.line(cx + 50, cy - 90, cx + 30, cy - 60, cx + 8, cy - 20)
+        lg.ellipse("fill", cx + 54, cy - 96, 14, 9, 10)
       end
     end
   end
-  -- Pac-Man's own: every flavour, then the heat gets it
-  if lt > 36 then
-    local n = min(#FLAV, floor((lt - 38) / 1.2) + 1)
-    local fl = {}
-    for i = 1, max(0, n) do fl[i] = FLAV[i] end
-    local melt = lin(lt, 46, 52)
-    if lt > 38 then cone(450, 420, 0.9, fl, prog(lt, 36, 38), melt) end
-    if lt < 38 then cone(450, 420, 0.9, {}, prog(lt, 36, 38), 0) end
-    if melt > 0.5 then
-      lg.setColor(0.75, 0.4, 0.8, 0.6)
-      lg.ellipse("fill", 450, 520, 60 * melt, 10 * melt, 20)
+  -- Pac-Man's own: a tower of every flavour, scoop on scoop (32-44), the ghosts gathering; the heat: drips, a
+  -- wobble, the lean (48), the fall, and he catches the lot in his mouth (50)
+  if lt > 31.5 and lt < 51.2 then
+    local n = min(#FLAV + 2, floor((lt - 32) / 1.6) + 1)
+    local bx, by = 450, 470
+    -- (it leans over toward Pac-Man, then goes down into his open mouth, shrinking as it goes)
+    local lean = lt > 47 and -min(1.2, (lt - 47) * 0.5) or (lt > 44 and sin(S.t * 6) * 0.06 * (lt - 44) / 3 or 0)
+    local fall = lt > 49.4 and prog(lt, 49.4, 50.5) or 0
+    lg.push()
+    lg.translate(lerp(bx, 384 + 30, fall), lerp(by, 500, fall))
+    lg.rotate(lean - fall * 0.4)
+    lg.scale(1 - fall * 0.9, 1 - fall * 0.9)
+    lg.setColor(0.95, 0.95, 0.9, 1)
+    lg.polygon("fill", -34, 0, 34, 0, 20, 80, -20, 80)
+    for k = 1, max(0, n) do
+      local c = FLAV[(k - 1) % #FLAV + 1]
+      local y = -k * 46
+      local sq = (k == n and (lt - 32) % 1.6 < 0.25) and 1.25 or 1
+      lg.setColor(1, 1, 1, 1)
+      lg.ellipse("fill", 0, y + 20, 46 * sq, 30 / sq, 20)
+      if lt > 32 + (k - 1) * 1.6 + 0.6 then
+        rgba(c)
+        lg.ellipse("fill", 0, y + 16, 44 * sq, 26 / sq, 20)
+        lg.setColor(1, 1, 1, 0.35)
+        lg.ellipse("fill", -14, y + 8, 12, 6, 10)
+      end
+      -- the drips, in the heat
+      if lt > 44 then
+        rgba(c)
+        lg.ellipse("fill", -30 + (k * 23) % 60, y + 40 + ((S.t * 40 + k * 17) % 50), 4, 8, 8)
+      end
+    end
+    lg.pop()
+  end
+  -- the ghosts gathered round to watch, a hop at every scoop
+  if lt > 32 and lt < 56 then
+    for i, who in ipairs({1, 2, 3, 4}) do
+      local gx = lerp(120 + (i - 1) * 150, 120 + (i - 1) * 60 + (i > 2 and 420 or 0), prog(lt, 32, 34))
+      local hop = (lt < 44 and ((lt - 32) % 1.6) < 0.5) and L.hop((lt - 32) % 1.6, 1, 22) or 0
+      local wide = lt > 47 and lt < 51
+      guest(who, gx, 790 - 40 - hop, 40, 1, -1, wide and "wide" or ((lt > 50.5) and "happy" or nil), not wide)
     end
   end
   if lt > 43 and lt < 46.5 then G:say("IT'S 104!", 685, 300, 26, 1) end
-  if lt > 52 and lt < 56 then G:say("SLURRRP.", 384, 380, 26, 1) end
+  if lt > 47.5 and lt < 49.5 then G:say("TIMBERRR!", 300, 300, 26, 1) end
+  if lt > 50.4 and lt < 54 then G:say("GULP!", 384, 380, 30, 1) end
+  if lt > 54 and lt < 57 then G:say("...BRAIN FREEZE.", 384, 380, 22, 1) end
   if lt > 6 and lt < 9 then G:say("CHERRY, PLEASE!", 330, 720, 22, 1) end
 end
 CAM.snocone = function(lt)
@@ -538,13 +579,19 @@ CAM.snocone = function(lt)
     keys[#keys + 1] = {t0 + 3.6, 384, 520, 1.6}
     keys[#keys + 1] = {t0 + 5.5, 280, 760, 1.35}
   end
-  for _, k in ipairs({{24, 140, 760, 1.6}, {29, 140, 760, 1.6}, {34, 330, 700, 1.2}, {38, 440, 460, 1.7}, {44, 560, 440, 1.4},
-                      {46, 450, 460, 1.8}, {52, 450, 460, 1.8}, {56, 384, 600, 1.1}, {60, 384, 512, 1}}) do
+  for _, k in ipairs({{24, 140, 760, 1.6}, {29, 140, 760, 1.6}, {32, 420, 520, 1.25}, {38, 430, 470, 1.1}, {44, 440, 440, 1.1},
+                      {47, 450, 400, 1.2}, {49.4, 420, 420, 1.3}, {50.6, 384, 480, 1.6}, {56, 384, 520, 1.5}, {60, 384, 512, 1}}) do
     keys[#keys + 1] = k
   end
   return L.shot(lt, keys, W, H)
 end
-CUES.snocone = {{24, "boing"}, {43, "ding"}, {52, "boo", 0.4}}
+CUES.snocone = {{22, "boing"}, {43, "ding"}, {47.5, "whoosh"}, {50.4, "power"}, {54.2, "boing", 0.5}}
+for k = 1, 9 do CUES.snocone[#CUES.snocone + 1] = {32 + (k - 1) * 1.6 + 0.6, "pop", 0.3 + k * 0.03} end
+for k = 1, 4 do
+  CUES.snocone[#CUES.snocone + 1] = {serve_t(k), "tape", 0.35}
+  CUES.snocone[#CUES.snocone + 1] = {serve_t(k) + 2, "splash", 0.25}
+  CUES.snocone[#CUES.snocone + 1] = {serve_t(k) + 3.2, "ding", 0.5}
+end
 for k = 1, 4 do
   CUES.snocone[#CUES.snocone + 1] = {serve_t(k), "tape", 0.5}
   CUES.snocone[#CUES.snocone + 1] = {serve_t(k) + 2.5, "pop", 0.4}
@@ -561,6 +608,7 @@ local function tube_pos(lt, i)
   return x, y
 end
 local RAPIDS = {32, 40}
+local SWING0, SWING_DT = 55, 4.4            -- the rope swing at the take-out: the first off at 55, one each 4.4 s
 function D.tubing(lt, len)
   if not art("tubing") then
     G:gradient(0, 0, W, 420, {0.3, 0.55, 0.95}, {0.8, 0.9, 1})
@@ -617,6 +665,53 @@ function D.tubing(lt, len)
     lg.polygon("fill", -18, 0, -30, -8, -30, 8)
     lg.pop()
   end
+  -- the take-out (53): the rope swing off the big oak, one after another, Pac-Man's cannonball last
+  if lt > 52 then
+    L.live_oak(120, 660, 1.6, S.t)
+    local PIV = {230, 420}
+    -- the limb the rope hangs from
+    lg.setColor(0.35, 0.25, 0.16, 1)
+    lg.setLineWidth(14)
+    lg.line(110, 560, 170, 470, PIV[1] + 10, PIV[2] - 4)
+    for k, who in ipairs({1, 2, 3, 4, 0}) do
+      local t0 = SWING0 + (k - 1) * SWING_DT
+      local ph = lt - t0
+      local x, y, rot = nil, nil, 0
+      if ph > -1.5 and ph < 0 then
+        x, y = lerp(-60, 130, prog(ph, -1.5, -0.2)), 640
+      elseif ph >= 0 and ph < 1.6 then
+        local a = lerp(-0.7, 0.95, ease(ph / 1.6))
+        x, y = PIV[1] + sin(a) * 240, PIV[2] + cos(a) * 240
+        lg.setColor(0.75, 0.65, 0.45, 1)
+        lg.setLineWidth(3)
+        lg.line(PIV[1], PIV[2], x, y - 30)
+      elseif ph >= 1.6 and ph < 2.5 then
+        local f = (ph - 1.6) / 0.9
+        x, y = lerp(PIV[1] + sin(0.95) * 240, 470, f), lerp(PIV[2] + cos(0.95) * 240, 760, f) - sin(f * pi) * 120
+        rot = (who == 2 and f * 2 * pi) or (who == 1 and f * 1.8) or 0
+      elseif ph >= 2.5 then
+        x, y = 400 + (k - 1) * 78 + (ph - 2.5) * 4, 790 + (k % 2) * 30 + sin(S.t * 2 + k) * 4
+      end
+      if x then
+        lg.push()
+        lg.translate(x, y)
+        lg.rotate(rot)
+        if who == 3 and ph > 1.6 and ph < 2.5 then lg.scale(1.3, 0.8) end
+        if who == 4 and ph > 1.6 and ph < 2.5 then lg.scale(cos((ph - 1.6) * 4 * pi), 1) end
+        guest(who, 0, 0, (who == 0 and ph > 1.6 and ph < 2.5) and 40 or 32, 1, 0,
+              ph >= 2.5 and "happy" or ((ph > 0.6 and ph < 2.5) and "wide" or nil), false, (who == 0 and ph > 1.6 and ph < 2.5) and 0.05 or nil)
+        lg.pop()
+      end
+    end
+    -- (the rope, hanging when no one's on it)
+    lg.setColor(0.75, 0.65, 0.45, 1)
+    lg.setLineWidth(3)
+    local idle = true
+    for k = 1, 5 do local ph = lt - SWING0 - (k - 1) * SWING_DT if ph >= 0 and ph < 1.6 then idle = false end end
+    if idle then lg.line(PIV[1], PIV[2], PIV[1] + sin(S.t) * 20, PIV[2] + 230) end
+    if lt > SWING0 + 4 * SWING_DT - 0.4 and lt < SWING0 + 4 * SWING_DT + 1.6 then G:say("CANNONBALL!", 300, 520, 26, 1) end
+    return
+  end
   -- the flotilla, everyone in their tubes; holding hands once linked
   local spin = (lt > RAPIDS[1] and lt < RAPIDS[2]) and S.t * 3 or 0
   for i = 0, 4 do
@@ -654,6 +749,7 @@ function D.tubing(lt, len)
   if lt > 12 and lt < 15 then G:say("HOLD HANDS!", 300, 660, 22, 1) end
 end
 CAM.tubing = function(lt)
+  if lt > 52 then return L.shot(lt, {{52, 384, 700, 1.1}, {54, 300, 620, 1.4}, {74, 330, 640, 1.4}, {80, 384, 640, 1.15}}, W, H) end
   local x2 = tube_pos(lt, 2)
   if lt > 8 and lt < 30 then return L.shot(0, {{0, x2 + 60, 740, 1.4 + 0.25 * sin((lt - 8) * 0.5)}}, W, H) end
   return L.shot(lt, {{0, 384, 512, 1}, {8, tube_pos(8, 2) + 60, 740, 1.4}, {30, tube_pos(30, 2) + 60, 740, 1.4}, {32, 384, 760, 1.1},
@@ -661,6 +757,12 @@ CAM.tubing = function(lt)
                      {66, 384, 740, 1.15}, {80, 600, 700, 1.2}}, W, H)
 end
 CUES.tubing = {{18, "splash", 0.5}, {RAPIDS[1], "whoosh"}, {9, "boing", 0.3}, {16, "boing", 0.3}, {23, "boing", 0.3}, {RAPIDS[1] + 0.5, "cheer"}, {44, "ding"}, {50.5, "splash", 0.5}}
+for k = 1, 5 do
+  local t0 = SWING0 + (k - 1) * SWING_DT
+  CUES.tubing[#CUES.tubing + 1] = {t0, "whoosh", 0.5}
+  CUES.tubing[#CUES.tubing + 1] = {t0 + 2.5, function() splash(470 + (k - 1) * 30, 780, k == 5 or k == 3) end}
+end
+CUES.tubing[#CUES.tubing + 1] = {SWING0 + 4 * SWING_DT + 3, "cheer"}
 
 -- ------------------------------------------------------------------ the storm
 local BOLTS = {22, 27, 31.5}
@@ -742,7 +844,7 @@ function D.storm(lt, len)
       if lt < 49 then x, y = lerp(x, 44, prog(lt, 48, 49)), lerp(by - 30, 736, prog(lt, 48, 49)) end
     end
     if who == 0 and lt > 56 then x, y = 724, 870 end
-    guest(who, x, y, 30, 1, (lt > 44) and -0.8 or 0, mood, lt < 8 or lt > 46)
+    guest(who, x, y - 6, 36, 1, (lt > 44) and -0.8 or 0, mood, lt < 8 or lt > 46)
   end
   -- lightning
   for _, b in ipairs(BOLTS) do
@@ -839,7 +941,7 @@ function D.fireflies(lt, len)
       x = 120 + ((S.t * 40 + who * 160) % 420) + sin(S.t * 2 + who) * 30
       y = 820 - abs(sin(S.t * 3 + who)) * 40
     else x, y = lerp(x or jx - 300, jx - 300, 1), 820 end
-    guest(who, x, y, 28, 1, -0.6, lt > RELEASE and "happy" or nil, false)
+    guest(who, x, y - 6, 36, 1, -0.6, lt > RELEASE and "happy" or nil, false)
     -- the jar
     local glow = clamp(caught / 30, 0, 1) * (lt > RELEASE and 1 - lin(lt, RELEASE, RELEASE + 2) or 1)
     lg.setColor(0.8, 0.9, 1, 0.35)
@@ -849,7 +951,7 @@ function D.fireflies(lt, len)
   -- Pac-Man: the swing, then the net (missing), the firefly on his nose
   local px = lt < 10 and 560 + sw or (lt < 38 and 300 + sin(S.t * 0.7) * 160 or 560 + sw)
   local py = lt < 10 and 588 or (lt < 38 and 860 or 588)
-  guest(0, px, py, 26, 1, 0, nil, false, (lt > 24 and lt < 28) and 0.9 or nil)
+  guest(0, px, py - 6, 34, 1, 0, nil, false, (lt > 24 and lt < 28) and 0.9 or nil)
   if lt > 10 and lt < 38 then
     local swing = sin(S.t * 5) * 1.2
     lg.setColor(0.55, 0.4, 0.25, 1)
@@ -902,7 +1004,21 @@ function D.finale(lt, len)
     elseif lt > t0 - 2 then
       x = lerp(x, PIER_END - 10, prog(lt, t0 - 2, t0))
     end
-    guest(who, x, y, 24, 1, 0, lt > t0 + 1.4 and "happy" or nil, false)
+    -- each one's own jump: Blinky dives, Pinky flips, Inky belly-flops, Clyde twirls, Pac-Man's cannonball last
+    local style = ({[0] = "ball", "dive", "flip", "flop", "twirl"})[who]
+    local inair = lt > t0 and lt < t0 + 1.4
+    lg.push()
+    lg.translate(x, y - 4)
+    if inair then
+      local f = lin(lt, t0, t0 + 1.4)
+      if style == "dive" then lg.rotate(f * 2.2)
+      elseif style == "flip" then lg.rotate(f * 2 * pi)
+      elseif style == "flop" then lg.scale(1.3, 0.8)
+      elseif style == "twirl" then lg.scale(cos(f * 4 * pi), 1) end
+    end
+    guest(who, 0, 0, (who == 0 and inair) and 40 or 32, 1, 0, lt > t0 + 1.4 and "happy" or (inair and style == "flop" and "wide" or nil), false,
+          (who == 0 and inair) and 0.05 or nil)
+    lg.pop()
   end
   G:caption("SUMMER", 260, 96, 0xffd23f, L.window(lt, 0.5, len, 1))
   G:caption("IN TEXAS", 380, 44, 0xffffff, L.window(lt, 1, len, 1))
@@ -911,7 +1027,14 @@ CAM.finale = function(lt)
   return L.shot(lt, {{0, 384, 512, 1}, {4, 384, 700, 1.2}, {24, 500, 760, 1.3}, {34, 384, 600, 1.1}, {40, 384, 512, 1}}, W, H)
 end
 CUES.finale = {}
-for i = 1, 5 do CUES.finale[#CUES.finale + 1] = {6 + (i - 1) * 3.5 + 1.4, function() splash(PIER_END + 60, 880, false) end} end
+for i = 1, 5 do CUES.finale[#CUES.finale + 1] = {6 + (i - 1) * 3.5 + 1.4, function() splash(PIER_END + 60, 880, i == 1 or i == 4) end} end
+for i = 1, 5 do CUES.finale[#CUES.finale + 1] = {6 + (i - 1) * 3.5, "whoosh", 0.4} end
+-- fireworks over the lake to end the summer
+for k = 0, 11 do
+  CUES.finale[#CUES.finale + 1] = {24 + k * 1.2, function()
+    G:rocket(140 + (k * 211) % 500, 140 + (k * 97) % 200, {from = 760, colours = {{1, 0.4, 0.3}, {1, 0.85, 0.3}, {0.4, 0.8, 1}, {1, 1, 1}}})
+  end}
+end
 CUES.finale[#CUES.finale + 1] = {24, "cheer"}
 
 -- ------------------------------------------------------------------ the show

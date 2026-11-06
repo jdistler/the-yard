@@ -1448,32 +1448,35 @@ local function duck(x, y, s, dir, t, flying, baby)
   lg.pop()
 end
 -- the strings of lights across the river: string k from (0, y) to (W, y - 30), sagging, lit at LIGHTS_ON[k]
+-- (drawn all together: the wires, then every glow in one additive pass, then the bulbs; a blend switch per bulb
+-- took the cabinet to 41 fps)
 local LIGHTS_ON = {24, 26, 28, 30, 32}
-local function light_string(k, lt)
-  local y0 = 440 + k * 22
-  local on = lt > LIGHTS_ON[k]
-  local flick = on and lt < LIGHTS_ON[k] + 0.5 and floor(lt * 20) % 2 == 0
-  local pts = {}
-  for i = 0, 24 do
-    local u = i / 24
-    pts[#pts + 1] = u * W
-    pts[#pts + 1] = y0 - u * 30 + sin(u * pi) * (40 + k * 6)
-  end
+local BULB_COL = {{1, 0.85, 0.5}, {1, 0.6, 0.4}, {0.7, 0.9, 1}, {1, 0.9, 0.6}}
+local function light_strings(lt)
+  local bulbs = {}
   lg.setColor(0.1, 0.08, 0.1, 1)
   lg.setLineWidth(1.5)
-  lg.line(pts)
-  for i = 1, 23 do
-    local x, y = pts[i * 2 + 1], pts[i * 2 + 2] + 6
-    if on and not flick then
-      local c = ({{1, 0.85, 0.5}, {1, 0.6, 0.4}, {0.7, 0.9, 1}, {1, 0.9, 0.6}})[(i + k) % 4 + 1]
-      lg.setBlendMode("add")
-      C.fx.glow(x, y, 14, 14, c[1], c[2], c[3], 0.45)
-      lg.setBlendMode("alpha")
-      lg.setColor(c[1], c[2], c[3], 1)
-    else
-      lg.setColor(0.35, 0.33, 0.3, 1)
+  for k = 1, #LIGHTS_ON do
+    local y0 = 440 + k * 22
+    local on = lt > LIGHTS_ON[k]
+    local flick = on and lt < LIGHTS_ON[k] + 0.5 and floor(lt * 20) % 2 == 0
+    local pts = {}
+    for i = 0, 24 do
+      local u = i / 24
+      pts[#pts + 1] = u * W
+      pts[#pts + 1] = y0 - u * 30 + sin(u * pi) * (40 + k * 6)
     end
-    lg.circle("fill", x, y, 3.5, 8)
+    lg.line(pts)
+    for i = 1, 23 do bulbs[#bulbs + 1] = {pts[i * 2 + 1], pts[i * 2 + 2] + 6, (on and not flick) and BULB_COL[(i + k) % 4 + 1] or nil} end
+  end
+  lg.setBlendMode("add")
+  for _, b in ipairs(bulbs) do
+    if b[3] then C.fx.glow(b[1], b[2], 14, 14, b[3][1], b[3][2], b[3][3], 0.45) end
+  end
+  lg.setBlendMode("alpha")
+  for _, b in ipairs(bulbs) do
+    if b[3] then lg.setColor(b[3][1], b[3][2], b[3][3], 1) else lg.setColor(0.35, 0.33, 0.3, 1) end
+    lg.circle("fill", b[1], b[2], 3.5, 8)
   end
 end
 local PICADO = {{1, 0.3, 0.6}, {1, 0.6, 0.1}, {1, 0.9, 0.2}, {0.3, 0.8, 0.3}, {0.2, 0.6, 1}, {0.7, 0.35, 0.9}}
@@ -1509,7 +1512,7 @@ function D.riverwalk(lt, len)
   -- the papel picado, high; the strings of lights coming on, string by string
   picado(150, 30, S.t)
   picado(250, 40, S.t + 2)
-  for k = 1, #LIGHTS_ON do light_string(k, lt) end
+  light_strings(lt)
   -- the ducks: paddling about, then at Pac-Man's chips (34), one away with the basket (37)
   local bx = barge_x(lt)
   for i, d in ipairs(DUCKS) do

@@ -1230,8 +1230,13 @@ M.su_lake = {
          chord = string.rep(".*2 Bb*2 ", 4) .. string.rep(".*2 F*2 ", 4) .. string.rep(".*2 Gm*2 ", 4) .. string.rep(".*2 C*2 ", 4),
          bass = eights("bb1", "f2") .. eights("f2", "c3") .. eights("g2", "d3") .. eights("c2", "g2"),
          drums = "k*2 h*2 s*2 h*2 k*2 h*2 s*2 o*2"},
+    -- the speedboat: the tune skipping along, then the big one
+    C = {lead = "f5*2 g5*2 a5*2 c6*2 d6*4 c6*4 | a5*2 g5*2 f5*2 d5*2 f5*8 | e5*2 f5*2 g5*2 bb5*2 a5*4 g5*4 | f5*2 e5*2 d5*2 e5*2 c5*8",
+         chord = string.rep(".*2 F*2 ", 4) .. string.rep(".*2 Dm*2 ", 4) .. string.rep(".*2 C*2 ", 4) .. string.rep(".*2 Bb*2 ", 2) .. string.rep(".*2 C*2 ", 2),
+         bass = eights("f2", "c3") .. eights("d2", "a2") .. eights("c2", "g2") .. eights("bb1", "c2"),
+         drums = "k*2 h*2 s*2 h*2 k*2 k*2 s*2 s*2"},
   },
-  order = {"A", "A", "B", "A"},
+  order = {"A", "A", "B", "A", "C", "C", "B", "A+2"},
 }
 
 M.su_bossa = {
@@ -1247,8 +1252,12 @@ M.su_bossa = {
          keys = "Fmaj7*3 Fmaj7*3 Fmaj7*2 .*2 Fmaj7*3 Fmaj7*3 | E7*3 E7*3 E7*2 .*2 E7*3 E7*3 | Am7*3 Am7*3 Am7*2 .*2 Am7*3 Am7*3 | G7*3 G7*3 G7*2 .*2 G7*3 G7*3",
          bass = "f2*6 c3*2 c3*6 f2*2 | e2*6 b2*2 b2*6 e2*2 | a1*6 e2*2 e2*6 a1*2 | g1*6 d2*2 d2*6 g1*2",
          drums = "k+h h r h k+h h r h k+h h h r k+h r h h"},
+    C = {lead = "e6*4 d6*4 c6*4 a5*4 | f5*6 g5*2 a5*8 | d6*4 c6*4 b5*4 g5*4 | e5*6 f5*2 g5*8",
+         keys = "Am7*3 Am7*3 Am7*2 .*2 Am7*3 Am7*3 | Dm7*3 Dm7*3 Dm7*2 .*2 Dm7*3 Dm7*3 | G7*3 G7*3 G7*2 .*2 G7*3 G7*3 | Cmaj7*3 Cmaj7*3 Cmaj7*2 .*2 Cmaj7*3 Cmaj7*3",
+         bass = "a1*6 e2*2 e2*6 a1*2 | d2*6 a2*2 a2*6 d2*2 | g1*6 d2*2 d2*6 g1*2 | c2*6 g2*2 g2*6 c2*2",
+         drums = "k+h h r h k+h h r h k+h h h r k+h r h h"},
   },
-  order = {"A", "A", "B", "A"},
+  order = {"A", "A", "B", "A", "C", "C", "B", "A"},
 }
 
 M.su_shuffle = {

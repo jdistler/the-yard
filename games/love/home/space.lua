@@ -802,7 +802,8 @@ CAM.launch = function(lt)
   local shake = (lt > 21 and lt < 36) and 9 * (1 - (lt - 21) / 15) or 0
   return x, y, z, shake
 end
-CUES.launch = {{3, "clunk"}, {21, "boom"}, {21, "jet"}, {62, "boom", 0.5}, {64, "jet", 0.6}, {72, "cheer"}, {80, "pop"}}
+CUES.launch = {{3, "clunk"}, {21, "boom"}, {21, "jet"}, {28, "jet", 0.6}, {34, "boom", 0.35}, {38, "cheer", 0.5}, {44, "whoosh"},
+               {50, "whoosh", 0.5}, {56, "chime", 0.5}, {62, "boom", 0.5}, {64, "jet", 0.6}, {72, "cheer"}, {80, "pop"}}
 for t = 9, 21 do CUES.launch[#CUES.launch + 1] = {t, "tick", 0.5} end
 
 -- ------------------------------------------------------------------ Orbit: the job outside
@@ -930,6 +931,14 @@ function D.orbit(lt, len)
     lg.circle("line", 430, 790, 10 + p * 50, 24)
     lg.setColor(1, 0.85, 0.3, L.window(lt, 58, 74, 1))
     lg.circle("fill", 430, 790, 6, 10)
+    -- Houston answers the wave: three big flashes from the ground
+    for _, ft in ipairs({63.5, 65, 66.5}) do
+      if lt > ft and lt < ft + 1 then
+        lg.setBlendMode("add")
+        C.fx.glow(430, 790, 280, 200, 1, 0.85, 0.4, 1 - (lt - ft))
+        lg.setBlendMode("alpha")
+      end
+    end
   end
   local unfold = lin(lt, 29, 39)
   local happy = (lt > 41 and lt < 50) or (lt > 62 and lt < 67) or (lt > 78 and lt < 82)
@@ -940,13 +949,18 @@ function D.orbit(lt, len)
     local px, py = sx - 200 * SC, sy
     local k = 1 - (1 - lin(lt, 66, 78)) ^ 2
     local cx = lt < 78 and lerp(-120, px - 34, k) or px - 34
+    lg.push()
+    lg.translate(cx, py)
+    lg.scale(1.6, 1.6)
+    lg.translate(-cx, -py)
     lg.setColor(0.9, 0.9, 0.92, 1)
     lg.rectangle("fill", cx - 34, py - 18, 56, 36, 8, 8, 6)
     lg.polygon("fill", cx + 22, py - 12, cx + 34, py - 6, cx + 34, py + 6, cx + 22, py + 12)
     lg.setColor(0.15, 0.2, 0.5, 1)
     lg.rectangle("fill", cx - 70, py - 8, 34, 16)
     lg.rectangle("fill", cx - 28, py - 26, 30, 8)
-    if lt > 78 and lt < 79 then C.fx.glow(px - 6, py, 30, 30, 1, 1, 0.8, 1 - (lt - 78)) end
+    lg.pop()
+    if lt > 78 and lt < 79 then C.fx.glow(px - 6, py, 50, 50, 1, 1, 0.8, 1 - (lt - 78)) end
   end
   -- the tether and the spacewalker
   local ax, ay = spacewalker(lt)
@@ -993,9 +1007,20 @@ CAM.orbit = function(lt)
   local ex, ey = wrench_xy(49)
   return L.shot(lt, {{14, sx, sy + 40, 1.2}, {18, sx + 100, sy + 10, 1.6}, {26, wx + 30, wy - 30, 1.7}, {33, wx + 30, wy - 20, 2.0}, {40, wx + 50, wy - 40, 2.4},
                      {44, ex - 60, ey, 1.6}, {50, ex - 40, ey + 20, 1.9}, {54, sx + 120, sy - 40, 1.5}, {57, sx, sy + 80, 1.3}, {60, 384, 512, 1}, {68, 384, 512, 1},
-                     {72, sx - 160, sy, 1.4}, {80, 384, 512, 1.1}}, W, H)
+                     {70, sx - 200 * SC - 80, sy, 1.7}, {78, sx - 200 * SC - 30, sy, 2.1}, {80, 384, 512, 1.1}}, W, H)
 end
-CUES.orbit = {{16.5, "clunk"}, {39, "chime"}, {39, "ding"}, {40, "boing"}, {49, "ding"}, {78, "clunk"}, {78.2, "chime"}}
+CUES.orbit = {{63.5, "chime", 0.4}, {65, "chime", 0.45}, {66.5, "chime", 0.5}, {16.5, "clunk"}, {39, "chime"}, {39, "ding"}, {40, "boing"}, {49, "ding"}, {78, "clunk"}, {78.2, "chime"}, {79, "cheer", 0.6}}
+-- the cargo ship's thrusters, nudging it in to dock
+for k, t in ipairs({67, 69.5, 72, 74, 75.8, 77.2}) do
+  CUES.orbit[#CUES.orbit + 1] = {t, "pop", 0.25 + k * 0.03}
+  CUES.orbit[#CUES.orbit + 1] = {t, function()
+    local sx, sy = station_xy(t)
+    local px = sx - 200 * SC
+    local k2 = 1 - (1 - lin(t, 66, 78)) ^ 2
+    local cx = lerp(-120, px - 34, k2)
+    for i = 1, 8 do G:puff(cx - 72, sy + (G.R:random() - 0.5) * 14, {1, 1, 1}, 0, -120 - G.R:random() * 80, 0.8, 9, 0.6) end
+  end}
+end
 for t = 290, 385, 4 do
   CUES.orbit[#CUES.orbit + 1] = {t / 10, function()
     local x, y = wing_xy(t / 10)
@@ -1056,7 +1081,7 @@ local function pac_moon(lt)
   if lt < HOP0 then return LX - 110, FEET - 48, 1 end
   if lt < 48 then
     local x = lerp(LX - 110, 440, lin(lt, HOP0, 48))
-    return x, FEET - 48 - L.hop(lt - HOP0, HOPP, 90), 1
+    return x, FEET - 66 - L.hop(lt - HOP0, HOPP, 170), 1
   end
   if lt < 56 then return 440, FEET - 48, 1 end
   if lt < 66 then return nil end            -- (on the rover)
@@ -1069,7 +1094,7 @@ local function ghost_moon(lt)
   if lt < 34 then return lerp(LX - 60, LX - 120, prog(lt, 30, 34)), lerp(LY - 70, FEET - 30, prog(lt, 30, 34)) end
   if lt < 50 then
     local x = lerp(LX - 120, 520, lin(lt, 34, 50))
-    return x, FEET - 30 - L.hop(lt - 34, HOPP, 70)
+    return x, FEET - 44 - L.hop(lt - 34, HOPP, 140)
   end
   if lt < 56 then return 520, FEET - 30 end
   if lt < 66 then return nil end
@@ -1174,6 +1199,10 @@ function D.moon(lt, len)
     local unf = prog(lt, 54, 56)
     local bounce = (lt > 58 and lt < 66) and abs(sin(lt * 7)) * 10 or 0
     local ry = FEET + 20 - bounce
+    lg.push()
+    lg.translate(rx, ry)
+    lg.scale(1.5, 1.5)
+    lg.translate(-rx, -ry)
     lg.setColor(0.75, 0.75, 0.78, 1)
     lg.rectangle("fill", rx - 60 * unf, ry - 24, 120 * unf, 14, 4, 4, 4)
     lg.setColor(0.25, 0.25, 0.28, 1)
@@ -1184,6 +1213,11 @@ function D.moon(lt, len)
     if lt > 56 and lt < 66 then
       astronaut(rx - 24, ry - 60, 0.7, rx > 600 and -1 or 1, S.t * 0.3)
       space_ghost(rx + 6, ry - 46, 18, GH[1], S.t, 1, 0, "happy")
+    end
+    lg.pop()
+    -- moon dust off the wheels
+    if lt > 58 and lt < 66 and G.R:random() < 0.6 then
+      G:puff(rx - 70, FEET + 30, {0.72, 0.72, 0.74}, 30, (rx > 600 and 1 or -1) * -90, 1.4, 14, 0.5)
     end
   end
   -- the golf shot: the swing, the ball gone up, and up... and down on Blinky's helmet
@@ -1213,12 +1247,12 @@ function D.moon(lt, len)
   local looking_up = lt > 68.5 and lt < 78
   if gx then
     local mood = (lt > 78 and lt < 82) and "wide" or ((lt > 48 and lt < 56) and "happy" or nil)
-    space_ghost(gx, gy, 24, GH[1], S.t, looking_up and 0.3 or 1, looking_up and -1 or 0, mood)
+    space_ghost(gx, gy, 34, GH[1], S.t, looking_up and 0.3 or 1, looking_up and -1 or 0, mood)
     if lt > 78 and lt < 82 then dizzy(gx, gy - 46, 30, S.t) end
   end
   if px then
     local open = (lt > 78 and lt < 82) and 0.9 or nil
-    astronaut(px, py, 1, pd, S.t * 0.4, open)
+    astronaut(px, py, 1.4, pd, S.t * 0.4, open)
   end
   if lt > 72 and lt < 76 then G:say("...?", px, py - 90, 26, 1) end
   if lt > 78 and lt < 81 and gx then G:say("BONK!", gx, gy - 70, 26, 1) end
@@ -1234,14 +1268,20 @@ CAM.moon = function(lt)
     return x, y, z, shake
   end
   local x, y, z = L.shot(lt, {{0, 384, 512, 1}, {16, 384, 560, 1}, {18.5, 230, 790, 1.6}, {27, 170, 800, 1.7}, {30, 260, 790, 1.4},
-                              {48, 470, 790, 1.4}, {54, 420, 790, 1.3}, {57, rover_x(57), 790, 1.4}, {65, rover_x(65), 790, 1.4},
+                              {40, 380, 760, 1.5}, {48, 470, 760, 1.5}, {54, 420, 780, 1.35}, {57, rover_x(57), 790, 1.4}, {65, rover_x(65), 790, 1.4},
                               {68, 430, 790, 1.5}, {70, 440, 620, 1.3}, {76, 440, 620, 1.3}, {77.5, 450, 800, 1.6}, {81, 450, 800, 1.6},
                               {84, 384, 512, 1}}, W, H)
   return x, y, z, shake
 end
 CUES.moon = {{16, "clunk"}, {16, "boom", 0.4}, {20.5, "clunk"}, {27.6, "boing"}, {48, "pop"}, {52, "pop"}, {54, "clunk"},
              {68.1, "pew", 0.6}, {77.9, "boing"}, {84, "jet"}, {84, "boom", 0.5}}
-for n = 1, 8 do CUES.moon[#CUES.moon + 1] = {HOP0 + n * HOPP, "boing", 0.25} end
+for n = 1, 8 do
+  CUES.moon[#CUES.moon + 1] = {HOP0 + n * HOPP, "boing", 0.3}
+  CUES.moon[#CUES.moon + 1] = {HOP0 + n * HOPP, function()
+    local x = lerp(LX - 110, 440, lin(HOP0 + n * HOPP, HOP0, 48))
+    for i = 1, 8 do G:puff(x + (G.R:random() - 0.5) * 40, FEET + 6, {0.72, 0.72, 0.74}, 14, (G.R:random() - 0.5) * 160, 1.6, 12, 0.5) end
+  end}
+end
 for t = 100, 160, 5 do
   CUES.moon[#CUES.moon + 1] = {t / 10, function()
     for i = 1, 3 do
@@ -1389,10 +1429,13 @@ function D.splash(lt, len)
   if lt > 48 then
     local rx = lerp(W + 100, cx + 110, 1 - (1 - lin(lt, 48, 54)) ^ 2)
     lg.setColor(1, 0.5, 0.1, 1)
-    lg.ellipse("fill", rx, cy + 12, 46, 12, 18)
-    lg.setColor(0.08, 0.08, 0.1, 1)
-    lg.circle("fill", rx - 14, cy, 8, 10)
-    lg.circle("fill", rx + 14, cy, 8, 10)
+    lg.ellipse("fill", rx, cy + 12, 70, 18, 18)
+    -- the frogmen: Clyde and Inky in their masks
+    for k, who in ipairs({4, 3}) do
+      L.ghost(rx - 26 + (k - 1) * 52, cy - 10, 18, GH[who], S.t + k, -1, 0, nil)
+      lg.setColor(0.1, 0.12, 0.15, 0.7)
+      lg.rectangle("fill", rx - 26 + (k - 1) * 52 - 15, cy - 18, 30, 10, 4, 4, 4)
+    end
   end
   -- the helicopter: in, the basket down and up three times (one of the crew each time), away to the carrier
   local hx, hy = heli_xy(lt)
@@ -1407,15 +1450,21 @@ function D.splash(lt, len)
       lg.setLineWidth(2)
       lg.line(hx, hy + 20, hx, by)
       lg.setColor(0.85, 0.8, 0.2, 1)
-      lg.rectangle("fill", hx - 14, by, 28, 14, 3, 3, 4)
+      lg.rectangle("fill", hx - 26, by, 52, 24, 4, 4, 4)
+      lg.setColor(0.6, 0.55, 0.1, 1)
+      lg.setLineWidth(2)
+      lg.line(hx - 26, by, hx, by - 30, hx + 26, by)
       if cyc > 0.5 then
-        if n == 1 then L.pac(hx, by - 6, 12, 0, S.t, 0.5)
-        else L.ghost(hx, by - 8, 11, GH[n], S.t, 0, 0, "happy") end
+        local wave = sin(S.t * 8) * 0.3
+        if n == 1 then L.pac(hx, by - 14, 22, 0, S.t, 0.5)
+        else L.ghost(hx, by - 16, 20, GH[n], S.t, 0, 0, "happy") end
+        lg.setColor(1, 1, 1, 1)
+        lg.circle("fill", hx + 24, by - 30 + wave * 20, 6, 8)
       end
     end
     lg.push()
     lg.translate(hx, hy)
-    lg.scale(s, s)
+    lg.scale(s * 1.4, s * 1.4)
     lg.setColor(0.3, 0.35, 0.3, 1)
     lg.ellipse("fill", 0, 0, 60, 26, 20)
     lg.rectangle("fill", 40, -8, 100, 10)
@@ -1433,8 +1482,8 @@ end
 CAM.splash = function(lt)
   local cx, cy = capsule_xy(lt)
   if lt > 14 and lt < 44 then return L.shot(0, {{0, cx, cy - 100, 1.4}}, W, H) end
-  local x, y, z = L.shot(lt, {{0, 600, 300, 1.3}, {14, cx, cy - 100, 1.4}, {44, cx, 580, 1.4}, {48, cx, 600, 1.5}, {56, 430, 520, 1.2},
-                              {62, 440, 520, 1.25}, {72, 384, 512, 1}}, W, H)
+  local x, y, z = L.shot(lt, {{0, 600, 300, 1.3}, {14, cx, cy - 100, 1.4}, {44, cx, 580, 1.4}, {48, cx, 640, 1.8}, {54, cx, 640, 1.8},
+                              {57, 440, 520, 1.25}, {62, 450, 480, 1.4}, {72, 450, 480, 1.4}, {76, 300, 520, 1.15}, {80, 384, 512, 1}}, W, H)
   local shake = (lt > 44 and lt < 44.6) and 7 or 0
   return x, y, z, shake
 end

@@ -26,6 +26,10 @@ without it). Set out to: no dead stretch over 15 s, a story in every scene, more
 
 16 red findings -> 1 (the barbecue's trays, sped up after). The show: 10 -> 12.4 minutes, 11 -> 13 scenes.
 
+With the measure's final form (the hero moving counts as a beat, SHOWS_PIPELINE.md), the whole show again:
+**0 red**, every scene's longest still stretch 0-8 s (Gulf 5, Hill Country 2, Round Rock 4, Austin 2, Fort Worth 4,
+Dinosaur Valley 2, San Antonio 0, River Walk 2, barbecue 5, Panhandle 7, bats 8, Big Bend 5, Lone Star 1).
+
 ### Scorecard (0-3: Story Hero Layers Animation Detail Camera Gag Finish Music sound-X; by eye, film strips)
 
 | scene | before | after | notes |
@@ -56,7 +60,10 @@ without it). Set out to: no dead stretch over 15 s, a story in every scene, more
 ### Checked
 
 * PC: every scene through `show_review.py`, film strips looked at.
-* Cabinet: see below (fps per scene).
+* Cabinet (`tools/show_cab.sh`): 60 fps through every scene but one: the River Walk dropped to 41-46 fps once
+  its strings of lights were on (115 bulbs, each switching the blend mode twice a frame). Drawn now in one
+  additive pass (LÖVE batches the glows into one draw). The first full run stopped at 3:25: the cabinet is in
+  the family room, and a press during a measurement starts a game; the halves were measured separately.
 
 ## Ideas
 

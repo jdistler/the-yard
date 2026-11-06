@@ -113,6 +113,15 @@ nothing (New Year's party and midnight score high on motion, low on new). The "n
 
 ## Where the shows stand (2026-11-06)
 
+**Round 2 (the pipeline, SHOWS_PIPELINE.md):** Texas, Longhorns, Summer and Mission Control reviewed with
+`tools/show_review.py` and rebuilt where it found dead time; each show's notebook in `shows/` has the numbers
+before and after. Texas: 0 red findings (every scene's longest still stretch 0-8 s), two new scenes. Longhorns:
+the cast added as fans, the season board brought to life, 30 red findings to 1. Summer and Mission Control: 0
+red. The other shows (Thanksgiving, Christmas, New Year's Eve, Halloween, Egg Hunt, Sweethearts, the Freedom
+Show, the night sky) have not been through the pipeline yet.
+
+**Round 1:**
+
 Every show rebuilt to these rules, measured on the PC and checked at 57-60 fps on the cabinet: Mission Control,
 Thanksgiving, Christmas, New Year's Eve, Texas, Summer, Halloween, Egg Hunt, Sweethearts, Longhorns (its
 off-season board now a chalkboard of plays and a countdown); the Freedom Show already passed. The night sky
