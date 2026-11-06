@@ -13,6 +13,12 @@
 | `cab.sh` | Over Wi-Fi | `ssh`, `run CMD` (takes the screen: stops the stock menu with SIGKILL, starts it again after), `menu` (stock menu back, video on). |
 | `rksend.c` | Mask ROM download | C sender for the Mask ROM download stages, called by `rk.py boot`. It uses asynchronous libusb control transfers so every 4096-byte chunk reports `actual_length` and status, and it stops at the first short or failed chunk. |
 | `Makefile` | | `make -C tools` builds `rksend`. The header is in `inc/libusb.h` (libusb 1.0.27), so no `-dev` package is needed. |
+| `show_review.py` | No (PC) | **The shows' review, step 1 of [SHOWS_PIPELINE.md](../SHOWS_PIPELINE.md)**: plays a show's scenes headless (with the camera and held still), measures each against [SHOWS_BLUEPRINT.md](../SHOWS_BLUEPRINT.md), writes `report.md`, `show.png`, a film strip per scene. `--scenes`, `--keep`, `--baseline` (`show_baseline/<show>.json`), `--cab`, `--flicker`. |
+| `show_cab.sh` | Over Wi-Fi | `SHOW[:START] SECONDS`: plays a show on the cabinet with Home's frame log, then gives Home back (refuses while the cabinet is busy). `show_review.py --cab` uses it. |
+| `song_info.lua` | No (PC) | Every song's tempo, loop length, parts and lanes, and the sound effects' names, as JSON lines (for `show_review.py`). |
+| `show_pulse.py`, `show_lint.py`, `show_qa.py`, `show_thumbs.py` | No (PC) | The older single-purpose show tools: the liveliness table (`games/test.py shows` uses it), every show start to end for Lua errors, the flicker sheets (`show_review.py --flicker`), the SHOWS tiles' pictures. |
+| `show_art.py`, `art/` | No (PC) | Paints the shows' backdrops (`art/<show>.py`) to ETC1 for the SD card. |
+| `song_levels.py` | No (PC) | Evens out the songs' loudness (writes `games/love/home/song_levels.lua`). |
 | `fetch_references.sh` | | Shallow, sparse clones of rkbin, Rockchip U-Boot, rkdeveloptool, xrock, and rkflashtool, plus the Rockchip kernel's `drivers/rkflash` files, into `reference/` (gitignored). |
 
 ## `rk.py` subcommands

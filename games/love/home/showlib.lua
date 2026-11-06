@@ -351,6 +351,7 @@ function G:caption(text, y, px, colour, alpha, sc)
   if alpha <= 0 then return end
   if self.cam then return self:after_cam(function() self:caption(text, y, px, colour, alpha, sc) end) end
   mark_top(y)
+  if self.C.trace and alpha > 0.5 then self.C.trace("caption", text) end
   -- (a caption scaled every frame is resampled every frame, and soft: a pulse in size becomes one in brightness)
   if sc and sc ~= 1 then
     alpha = alpha * math.min(1, 0.82 + math.abs(sc - 1) * 3)
@@ -371,6 +372,7 @@ function G:plate(text, y, px, colour, alpha)
   if alpha <= 0 then return end
   if self.cam then return self:after_cam(function() self:plate(text, y, px, colour, alpha) end) end
   mark_top(y)
+  if self.C.trace and alpha > 0.5 then self.C.trace("plate", text) end
   local sc = math.min(1, (self.W - 60) / (self.C.font(px):getWidth(text) + px * 1.2))
   local w = (self.C.font(px):getWidth(text) + px * 1.2) * sc
   local h = px * 1.55 * sc
@@ -603,16 +605,28 @@ end
 
 -- Look through the camera (x, y at the screen's centre, zoomed z): everything drawn until G:unlook() is in the
 -- picture's own coordinates. shake: a few pixels of jolt (a launch, a landing).
+local NOCAM = os.getenv("HOME_NOCAM") == "1"     -- (tools/show_review.py: the world without the camera's moves)
 function G:look(x, y, z, shake)
+  if NOCAM then x, y, z, shake = self.W / 2, self.H / 2, 1, 0 end
   lg.push()
   lg.translate(self.W / 2, self.H / 2)
   if shake and shake > 0 then lg.translate((self.R:random() - 0.5) * shake, (self.R:random() - 0.5) * shake) end
   lg.scale(z, z)
   lg.translate(-x, -y)
   self.cam = {x, y, z}
+  local tr = self.C.trace
+  if tr then
+    tr("t", self.t)
+    tr("cam", x, y, z)
+    L.tracing = true
+    tr("cast", L.cast_px * 2, L.cast_sx or 0, L.cast_sy or 0)
+    L.cast_px = 0
+  end
+  L.zoom = z
 end
 function G:unlook()
   lg.pop()
+  L.zoom = 1
   self.cam = nil
   -- speech bubbles said under the camera: drawn now, at the screen's size (crisp, readable at any zoom)
   local q = self.says
@@ -647,8 +661,18 @@ local function wobble_hem(x, y, r, t)
     lg.circle("fill", x - r + r / 3 + i * r * 2 / 3, y + r * 0.75, r / 3 + (wob == i % 2 and 1 or -1) * r * 0.05, 12)
   end
 end
+-- (the trace, tools/show_review.py: the biggest of the cast drawn this frame, on the screen)
+L.cast_px, L.zoom, L.tracing = 0, 1, false
+local function note_cast(x, y, r)
+  -- the biggest of the cast this frame: its size and where it is on the screen (through every transform)
+  local sx, sy = lg.transformPoint(x, y)
+  local ex = lg.transformPoint(x + r, y)
+  local d = abs(ex - sx)
+  if d > L.cast_px then L.cast_px, L.cast_sx, L.cast_sy = d, sx, sy end
+end
 function L.ghost(x, y, r, c, t, lx, ly, mood, al)
   al = al or 1
+  if L.tracing then note_cast(x, y, r) end
   lx, ly = lx or 0, ly or 0
   local body = mood == "scared" and {0.2, 0.3, 1} or c
   lg.setColor(body[1], body[2], body[3], al)
@@ -689,6 +713,7 @@ end
 -- 0 right, pi left).
 function L.pac(x, y, r, dir, t, open, al)
   al = al or 1
+  if L.tracing then note_cast(x, y, r) end
   local o = (open or (0.15 + 0.85 * abs(sin(t * 14)))) * 0.42
   lg.setColor(1, 0.86, 0.15, al)
   lg.arc("fill", "pie", x, y, r, dir + o, dir + 2 * pi - o, 28)
@@ -730,6 +755,7 @@ function G:say(text, x, y, px, a, ink)
     self.says[#self.says + 1] = {text, sx, sy, px, a, ink}
     return
   end
+  if self.C.trace and a > 0.5 then self.C.trace("say", text) end
   local f = self.C.font(px)
   local w, h = f:getWidth(text) + px * 1.1, px * 1.7
   local bx = L.clamp(x - w / 2, 8, self.W - w - 8)

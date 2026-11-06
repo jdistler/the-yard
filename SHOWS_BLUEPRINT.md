@@ -90,6 +90,27 @@ nothing (New Year's party and midnight score high on motion, low on new). The "n
 * **The night sky is checked by eye**: at its scale twinkling stars and its small stories look the same to the
   measure (show_pulse's gentle thresholds for "night" are a floor, not a gate).
 
+## Lessons from the pipeline's first round (2026-11-06, Texas, Longhorns, Summer, Mission Control)
+
+* **Measure the world, not the camera.** A camera drifting over a still painting scores as lively as a battle:
+  San Antonio scored 60 beats a minute with the camera and 7 without it. `show_review.py` measures with the
+  camera held still, through the camera's view.
+* **The hero is a sixth of the screen.** Most of the cast was drawn at radius 24-30 (about 60 px on a 1024 px
+  screen): a story told by things that small reads as nothing from the couch. The trace records the biggest of
+  the cast each frame (`cast px`); under 85 px is a finding. Scaling the cast up 30% and bringing the camera in
+  did more for the Moon and Barton Springs than any new story would have.
+* **A sound that doesn't exist is silent, and nobody notices.** `"tick"` was asked for in three scenes and never
+  played. The review checks every sound against `songs.lua`.
+* **A song as long as its scene.** A 20 s loop under a 70 s scene is heard three times; write B and C parts (or a
+  key change on the repeat: `"C+2"`) until the song is the scene's length.
+* **Live data needs fixtures.** The Longhorns' season board plays all season from ESPN's schedule, and the PC
+  had never seen it: rendered with `--env HOME_UT_SCHED=tools/show_fixtures/ut_sched.json`, it was a still table
+  for 38 s. Review every path a scene can take.
+* **Character comedy is quiet to the measure.** A hop, a tray sliding, a calf on a rope are real beats that move
+  a few percent of the screen. A stretch of 8-15 s is checked on the film strip before it is "fixed".
+* **The cast belongs in every show.** The Longhorns show had no Pac-Man or ghosts at all: no hero. In caps, as
+  fans, they tailgate, ride the Texas Star, carry the Golden Hat, light the candles and storm the field.
+
 ## Where the shows stand (2026-11-06)
 
 Every show rebuilt to these rules, measured on the PC and checked at 57-60 fps on the cabinet: Mission Control,

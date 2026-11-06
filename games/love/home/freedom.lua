@@ -701,6 +701,7 @@ F.SEGMENTS = {{6, "MORNING IN AMERICA"}, {130, "RED ALERT"}, {170, "BATTLE OF TH
               {276, "THE FREEDOM PELLET"}, {296, "THE MOTHERSHIP"}, {330, "MISSION ACCOMPLISHED"},
               {430, "U-S-A FIREWORKS"}, {450, "SUNSET"}}
 
+function F.clock() return S and S.t end      -- (Home's trace, tools/show_review.py: the show's own time)
 function F.act()
   local a = "open"
   if not S then return a end                      -- (asked before start: Home's curtain)

@@ -8,7 +8,8 @@ Read these, in this order, before doing anything:
 2. [RUNBOOK.md](RUNBOOK.md): hard rules, the session loop, and the phase you're in.
 3. [RECOVERY.md](RECOVERY.md): how to get the cabinet back if anything goes wrong. Read it before any step that could change the cabinet.
 4. [tools/README.md](tools/README.md): what each tool does.
-5. [CARTS.md](CARTS.md), when the task is a game. [SDCARD.md](SDCARD.md), when it involves the microSD card. Then [CONTROLS.md](CONTROLS.md) and [GAMEDEV.md](GAMEDEV.md). Dig Dug II opens The Yard (Keep, Lamp, Orb, Tea, Chest). STATUS.md "Pickup" is the live hardware state. The cart build in this tree is newer than the build on the cabinet.
+5. [SHOWS_PIPELINE.md](SHOWS_PIPELINE.md), when the task is one of Home's idle shows: review, improve and ship them through its seven steps (`tools/show_review.py` first), with the rules in [SHOWS_BLUEPRINT.md](SHOWS_BLUEPRINT.md) and each show's notebook in [shows/](shows/).
+6. [CARTS.md](CARTS.md), when the task is a game. [SDCARD.md](SDCARD.md), when it involves the microSD card. Then [CONTROLS.md](CONTROLS.md) and [GAMEDEV.md](GAMEDEV.md). Dig Dug II opens The Yard (Keep, Lamp, Orb, Tea, Chest). STATUS.md "Pickup" is the live hardware state. The cart build in this tree is newer than the build on the cabinet.
 
 ## Non-negotiable
 

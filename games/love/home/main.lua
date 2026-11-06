@@ -426,6 +426,33 @@ end
 
 local sel, pos = 1, 1
 local t, frame = 0, 0
+-- HOME_TRACE=PATH (tools/show_review.py): what a show does, as it plays, one line an event: "<show secs> <kind> ..."
+-- (act: the scene; music: the song; sfx: a sound; cam x y zoom, 10 a second; say/caption/plate: words shown).
+local TRACE = os.getenv("HOME_TRACE") and io.open(os.getenv("HOME_TRACE"), "w")
+local trace_t, trace_seen = nil, {}
+local function trace(kind, a, b, c)
+  if kind == "t" then trace_t = a return end
+  local when = trace_t or frame / 60
+  if kind == "cast" then
+    if frame % 6 ~= 0 then return end
+    TRACE:write(string.format("%.2f cast %.0f %.0f %.0f\n", when, a, b or 0, c or 0))
+    return
+  end
+  if kind == "cam" then
+    if frame % 6 ~= 0 then return end
+    TRACE:write(string.format("%.2f cam %.0f %.0f %.3f\n", when, a, b, c))
+    return
+  end
+  if kind == "say" or kind == "caption" or kind == "plate" then
+    -- (words are drawn every frame: once, then again only after a second away)
+    local k = kind .. a
+    local last = trace_seen[k]
+    trace_seen[k] = frame
+    if last and frame - last < 60 then return end
+  end
+  TRACE:write(string.format("%.2f %s %s\n", when, kind, tostring(a)))
+  if kind == "act" or kind == "music" then TRACE:flush() end
+end
 local scene = "intro"           -- intro, menu, attract, night, show (an idle show), shows (a show's tiles), tv
 local intro_t = 0
 local idle = 0
@@ -1650,6 +1677,10 @@ function love.load()
                     brand_draw = function(y, px, a) ST.draw(0, y, px, a) end,
                     fx = fx, sfx = music.sfx,
                     log = log, rgb = rgb}
+  if TRACE then
+    show_ctx.trace = trace
+    show_ctx.sfx = function(name, gain) trace("sfx", name) music.sfx(name, gain) end
+  end
   for _, sh in ipairs(shows.LIST) do
     local m = shows.module(sh.id)
     if m then m.load(show_ctx) end
@@ -1815,6 +1846,12 @@ local function music_tick()
     -- (behind the curtain, before the show has started, it isn't asked: silence until it has)
     if curtain and curtain.phase == "cover" then return end
     want, vol, fade = cur_show.music(), 0.42, 2
+    if TRACE then
+      if cur_show.clock then trace("t", cur_show.clock()) end
+      if want ~= trace_seen.music then trace_seen.music = want trace("music", want) end
+      local act = cur_show.act and cur_show.act()
+      if act ~= trace_seen.act then trace_seen.act = act trace("act", act) end
+    end
   elseif scene == "tv" then want = "tv"
   elseif scene == "attract" then want = "attract" end
   -- (headless tests choose the song too, so a show that can't say which is caught on the PC, but play nothing)
@@ -1988,6 +2025,7 @@ function love.draw()
       local d = canvas:newImageData():encode("png"):getString()
       local f = io.open(shot_req, "wb")
       if f then f:write(d) f:close() end
+      if TRACE then trace("shot", shot_req) end
       shot_req = nil
     end
     if not headless then
