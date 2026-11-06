@@ -53,6 +53,7 @@ for _, s in ipairs(SCENES) do if s[4] then M.SEGMENTS[#M.SEGMENTS + 1] = {s[1], 
 M.THUMB = 6
 
 local S
+local art_for                      -- (below: the pictures, a scene at a time)
 local function scene_at(t)
   local k = 1
   for i, s in ipairs(SCENES) do if t >= s[1] then k = i end end
@@ -2015,6 +2016,26 @@ CAM.tower = function(lt)
                      {76, 200, 880, 1.5}, {80, 560, 880, 1.5}, {85, 384, 512, 1}}, W, H)
 end
 
+-- ------------------------------------------------------------------ the pictures, a scene at a time
+local ART_OF = {open = {"open"}, campus = {"campus_dawn", "campus_day"}, season = {"crowd_close"},
+                band = {"stadium_day", "field_long"}, smokey = {"stadium_day"}, hookem = {"crowd_close"}, drive = {"field_long"},
+                legends = {"legends_wall", "rosebowl", "crowd_close"}, redriver = {"fair"}, hex = {"tower_dark", "tower_win"},
+                tower = {"tower_dark", "tower_win", "tower_one"}}
+art_for = function(k, with_next)
+  local want = {}
+  for _, n in ipairs(ART_OF[SCENES[k][2]] or {}) do want[n] = true end
+  if with_next and SCENES[k + 1] then for _, n in ipairs(ART_OF[SCENES[k + 1][2]] or {}) do want[n] = true end end
+  for n, img in pairs(S.art) do
+    if not want[n] then
+      if img then img:release() end
+      S.art[n] = nil
+    end
+  end
+  for n in pairs(want) do
+    if S.art[n] == nil then S.art[n] = G:art("longhorns", n) or false end
+  end
+end
+
 -- ------------------------------------------------------------------ the scorebug (game days)
 local function bug_lines()
   local g = ut.game
@@ -2093,11 +2114,12 @@ function M.start(seed, at)
   S.flag = G:cloth(L.paint_texas, 600, 400)
   -- the painted pictures, when the SD card has them (else each scene draws itself live)
   S.art = {}
-  for _, n in ipairs({"open", "campus_dawn", "campus_day", "stadium_day", "field_long", "crowd_close", "fair", "rosebowl", "legends_wall", "tower_dark", "tower_win", "tower_one"}) do
-    S.art[n] = G:art("longhorns", n)
-  end
+  -- (the pictures a scene at a time, the next scene's in the fade between: all twelve at once came to 14 MB)
+  S.has = {stadium_day = G:has_art("longhorns", "stadium_day"), crowd_close = G:has_art("longhorns", "crowd_close")}
+  S.art_k = select(4, scene_at(S.t))
+  art_for(S.art_k, false)
   -- (the made crowds, only without the painted ones: 7400 rectangles painted at the start)
-  if not S.art.stadium_day or not S.art.crowd_close then
+  if not S.has.stadium_day or not S.has.crowd_close then
   S.stands = G:canvas(W, 300, function(w, h)
     lg.setColor(0.35, 0.33, 0.38, 1)
     lg.rectangle("fill", 0, 0, w, h)
@@ -2188,8 +2210,11 @@ function M.update(dt)
   if not S then return false end
   G:step(dt)
   S.t = G.t
-  local sc, lt = scene_at(S.t)
+  local sc, lt, len, k = scene_at(S.t)
   cues(sc[2], lt, dt)
+  -- the pictures: the next scene's loaded in the last moment of the fade to black, the last one's let go
+  if k ~= S.art_k then S.art_k = k art_for(k, false) S.art_next = nil end
+  if lt > len - 0.3 and not S.art_next then S.art_next = true art_for(k, true) end
   -- Smokey fires every ten seconds in its scene; the drive's touchdown; the tower's fireworks
   -- what the season knows, every two seconds (for the board, the hex, the tower)
   S.refresh = (S.refresh or 0) - dt

@@ -6,6 +6,16 @@
 # If Home itself fails twice in a row, the original menu takes over (or, in preview, The Yard).
 H=/data/home
 REQ=/tmp/home-req
+# One supervisor at a time: two (a test tool and a restart racing, 2026-11-06) start two Homes, which don't fit in
+# memory together; the kernel killed one, homeloop fell back to the stock menu, and the cabinet thrashed to a halt.
+PIDF=/tmp/homeloop.pid
+if [ -f "$PIDF" ]; then
+  OLD=$(cat "$PIDF" 2>/dev/null)
+  if [ -n "$OLD" ] && [ "$OLD" != "$$" ] && kill -0 "$OLD" 2>/dev/null && grep -q homeloop "/proc/$OLD/cmdline" 2>/dev/null; then
+    exit 0
+  fi
+fi
+echo $$ > "$PIDF"
 # The welcome-back picture: Home renders it once per boot (it is 3 MB, in /tmp, which is RAM); it goes on the
 # screen the moment a game ends, until Home's first frame (EXPERIENCE.md).
 BACK=/tmp/home-back.fb

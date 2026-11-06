@@ -525,27 +525,35 @@ def report(show, rows, songs, out, base, cab):
 
 
 def cab_fps(show, scenes):
-    """The cabinet's frame rate through the show (tools/show_cab.sh, a line every 5 s), per scene: the lowest."""
+    """The cabinet's frame rate and memory through the show (tools/show_cab.sh, a sample every 5 s), per scene:
+    the lowest fps, and the least memory left for the whole cabinet (MB)."""
     length = scenes[-1]["end"]
     r = subprocess.run([os.path.join(ROOT, "tools", "show_cab.sh"), f"{show}:0", str(length + 20)],
                        capture_output=True, text=True)
-    pts = []
-    for tok in r.stdout.split():
-        if ":" in tok:
-            a, b = tok.split(":")
+    fps, mem = [], []
+    for line in r.stdout.splitlines():
+        kind, _, rest = line.partition(" ")
+        for tok in rest.split():
+            f = tok.split(":")
             try:
-                pts.append((float(a), float(b)))
+                if kind == "fps" and len(f) == 2:
+                    fps.append((float(f[0]), float(f[1])))
+                elif kind == "mem" and len(f) == 3:
+                    mem.append((float(f[0]), float(f[1]), float(f[2])))
             except ValueError:
                 pass
-    if not pts:
+    if "HOME DIED" in r.stdout:
+        print("cabinet:", r.stdout[r.stdout.index("HOME DIED"):].strip())
+    if not fps:
         print("cabinet:", r.stdout.strip() or r.stderr.strip())
         return {}
-    t0 = pts[0][0] - 5
+    t0 = fps[0][0] - 5
     res = {}
     for sc in scenes:
-        inside = [f for t, f in pts if sc["start"] + 3 <= t - t0 < sc["end"]]
+        inside = [f for t, f in fps if sc["start"] + 3 <= t - t0 < sc["end"]]
+        left = [a for t, rss, a in mem if sc["start"] <= t - 3 < sc["end"]]
         if inside:
-            res[sc["n"]] = f"{min(inside):.0f}"
+            res[sc["n"]] = f"{min(inside):.0f}" + (f" ({min(left):.0f} MB free)" if left else "")
     return res
 
 

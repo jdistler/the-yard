@@ -148,6 +148,14 @@ function G:art(show, name)
   return self:track(img)
 end
 
+-- Whether a painted picture is there to load (without loading it: for a show that loads its pictures a scene at a
+-- time and still wants to know, at the start, which live fallbacks it needs).
+function G:has_art(show, name)
+  local f = io.open(ART .. "/" .. show .. "/" .. name .. ".pkm", "rb")
+  if f then f:close() return true end
+  return false
+end
+
 -- A label to paint ahead of its first use (two a frame, in step: a canvas switch mid-frame costs). when: the
 -- show time it is first needed (painted 25 s ahead, so a long show doesn't hold them all at once); nil: now.
 function G:label(text, px, colour, when)

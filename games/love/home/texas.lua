@@ -65,6 +65,7 @@ end
 T.THUMB = 2
 
 local S                                -- this showing
+local art_for                          -- (below)
 local function scene_at(t)
   local k = 1
   for i, s in ipairs(SCENES) do if t >= s[1] then k = i end end
@@ -2609,6 +2610,27 @@ CUES.finale = {{SNAP_AWAY, "whoosh"}, {SNAP_AWAY + 0.4, "whoosh", 0.6}, {SNAP_AW
 for i = 1, #SNAPS do CUES.finale[#CUES.finale + 1] = {SNAP_T0 + (i - 1) * SNAP_DT + 0.55, "tick", 0.8} end
 for i = 1, #SNAPS do CUES.finale[#CUES.finale + 1] = {SNAP_T0 + (i - 1) * SNAP_DT + 0.6, "chime", 0.25} end
 
+-- ------------------------------------------------------------------ the pictures, a scene at a time
+local ART_OF = {open = {"open"}, coast = {"coast_dawn", "coast_day"}, hills = {"hills"}, roundrock = {"creek", "donuts"},
+                austin = {"austin"}, stockyards = {"stockyards"}, dinovalley = {"dinovalley"}, alamo = {"alamo"},
+                riverwalk = {"riverwalk"}, bbq = {"bbq"}, panhandle = {"panhandle"}, bats = {"bats_dusk", "bats_night"},
+                bigbend = {"bigbend_dusk", "bigbend"}, finale = {"finale"}}
+-- keep scene k's pictures (and k + 1's, with_next), let the rest go
+art_for = function(k, with_next)
+  local want = {}
+  for _, n in ipairs(ART_OF[SCENES[k][2]] or {}) do want[n] = true end
+  if with_next and SCENES[k + 1] then for _, n in ipairs(ART_OF[SCENES[k + 1][2]] or {}) do want[n] = true end end
+  for n, img in pairs(S.art) do
+    if not want[n] then
+      if img then img:release() end
+      S.art[n] = nil
+    end
+  end
+  for n in pairs(want) do
+    if S.art[n] == nil then S.art[n] = G:art("texas", n) or false end
+  end
+end
+
 -- ------------------------------------------------------------------ the show
 function T.load(ctx)
   C = ctx
@@ -2628,16 +2650,18 @@ function T.start(seed, at)
   G.t, G.prev = S.t, S.t - 0.001
   S.R = G.R
   S.flag = G:cloth(L.paint_texas, 600, 400)
+  -- the painted pictures: only the scene's own (and the next one's, loaded in the fade to black between them);
+  -- all nineteen at once came to 7 MB of the cabinet's memory, and with a TV fetch running it ran out
   S.art = {}
-  for _, n in ipairs({"open", "coast_dawn", "coast_day", "hills", "creek", "donuts", "austin", "stockyards", "dinovalley", "alamo", "riverwalk", "bbq",
-                      "panhandle", "bats_dusk", "bats_night", "bigbend", "bigbend_dusk", "finale"}) do
-    S.art[n] = G:art("texas", n)
-  end
+  S.has = {}
+  for _, n in ipairs({"hills", "bigbend", "finale"}) do S.has[n] = G:has_art("texas", n) end
+  S.art_k = select(4, scene_at(S.t))
+  art_for(S.art_k, false)
   -- the flowers: bluebonnets (blue, a white tip) and paintbrush (red-orange), farther ones smaller
   local R = G.R
   -- (the made flowers and Milky Way only without the painted scenes)
   S.flowers = G:track(lg.newSpriteBatch(G.dot, 1600, "static"))
-  for i = 1, S.art.hills and 0 or 1500 do
+  for i = 1, S.has.hills and 0 or 1500 do
     local y = 700 + (R:random() ^ 1.6) * 324
     local k = (y - 700) / 324
     local x = R:random() * W
@@ -2653,7 +2677,7 @@ function T.start(seed, at)
     end
   end
   -- the Milky Way: painted once, at half size
-  S.milky = (S.art.bigbend and S.art.finale) and G.px or G:canvas(384, 380, function(w, h)
+  S.milky = (S.has.bigbend and S.has.finale) and G.px or G:canvas(384, 380, function(w, h)
     for i = 1, 2600 do
       local u = R:random()
       local band = (R:random() - 0.5) * (R:random() < 0.7 and 70 or 260)
@@ -2711,8 +2735,11 @@ function T.update(dt)
   if not S then return false end
   G:step(dt)
   S.t = G.t
-  local sc, lt, len = scene_at(S.t)
+  local sc, lt, len, k = scene_at(S.t)
   cues(sc[2], lt, dt)
+  -- the pictures: the next scene's loaded in the last moment of the fade to black, the last one's let go
+  if k ~= S.art_k then S.art_k = k art_for(k, false) S.art_next = nil end
+  if lt > len - 0.3 and not S.art_next then S.art_next = true art_for(k, true) end
   -- the finale's fireworks: Texas red, white and blue
   if sc[2] == "finale" and lt > 18 and lt < 33 then
     S.fw = (S.fw or 0) - dt
