@@ -351,7 +351,7 @@ def cookies():
     return p
 
 
-# ------------------------------------------------------------------ silent night (the star's glow, the snow are live)
+# ------------------------------------------------------------------ silent night (the windows going out, the carolers, the bell, the sleigh, the star, the snow are live)
 def silent():
     p = Paint()
     night_snow_sky(p, 760, 470)
@@ -361,12 +361,10 @@ def silent():
         p.fill_rect(x, top, w, 760 - top + 100, p.lin(x, 0, x + w, 0, [(0, "#0e0e1e"), (1, "#181830")]))
         p.poly([(x - 8, top), (x + w + 8, top), (x + w / 2, top - 50)], "#121224")
         p.poly([(x - 8, top), (x + w / 2, top - 50), (x + w + 8, top), (x + w, top + 6), (x + w / 2, top - 40), (x, top + 6)], "#f0f4ff")
+        # (the windows dark: their lights are live, going out one by one)
         for k in range(2):
             wx = x + 18 + k * (w - 60)
-            on = r.random() < 0.6
-            p.fill_rect(wx, top + 40, 24, 30, "#ffd08a" if on else "#16162a")
-            if on:
-                p.glow(wx + 12, top + 55, 36, "#ffc060", 0.3)
+            p.fill_rect(wx, top + 40, 24, 30, "#16162a")
             p.fill_rect(wx + 11, top + 40, 2, 30, "#0e0e1e")
     # the church: the steeple, its window lit, a little bell tower
     p.fill_rect(440, 420, 60, 240, p.lin(440, 0, 500, 0, [(0, "#10102a"), (1, "#1c1c38")]))
