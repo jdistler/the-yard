@@ -1307,6 +1307,33 @@ function D.legends(lt, len)
     G:caption("NATIONAL CHAMPIONS", 420, 64, 0xff8c1a, a, 1 + 0.05 * abs(sin(r * 4)))
     G:plate("TEXAS 41  ·  USC 38", 520, 34, 0xffffff, a)
   end
+  -- the team running in from everywhere to a dogpile, then the crystal trophy raised over it
+  if r > 30 then
+    local px, py = 384, 880
+    for i = 1, 22 do
+      local a0 = i * 2.4
+      local f = clamp((r - 30 - (i % 7) * 0.15) / 2.5, 0, 1)
+      local sx, sy = 384 + cos(a0) * 520, 780 + sin(a0) * 420
+      local tx, ty = px + cos(a0) * (10 + (i % 5) * 14), py - floor(i / 6) * 22 + sin(a0) * 10
+      local x, y = lerp(sx, tx, f), lerp(sy, ty, f) - (f < 1 and abs(sin(r * 10 + i)) * 10 or 0)
+      rgba(i % 4 == 0 and WHITE or ORANGE_HI)
+      lg.circle("fill", x, y, 13, 12)
+    end
+    if r > 35 then
+      local up = clamp((r - 35) / 2, 0, 1)
+      local ty = lerp(880, 800, up) - abs(sin(r * 3)) * 6
+      C.fx.glow(px, ty - 40, 70, 90, 0.75, 0.9, 1, 0.5 * up)
+      lg.setColor(0.8, 0.92, 1, 0.9)
+      lg.ellipse("fill", px, ty - 50, 26, 40, 20)
+      lg.setColor(1, 1, 1, 0.7)
+      lg.ellipse("fill", px - 8, ty - 62, 6, 14, 10)
+      lg.setColor(0.25, 0.2, 0.15, 1)
+      lg.rectangle("fill", px - 18, ty - 12, 36, 20, 3, 3, 4)
+      rgba(ORANGE_HI)
+      lg.circle("fill", px - 24, ty + 10, 12, 12)
+      lg.circle("fill", px + 24, ty + 10, 12, 12)
+    end
+  end
 end
 
 -- ------------------------------------------------------------------ the Hex Rally
@@ -1424,7 +1451,8 @@ CAM.legends = function(lt)
   end
   local r = lt - 34
   if r > 6 and r < 22 and S.rb_x then return L.shot(0, {{0, S.rb_x, S.rb_y - 40, 1.6}}, W, H) end
-  return L.shot(r, {{0, 384, 512, 1}, {4, 384, 560, 1.3}, {6, 384, 560, 1.5}, {22, 384, 512, 1.1}, {30, 384, 400, 1.3}, {40, 384, 512, 1}}, W, H)
+  return L.shot(r, {{0, 384, 512, 1}, {4, 384, 560, 1.3}, {6, 384, 560, 1.5}, {22, 384, 512, 1.1}, {29, 384, 512, 1}, {33, 384, 820, 1.4},
+                     {37, 384, 770, 1.7}, {44, 384, 760, 1.7}, {50, 384, 512, 1}}, W, H)
 end
 CAM.smokey = function(lt)
   return L.shot(lt, {{0, 384, 512, 1}, {2, 480, 760, 1.6}, {10, 480, 760, 1.6}, {14, 384, 640, 1.1}, {24, 200, 700, 1.4}, {34, 560, 700, 1.4},
