@@ -648,6 +648,12 @@ end
 
 -- ------------------------------------------------------------------ the table
 local SEATS = {{150, 1}, {270, 2}, {384, 0}, {498, 3}, {618, 4}}   -- x, who (0: Pac-Man)
+local PASS_T, PASS_DT = 52.5, 1.8      -- the mashed potatoes passed hand to hand down the table, then back for seconds
+local function bowl_x(lt)
+  local keys = {}
+  for i, s in ipairs(SEATS) do keys[#keys + 1] = {PASS_T + (i - 1) * PASS_DT, s[1], 0} end
+  return L.path(lt, keys)
+end
 local DISHES = {                                                     -- brought in by Sue, the cook, one by one
   {"cranberry", 180, 770, 6}, {"potatoes", 588, 770, 8.2}, {"beans", 230, 870, 10.4}, {"rolls", 540, 870, 12.6},
   {"gravy", 384, 900, 14.8},
@@ -705,6 +711,9 @@ function D.table(lt, len)
   for i, s in ipairs(SEATS) do
     local x, who = s[1], s[2]
     local bob = eating and abs(sin(S.t * 5 + i)) * 6 or 0
+    -- (the bowl going round: a hop as it comes to them)
+    local pt = lt - PASS_T - (i - 1) * PASS_DT
+    if pt > 0 and pt < 0.6 then bob = L.hop(pt, 0.6, 30) end
     local full_lean = lt > 72 and 10 or 0
     local looking = (lt > 4 and lt < 18) and 1 or 0
     local wide = lt > TURKEY_IN and lt < TURKEY_IN + 4
@@ -779,17 +788,34 @@ function D.table(lt, len)
       end
     end
   end
-  -- the last roll: two of them want it; it splits
-  if lt > 62 and lt < 69 then
-    local split = lt > 66
-    local x = lerp(540, 384, prog(lt, 62, 63)) + (split and 0 or sin(S.t * 10) * 30)
-    lg.setColor(0.9, 0.7, 0.4, 1)
-    if split then
-      local f = prog(lt, 66, 67)
-      lg.circle("fill", lerp(x, 270, f), lerp(800, 650, f), 9, 12)
-      lg.circle("fill", lerp(x, 498, f), lerp(800, 650, f), 9, 12)
+  -- the wishbone: Pinky and Inky each take an end, tug (the bone bending), SNAP, the big half is Pinky's
+  if lt > 61.5 and lt < 72 then
+    local cx, cy = 384, 640
+    local tug = (lt > 62.5 and lt < 66) and sin(S.t * 14) * 10 * prog(lt, 62.5, 64) or 0
+    local stretch = prog(lt, 62.5, 66) * 22
+    lg.setLineWidth(10)
+    if lt < 66 then
+      -- the arms out to it
+      lg.setColor(1, 0.55, 0.85, 1)
+      lg.line(270 + 30, 596, cx - 46 - stretch + tug, cy - 34)
+      lg.setColor(0.25, 0.95, 1, 1)
+      lg.line(498 - 30, 596, cx + 46 + stretch + tug, cy - 34)
+      lg.setColor(0.98, 0.92, 0.78, 1)
+      lg.line(cx - 46 - stretch + tug, cy - 34, cx + tug, cy + 30, cx + 46 + stretch + tug, cy - 34)
+      lg.circle("fill", cx + tug, cy + 30, 12, 12)
     else
-      lg.circle("fill", x, 800, 12, 14)
+      local f = prog(lt, 66, 66.8)
+      local lx, ly = lerp(cx - 30, 300, f), lerp(cy, 560, f) - sin(f * pi) * 60
+      local rx, ry = lerp(cx + 30, 470, f), lerp(cy, 560, f) - sin(f * pi) * 60
+      lg.setColor(0.98, 0.92, 0.78, 1)
+      lg.line(lx - 40, ly - 34, lx, ly + 30, lx + 10, ly + 12)       -- the big half (with the knob)
+      lg.circle("fill", lx, ly + 30, 12, 12)
+      lg.line(rx + 40, ry - 34, rx + 8, ry + 6)                      -- the little one
+      if lt > 66.8 then
+        lg.setBlendMode("add")
+        C.fx.glow(lx, ly, 60, 60, 1, 0.9, 0.5, 0.8 * (0.6 + 0.4 * sin(S.t * 8)))
+        lg.setBlendMode("alpha")
+      end
     end
   end
   -- what everyone is thankful for, in turn
@@ -801,8 +827,21 @@ function D.table(lt, len)
     end
   end
   if lt > TURKEY_IN + 2 and lt < TURKEY_IN + 5 then G:say("OOOOH!", 270, 540, 28, 1) end
-  if lt > 63 and lt < 66 then G:say("MINE!", 270, 540, 24, 1) end
-  if lt > 63.5 and lt < 66 then G:say("MINE!", 498, 540, 24, 1) end
+  -- the bowl going round, hand to hand, a scoop on each plate
+  if lt > PASS_T - 0.5 and lt < PASS_T + 4 * PASS_DT + 0.8 then
+    local bx = bowl_x(lt)
+    local lift = sin(((lt - PASS_T) / PASS_DT % 1) * pi) * 40
+    lg.setColor(0.9, 0.88, 0.85, 1)
+    lg.ellipse("fill", bx, 640 - lift, 46, 18, 20)
+    lg.setColor(0.98, 0.95, 0.85, 1)
+    lg.ellipse("fill", bx, 628 - lift, 38, 14, 20)
+    lg.setColor(1, 0.85, 0.35, 1)
+    lg.ellipse("fill", bx + 4, 622 - lift, 9, 4, 10)
+  end
+  if lt > PASS_T + 0.2 and lt < PASS_T + 2.5 then G:say("PASS THE POTATOES!", 200, 520, 22, 1) end
+  if lt > 63 and lt < 65.5 then G:say("PULL!", 270, 540, 24, 1) end
+  if lt > 63.5 and lt < 66 then G:say("PULL!", 498, 540, 24, 1) end
+  if lt > 67 and lt < 70.5 then G:say("I GET THE WISH!", 270, 520, 22, 1) end
   if lt > 80 and lt < 85 then G:say("PIE LATER?", W - 120, 520, 24, 1) end
   if lt > 79 and lt < 86 then
     L.ghost(lerp(W + 60, W - 80, prog(lt, 79, 80)) + (lt > 85 and (lt - 85) * 200 or 0), 600, 36, GH[5], S.t, -1, 0, "happy")
@@ -818,11 +857,13 @@ CAM.table = function(lt)
     keys[#keys + 1] = {38.6 + (i - 1) * 2.8, x, 600, 1.7}
     keys[#keys + 1] = {40.4 + (i - 1) * 2.8, x, 600, 1.7}
   end
-  for _, k in ipairs({{53, 384, 640, 1.1}, {61, 384, 660, 1.15}, {63, 384, 700, 1.6}, {68, 384, 700, 1.6}, {72, 384, 640, 1.3},
+  for i, st in ipairs(SEATS) do keys[#keys + 1] = {PASS_T + (i - 1) * PASS_DT, st[1], 620, 1.6} end
+  for _, k in ipairs({{61, 384, 660, 1.15}, {63, 384, 630, 1.6}, {69, 384, 630, 1.6}, {72, 384, 640, 1.3},
                       {79, 560, 620, 1.4}, {86, 384, 620, 1.2}}) do keys[#keys + 1] = k end
   return L.shot(lt, keys, W, H)
 end
-CUES.table = {{TURKEY_IN + 2, "cheer"}, {66, "pop"}, {66.2, "boing"}, {85, "boing"}}
+CUES.table = {{TURKEY_IN + 2, "cheer"}, {66, "pop"}, {66, "clunk"}, {66.2, "boing"}, {66.9, "chime"}, {85, "boing"}}
+for i = 1, 5 do CUES.table[#CUES.table + 1] = {PASS_T + (i - 1) * PASS_DT, "pop", 0.35} end
 for _, d in ipairs(DISHES) do CUES.table[#CUES.table + 1] = {d[4] + 1.3, "clunk", 0.5} end
 for i = 1, 5 do CUES.table[#CUES.table + 1] = {28 + i * 2, "pop", 0.5} end
 for i = 1, #THANKS do CUES.table[#CUES.table + 1] = {38 + (i - 1) * 2.8, "ding", 0.6} end
@@ -932,8 +973,15 @@ for t = 11, 20, 3 do CUES.football[#CUES.football + 1] = {t, "tick", 0.5} end
 local PIES = {{"pecan", 140, 540}, {"pumpkin", 384, 540}, {"apple", 628, 540}}
 local LINE = {{120, 1}, {260, 2}, {384, 0}, {508, 3}, {648, 4}}     -- the line with their plates (0: Pac-Man)
 -- slice n (from 0): which pie, to whom, when
-local function slice_plan(n) return ((n % 3) + 1), ((n % 5) + 1), 4 + n * 2 end
-local NSLICE = 17
+-- the first round, one each, slowly (the camera with each slice); then seconds, quickly
+local function slice_plan(n)
+  if n < 5 then return (n % 3) + 1, n + 1, 4 + n * 2.4 end
+  local m = n - 5
+  return (m % 3) + 1, (m % 5) + 1, 24 + m * 1.0
+end
+local NSLICE = 15
+-- Clyde's whipped cream: down the line (16-22), and far too much on Blinky (22.5)
+local function cream_x(lt) return L.path(lt, {{16, LINE[5][1], 0}, {22, LINE[1][1] + 70, 0, "lin"}, {30, LINE[1][1] + 70, 0}, {32, LINE[5][1], 0}}) end
 local function gone(p, lt)
   local g = 0
   for n = 0, NSLICE - 1 do
@@ -970,7 +1018,12 @@ function D.pie(lt, len)
       local _, to, t0 = slice_plan(n)
       if to == i and lt > t0 + 1 and lt < t0 + 2.6 then munch = true end
     end
-    local hop = munch and abs(sin(S.t * 8)) * 6 or 0
+    local hop = munch and abs(sin(S.t * 8)) * 8 or 0
+    for n = 0, NSLICE - 1 do
+      local _, to, t0 = slice_plan(n)
+      if to == i and lt > t0 + 1 and lt < t0 + 1.5 then hop = L.hop(lt - t0 - 1, 1, 26) end
+    end
+    if who == 4 and lt > 15.5 and lt < 32.5 then x = cream_x(lt) end
     if who == 0 then
       local px, py = x, y
       local r = 44 + 18 * prog(lt, 42.5, 44)
@@ -978,7 +1031,32 @@ function D.pie(lt, len)
       L.pac(px, py - hop, r, (lt > 40 and lt < 42.6) and pi * 0.75 or -pi / 2 * 0, S.t, munch and nil or ((lt > 41 and lt < 43) and 0.95 or 0.25))
     else
       local mood = (lt > 42.5 and lt < 46) and "wide" or (munch and "happy" or nil)
-      L.ghost(x, y - hop, 40, GH[who], S.t + i, 0, -0.8, mood)
+      if who == 1 and lt > 22.5 and lt < 30 then mood = "wide" end
+      if lt > 34 and lt < 40 then mood = nil end
+      local look = (lt > 34 and lt < 40) and -1 or -0.8
+      L.ghost(x, y - hop, 40, GH[who], S.t + i, (lt > 34 and lt < 40) and (x < 140 and 1 or -1) * 0.6 or 0, look, mood)
+      -- Blinky, creamed
+      if who == 1 and lt > 22.5 and lt < 30 then
+        local k = prog(lt, 22.5, 23.3)
+        lg.setColor(1, 1, 0.98, 1)
+        for d = 0, 6 do lg.circle("fill", x - 30 + (d % 4) * 20, y - 30 - floor(d / 4) * 26 - k * 10, 18 * k + 2, 12) end
+        lg.circle("fill", x, y - 74 - k * 20, 16 * k + 2, 12)
+      end
+      -- Clyde's can
+      if who == 4 and lt > 15.5 and lt < 32.5 then
+        lg.setColor(0.85, 0.85, 0.9, 1)
+        lg.rectangle("fill", x - 58, y - 30, 16, 34, 4, 4, 4)
+        lg.setColor(0.9, 0.2, 0.2, 1)
+        lg.rectangle("fill", x - 58, y - 38, 16, 8, 3, 3, 4)
+      end
+    end
+    -- whipped cream on the slice, once Clyde's been by
+    local sprayed = lt > 16 + (5 - i) * 1.2
+    if sprayed and lt < 34 then
+      lg.setColor(1, 1, 0.98, 1)
+      lg.circle("fill", l[1] - 8, y + 34, 10, 10)
+      lg.circle("fill", l[1] + 8, y + 34, 10, 10)
+      lg.circle("fill", l[1], y + 24, 9, 10)
     end
     -- the plate held up
     lg.setColor(0.96, 0.96, 0.98, 1)
@@ -990,20 +1068,37 @@ function D.pie(lt, len)
     local P, Lx = PIES[p], LINE[to][1]
     if lt > t0 and lt < t0 + 1 then
       local f = lt - t0
-      slice(lerp(P[2], Lx, f), lerp(P[3], 900, f) - sin(f * pi) * 140, P[1], 1.2)
+      slice(lerp(P[2], Lx, f), lerp(P[3], 900, f) - sin(f * pi) * 140, P[1], n < 5 and 2.2 or 1.6)
     elseif lt >= t0 + 1 and lt < t0 + 2.6 then
       slice(Lx, 904, P[1], 1.2 * (1 - (lt - t0 - 1) / 1.6))
     end
   end
+  if lt > 22.7 and lt < 26 then G:say("TOO MUCH!", LINE[1][1], 740, 26, 1) end
+  if lt > 34.5 and lt < 38.5 then G:say("...THE LAST PECAN...", 384, 760, 22, 1) end
   if lt > 43 and lt < 46 then G:say("HEY!", 260, 780, 28, 1) end
   if lt > 46 and lt < 49 then G:say("...BURP.", 384, 790, 26, 1) end
   G:plate("PECAN: THE OFFICIAL STATE PIE OF TEXAS", 220, 26, 0xffd23f, L.window(lt, 18, 30, 1.5))
 end
 CAM.pie = function(lt)
-  return L.shot(lt, {{0, 384, 512, 1}, {6, 384, 600, 1.15}, {14, 260, 640, 1.3}, {22, 520, 640, 1.3}, {30, 384, 640, 1.2},
-                     {39, 384, 640, 1.2}, {41, 180, 600, 1.5}, {44, 260, 700, 1.4}, {48, 384, 760, 1.4}, {50, 384, 600, 1.1}}, W, H)
+  local keys = {{0, 384, 512, 1}, {3, 384, 600, 1.15}}
+  for n = 0, 4 do
+    local p, to, t0 = slice_plan(n)
+    keys[#keys + 1] = {t0, PIES[p][2], 640, 1.45}
+    keys[#keys + 1] = {t0 + 1.2, LINE[to][1], 820, 1.55}
+  end
+  for _, k in ipairs({{16, 620, 820, 1.45}, {22, 200, 800, 1.5}, {23.5, 160, 780, 1.7}, {26, 384, 700, 1.1}, {34, 384, 700, 1.1},
+                      {36, 160, 620, 1.5}, {39, 384, 700, 1.2}, {41, 180, 600, 1.5}, {44, 260, 700, 1.4}, {48, 384, 760, 1.4},
+                      {50, 384, 600, 1.1}}) do keys[#keys + 1] = k end
+  return L.shot(lt, keys, W, H)
 end
-CUES.pie = {{42.5, "power"}, {44, "boing"}, {46.5, "boing", 0.6}}
+CUES.pie = {{42.5, "power"}, {44, "boing"}, {46.5, "boing", 0.6}, {22.5, "splash", 0.6}, {22.7, "boing"}, {34, "tick", 0.6},
+            {35.5, "tick", 0.6}, {37, "tick", 0.6}}
+for n = 0, NSLICE - 1 do
+  local _, _, t0 = slice_plan(n)
+  CUES.pie[#CUES.pie + 1] = {t0, "whoosh", n < 5 and 0.5 or 0.3}
+  CUES.pie[#CUES.pie + 1] = {t0 + 1, "pop", 0.4}
+end
+for k = 0, 4 do CUES.pie[#CUES.pie + 1] = {16 + k * 1.2, "tape", 0.35} end
 for n = 0, NSLICE - 1 do
   local _, _, t0 = slice_plan(n)
   CUES.pie[#CUES.pie + 1] = {t0, "whoosh", 0.4}

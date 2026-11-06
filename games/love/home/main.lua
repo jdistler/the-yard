@@ -433,6 +433,11 @@ local trace_t, trace_seen = nil, {}
 local function trace(kind, a, b, c)
   if kind == "t" then trace_t = a return end
   local when = trace_t or frame / 60
+  if kind == "crowd" then
+    if frame % 6 ~= 0 then return end
+    TRACE:write(string.format("%.2f crowd %s\n", when, a))
+    return
+  end
   if kind == "cast" then
     if frame % 6 ~= 0 then return end
     TRACE:write(string.format("%.2f cast %.0f %.0f %.0f\n", when, a, b or 0, c or 0))

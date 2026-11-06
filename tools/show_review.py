@@ -90,6 +90,9 @@ def build(out):
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
     songs = {}
     r = subprocess.run([LUAJIT, os.path.join(ROOT, "tools", "song_info.lua")], capture_output=True, text=True)
+    if r.returncode != 0 or not r.stdout.strip():
+        # (a song that doesn't load means no music at all in Home: stop here, not after an hour of rendering)
+        sys.exit("songs.lua does not load:\n" + r.stderr.strip())
     for line in r.stdout.splitlines():
         s = json.loads(line)
         if "sfx" in s:
@@ -168,30 +171,39 @@ def shots_of(d, t0):
 
 
 def hero_moves(ev, t0, cams):
-    """The seconds (show time, from the scene's start) in which the biggest of the cast moved through the world by
-    at least half its own size: the hero doing something, whatever the camera is doing."""
+    """The seconds (show time, from the scene's start) in which one of the cast moved through the world by at least
+    half its own size: someone doing something, whatever the camera is doing. (The trace's "crowd" lines: every
+    one of the cast drawn, size and place on the screen; each is matched to the nearest of its size a second ago.)"""
     if not cams:
         return set()
     cam_t = [c[0] for c in cams]
-    pts = []
-    for t, k, rest in ev:
-        if k != "cast":
-            continue
-        f = rest.split()
-        if len(f) < 3 or float(f[0]) <= 0:
-            continue
-        tt = t - t0
+
+    def world(tt, d, sx, sy):
         i = min(range(len(cam_t)), key=lambda j: abs(cam_t[j] - tt))
         cx, cy, z = cams[i][1]
-        d, sx, sy = float(f[0]), float(f[1]), float(f[2])
-        pts.append((tt, (sx - 384) / z + cx, (sy - 512) / z + cy, d / z))
+        return ((sx - 384) / z + cx, (sy - 512) / z + cy, d / z)
+    frames = []
+    for t, k, rest in ev:
+        if k != "crowd":
+            continue
+        f = [float(x) for x in rest.split()]
+        tt = t - t0
+        frames.append((tt, [world(tt, f[i], f[i + 1], f[i + 2]) for i in range(0, len(f) - 2, 3)]))
     moved = set()
-    for sec in range(0, int(max((p[0] for p in pts), default=0)) + 2):
-        win = [p for p in pts if sec - 1 < p[0] <= sec]
-        if len(win) >= 2:
-            a, b = win[0], win[-1]
-            if ((a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2) ** 0.5 > 0.5 * max(a[3], b[3]):
+    for sec in range(0, int(max((p[0] for p in frames), default=0)) + 2):
+        win = [p for p in frames if sec - 1 < p[0] <= sec]
+        if len(win) < 2:
+            continue
+        a, b = win[0][1], win[-1][1]
+        for (bx, by, bd) in b:
+            best = None
+            for (ax, ay, ad) in a:
+                if abs(ad - bd) <= 0.25 * bd:
+                    dist = ((ax - bx) ** 2 + (ay - by) ** 2) ** 0.5
+                    best = dist if best is None or dist < best else best
+            if best is not None and best > 0.5 * bd:
                 moved.add(sec)
+                break
     return moved
 
 

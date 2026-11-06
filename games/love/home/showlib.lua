@@ -628,7 +628,9 @@ function G:look(x, y, z, shake)
     tr("cam", x, y, z)
     L.tracing = true
     tr("cast", L.cast_px * 2, L.cast_sx or 0, L.cast_sy or 0)
+    if #L.cast_seen > 0 then tr("crowd", table.concat(L.cast_seen, " ")) end
     L.cast_px = 0
+    L.cast_seen = {}
   end
   L.zoom = z
 end
@@ -671,12 +673,16 @@ local function wobble_hem(x, y, r, t)
 end
 -- (the trace, tools/show_review.py: the biggest of the cast drawn this frame, on the screen)
 L.cast_px, L.zoom, L.tracing = 0, 1, false
+L.cast_seen = {}
 local function note_cast(x, y, r)
-  -- the biggest of the cast this frame: its size and where it is on the screen (through every transform)
+  -- the cast drawn this frame: each one's size and where it is on the screen (through every transform); the
+  -- biggest kept apart (the hero's size)
   local sx, sy = lg.transformPoint(x, y)
   local ex = lg.transformPoint(x + r, y)
   local d = abs(ex - sx)
   if d > L.cast_px then L.cast_px, L.cast_sx, L.cast_sy = d, sx, sy end
+  local seen = L.cast_seen
+  if d >= 20 and #seen < 24 then seen[#seen + 1] = string.format("%.0f %.0f %.0f", d * 2, sx, sy) end
 end
 function L.ghost(x, y, r, c, t, lx, ly, mood, al)
   al = al or 1

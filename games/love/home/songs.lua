@@ -837,8 +837,17 @@ M.tg_trot = {
                 "c5*2 e5*2 g5*2 c6*2 .*8",
          bass = oompah("f2", "c3") .. oompah("c3", "g2") .. oompah("f2", "c3") .. oompah("c3", "g2"),
          drums = "k*4 s?*4 k*4 s?*4"},
+    -- the chase on: faster figures, the drums doubled
+    B = {lead = "f5 . f5 . a5 . c6 . a5 . f5 . c6*4 | bb5 . a5 . g5 . f5 . e5 . g5 . c5*4 | d5 . f5 . bb5 . d6 . c6 . bb5 . a5 . g5 . |" ..
+                "f5*2 a5*2 c6*2 f6*2 .*8",
+         bass = oompah("f2", "c3") .. oompah("c3", "g2") .. oompah("bb2", "f2") .. oompah("c3", "g2"),
+         drums = "k*2 s*2 k*2 s*2"},
+    -- sneaking up on the turkey: tiptoe
+    C = {lead = "c5*4 .*4 eb5*4 .*4 | d5*4 .*4 c5*4 .*4 | bb4*4 .*4 d5*4 .*4 | c5*16",
+         bass = "f2*4 .*12 | f2*4 .*12 | bb1*4 .*12 | c2*4 .*12",
+         drums = "k*4 .*12"},
   },
-  order = {"A", "A", "A+2", "A"},
+  order = {"A", "A", "B", "A", "C", "B", "A+2", "B+2", "C", "A+2", "B", "A"},
 }
 
 M.tg_grateful = {
@@ -848,8 +857,14 @@ M.tg_grateful = {
     A = {lead = "f#4*8 a4*4 d5*4 | e5*12 d5*4 | b4*8 a4*4 g4*4 | a4*16 | f#4*8 a4*4 d5*4 | g5*12 f#5*4 | e5*8 d5*4 c#5*4 | d5*16",
          arp = "D*16 A*16 G*16 A*16 D*16 G*16 A*16 D*16", pad = "D*16 A*16 G*16 A*16 D*16 G*16 A*16 D*16",
          bass = "d3*16 | a2*16 | g2*16 | a2*16 | d3*16 | g2*16 | a2*16 | d3*16"},
+    B = {lead = "b4*8 d5*4 g5*4 | f#5*12 e5*4 | d5*8 e5*4 f#5*4 | e5*16 | b4*8 d5*4 g5*4 | a5*12 g5*4 | f#5*8 e5*4 c#5*4 | d5*16",
+         arp = "G*16 D*16 Bm*16 A*16 G*16 D*16 A*16 D*16", pad = "G*16 D*16 Bm*16 A*16 G*16 D*16 A*16 D*16",
+         bass = "g2*16 | d3*16 | b2*16 | a2*16 | g2*16 | d3*16 | a2*16 | d3*16"},
+    C = {lead = "d5*8 c#5*4 b4*4 | a4*12 f#4*4 | g4*8 a4*4 b4*4 | a4*16 | d5*8 e5*4 f#5*4 | g5*8 f#5*4 e5*4 | f#5*8 e5*4 c#5*4 | d5*16",
+         arp = "Bm*16 F#m*16 G*16 A*16 Bm*16 G*16 A*16 D*16", pad = "Bm*16 F#m*16 G*16 A*16 Bm*16 G*16 A*16 D*16",
+         bass = "b2*16 | f#2*16 | g2*16 | a2*16 | b2*16 | g2*16 | a2*16 | d3*16"},
   },
-  order = {"A", "A"},
+  order = {"A", "B", "A", "C", "B", "A"},
 }
 
 M.tg_football = {
@@ -877,8 +892,13 @@ M.tg_pie = {
     B = {lead = "b5*2 a5*2 g5*2 f#5*2 | e5*2 g5*2 c6*4 | a5*2 g5*2 f#5*2 e5*2 | d5*4 .*4",
          chord = ".*2 G*2 .*2 G*2 | .*2 C*2 .*2 C*2 | .*2 D7*2 .*2 D7*2 | .*2 G*2 .*2 G*2",
          bass = "g2*2 .*2 d3*2 .*2 | c3*2 .*2 g2*2 .*2 | d3*2 .*2 a2*2 .*2 | g2*2 .*2 d3*2 .*2", drums = "k*2 s?*2 k*2 s?*2"},
+    -- the last slice: a little tango of who gets it
+    C = {lead = "e5*3 e5 d#5*2 e5*2 | c5*4 a4*4 | f#5*3 f#5 e5*2 f#5*2 | d5*4 b4*4",
+         chord = ".*2 Am*2 .*2 Am*2 | .*2 Am*2 .*2 Am*2 | .*2 D7*2 .*2 D7*2 | .*2 G*2 .*2 G*2",
+         bass = "a2*3 a2 .*2 e3*2 | a2*2 .*2 e3*2 .*2 | d3*3 d3 .*2 a2*2 | g2*2 .*2 d3*2 .*2",
+         drums = "k*3 k s*2 k*2"},
   },
-  order = {"A", "A", "B", "A", "A+5", "B+5", "A"},
+  order = {"A", "A", "B", "A", "C", "C", "A+5", "B+5", "C", "A"},
 }
 
 -- ------------------------------------------------------------------ Christmas (christmas.lua): public-domain

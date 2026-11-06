@@ -19,4 +19,4 @@ A notebook has these sections, newest round first:
 ## Ideas       not done yet, each tagged with what it fixes (S/H/L/A/D/C/G/F/M/X) and its cost (S/M/L)
 ```
 
-Notebooks: [texas](texas.md), [longhorns](longhorns.md), [summer](summer.md), [space](space.md) (Mission Control).
+Notebooks: [texas](texas.md), [longhorns](longhorns.md), [summer](summer.md), [space](space.md) (Mission Control), [thanksgiving](thanksgiving.md).
