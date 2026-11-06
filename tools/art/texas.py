@@ -200,9 +200,9 @@ def donuts():
     label(p, 384, 380, "ROUND ROCK", 40, "#d86a18", font="serif")
     p.fill_rect(104, 420, 560, 360, p.lin(0, 420, 0, 780, [(0, "#ffffff"), (1, "#e8e2d8")]), r=14)
     p.fill_rect(116, 432, 536, 336, "#f6efe2", r=10)
-    # six glazed donuts: dough, the glaze running, its shine, the hole
+    # (the six glazed donuts are live: eaten one by one)
     r = rng(60)
-    for row in range(2):
+    for row in range(0):
         for c in range(3):
             x, y = 210 + c * 174, 520 + row * 160
             p.ellipse(x + 4, y + 8, 76, 64, hexc("#7a4a20", 0.25))
@@ -538,7 +538,8 @@ def bbq():
     p.poly([(70, 560), (700, 520), (720, 920), (60, 960)], p.lin(0, 520, 0, 960, [(0, "#e2c294"), (1, "#c8a070")]))
     for i in range(10):
         p.line([(80 + i * 64, 556 - i * 4), (70 + i * 66, 950 - i * 4)], hexc("#8a6a40", 0.15), 2)
-    for i in range(6):
+    # (the brisket is live: sliced, served)
+    for i in range(0):
         x, y = 140 + i * 58, 640 + i * 4
         p.fill_rect(x - 2, y - 2, 54, 124, hexc("#1a0a04", 0.4), r=7)
         p.fill_rect(x, y, 50, 120, "#1e1008", r=6)
