@@ -255,8 +255,44 @@ function D.house(lt, len)
       local who = (i - 1) % 5
       lg.setColor(0.05, 0.02, 0.05, 0.85)
       local sx = HX + w[1] + 17 + sin(S.t * 2 + i) * 6
-      if who == 0 then lg.arc("fill", "pie", sx, HY + w[2] + 30, 12, 0.5, 2 * pi - 0.5, 14)
-      else lg.arc("fill", "pie", sx, HY + w[2] + 28, 11, pi, 2 * pi, 12) lg.rectangle("fill", sx - 11, HY + w[2] + 28, 22, 12) end
+      local jump = (lt > t0 + 1.6 and lt < t0 + 2.4) and 8 or 0
+      if who == 0 then lg.arc("fill", "pie", sx, HY + w[2] + 30 - jump, 12, 0.5, 2 * pi - 0.5, 14)
+      else lg.arc("fill", "pie", sx, HY + w[2] + 28 - jump, 11, pi, 2 * pi, 12) lg.rectangle("fill", sx - 11, HY + w[2] + 28 - jump, 22, 12) end
+    end
+  end
+  -- what's in each room when they light it: out it comes (a bat, a ghost-sheet, a skull, a bat...) at the window
+  for i, w in ipairs(WINDOWS) do
+    local t0 = INSIDE[1] + (i - 1) * 3.2 + 1.4
+    local f = (lt - t0) / 1.2
+    if f > 0 and f < 1 then
+      local cx, cy = HX + w[1] + 17 + f * (i % 2 == 0 and 60 or -60), HY + w[2] + 22 - f * 40
+      local sc = 0.4 + f * 1.8
+      lg.push()
+      lg.translate(cx, cy)
+      lg.scale(sc, sc)
+      local kind = i % 3
+      if kind == 1 then                            -- a bat
+        local fl = sin(S.t * 30) * 10
+        lg.setColor(0.05, 0.02, 0.06, 1)
+        lg.ellipse("fill", 0, 0, 8, 6, 10)
+        lg.polygon("fill", 0, 0, -26, -8 - fl, -14, 6)
+        lg.polygon("fill", 0, 0, 26, -8 - fl, 14, 6)
+        lg.setColor(1, 0.2, 0.2, 1)
+        lg.circle("fill", -3, -2, 1.5, 6) lg.circle("fill", 3, -2, 1.5, 6)
+      elseif kind == 2 then                        -- a sheet ghost, waving
+        lg.setColor(0.95, 0.95, 1, 0.9)
+        lg.arc("fill", "pie", 0, 0, 14, pi, 2 * pi, 12)
+        lg.rectangle("fill", -14, 0, 28, 16)
+        lg.setColor(0, 0, 0, 1)
+        lg.circle("fill", -5, -3, 2.5, 6) lg.circle("fill", 5, -3, 2.5, 6)
+      else                                         -- a grinning skull
+        lg.setColor(0.95, 0.93, 0.85, 1)
+        lg.circle("fill", 0, -2, 12, 14)
+        lg.rectangle("fill", -6, 6, 12, 7, 2, 2, 4)
+        lg.setColor(0, 0, 0, 1)
+        lg.circle("fill", -4.5, -3, 3, 6) lg.circle("fill", 4.5, -3, 3, 6)
+      end
+      lg.pop()
     end
   end
   -- the scream: every window flashing at once
@@ -325,7 +361,7 @@ CAM.house = function(lt)
   local keys = {{0, 384, 512, 1}, {18, walker(18, 2) + 40, 610, 1.45}, {22, DOOR[1], DOOR[2] - 20, 1.9}, {27, DOOR[1], DOOR[2] - 20, 1.9},
                 {INSIDE[1], HX, HY - 120, 1.35}}
   for i, w in ipairs(WINDOWS) do
-    keys[#keys + 1] = {INSIDE[1] + (i - 1) * 3.2 + 0.5, HX + w[1] + 17, HY + w[2] + 22, 2.0}
+    keys[#keys + 1] = {INSIDE[1] + (i - 1) * 3.2 + 0.5, HX + w[1] + 17, HY + w[2] + 22, 2.4}
   end
   for _, k in ipairs({{49, HX, HY - 100, 1.15}, {52, HX, HY + 100, 1.1}, {54.5, DOOR[1] + 20, DOOR[2], 2.2}, {60, DOOR[1] + 20, DOOR[2], 2.2},
                       {62.5, 400, 820, 1.5}, {74, 360, 840, 1.5}, {80, 384, 640, 1.1}}) do keys[#keys + 1] = k end
@@ -334,7 +370,10 @@ CAM.house = function(lt)
 end
 CUES.house = {{8, "thunder"}, {21, "thunder"}, {44, "thunder"}, {23, "boo", 0.5}, {49, "boo"}, {49.2, "boom", 0.4}, {52, "whoosh"},
               {57, "boing", 0.5}, {69.5, "boing"}, {71, "boo"}, {71.2, "whoosh"}}
-for i = 1, #WINDOWS do CUES.house[#CUES.house + 1] = {INSIDE[1] + (i - 1) * 3.2, "clunk", 0.4} end
+for i = 1, #WINDOWS do
+  CUES.house[#CUES.house + 1] = {INSIDE[1] + (i - 1) * 3.2, "clunk", 0.4}
+  CUES.house[#CUES.house + 1] = {INSIDE[1] + (i - 1) * 3.2 + 1.4, i % 3 == 1 and "screech" or (i % 3 == 2 and "boo" or "boing"), 0.35}
+end
 
 -- ------------------------------------------------------------------ pumpkin carving
 local FACES = {"pac", "tri", "ghost", "tri", "tri", "pac"}
@@ -357,9 +396,12 @@ function D.pumpkins(lt, len)
     local lit = lt > LIGHT_T + (i - 1) * 1.2 and k >= 1
     -- Clyde's (the fifth) caves in when it's done... and gets a new lid
     local squash = (i == 5 and lt > t0 + 6 and lt < t0 + 9) and 0.75 or 1
+    -- the reveal: each finished one turned round to face us (spun on the table), with a hop
+    local spin = (lt > t0 + 5.6 and lt < t0 + 6.8) and cos((lt - t0 - 5.6) / 1.2 * 2 * pi) or 1
+    local reveal_hop = (lt > t0 + 6.2 and lt < t0 + 7) and L.hop(lt - t0 - 6.2, 0.8, 40) or 0
     lg.push()
-    lg.translate(x, y + 90 * (1 - squash))
-    lg.scale(1, squash)
+    lg.translate(x, y + 90 * (1 - squash) - reveal_hop)
+    lg.scale(spin, squash)
     lg.setColor(1, 0.5, 0.05, 1)
     pumpkin(0, 0, 90, k > 0 and {FACES[i], k} or nil, lit, S.t)
     lg.pop()
@@ -367,7 +409,8 @@ function D.pumpkins(lt, len)
     local who = CARVER[i]
     local cx = x + 110
     if lt > t0 - 1 and lt < t0 + 7 then
-      guest(who, cx, y + 40, 30, -1, 0, (i == 5 and lt > t0 + 6) and "wide" or nil, nil)
+      local proud = lt > t0 + 6 and i ~= 5
+      guest(who, cx, y + 40 - (proud and L.hop(lt, 0.4, 16) or 0), 38, -1, 0, (i == 5 and lt > t0 + 6) and "wide" or (proud and "happy" or nil), nil)
       if lt < t0 + 1.5 then
         lg.setColor(0.4, 0.25, 0.1, 1)
         lg.rectangle("fill", x - 10, y - 140 - (lt - t0) * 30, 20, 20)
@@ -407,6 +450,7 @@ CAM.pumpkins = function(lt)
   return L.shot(lt, keys, W, H)
 end
 CUES.pumpkins = {{carve_t(5) + 6, "boing"}, {LIGHT_T - 2, "clunk"}, {LIGHT_T + 8, "cheer"}}
+for i = 1, 6 do CUES.pumpkins[#CUES.pumpkins + 1] = {carve_t(i) + 5.6, "whoosh", 0.4} end
 for i = 1, 6 do
   CUES.pumpkins[#CUES.pumpkins + 1] = {carve_t(i) + 0.5, "pop", 0.4}
   CUES.pumpkins[#CUES.pumpkins + 1] = {carve_t(i) + 6, "ding", 0.5}
@@ -820,6 +864,7 @@ CAM.dark = function(lt)
   return x, y, z, (lt > 54 and lt < 54.6) and 10 or 0
 end
 CUES.dark = {{54, "boo"}, {54.1, "boom", 0.5}}
+for t = 4, 52, 6 do CUES.dark[#CUES.dark + 1] = {t, t % 12 == 4 and "boo" or "whoosh", 0.25} end
 
 -- ------------------------------------------------------------------ HAPPY HALLOWEEN
 function D.finale(lt, len)
