@@ -661,7 +661,7 @@ M.lh_gameday = {
          pad = "F*16 C*16 Dm*16 Bb*16 F*16 C*16 Bb*8 C*8 F*16", bass = "f2*16 c2*16 d2*16 bb1*16 f2*16 c2*16 bb1*8 c2*8 f2*16",
          drums = "k*8 s?*8"},
   },
-  order = {"A", "B"},
+  order = {"A", "B", "A+2", "B+2"},
 }
 
 M.lh_march = {
@@ -1026,7 +1026,7 @@ M.hw_pumpkin = {
     A = {lead = "e5 . g5 . b5 . e5 . d#5*4 b4*4 | e5 . g5 . c6 . b5 . a5*4 f#5*4 | g5 . e5 . c5 . e5 . b4*4 d#5*4 | e5*8 .*8",
          bass = "e2*4 b2*4 b1*4 b2*4 | c3*4 g2*4 b1*4 d#2*4 | c3*4 e2*4 b1*4 f#2*4 | e2*4 b2*4 e2*8", drums = "k*4 s?*4"},
   },
-  order = {"A", "A", "A+5", "A"},
+  order = {"A", "A", "A+5", "A", "A+2", "A+7", "A+2", "A"},
 }
 
 local MOUNTAIN = "b3*2 c#4*2 d4*2 e4*2 f#4*2 d4*2 f#4*4 | f4*2 c#4*2 f4*4 e4*2 c4*2 e4*4 |" ..
@@ -1052,7 +1052,7 @@ M.hw_skeleton = {
     A = {lead = "a4 c5 e5 a5 g5*2 e5*2 | f5 a5 c6 a5 g5*4 | e5 g#5 b5 e6 d6*2 b5*2 | a5*8",
          bass = "a2*2 c3*2 e3*2 g3*2 | f2*2 a2*2 c3*2 e3*2 | e2*2 g#2*2 b2*2 d3*2 | a2*2 e2*2 a2*4", drums = "k h s h"},
   },
-  order = {"A", "A", "A+5", "A", "A", "A+5"},
+  order = {"A", "A", "A+5", "A", "A+2", "A+7", "A+2", "A"},
 }
 
 M.hw_witch = {
@@ -1063,7 +1063,7 @@ M.hw_witch = {
          chord = ".*4 Dm*4 Dm*4 | .*4 Dm*4 Dm*4 | .*4 C*4 C*4 | .*4 F*4 F*4 | .*4 C*4 C*4 | .*4 Gm*4 Gm*4 | .*4 Dm*4 Dm*4 | .*4 A*4 A*4",
          bass = "d2*12 | a1*12 | c2*12 | f2*12 | c2*12 | g1*12 | d2*12 | a1*12"},
   },
-  order = {"A", "A"},
+  order = {"A", "A", "A+2", "A+2", "A+4", "A"},
 }
 
 M.hw_dark = {
@@ -1072,7 +1072,7 @@ M.hw_dark = {
   parts = {
     A = {pad = "Dm*32 | C#dim7*32", drums = "k*2 .*2 k?*2 .*10", ping = ".*24 g#6*4 .*36 | .*8 f6*4 .*20 d6*4 .*28"},
   },
-  order = {"A"},
+  order = {"A", "A+3", "A+5", "A"},
 }
 
 M.hw_finale = {
@@ -1120,7 +1120,7 @@ M.ny_rag = {
          chord = ".*4 C*4 .*4 C*4 | .*4 Dm*4 .*4 Dm*4 | .*4 C*4 .*4 G7*4 | .*4 G7*4 .*4 C*4",
          bass = "c2*4 .*4 g2*4 .*4 | d2*4 .*4 a2*4 .*4 | c2*4 .*4 g2*4 .*4 | g2*4 .*4 c2*4 .*4", drums = "k*4 s?*4"},
   },
-  order = {"A", "A", "A+5", "A"},
+  order = {"A", "A", "A+5", "A", "A+2", "A+7"},
 }
 
 M.ny_countdown = {
@@ -1392,7 +1392,7 @@ M.ve_chase = {
          bass = eights("a2", "a3") .. eights("g2", "g3") .. eights("f2", "f3") .. eights("e2", "e3"),
          drums = "k*2 h*2 s*2 h*2 k*2 h*2 s*2 h*2"},
   },
-  order = {"A", "A", "A+3", "A"},
+  order = {"A", "A", "A+3", "A", "A+5", "A+3"},
 }
 
 M.ve_bubble = {
@@ -1486,7 +1486,7 @@ M.eg_dye = {
          chord = ".*4 F*4 .*4 F*4 | .*4 C7*4 .*4 F*4 | .*4 Dm*4 .*4 C7*4 | .*4 C7*4 .*4 F*4",
          bass = oompah("f2", "c3") .. oompah("c3", "g2") .. oompah("d3", "a2") .. "c3*4 g2*4 f2*8 ", drums = "k*4 s*4 k*4 s*4"},
   },
-  order = {"A", "A+2", "A"},
+  order = {"A", "A+2", "A", "A+5", "A+7", "A"},
 }
 
 M.eg_hop = {
@@ -1497,7 +1497,7 @@ M.eg_hop = {
          chord = ".*4 D*4 .*4 D*4 | .*4 D*4 .*4 A7*4 | .*4 A7*4 .*4 A7*4 | .*4 A7*4 .*4 D*4",
          bass = oompah("d3", "a2") .. oompah("d3", "a2") .. oompah("a2", "e2") .. oompah("a2", "d3"), drums = "k*4 s*4 k*4 s*4"},
   },
-  order = {"A", "A", "A+2", "A"},
+  order = {"A", "A", "A+2", "A", "A+5", "A+7"},
 }
 
 M.eg_cascarones = {
@@ -1509,7 +1509,7 @@ M.eg_cascarones = {
          bass = "c2*6 g2*2 c2*4 g1*4 | d2*6 a2*2 d2*4 a1*4 | g1*6 d2*2 g1*4 d2*4 | c2*6 g2*2 c2*4 g1*4",
          drums = "k h x h k h x h k h x h k h x h"},
   },
-  order = {"A", "A", "A+2", "A"},
+  order = {"A", "A", "A+2", "A", "A+5", "A+7", "A+5", "A"},
 }
 
 M.eg_secret = {
@@ -1537,7 +1537,7 @@ M.lh_board = {
          bass = oompah("bb2", "f2") .. oompah("f2", "c3") .. oompah("eb2", "bb2") .. oompah("f2", "c3"),
          drums = "k*2 s?*2 s*2 s?*2 k*2 s?*2 s!*2 s?*2 | k*2 s?*2 s*2 s?*2 k*2 s?*2 s!*2 s?*2 | k*2 s?*2 s*2 s?*2 k*2 s?*2 s!*2 s?*2 | k*2 s s s! s! s s s! s! c*4 .*2"},
   },
-  order = {"A", "A", "B", "A"},
+  order = {"A", "A", "B", "A", "A+2", "B+2", "A+2"},
 }
 
 M.lh_legends = {
