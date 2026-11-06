@@ -218,6 +218,14 @@ function D.candy(lt, len)
   lg.rectangle("fill", 196, 450, 14, 380, 6, 6, 4)
   lg.setColor(0.85, 0.3, 0.45, 1)
   lg.rectangle("fill", 200, 396, 368, 30, 8, 8, 4)
+  local sn = lt % 16
+  if sn > 9 and sn < 14 then
+    local f = (sn - 9) / 5
+    local px = lerp(-60, 300, math.min(f * 2, 1))
+    if f > 0.6 then px = lerp(300, -60, (f - 0.6) / 0.4) end
+    C.fx.chomper(px, 820, 40, f > 0.6 and -1 or 1, S.t, 1)
+    if f > 0.45 and f < 0.6 then G:say("JUST ONE...", px, 760, 22, 1) end
+  end
   -- the newest one, close up
   local i = min(floor(lt / 4) + 1, n)
   local h = S.candy[i]
@@ -252,6 +260,9 @@ function D.card(lt, len)
   local bx = lerp(-80, 360, ease(lt / 16))
   local tremble = lt < 30 and sin(S.t * 30) * 2 or 0
   local by = 800 + sin(S.t * 2) * 6
+  local trip = lt > 7 and lt < 10.5
+  if trip then by = 800 + sin(clamp((lt - 7) / 0.5, 0, 1) * pi / 2) * 24 * (1 - clamp((lt - 9.5), 0, 1)) end
+  S.card_bx, S.card_by = bx, by
   local open = clamp((lt - 22) / 3, 0, 1)
   local px = lerp(570, 520, open)
   C.fx.ghost(bx + tremble, by, 44, GHOSTS[1], 1, S.t, false, false, 1)
@@ -259,6 +270,10 @@ function D.card(lt, len)
   -- the card: offered, then read
   local read = clamp((lt - 30) / 2, 0, 1)
   local cx, cy = lerp(bx + 60, 384, read), lerp(by - 10, 360, read)
+  if trip then
+    local f = clamp((lt - 7.2) / 2.3, 0, 1)
+    cx, cy = lerp(bx + 60, bx + 70, f), by - 10 - sin(f * pi) * 260
+  end
   local cw = lerp(60, 380, read)
   lg.setColor(1, 0.95, 0.97, 1)
   lg.rectangle("fill", cx - cw / 2, cy - cw * 0.35, cw, cw * 0.7, 6, 6, 4)
@@ -270,11 +285,16 @@ function D.card(lt, len)
     G:text("WILL YOU BE MY PLAYER 2?", cx - 180, cy + 30, 22, {0.8, 0.2, 0.35}, 1, "center", 360)
     G:text("- B.", cx - 180, cy + 70, 18, {0.5, 0.3, 0.4}, 1, "right", 340)
   end
+  if trip and lt > 7.3 and lt < 9.5 then G:say("WHOA!", bx, by - 70, 24, 1) end
+  if lt > 17 and lt < 21.5 then
+    G:say(lt < 19.2 and "KNOCK KNOCK..." or "AHEM.", lt < 19.2 and 570 or bx, (lt < 19.2 and 600 or by - 70), 22, 1)
+  end
+  if lt > 25 and lt < 29 then G:say("FOR ME?", px, 730, 24, 1) end
   if lt > 42 then
     local a = clamp((lt - 42) / 2, 0, 1)
     blush(bx, by, 44, a)
     blush(px, 800, 44, a)
-    G:plate("SHE SAID YES", 160, 34, 0xff6fa8, L.window(lt, 44, len - 2, 1))
+    G:plate("SHE SAID YES", 900, 34, 0xff6fa8, L.window(lt, 44, len - 2, 1))
     for i = 1, 6 do
       local k = ((S.t * 0.4 + i / 6) % 1)
       lg.setColor(1, 0.3, 0.5, 1 - k)
@@ -337,7 +357,8 @@ function D.diner(lt, len)
   lg.rectangle("fill", 370, 814, 28, 90)
   end
   -- the milkshake, two straws
-  local level = 1 - clamp(lt / (len - 10), 0, 0.85)
+  local level = 1 - clamp(lt / (len - 14), 0, 0.92)
+  local turn = floor(lt / 3) % 2
   lg.setColor(0.9, 0.9, 0.95, 0.6)
   lg.polygon("fill", 344, 680, 424, 680, 410, 790, 358, 790)
   lg.setColor(1, 0.7, 0.8, 1)
@@ -346,7 +367,20 @@ function D.diner(lt, len)
   lg.setColor(1, 1, 1, 1)
   lg.circle("fill", 384, top - 4, 22, 16)
   lg.setColor(0.9, 0.1, 0.2, 1)
-  lg.circle("fill", 384, top - 26, 8, 10)
+  if lt < len - 12 then
+    lg.circle("fill", 384, top - 26, 8, 10)
+  else
+    local f = clamp((lt - (len - 12)) / 1.2, 0, 1)
+    lg.arc("fill", "pie", lerp(384, 250, f), lerp(top - 26, 720, f), 8, pi / 2, 3 * pi / 2, 8)
+    lg.arc("fill", "pie", lerp(384, 518, f), lerp(top - 26, 720, f), 8, -pi / 2, pi / 2, 8)
+  end
+  for k = 0, 2 do
+    local f = (S.t * 2 + k / 3) % 1
+    lg.setColor(1, 0.85, 0.9, 0.8)
+    if turn == 0 then lg.circle("fill", lerp(372, 300, f), lerp(top, 660, f), 4, 6)
+    else lg.circle("fill", lerp(396, 470, f), lerp(top, 660, f), 4, 6) end
+  end
+  lg.setColor(1, 1, 1, 1)
   lg.setLineWidth(5)
   lg.setColor(1, 0.4, 0.6, 1)
   lg.line(372, top, 330, 640, 272, 700)
@@ -358,9 +392,9 @@ function D.diner(lt, len)
     lg.setColor(1, 0.5, 0.7, (1 - k) * 0.9)
     heart(384 + sin(i * 3 + S.t) * 80, 660 - k * 260, 10 + (i % 3) * 4)
   end
-  if peek > 1 and peek < 6 then
-    G:text("AWWW", 80, 450, 30, {0.85, 0.95, 1}, 0.8, "center", 200)
-  end
+  if peek > 1 and peek < 6 then G:say("AWWW!", 180, 470, 24, 1) end
+  if lt > len - 11 and lt < len - 7 then G:say("HALF FOR YOU.", 548, 650, 22, 1) end
+  if lt > 30 and lt < 33 then G:say("SLUUURP!", turn == 0 and 220 or 548, 650, 22, 1) end
 end
 
 local function heart_pt(u, cx, cy, sc)
@@ -369,12 +403,26 @@ local function heart_pt(u, cx, cy, sc)
   return cx + x * sc, cy - y * sc
 end
 
+-- the dots go round twice: the second time the ghosts chase them round (59 s later)
+-- (each round: eaten from 3 s to 27 s, the meeting at 27; the second round starts at 46)
+local function dots_t(lt) if lt < 46 then return lt, 1 end return lt - 43, 2 end
 function D.dots(lt, len)
   lg.setColor(0, 0, 0, 1)
   lg.rectangle("fill", 0, 0, W, H)
+  local round
+  lt, round = dots_t(lt)
   local cx, cy, sc = 384, 470, 19
-  local eat = clamp((lt - 3) / 40, 0, 1)
-  local done = lt - 43
+  -- round two: in a maze, its walls drawing themselves in
+  if round == 2 then
+    local m = clamp(lt / 4, 0, 1)
+    lg.setColor(0.2, 0.3, 1, 1)
+    lg.setLineWidth(6)
+    for k, r in ipairs({{40, 90, 688, 780}, {90, 160, 120, 90}, {558, 160, 120, 90}, {90, 820, 180, 60}, {498, 820, 180, 60}}) do
+      if m * 5 >= k - 1 then lg.rectangle("line", r[1], r[2], r[3] * min(1, m * 5 - (k - 1)), r[4], 16, 16, 8) end
+    end
+  end
+  local eat = clamp((lt - 3) / 24, 0, 1)
+  local done = lt - 27
   -- the big heart filling once they meet
   if done > 0 then
     local k = ease(done / 2)
@@ -387,6 +435,15 @@ function D.dots(lt, len)
     G:text("PLAYER 1", cx - 200, cy - 80, 34, {1, 1, 1}, k, "center", 400)
     G:text("+", cx - 200, cy - 30, 34, {1, 1, 1}, k, "center", 400)
     G:text("PLAYER 2", cx - 200, cy + 20, 34, {1, 1, 1}, k, "center", 400)
+  end
+  -- the heart filling in behind them as they eat, from the top down
+  if done <= 0 and eat > 0 then
+    lg.setColor(RED[1], RED[2], RED[3], 0.12 + 0.5 * eat)
+    lg.push()
+    lg.translate(cx, cy + 20)
+    lg.scale(0.2 + 0.8 * eat)
+    heart(0, -60, 250)
+    lg.pop()
   end
   -- the dots: the right half for him, the left for her
   local N = 36
@@ -409,21 +466,98 @@ function D.dots(lt, len)
     local dir = x >= xa and 1 or -1
     C.fx.chomper(x, y, 26, dir, S.t, 1)
     ms(2 * cx - x, y, 26, -dir, S.t, 1)
+    if round == 2 and u > 0.35 then
+      -- the ghosts chasing; at the power pellet (half way) they turn blue and run back the other way
+      local scared = u > pi / 2
+      local gu = scared and max(0, u - 0.3 - (u - pi / 2) * 2) or u - 0.3
+      local gx, gy = heart_pt(gu, cx, cy, sc)
+      local blink = scared and u > 2.6 and floor(S.t * 6) % 2 == 0
+      C.fx.ghost(gx, gy, 24, GHOSTS[1], scared and -dir or dir, S.t, scared, blink, 1)
+      C.fx.ghost(2 * cx - gx, gy, 24, GHOSTS[2], scared and dir or -dir, S.t, scared, blink, 1)
+      if not scared and u > 1.1 then G:say("GOTCHA SOON!", gx, gy - 50, 20, 1) end
+      if scared and u < 2 then G:say("EEK!", gx, gy - 50, 22, 1) end
+    end
   else
     local x, y = heart_pt(pi, cx, cy, sc)
-    C.fx.chomper(x - 34, y + 30, 26, 1, 0, 1)
-    ms(x + 34, y + 30, 26, -1, 0, 1)
+    local hop = done > 3 and abs(sin(S.t * 4)) * 20 or 0
+    C.fx.chomper(x - 34, y + 30 - hop, 26, 1, done > 3 and S.t or 0, 1)
+    ms(x + 34, y + 30 - hop, 26, -1, done > 3 and S.t or 0, 1)
+    -- everyone round them
+    local a = clamp(done / 3, 0, 1)
+    for i = 1, 4 do
+      C.fx.ghost(x + (i <= 2 and -1 or 1) * (60 + (i % 2) * 70), y + 40 - abs(sin(S.t * 4 + i)) * 16, 24, GHOSTS[i], i <= 2 and 1 or -1, S.t + i, false, false, a)
+    end
   end
 end
+
+local CAM = {}
+CAM.meet = function(lt)
+  local c = lt % 24
+  return L.shot(c, {{0, 384, 560, 1.15}, {7, 384, 560, 1.5}, {9, 384, 470, 1.7}, {14, 384, 470, 1.6}, {20, 384, 540, 1.2}}, W, H)
+end
+CAM.candy = function(lt)
+  local c = lt % 8
+  return L.shot(c, {{0, 384, 300, 1.4}, {3, 384, 260, 1.5}, {4, 384, 640, 1.2}, {7, 384, 700, 1.4}, {8, 384, 300, 1.4}}, W, H)
+end
+CAM.card = function(lt)
+  local bx, by = S.card_bx or 0, S.card_by or 800
+  if lt < 16 then return L.shot(0, {{0, bx + 60, by - 80, 1.5}}, W, H) end
+  return L.shot(lt, {{16, 420, 720, 1.4}, {22, 520, 720, 1.5}, {28, 470, 740, 1.3}, {30, 384, 520, 1.1}, {32, 384, 420, 1.45},
+                     {41, 384, 420, 1.45}, {44, 440, 760, 1.4}, {58, 440, 700, 1.15}, {70, 384, 512, 1}}, W, H)
+end
+CAM.diner = function(lt)
+  local turn = floor(lt / 3) % 2
+  local peek = lt % 20
+  if lt < 9.5 then return L.shot(0, {{0, 384, 512, 1}}, W, H) end
+  if peek > 1 and peek < 6 then return L.shot(0, {{0, 384, 560, 1.15}}, W, H) end
+  return L.shot(0, {{0, turn == 0 and 300 or 468, 720, 1.55}}, W, H)
+end
+CAM.dots = function(lt)
+  lt = dots_t(lt)
+  if lt > 3 and lt < 27 then
+    local u = clamp((lt - 3) / 24, 0, 1) * pi
+    local x, y = heart_pt(u, 384, 470, 19)
+    -- following him, then her, in turns (eased across)
+    local side = sin((lt - 3) / 6 * pi)
+    local fx = 384 + (x - 384) * clamp(side * 3, -1, 1)
+    return L.shot(0, {{0, lerp(384, fx, 0.8), lerp(470, y, 0.8), 1.8}}, W, H)
+  end
+  return L.shot(lt, {{0, 384, 512, 1}, {27, 384, 512, 1.2}, {30, 384, 500, 1}, {38, 384, 700, 1.5}, {46, 384, 512, 1},
+                     {60, 384, 512, 1}, {66, 384, 720, 1.6}, {72, 384, 400, 1.2}, {78, 384, 720, 1.5}, {84, 384, 512, 1}}, W, H)
+end
+CAM.finale = function(lt) return L.shot(lt, {{0, 384, 512, 1}, {6, 384, 540, 1.08}, {24, 384, 540, 1.08}, {28, 440, 530, 1.06}, {36, 384, 512, 1}}, W, H) end
 
 function D.finale(lt, len)
   sky_night()
   floaters(1)
   lg.setColor(RED[1], RED[2], RED[3], 1)
   heart(384, 300, 110 * (1 + 0.05 * sin(S.t * 6)))
-  C.fx.chomper(300, 730, 40, 1, 0, 1)
-  ms(468, 730, 40, -1, 0, 1)
-  for i = 1, 4 do C.fx.ghost(120 + (i - 1) * 176, 880 + sin(S.t * 2 + i) * 4, 30, GHOSTS[i], i <= 2 and 1 or -1, S.t + i, false, false, 1) end
+  -- the two of them: a little dance (round each other), then off together, the hearts trailing
+  local px, mx, py = 300, 468, 760
+  if lt > 14 and lt < 24 then
+    local a2 = (lt - 14) * 2
+    px, mx = 384 - cos(a2) * 84, 384 + cos(a2) * 84
+    py = 760 + sin(a2) * 30
+  end
+  if lt > 26 then
+    local f = clamp((lt - 26) / 10, 0, 1)
+    px, mx = lerp(300, W + 120, f), lerp(468, W + 200, f)
+  end
+  C.fx.chomper(px, py, 40, 1, lt > 26 and S.t or 0, 1)
+  ms(mx, lt > 14 and lt < 24 and 760 - sin((lt - 14) * 2) * 30 or 760, 40, lt > 26 and 1 or -1, lt > 26 and S.t or 0, 1)
+  if lt > 26 then
+    for k = 1, 6 do
+      local f = (S.t * 0.8 + k / 6) % 1
+      lg.setColor(PINK[1], PINK[2], PINK[3], 1 - f)
+      heart((px + mx) / 2 - f * 160, 700 - f * 120, 10 + k % 3 * 4)
+    end
+  end
+  for i = 1, 4 do
+    local throw = lt > 6 and lt < 12
+    C.fx.ghost(120 + (i - 1) * 176, 880 + sin(S.t * 2 + i) * 4 - (throw and abs(sin(S.t * 8 + i)) * 24 or 0), 30, GHOSTS[i], i <= 2 and 1 or -1, S.t + i, false, false, 1)
+  end
+  if lt > 6 and lt < 12 then G:confetti(2, {PINK, RED, {1, 1, 1}}) end
+  if lt > 30 and lt < 34 then G:say("PLAYER 2, READY!", 600, 660, 22, 1) end
   G:caption("HAPPY", 480, 50, 0xffffff, L.window(lt, 0.5, len, 1))
   G:caption("VALENTINE'S DAY", 560, 64, 0xff6fa8, L.window(lt, 1, len, 1))
 end
@@ -484,10 +618,21 @@ function M.update(dt)
   elseif sc[2] == "card" then
     if G:at(SCENES[4][1] + 44) then C.sfx("cheer", 0.6) end
   elseif sc[2] == "dots" then
-    local done = lt - 43
+    lt = dots_t(lt)
+    local done = lt - 27
+    -- a little heart up out of each dot as it goes
+    local N = 36
+    local e0, e1 = clamp((lt - dt - 3) / 24, 0, 1), clamp((lt - 3) / 24, 0, 1)
+    if floor(e1 * N) ~= floor(e0 * N) and e1 < 1 then
+      local x, y = heart_pt(e1 * pi, 384, 470, 19)
+      for _, xx in ipairs({x, 768 - x}) do
+        G:spark(xx, y, (G.R:random() - 0.5) * 60, -120, 0.9, PINK, 10, 0, true)
+      end
+      C.sfx("tick", 0.3)
+    end
     if done >= 0 and done - dt < 0 then C.sfx("power") end
     if done > 3 and (lt * 2) % 3 < dt * 2 then
-      G:firework(120 + G.R:random() * 528, 160 + G.R:random() * 300, false, {PINK, RED, {1, 1, 1}})
+      G:firework(120 + G.R:random() * 528, 160 + G.R:random() * 300, S.t > 290 + 75, {PINK, RED, {1, 1, 1}})
       C.sfx("crackle", 0.4)
     end
   end
@@ -497,9 +642,14 @@ end
 function M.draw()
   if not S then return end
   local sc, lt, len = scene_at(S.t)
+  local cam = CAM[sc[2]]
+  local x, y, z = 384, 512, 1
+  if cam then x, y, z = cam(lt, len) end
+  G:look(x, y, z)
   D[sc[2]](lt, len)
   G:draw_back()
   G:draw_front()
+  G:unlook()
   if sc[4] then
     G:plate(sc[4], 30, 56, 0xffffff, L.window(lt, 1.5, 9, 1))
     local b = L.window(lt, 2, len - 1.5, 1)
