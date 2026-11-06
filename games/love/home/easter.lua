@@ -78,6 +78,7 @@ local function bunny(x, y, s, hop, a)
 end
 
 local CAM
+local CUES = {}
 local function ears(x, y, r, a)
   lg.setColor(0.97, 0.97, 0.97, a or 1)
   lg.ellipse("fill", x - r * 0.35, y - r * 1.4, r * 0.18, r * 0.55, 10)
@@ -216,6 +217,16 @@ function D.dye(lt, len)
     local cc = cols[(j - 1) % 6 + 1]
     egg(80 + (j - 1) * 56, 860 + (j % 2) * 30, 26, cc, PASTEL[j % 6 + 1])
   end
+  -- Pinky's slip (35-40): an egg dropped in the purple, a spatter up the wall and over her
+  if lt > 35 and lt < 41 then
+    local f = clamp((lt - 35) / 0.6, 0, 1)
+    rgba({0.65, 0.4, 0.95}, 0.85)
+    for j = 1, 14 do
+      local a = -pi / 2 + (j - 7) * 0.18
+      lg.circle("fill", 564 + cos(a) * 160 * f, 600 + sin(a) * 220 * f, 8 + (j % 3) * 4, 10)
+    end
+    if lt < 38 then G:say("OOPS!", 650, 470, 26, 1) end
+  end
   -- Inky, every half minute, dips himself
   local g = lt % 30
   if g > 18 and g < 28 then
@@ -274,90 +285,179 @@ CAM.bunny = function(lt)
   local x0 = S.bun_x or 384
   return L.shot(0, {{0, x0 - 220, 760, 1.4}}, W, H)
 end
+-- Cascarones, a story: Pac-Man buys a carton (50 cents), sneaks up and cracks one on each ghost in turn (each
+-- jumps: HEY!), the ghosts arm themselves and chase him round the yard cracking theirs on him, the confetti
+-- piles up on him until he's buried, he pops out, and all five throw the last of them up together.
+local CA_SPOTS = {{300, 760}, {470, 740}, {640, 760}, {384, 900}}      -- the ghosts, standing about
+local SNEAK = {11, 18, 25, 32}                                         -- Pac-Man's cracks on ghost k
+local CHASE0, CHASE1 = 40, 58                                          -- the ghosts' revenge, round the yard
+local CA_COLS = {{1, 0.3, 0.5}, {0.3, 0.7, 1}, {1, 0.85, 0.2}, {0.4, 0.85, 0.4}, {0.75, 0.45, 1}, {1, 0.55, 0.2}}
+local function chase_pos(lt, k)
+  -- round an oval, Pac-Man in front, the ghosts behind in a line
+  local a = (lt - CHASE0) * 1.1 - k * 0.55
+  return 384 + cos(a) * 250, 820 + sin(a) * 110
+end
+local function pac_pos(lt)
+  if lt < 8 then return L.path(lt, {{0, -80, 900}, {3, 384, 640}, {6, 384, 640}, {8, 150, 760}}) end
+  for k, t0 in ipairs(SNEAK) do
+    if lt < t0 + 4.5 then
+      local sx, sy = CA_SPOTS[k][1] - 80, CA_SPOTS[k][2]
+      local from = k == 1 and {150, 760} or {CA_SPOTS[k - 1][1] - 80, CA_SPOTS[k - 1][2]}
+      return L.path(lt, {{t0 - 3, from[1], from[2]}, {t0 - 0.6, sx, sy}, {t0 + 1.4, sx, sy}, {t0 + 2.6, sx - 40, sy + 20}})
+    end
+  end
+  if lt < CHASE0 then return L.path(lt, {{SNEAK[4] + 4.5, CA_SPOTS[4][1] - 80, CA_SPOTS[4][2]}, {CHASE0, 384 + 250, 820}}) end
+  if lt < CHASE1 then return chase_pos(lt, 0) end
+  return 384, 860
+end
+-- every crack: {time, target (0 Pac-Man, 1-4 a ghost), colour}
+local function ca_cracks()
+  local list = {}
+  for k, t0 in ipairs(SNEAK) do list[#list + 1] = {t0, k, CA_COLS[k]} end
+  for n = 0, 5 do list[#list + 1] = {CHASE0 + 2 + n * 2.6, 0, CA_COLS[n % 6 + 1]} end
+  for k = 0, 4 do list[#list + 1] = {70 + k * 0.4, k, CA_COLS[k + 1]} end
+  return list
+end
+local CA_CRACKS = ca_cracks()
+local function target_pos(lt, who)
+  if who == 0 then return pac_pos(lt) end
+  if lt > CHASE0 and lt < CHASE1 then return chase_pos(lt, who) end
+  if lt >= CHASE1 then return 384 + (who - 2.5) * 150, 880 end
+  return CA_SPOTS[who][1], CA_SPOTS[who][2]
+end
 function D.cascarones(lt, len)
   local painted = S.art.fiesta
   if painted then
     lg.setColor(1, 1, 1, 1)
     lg.draw(S.art.fiesta, 0, 0)
+  else
+    G:gradient(0, 0, W, H, {0.55, 0.8, 1}, {1, 0.9, 0.7})
+    G:gradient(0, 720, W, H, {0.5, 0.7, 0.35}, {0.38, 0.58, 0.28})
+    lg.setColor(0.55, 0.35, 0.2, 1)
+    lg.rectangle("fill", 200, 560, 368, 22, 4, 4, 4)
+    G:text("CASCARONES  50¢", 200, 470, 30, {0.85, 0.2, 0.45}, 1, "center", 368)
   end
-  local cols = {{1, 0.3, 0.5}, {0.3, 0.7, 1}, {1, 0.85, 0.2}, {0.4, 0.85, 0.4}, {0.75, 0.45, 1}, {1, 0.55, 0.2}}
-  if not painted then
-  G:gradient(0, 0, W, H, {0.55, 0.8, 1}, {1, 0.9, 0.7})
-  -- the papel picado overhead
-  for row = 0, 1 do
-    lg.setColor(0.4, 0.4, 0.4, 1)
-    lg.setLineWidth(2)
-    lg.line(0, 80 + row * 120, W, 100 + row * 120)
-    for i = 0, 9 do
-      rgba(cols[(i + row) % 6 + 1])
-      local x = i * 80 + row * 40
-      local y = 82 + row * 120 + i * 2 + sin(S.t * 2 + i) * 3
-      lg.rectangle("fill", x, y, 64, 70)
-      lg.setColor(1, 1, 1, 0.5)
-      lg.circle("fill", x + 32, y + 30, 10, 10)
-      lg.rectangle("fill", x + 12, y + 52, 40, 6)
-    end
-  end
-  G:gradient(0, 720, W, H, {0.5, 0.7, 0.35}, {0.38, 0.58, 0.28})
-  -- the table with the cartons, a sign
-  lg.setColor(0.55, 0.35, 0.2, 1)
-  lg.rectangle("fill", 200, 560, 368, 22, 4, 4, 4)
-  lg.rectangle("fill", 220, 582, 16, 120)
-  lg.rectangle("fill", 532, 582, 16, 120)
-  end
-  for c = 0, 1 do
+  -- the carton on the table until it's bought (5), the coin
+  if lt < 5.5 then
     lg.setColor(0.8, 0.75, 0.65, 1)
-    lg.rectangle("fill", 222 + c * 170, 520, 156, 44, 6, 6, 4)
-    for j = 0, 5 do
-      local e = S.carton[c * 6 + j + 1]
-      if not e[3] or lt < e[3] then egg(240 + c * 170 + j * 24, 522, 15, e[1], e[2]) end
+    lg.rectangle("fill", 306, 520, 156, 44, 6, 6, 4)
+    for j = 0, 5 do egg(324 + j * 24, 522, 15, CA_COLS[j + 1], {1, 1, 1}) end
+  end
+  if lt > 4 and lt < 5.2 then
+    lg.setColor(1, 0.85, 0.2, 1)
+    lg.circle("fill", 384, 560 - (lt - 4) * 60, 10, 12)
+  end
+  -- the confetti on the grass, more with every crack
+  local n = 0
+  for _, c in ipairs(CA_CRACKS) do if lt > c[1] then n = n + 1 end end
+  for j = 1, n * 24 do
+    local x = (j * 97.3) % W
+    local y = 740 + (j * 53.7) % 270
+    rgba(CA_COLS[j % 6 + 1], 0.9)
+    lg.rectangle("fill", x, y, 7, 7)
+  end
+  -- the ghosts
+  for k = 1, 4 do
+    local x, y = target_pos(lt, k)
+    local t0 = SNEAK[k]
+    local jump = (lt > t0 and lt < t0 + 1) and L.hop(lt - t0, 1, 70) or 0
+    local turned = lt > t0 + 0.4
+    local happy = lt > CHASE1
+    local chasing = lt > CHASE0 and lt < CHASE1
+    local hop = (chasing or happy) and L.hop(S.t + k * 0.3, 0.4, 14) or 0
+    C.fx.ghost(x, y - 50 - jump - hop, 54, GHOSTS[k], chasing and -1 or (turned and -1 or 1), S.t + k, false, false, 1)
+    -- armed: an egg held up
+    if chasing then egg(x + 30, y - 120 - hop, 18, CA_COLS[k], {1, 1, 1}) end
+  end
+  -- Pac-Man: the carton under his arm, sneaking (slow), the egg up; or buried in confetti, then out
+  local px, py = pac_pos(lt)
+  local buried = lt > CHASE1 - 0.5 and lt < 64
+  if buried then
+    local mound = clamp((lt - (CHASE1 - 0.5)) / 1.5, 0, 1)
+    for j = 1, 90 do
+      local a = j * 2.4
+      local r = (j % 30) * 2.4 * mound
+      rgba(CA_COLS[j % 6 + 1], 1)
+      lg.rectangle("fill", px + cos(a) * r * 1.6, py - 20 - abs(sin(a)) * r * 1.2, 9, 9)
+    end
+    lg.setColor(1, 1, 1, 1)
+    lg.circle("fill", px - 12, py - 40, 6, 8)
+    lg.circle("fill", px + 12, py - 40, 6, 8)
+  else
+    local pop = (lt > 64 and lt < 65) and L.hop(lt - 64, 1, 120) or 0
+    C.fx.chomper(px, py - 50 - pop, 56, (lt > CHASE0 and lt < CHASE1) and (sin((lt - CHASE0) * 1.1) > 0 and -1 or 1) or 1, S.t, 1)
+    if lt > 5 and lt < CHASE0 then
+      lg.setColor(0.8, 0.75, 0.65, 1)
+      lg.rectangle("fill", px - 80, py - 40, 60, 24, 4, 4, 4)
+    end
+    for k, t0 in ipairs(SNEAK) do
+      if lt > t0 - 1 and lt < t0 then egg(px + 40, py - 140, 22, CA_COLS[k], {1, 1, 1}) end
     end
   end
-  if not painted then G:text("CASCARONES  50¢", 200, 470, 30, {0.85, 0.2, 0.45}, 1, "center", 368) end
-  -- the cast, standing about; every few seconds someone gets one on the head
-  local who = {
-    {130, 720, "pac"}, {300, 740, 1}, {470, 720, 2}, {640, 740, 3}, {384, 900, 4},
-  }
-  for i, p in ipairs(who) do
-    if p[3] == "pac" then C.fx.chomper(p[1], p[2], 56, 1, 0, 1)
-    else C.fx.ghost(p[1], p[2], 54, GHOSTS[p[3]], i % 2 == 0 and 1 or -1, S.t + i, false, false, 1) end
-  end
-  for _, h in ipairs(S.cracks) do
-    local k = lt - h.t
-    if k > -1.2 and k < 2.5 then
-      local p = who[h.who]
-      -- the egg coming down
-      if k < 0 then egg(p[1] + k * 60, p[2] - 70 + k * k * 100, 30, h.c, {1, 1, 1}) end
-      -- the confetti on and around them after
-      if k >= 0 then
-        for j = 1, 60 do
+  -- the cracks: the egg down, CRACK, a burst
+  for _, c in ipairs(CA_CRACKS) do
+    local k = lt - c[1]
+    if k > -0.5 and k < 2 then
+      local x, y = target_pos(c[1], c[2])
+      if k < 0 then egg(x, y - 130 + k * 40, 24, c[3], {1, 1, 1})
+      else
+        for j = 1, 50 do
           local an = j * 2.4
-          local r = (20 + k * 90) * (0.4 + (j % 7) / 7)
-          rgba(cols[j % 6 + 1], clamp(2.5 - k, 0, 1))
-          lg.rectangle("fill", p[1] + cos(an) * r, p[2] - 60 + sin(an) * r * 0.7 + k * k * 30 * (j % 3), 9, 9)
+          local r = (20 + k * 110) * (0.4 + (j % 7) / 7)
+          rgba(CA_COLS[j % 6 + 1], clamp(2 - k, 0, 1))
+          lg.rectangle("fill", x + cos(an) * r, y - 90 + sin(an) * r * 0.7 + k * k * 40 * (j % 3), 10, 10)
         end
-        if k < 1 then
-          lg.setColor(1, 1, 1, 1 - k)
-          G:text("CRACK!", p[1] - 80, p[2] - 150, 30, {1, 0.95, 0.9}, 1 - k, "center", 160)
-        end
+        if k < 0.8 then G:text("CRACK!", x - 80, y - 200, 30, {1, 0.95, 0.9}, 1 - k / 0.8, "center", 160) end
       end
     end
   end
+  if lt > 3 and lt < 5.5 then G:say("ONE CARTON, PLEASE!", 384, 560, 20, 1) end
+  for k, t0 in ipairs(SNEAK) do
+    local x, y = target_pos(t0, k)
+    if lt > t0 + 0.2 and lt < t0 + 2.2 then G:say("HEY!", x, y - 140, 26, 1) end
+    if lt > t0 - 2.5 and lt < t0 - 1 then G:say("SHHH...", px, py - 130, 20, 1) end
+  end
+  if lt > CHASE0 - 1 and lt < CHASE0 + 2 then G:say("GET HIM!", CA_SPOTS[1][1], 620, 26, 1) end
+  if lt > 62 and lt < 64 then G:say("MMPH!", px, py - 120, 24, 1) end
+  if lt > 66 and lt < 69 then G:say("ALL TOGETHER!", 384, 700, 24, 1) end
 end
 
 CAM.cascarones = function(lt)
-  local who = {{130, 720}, {300, 740}, {470, 720}, {640, 740}, {384, 900}}
-  local best
-  for _, h in ipairs(S.cracks) do
-    if lt > h.t - 1.4 and lt < h.t + 1.6 then best = h end
+  if lt < 8 then return L.shot(lt, {{0, 384, 640, 1.1}, {3, 384, 640, 1.4}, {8, 260, 740, 1.4}}, W, H) end
+  for k, t0 in ipairs(SNEAK) do
+    if lt > t0 - 3.5 and lt < t0 + 3 then
+      local x, y = CA_SPOTS[k][1], CA_SPOTS[k][2]
+      return L.shot(lt, {{t0 - 3.5, x - 60, y - 60, 1.4}, {t0 - 0.5, x - 40, y - 80, 1.8}, {t0 + 3, x - 40, y - 60, 1.5}}, W, H)
+    end
   end
-  if not best or lt < 9 then return L.shot(0, {{0, 384, 640, 1.1}}, W, H) end
-  local p = who[best.who]
-  local f = clamp((lt - (best.t - 1.4)) / 0.6, 0, 1)
-  return L.shot(0, {{0, lerp(384, p[1], f), lerp(640, p[2] - 60, f), lerp(1.1, 1.7, f)}}, W, H)
+  if lt < CHASE1 then return L.shot(lt, {{SNEAK[4] + 3, 384, 760, 1.2}, {CHASE0, 384, 780, 1.15}, {CHASE1, 384, 800, 1.2}}, W, H) end
+  return L.shot(lt, {{CHASE1, 384, 820, 1.6}, {64, 384, 820, 1.6}, {67, 384, 700, 1.15}, {80, 384, 640, 1.05}}, W, H)
 end
+CUES.secret = {{8, "chime", 0.5}, {32, "ding", 0.5}, {33, "ding", 0.5}, {36, "pop", 0.4}, {40, "chime"}, {44, "tick", 0.5},
+               {45, "tick", 0.5}, {46, "crackle"}, {46.2, "pop"}, {48, "whoosh", 0.4}, {53, "power"}, {59, "chime"}}
+for k = 0, 9 do CUES.secret[#CUES.secret + 1] = {9 + k * 2, "tick", 0.3} end
+for k = 0, 3 do CUES.secret[#CUES.secret + 1] = {8 + k * 5, "zap", 0.3} end
+CUES.dye = {{35, "splash"}, {35.2, "boing", 0.5}}
+for n = 0, 7 do
+  CUES.dye[#CUES.dye + 1] = {n * 7 + 2.1, "splash", 0.35}
+  CUES.dye[#CUES.dye + 1] = {n * 7 + 3.6, "ding", 0.45}
+end
+CUES.dye[#CUES.dye + 1] = {21, "splash"}
+CUES.dye[#CUES.dye + 1] = {21.2, "boing"}
+CUES.dye[#CUES.dye + 1] = {51, "splash"}
+CUES.dye[#CUES.dye + 1] = {51.2, "boing"}
+CUES.bunny = {}
+for t = 1, 58, 1.25 do CUES.bunny[#CUES.bunny + 1] = {t, "boing", 0.15} end
+for _, t in ipairs({13, 43}) do CUES.bunny[#CUES.bunny + 1] = {t, "pop", 0.5} CUES.bunny[#CUES.bunny + 1] = {t + 0.3, "pop", 0.5} CUES.bunny[#CUES.bunny + 1] = {t + 0.6, "pop", 0.5} end
+CUES.finale = {{2.2, "pop", 0.4}, {3.4, "pop", 0.4}, {4.6, "pop", 0.4}, {5.8, "pop", 0.4}, {8, "chime"}, {14, "whoosh", 0.4}, {20, "cheer"}}
+CUES.cascarones = {{4.2, "ding"}, {CHASE0, "whoosh"}, {CHASE1, "boing"}, {64, "boing"}, {64.2, "cheer"}, {70, "cheer"}}
+for _, c in ipairs(CA_CRACKS) do CUES.cascarones[#CUES.cascarones + 1] = {c[1], "crackle", 0.5} CUES.cascarones[#CUES.cascarones + 1] = {c[1], "pop", 0.5} end
+for k, t0 in ipairs(SNEAK) do CUES.cascarones[#CUES.cascarones + 1] = {t0 + 0.2, "boing", 0.5} end
+
 function D.secret(lt, len)
   -- the glitch: stripes and noise, then the hidden room
+  if lt > 44.5 and lt < 47 then G:say("IT'S HATCHING!", 384, 440, 24, 1) end
+  if lt > 53 and lt < 56 then G:say("CHEEP! CHEEP!", 384, 440, 26, 1) end
   if lt < 6 then
     local g = lt / 6
     for i = 0, 40 do
@@ -388,6 +488,18 @@ function D.secret(lt, len)
   local k = clamp((lt - 8) / 20, 0, 1)
   local mx = lerp(120, 384, k)
   C.fx.chomper(mx - 60 + sin(S.t * 3) * 6, 560, 26, 1, S.t, k < 1 and 1 or 0)
+  -- the dots on the way, eaten as he goes; the old screen glitching now and then
+  for d = 0, 10 do
+    local dx = 140 + d * 24
+    if dx > mx - 40 then lg.setColor(1, 0.85, 0.9, 1) lg.rectangle("fill", dx - 5, 555, 10, 10) end
+  end
+  local gl = (lt - 8) % 5
+  if lt > 8 and lt < 28 and gl < 0.35 then
+    for i = 1, 6 do
+      rgba(PASTEL[i], 0.8)
+      lg.rectangle("fill", 0, 120 + ((i * 131 + floor(lt)) % 760), W, 18 + (i % 3) * 14)
+    end
+  end
   local reveal = clamp((lt - 28) / 2, 0, 1)
   lg.setColor(1, 1, 1, 1)
   lg.rectangle("fill", mx - 8, 560 - 8, 16, 16)
@@ -397,7 +509,47 @@ function D.secret(lt, len)
   G:text("BLINKY  PINKY  INKY  CLYDE", 0, 690, 30, {0.85, 0.85, 1}, clamp((lt - 33) / 2, 0, 1), "center", W)
   local g = clamp((lt - 36) / 2, 0, 1)
   for i, col in ipairs(GHOSTS) do C.fx.ghost(150 + (i - 1) * 156, 790, 30, col, 1, S.t + i, false, false, g) end
-  egg(384, 560, 60 * clamp((lt - 40) / 2, 0, 1) + 0.01, {1, 0.85, 0.3}, {1, 0.5, 0.7}, clamp((lt - 40) / 2, 0, 1))
+  -- the golden egg: in (40), wobbles (44), hatches (46): a chick, round the room, the ghosts after it, a
+  -- power pellet (53), the ghosts blue and running, the chick after them; back to the egg's shell (59)
+  local ga = clamp((lt - 40) / 2, 0, 1)
+  local wob = (lt > 44 and lt < 46) and sin(lt * 30) * 0.2 or 0
+  if lt < 46 then
+    lg.push() lg.translate(384, 560) lg.rotate(wob) lg.translate(-384, -560)
+    egg(384, 560, 60 * ga + 0.01, {1, 0.85, 0.3}, {1, 0.5, 0.7}, ga)
+    lg.pop()
+  else
+    -- the shell halves
+    lg.setColor(1, 0.85, 0.3, 1)
+    lg.arc("fill", "pie", 384, 600, 46, 0, pi, 16)
+    lg.arc("fill", "pie", 384 + 40, 520 - min(1, (lt - 46) * 2) * 30, 40, pi, 2 * pi, 16)
+    -- the chick, round the room's edge; the ghosts behind (then in front, blue, fleeing)
+    local function round(u) local a = u * 2 * pi return 384 + cos(a) * 250, 560 + sin(a) * 250 end
+    local u = (lt - 46.5) * 0.18
+    local cx, cy = round(u)
+    if lt < 46.5 then cx, cy = 384, 560 - (lt - 46) * 80 end
+    local hop = abs(sin(S.t * 10)) * 6
+    lg.setColor(1, 0.95, 0.3, 1)
+    lg.circle("fill", cx, cy - hop, 22, 16)
+    lg.circle("fill", cx + 14, cy - 20 - hop, 13, 12)
+    lg.setColor(1, 0.55, 0.1, 1)
+    lg.polygon("fill", cx + 25, cy - 22 - hop, cx + 36, cy - 18 - hop, cx + 25, cy - 15 - hop)
+    lg.setColor(0, 0, 0, 1)
+    lg.circle("fill", cx + 17, cy - 24 - hop, 3, 6)
+    local pellet = lt > 53
+    if lt > 47.5 then
+      for i, col in ipairs(GHOSTS) do
+        local gu = pellet and (u + 0.06 + i * 0.05) or (u - 0.08 - i * 0.06)
+        local gx, gy = round(gu)
+        local blue = pellet and lt < 59
+        C.fx.ghost(gx, gy, 30, blue and {0.2, 0.3, 1} or col, 1, S.t + i, blue, false, 1)
+      end
+    end
+    -- the power pellet in the corner, blinking until the chick gets it
+    if lt < 53 then
+      local px, py = round((53 - 46.5) * 0.18)
+      if floor(S.t * 4) % 2 == 0 then lg.setColor(1, 0.85, 0.9, 1) lg.circle("fill", px, py, 14, 12) end
+    end
+  end
 end
 
 CAM.secret = function(lt)
@@ -417,7 +569,15 @@ function D.finale(lt, len)
       ears(gx + 160, gy, 30, 1)
     end
   end
-  for i = 1, 7 do egg(84 + (i - 1) * 100, 900 + sin(S.t * 2 + i) * 6, 40, PASTEL[(i - 1) % 6 + 1], PASTEL[i % 6 + 1]) end
+  -- the egg-rolling race (8-22): five eggs pushed along, one each, Pac-Man's wins
+  for i = 1, 5 do
+    local speed = ({1.0, 0.9, 1.15, 0.85, 0.95})[i]
+    local f = clamp((lt - 8) / 14 * speed, 0, 1)
+    local ex = lerp(60, 700, f)
+    local ey = 860 + (i - 1) * 32
+    lg.push() lg.translate(ex, ey) lg.rotate(f * 30) egg(0, 0, 30, PASTEL[i], PASTEL[(i + 2) % 6 + 1]) lg.pop()
+  end
+  if lt > 21 and lt < 25 then G:say("WINNER!", 640, 760, 26, 1) end
   bunny(140, 790, 1, S.t * 3)
   C.fx.chomper(580, 780, 34, -1, 0, 1)
   ears(580, 780, 34, 1)
@@ -481,14 +641,15 @@ function M.update(dt)
   G:step(dt)
   S.t = G.t
   local sc, lt, len = scene_at(S.t)
+  for _, c in ipairs(CUES[sc[2]] or {}) do
+    if lt - dt < c[1] and lt >= c[1] then
+      if type(c[2]) == "function" then c[2]() else C.sfx(c[2], c[3]) end
+    end
+  end
   if sc[2] == "hunt" then
     local per = (len - 6) / #S.eggs
     local k = (lt - 2) / per
     if k >= 1 and k <= #S.eggs and floor(k) ~= floor((lt - dt - 2) / per) then C.sfx("pop") end
-  elseif sc[2] == "cascarones" then
-    for _, h in ipairs(S.cracks) do
-      if lt >= h.t and lt - dt < h.t then C.sfx("crackle", 0.5) end
-    end
   elseif sc[2] == "secret" then
     if lt >= 28 and lt - dt < 28 then C.sfx("power") end
     if lt < 6 and (lt * 10) % 1 < dt * 10 then C.sfx("zap", 0.2) end
