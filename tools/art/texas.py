@@ -503,78 +503,233 @@ def alamo():
     return p
 
 
-# ------------------------------------------------------------------ Central Texas barbecue (the fire's glow and the smoke are live)
-def bbq():
+# ------------------------------------------------------------------ Dinosaur Valley, Glen Rose: the Paluxy riverbed (the tracks,
+# the water's shimmer, the dinosaurs, the cast are live)
+def dinovalley():
     p = Paint()
-    p.fill_rect(0, 0, W, H, p.lin(0, 0, 0, H, [(0, "#3a2418"), (0.5, "#2a1a12"), (1, "#140c08")]))
-    p.glow(380, 360, 420, "#ff8a3a", 0.12, 0.6)
-    # the pit room's wall: old brick, black with smoke
-    r = rng(100)
-    for row in range(30):
-        y = row * 18
-        for x in range((row % 2) * 24, W, 48):
-            p.fill_rect(x + 1, y + 1, 46, 16, hexc("#5a3020" if r.random() < 0.6 else "#3a2016", 0.35 + r.random() * 0.3))
-    p.fill_rect(0, 0, W, 540, p.lin(0, 0, 0, 540, [(0, hexc("#000000", 0.5)), (1, hexc("#000000", 0.1))]))
-    # stacked post oak
-    for i in range(24):
-        x, y = 600 + (i % 6) * 26, 470 - (i // 6) * 22
-        p.ellipse(x, y, 13, 11, "#5a3a24")
-        p.ellipse(x, y, 9, 7, "#c8a070")
-        p.ellipse(x, y, 4, 3, "#8a6a48")
-    # the smoker: the barrel, its lid seam, the firebox, the stack, the thermometer
-    p.fill_rect(140, 300, 420, 130, p.lin(0, 300, 0, 430, [(0, "#3a3a3e"), (0.35, "#1a1a1c"), (1, "#0a0a0c")]), r=60)
-    p.fill_rect(160, 362, 380, 5, "#4a4a4e")
-    p.fill_rect(330, 340, 50, 8, "#6a6a70", r=4)
-    p.fill_rect(80, 340, 90, 110, p.lin(0, 340, 0, 450, [(0, "#2a2a2e"), (1, "#0a0a0c")]), r=6)
-    p.fill_rect(96, 398, 58, 38, "#1a0a06")
-    p.fill_rect(520, 160, 26, 160, p.lin(520, 0, 546, 0, [(0, "#1a1a1c"), (0.4, "#4a4a4e"), (1, "#141416")]))
-    p.circle(220, 334, 12, "#d8d8dc")
-    p.circle(220, 334, 9, "#f4f4f0")
-    p.line([(220, 334), (226, 328)], "#c4202a", 1.6)
-    for wx in (190, 500):
-        p.circle(wx, 450, 22, "#0e0e10")
-        p.circle(wx, 450, 8, "#3a3a3e")
-    # the table: butcher paper, the brisket sliced (bark, smoke ring), sausage, white bread, pickles, onion
-    p.poly([(70, 560), (700, 520), (720, 920), (60, 960)], p.lin(0, 520, 0, 960, [(0, "#e2c294"), (1, "#c8a070")]))
-    for i in range(10):
-        p.line([(80 + i * 64, 556 - i * 4), (70 + i * 66, 950 - i * 4)], hexc("#8a6a40", 0.15), 2)
-    # (the brisket is live: sliced, served)
-    for i in range(0):
-        x, y = 140 + i * 58, 640 + i * 4
-        p.fill_rect(x - 2, y - 2, 54, 124, hexc("#1a0a04", 0.4), r=7)
-        p.fill_rect(x, y, 50, 120, "#1e1008", r=6)
-        p.fill_rect(x + 4, y + 5, 42, 110, "#8a2a24", r=5)
-        p.fill_rect(x + 8, y + 10, 34, 100, p.lin(0, y, 0, y + 110, [(0, "#a85a40"), (1, "#8a4632")]), r=4)
-        for k in range(5):
-            p.fill_rect(x + 10, y + 20 + k * 18, 30, 1.5, hexc("#ffd8b0", 0.35))
-        p.fill_rect(x + 12, y + 30, 26, 4, hexc("#fff0d8", 0.45))
-    for i in range(3):
-        sx, sy = 500 + i * 16, 600 + i * 26
-        p.fill_rect(sx, sy, 150, 34, p.lin(0, sy, 0, sy + 34, [(0, "#8a2a1a"), (1, "#4a120a")]), r=17)
-        p.fill_rect(sx + 12, sy + 6, 120, 5, hexc("#ff9a7a", 0.4), r=3)
-        for k in range(3):
-            p.fill_rect(sx + 30 + k * 34, sy + 2, 2, 30, hexc("#2a0a04", 0.4))
-    p.fill_rect(120, 800, 110, 96, "#f4ecdc", r=10)
-    p.fill_rect(140, 790, 110, 96, "#fffaf0", r=10)
-    p.fill_rect(140, 790, 110, 10, "#e8c890", r=6)
-    for i in range(5):
-        x, y = 330 + i * 34, 840 + (i % 2) * 14
-        p.ellipse(x, y, 16, 10, "#4a7a2a")
-        p.ellipse(x, y, 11, 6, "#8ab04a")
-        p.circle(x - 4, y - 2, 1.5, "#d8e8a0")
-    for i in range(3):
-        cr = p.cr
-        cr.set_line_width(3)
-        cr.save()
-        cr.translate(540 + i * 30, 820)
-        cr.scale(1, 0.55)
-        cr.arc(0, 0, 22 - i * 5, 0, 2 * math.pi)
-        cr.restore()
-        p.src("#f4ece0")
-        cr.stroke()
-    p.grain(0.02, 101)
+    r = rng(160)
+    sky(p, 520, [(0, "#3a74c8"), (0.7, "#90bce8"), (1, "#d8eaf6")])
+    cloud(p, 200, 150, 0.7, hexc("#ffffff", 0.96), hexc("#c0d2e8", 0.96), 161)
+    cloud(p, 600, 230, 0.55, hexc("#ffffff", 0.96), hexc("#c0d2e8", 0.96), 162)
+    # cedar hills, far to near
+    hill_band(p, 470, 26, "#7a9a6a", 163, bottom=640, freq=1.3)
+    hill_band(p, 520, 30, "#4e7444", 164, bottom=660, freq=1.8)
+    # the limestone bluff on the far bank, ledged, with junipers on top
+    cr = p.cr
+    cr.move_to(0, 660)
+    pts = [(0, 540), (90, 528), (180, 548), (260, 536), (360, 556), (460, 548), (560, 566), (660, 552), (768, 560)]
+    for pt in pts:
+        cr.line_to(*pt)
+    cr.line_to(W, 660)
+    cr.close_path()
+    p.src(p.lin(0, 530, 0, 660, [(0, "#d8c8a0"), (1, "#a8946c")]))
+    cr.fill()
+    for k in range(5):
+        y = 572 + k * 18
+        p.fill_rect(0, y, W, 2, hexc("#7a6848", 0.5))
+    for i in range(26):
+        x = r.random() * W
+        p.circle(x, 536 + r.random() * 14, 12 + r.random() * 12, mix("#2e4a2a", "#4a6a3a", r.random()))
+    # the riverbed: wide pale limestone shelves, a channel of clear green water winding through
+    p.fill_rect(0, 660, W, H - 660, p.lin(0, 660, 0, H, [(0, "#cfc2a2"), (1, "#b8aa88")]))
+    for i in range(300):
+        p.ellipse(r.random() * W, 670 + r.random() * 350, 6 + r.random() * 30, 2 + r.random() * 4, hexc("#8a7a5a" if r.random() < 0.6 else "#efe4c8", 0.25))
+    for k in range(14):
+        y = 680 + k * k * 1.8 + k * 6
+        p.fill_rect(0, y, W, 1.5, hexc("#7a6a4a", 0.25))
+    cr.move_to(0, 700)
+    cr.curve_to(200, 690, 300, 760, 420, 740)
+    cr.curve_to(560, 720, 650, 690, 768, 700)
+    cr.line_to(768, 760)
+    cr.curve_to(650, 750, 560, 790, 420, 800)
+    cr.curve_to(300, 812, 200, 760, 0, 770)
+    cr.close_path()
+    p.src(p.lin(0, 690, 0, 810, [(0, "#4aa08c"), (1, "#2e7a6a")]))
+    cr.fill()
+    for i in range(50):
+        x = r.random() * W
+        p.fill_rect(x, 700 + r.random() * 90, 12 + r.random() * 30, 1.5, hexc("#c8f0e0", 0.35))
+    # the far bank's edge, the near bank's grass tufts
+    grass_tufts(p, 990, 1024, 165, n=200, col="#6a8a4a")
+    p.grain(0.018, 166)
     return p
 
+
+# ------------------------------------------------------------------ San Antonio's River Walk at dusk (the barge, the lights, the
+# papel picado, the mariachis, the ducks, the water's shimmer are live)
+def riverwalk():
+    p = Paint()
+    sky(p, 420, [(0, "#18224e"), (0.45, "#4a3a7a"), (0.8, "#d0705a"), (1, "#f4a060")])
+    r = rng(150)
+    # far: a bell tower and rooftops against the dusk
+    p.fill_rect(352, 150, 64, 280, "#3a2e44")
+    p.poly([(346, 150), (422, 150), (384, 96)], "#3a2e44")
+    p.fill_rect(372, 180, 24, 34, "#f0b860")
+    for (x, y, w) in [(250, 300, 120), (400, 280, 140)]:
+        p.fill_rect(x, y, w, 430 - y, "#4a3a50")
+    # the left: an old stucco building, arched windows lit, an iron balcony, a terracotta edge
+    p.fill_rect(0, 110, 262, 500, p.lin(0, 0, 262, 0, [(0, "#b8804a"), (0.7, "#d8a868"), (1, "#c09058")]))
+    p.fill_rect(0, 100, 270, 16, "#a8482a")
+    for row, y in enumerate((160, 300, 440)):
+        for i in range(3):
+            x = 26 + i * 80
+            lit = (row + i) % 3 != 1
+            col = "#ffcc70" if lit else "#3a2a30"
+            p.fill_rect(x, y + 24, 46, 70, col)
+            p.circle(x + 23, y + 24, 23, col)
+            if lit:
+                p.glow(x + 23, y + 50, 60, "#ffb050", 0.25)
+            p.fill_rect(x - 4, y + 94, 54, 6, "#a87848")
+    p.fill_rect(0, 404, 262, 8, "#2a2026")
+    for i in range(27):
+        p.fill_rect(4 + i * 10, 372, 2, 34, "#2a2026")
+    p.fill_rect(0, 370, 262, 4, "#2a2026")
+    # the right: a limestone hotel, many windows, some lit
+    p.fill_rect(512, 60, 256, 550, p.lin(512, 0, 768, 0, [(0, "#c8b898"), (0.4, "#e8dcc0"), (1, "#c0b090")]))
+    p.fill_rect(506, 52, 268, 14, "#b0a080")
+    windows_grid(p, 524, 80, 236, 500, 6, 12, True, 151, glass="#3a3446", light="#ffd080", frac=0.55)
+    # the far bank: patios under umbrellas, tables, a stone wall down to the water
+    p.fill_rect(0, 586, W, 22, "#9a8468")
+    for i, col in enumerate(["#d83a2a", "#f0b020", "#20a090", "#e86a20", "#2a6ad0", "#d83a2a"]):
+        x = 30 + i * 128 + (40 if i > 2 else 0)
+        if 270 < x < 500:
+            continue
+        p.fill_rect(x - 2, 548, 4, 40, "#3a3030")
+        cr = p.cr
+        cr.arc(x, 550, 44, math.pi, 2 * math.pi)
+        p.src(col)
+        cr.fill()
+        for k in range(4):
+            a = math.pi + k * math.pi / 4 + math.pi / 8
+            p.line([(x, 550), (x + math.cos(a) * 44, 550 + math.sin(a) * 44)], hexc("#ffffff", 0.25), 1.5)
+        p.fill_rect(x - 22, 572, 44, 5, "#e8e0d0")
+        p.fill_rect(x - 20, 577, 3, 10, "#5a4a40")
+        p.fill_rect(x + 17, 577, 3, 10, "#5a4a40")
+    p.fill_rect(0, 606, W, 14, "#7a6a54")
+    # beyond the bridge: the river going on under trees, lamps along it
+    p.fill_rect(262, 420, 250, 190, p.lin(0, 420, 0, 610, [(0, "#2a3a3a"), (1, "#1a3a34")]))
+    for k in range(24):
+        p.circle(270 + r.random() * 236, 470 + r.random() * 70, 18 + r.random() * 14, mix("#1a2e24", "#2e4a34", r.random()))
+    p.fill_rect(262, 560, 250, 50, p.lin(0, 560, 0, 610, [(0, "#2a5a50"), (1, "#1e4a42")]))
+    for x in (300, 350, 420, 470):
+        p.glow(x, 548, 16, "#ffc060", 0.9)
+        p.fill_rect(x - 6, 570, 12, 30, hexc("#ffc060", 0.25))
+    # the stone bridge across, its arch over the water
+    cr = p.cr
+    cr.move_to(240, 606)
+    cr.line_to(240, 470)
+    cr.line_to(530, 470)
+    cr.line_to(530, 606)
+    cr.line_to(470, 606)
+    cr.arc_negative(385, 606, 85, 0, math.pi)
+    cr.close_path()
+    p.src(p.lin(0, 470, 0, 606, [(0, "#d8c8a8"), (1, "#a89878")]))
+    cr.fill()
+    p.fill_rect(232, 458, 306, 14, "#c8b898")
+    for i in range(15):
+        p.fill_rect(240 + i * 20, 440, 6, 18, "#c8b898")
+    for k in range(9):
+        a = math.pi + k * math.pi / 8
+        p.line([(385 + math.cos(a) * 85, 606 + math.sin(a) * 85), (385 + math.cos(a) * 100, 606 + math.sin(a) * 100)], hexc("#7a6a50", 0.6), 2)
+    # the river: green, deep, the lights' reflections
+    p.fill_rect(0, 620, W, 240, p.lin(0, 620, 0, 860, [(0, "#1e5048"), (0.5, "#2a6a5a"), (1, "#1a4a40")]))
+    for i in range(70):
+        y = 630 + r.random() * 220
+        x = r.random() * W
+        p.fill_rect(x, y, 20 + r.random() * 60, 1.5, hexc("#9ad8c0", 0.18))
+    for x in (49, 129, 209, 560, 640, 720):
+        p.fill_rect(x - 6, 624, 12, 120, hexc("#ffc060", 0.12))
+    # the near bank: a stone edge, the flagstone walk, planters of flowers
+    p.fill_rect(0, 850, W, 18, "#8a7a62")
+    p.fill_rect(0, 848, W, 4, "#c8b898")
+    p.fill_rect(0, 868, W, H - 868, p.lin(0, 868, 0, H, [(0, "#b8a484"), (1, "#8a785e")]))
+    for k in range(8):
+        y = 880 + k * k * 2.4 + k * 6
+        p.fill_rect(0, y, W, 1.2, hexc("#5a4a38", 0.35))
+    for i in range(60):
+        p.fill_rect(r.random() * W, 872 + r.random() * 150, 1.2, 8 + r.random() * 14, hexc("#5a4a38", 0.2))
+    for x in (250, 470):
+        p.fill_rect(x, 950, 90, 40, "#a8482a", r=4)
+        for k in range(26):
+            p.circle(x + 6 + r.random() * 78, 950 - r.random() * 18, 4 + r.random() * 4,
+                     ["#e83a6a", "#f0c020", "#ffffff", "#e86a20"][k % 4])
+        for k in range(10):
+            p.circle(x + 8 + k * 8, 948, 6, "#3a6a2a")
+    # a bald cypress at the left, framing it: a great trunk, its knees, feathery green
+    p.poly([(0, 1024), (0, 560), (30, 540), (56, 600), (70, 1024)], p.lin(0, 0, 70, 0, [(0, "#3a2a20"), (1, "#6a4a32")]))
+    for k in range(40):
+        x, y = r.random() * 160 - 20, 300 + r.random() * 300
+        p.circle(x, y, 26 + r.random() * 24, mix("#2a4a28", "#4a7a3a", r.random()))
+    p.grain(0.02, 152)
+    return p
+
+
+# ------------------------------------------------------------------ Central Texas barbecue: the joint, from the front (the
+# pitmaster, the door's smoke, the brisket, the trays, the cast, the steam are live)
+def bbq():
+    p = Paint()
+    r = rng(100)
+    # the back wall: old brick, smoke-darkened up high
+    p.fill_rect(0, 0, W, 600, "#5a3424")
+    for row in range(34):
+        y = row * 18
+        for x in range((row % 2) * 24 - 24, W, 48):
+            p.fill_rect(x + 1, y + 1, 46, 16, hexc("#8a4a30" if r.random() < 0.6 else "#6a3a26", 0.55 + r.random() * 0.35))
+    p.fill_rect(0, 0, W, 600, p.lin(0, 0, 0, 600, [(0, hexc("#000000", 0.55)), (0.6, hexc("#000000", 0.15)), (1, hexc("#000000", 0.05))]))
+    # the menu board, hand-lettered
+    p.fill_rect(70, 70, 400, 210, "#1e1a16", r=6)
+    p.fill_rect(78, 78, 384, 194, "#2a2620", r=4)
+    label(p, 270, 128, "BY THE POUND", 30, "#f0e0b0")
+    for i, (item, price) in enumerate([("BRISKET", "$$"), ("RIBS", "$$"), ("SAUSAGE", "$"), ("TURKEY", "$")]):
+        label(p, 110, 172 + i * 26, item, 20, "#f4ead2", center=False)
+        label(p, 420, 172 + i * 26, price, 20, "#f0c060")
+    label(p, 270, 268, "SAUCE ON THE SIDE", 16, "#e0805a")
+    # string lights along the top
+    for i in range(16):
+        x = 20 + i * 48
+        y = 30 + math.sin(i / 15 * math.pi) * 16
+        p.glow(x, y, 16, ["#ffd080", "#ff8a5a", "#8ad0ff"][i % 3], 0.8)
+        p.circle(x, y, 4, ["#ffe0a0", "#ffb080", "#c0e8ff"][i % 3])
+    # the pit room through its doorway: the smoker, the fire's glow (the door and its smoke are live)
+    dx0, dx1, dy0, dy1 = 520, 730, 150, 560
+    p.fill_rect(dx0 - 10, dy0 - 10, dx1 - dx0 + 20, dy1 - dy0 + 10, "#3a2418")
+    p.fill_rect(dx0, dy0, dx1 - dx0, dy1 - dy0, "#140c08")
+    p.glow(600, 470, 160, "#ff7a2a", 0.4, 0.7)
+    p.fill_rect(dx0 + 20, 380, 170, 80, "#0c0c0e", r=30)
+    p.fill_rect(dx0 + 10, 400, 40, 60, "#18181a")
+    p.fill_rect(dx0 + 22, 422, 16, 14, "#ff6a1a")
+    p.fill_rect(dx0 + 160, 290, 12, 100, "#0c0c0e")
+    for i in range(12):
+        p.circle(dx0 + 40 + (i % 6) * 22, 500 + (i // 6) * 20, 9, "#5a3a24")
+        p.circle(dx0 + 40 + (i % 6) * 22, 500 + (i // 6) * 20, 5, "#8a6a44")
+    # the counter: the back shelf, the top, the butcher block, the plank front
+    p.fill_rect(0, 470, 510, 20, "#4a2c1c")
+    for i in range(9):
+        x = 20 + i * 54
+        p.fill_rect(x, 440, 18, 30, ["#8a1a14", "#c8a020", "#5a2a14"][i % 3], r=4)
+        p.fill_rect(x + 6, 432, 6, 10, "#2a2a2a")
+    p.fill_rect(0, 600, W, 26, p.lin(0, 600, 0, 626, [(0, "#c89060"), (1, "#8a5a34")]))
+    p.fill_rect(0, 626, W, 140, p.lin(0, 0, W, 0, [(0, "#5a3420"), (0.5, "#7a4a2c"), (1, "#5a3420")]))
+    for i in range(16):
+        p.fill_rect(i * 48, 626, 2, 140, hexc("#2a160c", 0.6))
+    p.fill_rect(210, 576, 260, 30, p.lin(0, 576, 0, 606, [(0, "#e0b880"), (1, "#a87848")]), r=4)
+    for i in range(10):
+        p.fill_rect(216 + i * 25, 580, 1, 22, hexc("#7a5030", 0.4))
+    # the floor; the picnic table, red-checkered, its benches
+    p.fill_rect(0, 766, W, H - 766, p.lin(0, 766, 0, H, [(0, "#7a7068"), (1, "#4a443e")]))
+    for i in range(40):
+        p.fill_rect(r.random() * W, 770 + r.random() * 250, 20 + r.random() * 40, 1.2, hexc("#3a3430", 0.35))
+    p.fill_rect(60, 970, 648, 18, "#6a4024")
+    p.fill_rect(40, 886, 688, 54, "#f4f0e8")
+    for i in range(22):
+        for j in range(2):
+            if (i + j) % 2 == 0:
+                p.fill_rect(40 + i * 31.3, 886 + j * 27, 31.3, 27, "#d42a24")
+    p.fill_rect(40, 940, 688, 8, "#a01a14")
+    for x in (80, 680):
+        p.fill_rect(x - 8, 948, 16, 70, "#5a3420")
+    p.grain(0.02, 124)
+    return p
 
 # ------------------------------------------------------------------ the Panhandle at golden hour (lightning, the windmill's blades, the pump jack's beam are live)
 def panhandle():
@@ -708,11 +863,17 @@ def bats(light):
 
 
 # ------------------------------------------------------------------ Big Bend at night (the twinkling, a shooting star, the Marfa lights, the coyote are live)
-def bigbend():
+def bigbend(light="night"):
     p = Paint()
-    sky(p, 790, [(0, "#020210"), (0.7, "#0a0a24"), (1, "#1a1430")])
-    stars(p, 900, 760, 130, big=0.02)
-    milky_way(p, 40, 720, 600, -40, 131, width=120)
+    if light == "dusk":
+        # the last light: deep blue over an ember-orange horizon, the first stars only
+        sky(p, 790, [(0, "#101a44"), (0.45, "#2c2c66"), (0.75, "#8a4a6a"), (0.9, "#e0784a"), (1, "#ffb060")])
+        stars(p, 60, 400, 130, big=0.05)
+        p.glow(300, 700, 420, "#ff9a50", 0.35, 0.4)
+    else:
+        sky(p, 790, [(0, "#020210"), (0.7, "#0a0a24"), (1, "#1a1430")])
+        stars(p, 900, 760, 130, big=0.02)
+        milky_way(p, 40, 720, 600, -40, 131, width=120)
     # the Chisos: a jagged ridge, the far ranges lighter
     hill_band(p, 700, 40, "#120e22", 132, bottom=800, freq=2.2)
     ridge = [(0, 700), (80, 640), (140, 660), (210, 560), (260, 600), (330, 520), (380, 580), (450, 540), (520, 610),
@@ -761,10 +922,13 @@ PAINTS = {
     "austin": austin,
     "stockyards": stockyards,
     "alamo": alamo,
+    "riverwalk": riverwalk,
+    "dinovalley": dinovalley,
     "bbq": bbq,
     "panhandle": panhandle,
     "bats_dusk": lambda: bats("dusk"),
     "bats_night": lambda: bats("night"),
     "bigbend": bigbend,
+    "bigbend_dusk": lambda: bigbend("dusk"),
     "finale": finale,
 }

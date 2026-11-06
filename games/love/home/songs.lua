@@ -452,6 +452,9 @@ M.tx_waltz = {
 local function boogie(r, three, five, six, sev)
   return string.format("%s %s %s %s %s %s %s %s ", r, three, five, six, sev, six, five, three)
 end
+local AUSTIN_TAIL = string.rep(boogie("a2", "c#3", "e3", "f#3", "g3"), 2) ..
+  string.rep(boogie("e2", "g#2", "b2", "c#3", "d3"), 2) .. boogie("b2", "d#3", "f#3", "g#3", "a3") ..
+  boogie("a2", "c#3", "e3", "f#3", "g3") .. boogie("e2", "g#2", "b2", "c#3", "d3") .. boogie("b2", "d#3", "f#3", "g#3", "a3")
 M.tx_austin = {
   bpm = 112, steps = 2, swing = 0.33, gain = 0.95,
   inst = {lead = copy(GUITAR, {d = 0.25, s = 0.5, vol = 0.1, slide = 0.03, vib = {0.2, 6, 0.2}, duty = 0.3}),
@@ -464,8 +467,15 @@ M.tx_austin = {
                 boogie("a2", "c#3", "e3", "f#3", "g3") .. boogie("e2", "g#2", "b2", "c#3", "d3") .. boogie("b2", "d#3", "f#3", "g#3", "a3"),
          keys = ".*1 E7 .*1 E7 .*1 E7 .*1 E7",
          drums = "k h s h k h s h"},
+    -- the stop-time chorus: the band hits and holds, the guitar answers
+    B = {lead = "b5*2 . . b5 a5 g5 e5 | g5*2 . . e5*4 | b5*2 . . b5 a5 g5 e5 | g5*8 | e6*2 d6 b5 a5*2 g5 e5 | e5*8 |" ..
+                "b5*2 . . b5 a5 g5 e5 | g5*2 e5*6 | f#5 a5 b5 d6 b5*4 | a5 c#6 e6 c#6 a5*4 | g5 g#5 b5*2 e5*4 | b4*2 d#5*2 f#5*2 b5*2",
+         bass = "e2*2 .*6 | e2*2 .*6 | e2*2 .*6 | e2*2 .*6 | " .. AUSTIN_TAIL,
+         keys = ".*1 E7 .*1 E7 .*1 E7 .*1 E7",
+         drums = "c+k*2 .*6 | k*2 .*6 | k*2 .*6 | k*2 .*6 | k h s h k h s h | k h s h k h s h | k h s h k h s h | k h s h k h s h |" ..
+                 "k h s h k h s h | k h s h k h s h | k h s h k h s h | k h s! h k h s! s!"},
   },
-  order = {"A", "A"},
+  order = {"A", "B", "A"},
 }
 
 M.tx_swing = {
@@ -480,8 +490,16 @@ M.tx_swing = {
          bass = "g2*2 d3*2 g2*2 d3*2 | g2*2 b2*2 d3*2 b2*2 | c3*2 g2*2 c3*2 g2*2 | c3*2 e3*2 g3*2 e3*2 | d3*2 a2*2 d3*2 a2*2 |" ..
                 "d3*2 f#3*2 a3*2 f#3*2 | g2*2 d3*2 g2*2 d3*2 | g2*2 b2*2 d3*2 g3*2",
          drums = "k*2 s?*2 k*2 s?*2"},
+    B = {lead = "e5*2 g5*2 c6*2 g5*2 | a5*4 g5*4 | f5*2 a5*2 c6*2 a5*2 | g5*8 | e5 f5 g5 a5 b5*2 a5*2 | g5*4 f#5*2 e5*2 |" ..
+                "d5*2 f#5*2 a5*2 c6*2 | b5*4 a5*4",
+         steel = "e5*8 | c5*8 | a4*8 | c5*8 | g4*8 | b4*8 | a4*8 | f#4*8",
+         chop = ".*1 C .*1 C .*1 C .*1 C | .*1 C .*1 C .*1 C .*1 C | .*1 F .*1 F .*1 F .*1 F | .*1 C .*1 C .*1 C .*1 C |" ..
+                ".*1 G .*1 G .*1 G .*1 G | .*1 E7 .*1 E7 .*1 E7 .*1 E7 | .*1 A7 .*1 A7 .*1 A7 .*1 A7 | .*1 D7 .*1 D7 .*1 D7 .*1 D7",
+         bass = "c3*2 g2*2 c3*2 g2*2 | c3*2 e3*2 g3*2 e3*2 | f2*2 c3*2 f2*2 c3*2 | c3*2 g2*2 c3*2 g2*2 | g2*2 d3*2 g2*2 d3*2 |" ..
+                "e2*2 b2*2 e2*2 g#2*2 | a2*2 e3*2 a2*2 c#3*2 | d3*2 a2*2 d3*2 f#3*2",
+         drums = "k*2 s?*2 k*2 s?*2"},
   },
-  order = {"A", "A", "A"},
+  order = {"A", "A", "B", "A"},
 }
 
 M.tx_alamo = {
@@ -491,8 +509,11 @@ M.tx_alamo = {
     A = {lead = "a4*8 d5*4 e5*4 | f5*12 e5*4 | c5*8 a4*4 c5*4 | e5*16 | d5*8 f5*4 a5*4 | g5*8 bb4*8 | a4*8 c#5*4 e5*4 | d5*16",
          pad = "Dm*16 Bb*16 F*16 A*16 Dm*16 Gm*16 A*16 Dm*16", bass = "d2*16 bb1*16 f2*16 a1*16 d2*16 g1*16 a1*16 d2*16",
          drums = "k?*16"},
+    B = {lead = "f5*8 e5*4 d5*4 | c5*12 a4*4 | bb4*8 c5*4 d5*4 | a4*16 | d5*8 e5*4 f5*4 | g5*12 f5*4 | e5*8 d5*4 c#5*4 | d5*16",
+         pad = "F*16 C*16 Bb*16 A*16 Dm*16 Gm*16 A*16 Dm*16", bass = "f2*16 c2*16 bb1*16 a1*16 d2*16 g1*16 a1*16 d2*16",
+         drums = "k?*16"},
   },
-  order = {"A", "A"},
+  order = {"A", "B", "A"},
 }
 
 M.tx_conjunto = {
@@ -515,6 +536,52 @@ M.tx_conjunto = {
          drums = "k*2 s?*2 k*2 s?*2"},
   },
   order = {"A", "B", "A", "B"},
+}
+
+-- The River Walk at dusk: a mariachi son in 3/4, two trumpets in thirds, then the violins (original)
+local function bars(list, f) local t = {} for _, x in ipairs(list) do t[#t + 1] = f(x) end return table.concat(t, " | ") end
+local function vihuela(c) return ".*2 " .. c .. "*2 " .. c .. "*2" end
+local function guitarron(n) return n .. "*2 .*4" end
+M.tx_mariachi = {
+  bpm = 160, steps = 2, gain = 0.95, echo = {time = 0.28, fb = 0.2, mix = 0.18},
+  inst = {lead = copy(TRUMPET, {vol = 0.1}), fiddle = copy(FIDDLE, {vol = 0.1}), chop = copy(CHOP, {vol = 0.06}),
+          bass = copy(PLUCK, {vol = 0.34})},
+  parts = {
+    A = {lead = "a4*2 d5*2 f#5*2 | a5*4 f#5*2 | g5*2 f#5*2 e5*2 | e5*6 | g4*2 c#5*2 e5*2 | g5*4 e5*2 | f#5*2 e5*2 d5*2 | d5*6 |" ..
+                "a4*2 d5*2 f#5*2 | b5*4 a5*2 | g5*2 b5*2 g5*2 | e5*6 | c#5*2 e5*2 a5*2 | g5*2 f#5*2 e5*2 | d5*2 f#5*2 e5*2 | d5*6",
+         lead_2 = "f#4*2 a4*2 d5*2 | f#5*4 d5*2 | e5*2 d5*2 c#5*2 | c#5*6 | e4*2 a4*2 c#5*2 | e5*4 c#5*2 | d5*2 c#5*2 a4*2 | a4*6 |" ..
+                  "f#4*2 a4*2 d5*2 | g5*4 f#5*2 | e5*2 g5*2 e5*2 | c#5*6 | a4*2 c#5*2 e5*2 | e5*2 d5*2 c#5*2 | b4*2 d5*2 c#5*2 | a4*6",
+         chop = bars({"D", "D", "A7", "A7", "A7", "A7", "D", "D", "D", "G", "G", "A7", "A", "A7", "A7", "D"}, vihuela),
+         bass = bars({"d3", "a2", "a2", "e2", "a2", "e2", "d3", "a2", "d3", "g2", "g2", "a2", "a2", "e2", "a2", "d3"}, guitarron),
+         drums = "k*2 r?*2 r?*2"},
+    B = {fiddle = "b5*2 a5*2 g5*2 | d5*6 | e5*2 f#5*2 g5*2 | a5*6 | c6*2 b5*2 a5*2 | f#5*6 | g5*2 a5*2 b5*2 | g5*6 |" ..
+                  "b5*2 a5*2 g5*2 | d6*6 | c6*2 b5*2 a5*2 | e5*6 | f#5*2 g5*2 a5*2 | d6*4 c#6*2 | e5*2 g5*2 c#6*2 | d6*6",
+         chop = bars({"G", "G", "C", "D7", "D7", "D7", "G", "G", "G", "G", "Am", "Am", "D", "D", "A7", "D"}, vihuela),
+         bass = bars({"g2", "d3", "c3", "d3", "a2", "d3", "g2", "d3", "g2", "b2", "a2", "e2", "d3", "a2", "a2", "d3"}, guitarron),
+         drums = "k*2 r?*2 r?*2"},
+  },
+  order = {"A", "A", "B", "A"},
+}
+
+-- Dinosaur Valley: plucky exploring (A), then the dinosaurs walk, low brass and toms (B) (original)
+M.tx_dino = {
+  bpm = 104, gain = 1.1, echo = {time = 0.3, fb = 0.25, mix = 0.2},
+  inst = {lead = copy(PLUCK, {vol = 0.3, oct = 4}), brass = copy(TRUMPET, {vol = 0.12, lp = 1400}), pad = copy(BRASS_PAD, {vol = 0.07}),
+          bass = copy(BASS, {gate = 0.6, vol = 0.42})},
+  parts = {
+    A = {lead = "d5*2 .*2 f5*2 .*2 a5*2 .*2 d6*2 a5*2 | g5*2 .*2 bb5*2 .*2 d6*4 c6*2 bb5*2 | a5*2 .*2 f5*2 .*2 e5*2 .*2 c#5*4 |" ..
+                "d5*4 e5*4 f5*4 a4*4 | d5*2 .*2 f5*2 .*2 a5*2 .*2 d6*2 a5*2 | bb5*2 .*2 a5*2 .*2 g5*2 .*2 f5*2 e5*2 |" ..
+                "f5*2 e5*2 d5*2 c#5*2 e5*4 a4*4 | d5*12 .*4",
+         bass = "d2*2 .*2 a2*2 .*2 d2*2 .*2 a2*2 .*2 | g2*2 .*2 d3*2 .*2 g2*2 .*2 d3*2 .*2 | a2*2 .*2 e2*2 .*2 a2*2 .*2 c#3*2 .*2 |" ..
+                "d2*2 .*2 a2*2 .*2 d2*2 .*2 a2*2 .*2 | d2*2 .*2 a2*2 .*2 d2*2 .*2 a2*2 .*2 | g2*2 .*2 d3*2 .*2 g2*2 .*2 d3*2 .*2 |" ..
+                "a2*2 .*2 e2*2 .*2 a2*2 .*2 c#3*2 .*2 | d2*2 .*2 a2*2 .*2 d2*4 .*4",
+         drums = "k*4 h?*4 s?*4 h?*4"},
+    B = {brass = "d4*8 f4*8 | f4*8 d4*8 | g4*8 bb4*8 | a4*16 | d5*8 c5*8 | bb4*8 d5*8 | bb4*8 c#5*8 | d5*16",
+         pad = "Dm*16 Bb*16 Gm*16 A*16 Dm*16 Bb*16 Gm*8 A7*8 Dm*16",
+         bass = "d2*16 | bb1*16 | g1*16 | a1*16 | d2*16 | bb1*16 | g1*8 a1*8 | d2*16",
+         drums = "c+t!*4 .*4 t*4 .*4 | T*4 .*4 t*4 t*4"},
+  },
+  order = {"A", "B", "B", "A"},
 }
 
 M.tx_redriver = {
@@ -544,8 +611,12 @@ M.tx_bats = {
          bass = "a2*4 .*4 a2*4 .*4 | f2*4 .*4 f2*4 .*4 | c3*4 .*4 c3*4 .*4 | e2*4 .*4 e2*4 .*4", drums = "h?*2 h?*2 h?*2 o?*2"},
     B = {arp = "Dm*16 Am*16 E*16 Am*16", lead = "f5*4 .*4 d5*4 .*4 | e5*8 c5*8 | b4*4 g#4*4 e4*4 b4*4 | a4*16",
          bass = "d3*4 .*4 d3*4 .*4 | a2*4 .*4 a2*4 .*4 | e2*4 .*4 e2*4 .*4 | a2*4 .*4 a2*4 .*4", drums = "h?*2 h?*2 h?*2 o?*2"},
+    C = {arp = "F*16 G*16 Em*16 Am*16", lead = "a5*4 g5*4 f5*4 e5*4 | d5*8 e5*8 | c5*4 b4*4 c5*4 e5*4 | a4*16",
+         bass = "f2*2 f2*2 c3*2 f2*2 | g2*2 g2*2 d3*2 g2*2 | e2*2 e2*2 b2*2 e2*2 | a2*2 a2*2 e3*2 a2*2", drums = "k*2 h?*2 s?*2 h?*2"},
+    D = {arp = "Dm*16 E*16 Am*16 E*16", lead = "d5*4 f5*4 a5*4 f5*4 | g#5*8 e5*8 | a5*4 e5*4 c5*4 a4*4 | b4*16",
+         bass = "d3*2 d3*2 a2*2 d3*2 | e2*2 e2*2 b2*2 e2*2 | a2*2 a2*2 e3*2 a2*2 | e2*2 e2*2 b2*2 g#2*2", drums = "k*2 h?*2 s?*2 o?*2"},
   },
-  order = {"A", "B"},
+  order = {"A", "B", "C", "D", "A", "B"},
 }
 
 M.tx_desert = {
@@ -555,8 +626,9 @@ M.tx_desert = {
   parts = {
     A = {lead = "e4*8 g4*4 b4*4 | c5*12 b4*4 | a4*8 g4*4 f#4*4 | e4*16", pad = "Em*16 C*16 Am*16 Em*16"},
     B = {lead = "b4*8 d5*4 e5*4 | g5*12 f#5*4 | e5*8 d5*4 b4*4 | e5*16", pad = "Em*16 G*16 D*16 Em*16"},
+    C = {lead = "g4*8 a4*4 b4*4 | c5*8 e5*4 d5*4 | b4*8 a4*4 g4*4 | f#4*16", pad = "C*16 Am*16 Em*16 B*16"},
   },
-  order = {"A", "B"},
+  order = {"A", "B", "C", "A"},
 }
 
 M.tx_lonestar = {
@@ -628,8 +700,16 @@ M.lh_drumline = {
     C = {drums = "k k s? s? s! . s s k k s? s? s! . s s | c+k . s s s! . s s k . s! s! s! s! s! .",
          drums_2 = "t t . . T T . . t t . . T T T T | t . . . T . . . t t t t T T T T",
          bass = "a1*2 a1*2 .*12 | a1*4 .*4 a1*4 .*4"},
+    -- call and answer: the snares ask, the toms answer
+    D = {drums = "s! s s s! . . . . s! s s s! . . . . | s s! s s s! s s s! k . . . c+k! . . .",
+         drums_2 = ". . . . t t T T . . . . t t T T | . . . . . . . . t t T T t T t T",
+         bass = ".*8 a1*4 .*4 | .*8 a1*2 a1*2 a1*4"},
+    -- the roll up to the big hit
+    E = {drums = "s? s? s? s? s s s s s s s s s! s! s! s! | s! s! s! s! s! s! s! s! s! s! s! s! c+k! . . .",
+         drums_2 = "t*16 | t . t . T . T . t t t t T T T T",
+         bass = "a1*16 | a1*12 a1*4"},
   },
-  order = {"A", "A", "C", "A", "B"},
+  order = {"A", "A", "C", "A", "B", "D", "D", "E", "A", "C", "B", "D", "E", "A", "B"},
 }
 
 M.lh_hookem = {
@@ -645,8 +725,14 @@ M.lh_hookem = {
          brass = "Eb*4 .*4 Eb*2 Bb*6 | F*4 .*4 Bb*8",
          lead = "g5*2 .*2 g5*2 bb5*6 .*4 | a5*2 .*2 a5*2 bb5*10",
          bass = "eb2*4 .*4 eb2*2 bb1*6 | f2*4 .*4 bb1*8"},
+    C = {drums = "k*2 .*2 k*2 x*2 .*2 k*2 x*4 | k*2 .*2 k*2 x*2 k*2 k*2 x*4",
+         brass = "Gm*4 .*4 Gm*2 Eb*6 | F*4 .*4 F7*8",
+         lead = "d6*2 .*2 d6*2 bb5*6 .*4 | c6*2 .*2 c6*2 a5*10",
+         bass = "g1*4 .*4 g1*2 eb2*6 | f2*4 .*4 f1*8"},
+    D = {drums = "k*2 x*2 k*2 x*2 k k x*2 k*2 x!*2 | x x x x x! x x x x! x x x x! x! x! x!",
+         bass = "bb1*2 .*2 bb1*2 .*2 bb1 bb1 .*2 bb1*2 .*2 | f1*4 .*4 f1*4 bb1*4"},
   },
-  order = {"A", "A", "B", "A", "B", "B"},
+  order = {"A", "A", "B", "A", "B", "B", "C", "C", "D", "A", "B", "B"},
 }
 
 M.lh_drive = {
@@ -660,8 +746,17 @@ M.lh_drive = {
          brass = "D*16 A*16 G*16 A*16",
          bass = eights("d2", "d3") .. eights("a1", "a2") .. eights("g1", "g2") .. eights("a1", "a2"),
          drums = "c+k*2 h*2 s*2 h*2 k*2 k*2 s*2 h*2 | k*2 h*2 s*2 h*2 k*2 k*2 s*2 h*2"},
+    -- third down: the bridge, tense
+    C = {lead = "f5*4 e5*4 d5*4 c5*4 | bb4*4 d5*4 f5*8 | e5*4 d5*4 c5*4 bb4*4 | a4*8 c#5*8",
+         bass = sixteens("bb1", "bb2") .. sixteens("bb1", "bb2") .. sixteens("g1", "g2") .. sixteens("a1", "a2"),
+         drums = "k*2 h*2 s?*2 h*2 k*2 h*2 s?*2 h*2"},
+    -- into the end zone: the brass on top
+    D = {lead = "d6*4 a5*4 f#5*4 a5*4 | b5*4 g5*4 e5*8 | c#6*4 a5*4 e5*4 a5*4 | d6*16",
+         brass = "D*16 G*16 A*16 D*16",
+         bass = eights("d2", "d3") .. eights("g1", "g2") .. eights("a1", "a2") .. eights("d2", "d3"),
+         drums = "c+k*2 h*2 s*2 h*2 k*2 k*2 s*2 s*2 | k*2 h*2 s*2 h*2 k*2 k*2 s!*2 s!*2"},
   },
-  order = {"A", "A", "B", "A", "B"},
+  order = {"A", "A", "B", "A", "B", "C", "C", "D", "A", "B", "D"},
 }
 
 M.lh_fair = {
@@ -674,8 +769,12 @@ M.lh_fair = {
     B = {lead = "a5*4 c6*4 f6*4 | e6*8 c6*4 | g5*4 c6*4 e6*4 | d6*12 | c6*4 a5*4 f#5*4 | g5*8 b5*4 | c6*4 e5*4 g5*4 | c6*12",
          chord = ".*4 F*4 F*4 | .*4 F*4 F*4 | .*4 C*4 C*4 | .*4 C*4 C*4 | .*4 D7*4 D7*4 | .*4 G7*4 G7*4 | .*4 C*4 C*4 | .*4 C*4 C*4",
          bass = "f2*12 | c3*12 | c3*12 | g2*12 | d3*12 | g2*12 | c3*12 | c3*12", drums = "k*4 h*4 h*4"},
+    -- the midway strain (then again, a step up: the lift)
+    C = {lead = "c6*4 a5*4 f5*4 | c6*8 a5*4 | bb5*4 g5*4 e5*4 | c5*12 | d5*4 f5*4 bb5*4 | a5*8 f5*4 | g5*4 e5*4 c5*4 | f5*12",
+         chord = ".*4 F*4 F*4 | .*4 F*4 F*4 | .*4 C7*4 C7*4 | .*4 C7*4 C7*4 | .*4 Bb*4 Bb*4 | .*4 F*4 F*4 | .*4 C7*4 C7*4 | .*4 F*4 F*4",
+         bass = "f2*12 | c3*12 | c3*12 | g2*12 | bb2*12 | f2*12 | c3*12 | f2*12", drums = "k*4 h*4 h*4"},
   },
-  order = {"A", "B", "A", "B"},
+  order = {"A", "B", "A", "B", "C", "C+2", "A", "B"},
 }
 
 M.lh_tower = {
@@ -687,8 +786,13 @@ M.lh_tower = {
          bell = "bb5*16 | .*16 | g5*16 | .*16 | bb5*16 | .*16 | f5*16 | d6*16",
          pad = "Bb*16 Bb7*16 Gm*16 F*16 Bb*16 F*16 Cm*8 F*8 Bb*16",
          bass = "bb1*16 | bb1*16 | g1*16 | f1*16 | bb1*16 | f1*16 | c2*8 f1*8 | bb1*16", drums = "c+k*4 .*12 | k*4 .*12"},
+    -- the second strain: up a step, the bells answering, building to the 1
+    B = {lead = "g4*8 c5*4 eb5*4 | g5*12 f5*4 | eb5*8 d5*4 c5*4 | d5*16 | eb5*8 g5*4 c6*4 | bb5*12 a5*4 | g5*8 f5*4 d5*4 | c5*16",
+         bell = ".*8 c6*8 | .*16 | .*8 g5*8 | .*16 | .*8 c6*8 | .*16 | .*8 a5*8 | eb6*16",
+         pad = "Cm*16 Cm7*16 Ab*16 G*16 Cm*16 F*16 Bb*8 G*8 C*16",
+         bass = "c2*16 | c2*16 | ab1*16 | g1*16 | c2*16 | f1*16 | bb1*8 g1*8 | c2*16", drums = "c+k*4 .*4 k*4 .*4 | k*4 .*4 k*4 s?*4"},
   },
-  order = {"A", "A"},
+  order = {"A", "B", "A"},
 }
 
 -- ------------------------------------------------------------------ Thanksgiving (thanksgiving.lua): all original
@@ -1069,8 +1173,15 @@ M.mc_danube = {
          pad = "D*72 G*24 A7*72 D*24",
          chord = string.rep(".*4 D*4 D*4 ", 6) .. string.rep(".*4 G*4 G*4 ", 2) .. string.rep(".*4 A7*4 A7*4 ", 6) .. string.rep(".*4 D*4 D*4 ", 2),
          bass = string.rep("d2*12 ", 6) .. string.rep("g2*12 ", 2) .. string.rep("a2*12 ", 6) .. string.rep("d2*12 ", 2)},
+    -- the trio: the station turning, the tune up high
+    B = {lead = "a5*8 f#5*4 | d5*12 | b5*8 g5*4 | e5*12 | c#6*8 a5*4 | e5*12 | d6*8 b5*4 | a5*12 | a5*4 b5*4 c#6*4 | d6*12 |" ..
+                "b5*4 a5*4 g5*4 | f#5*12 | e5*4 f#5*4 g5*4 | a5*8 c#5*4 | d5*12 | .*12",
+         pad = "D*24 G*24 A*24 D*24 D*24 G*24 A*24 D*24",
+         chord = string.rep(".*4 D*4 D*4 ", 2) .. string.rep(".*4 G*4 G*4 ", 2) .. string.rep(".*4 A*4 A*4 ", 2) .. string.rep(".*4 D*4 D*4 ", 4) ..
+                 string.rep(".*4 G*4 G*4 ", 2) .. string.rep(".*4 A*4 A*4 ", 2) .. string.rep(".*4 D*4 D*4 ", 2),
+         bass = "d2*12 d2*12 g2*12 g2*12 a2*12 a2*12 d2*12 d2*12 d2*12 d2*12 g2*12 g2*12 a2*12 a2*12 d2*12 d2*12"},
   },
-  order = {"A", "A"},
+  order = {"A", "A", "B", "A", "B"},
 }
 
 M.mc_tranquil = {
@@ -1079,8 +1190,10 @@ M.mc_tranquil = {
   parts = {
     A = {pad = "Em*16 Cmaj7*16 G*16 D*16", lead = "e5*8 .*8 | b4*8 d5*8 | e5*16 | .*16"},
     B = {pad = "Am7*16 Em*16 C*16 D*16", lead = ".*8 a4*8 | b4*16 | g4*8 e5*8 | d5*16"},
+    C = {pad = "Cmaj7*16 G*16 Am7*16 Bm*16", lead = "g5*8 e5*8 | d5*16 | c5*8 e5*8 | f#5*16"},
+    D = {pad = "Em*16 C*16 D*16 Em*16", lead = "b4*8 .*8 | e5*8 g5*8 | f#5*8 d5*8 | e5*16"},
   },
-  order = {"A", "B"},
+  order = {"A", "B", "C", "D", "A", "B"},
 }
 
 M.mc_home = {
@@ -1093,8 +1206,14 @@ M.mc_home = {
          bass = eights("d2", "d3") .. eights("a1", "a2") .. eights("g1", "g2") .. eights("a1", "a2") .. eights("d2", "d3") ..
                 eights("g1", "g2") .. eights("a1", "a2") .. eights("d2", "d3"),
          drums = "k*4 s*4 k*4 s*4 | k*4 s*4 k*2 k*2 s*4"},
+    B = {lead = "f#5*4 g5*4 a5*8 | b5*4 a5*4 g5*8 | e5*4 f#5*4 g5*8 | a5*16 | f#5*4 g5*4 a5*8 | d6*4 c#6*4 b5*8 |" ..
+                "a5*4 g5*4 e5*4 c#5*4 | d5*16",
+         brass = "D*16 G*16 Em*16 A*16 D*16 G*16 A7*16 D*16",
+         bass = eights("d2", "d3") .. eights("g1", "g2") .. eights("e2", "e3") .. eights("a1", "a2") .. eights("d2", "d3") ..
+                eights("g1", "g2") .. eights("a1", "a2") .. eights("d2", "d3"),
+         drums = "k*4 s*4 k*4 s*4 | k*4 s*4 k*2 k*2 s*4"},
   },
-  order = {"A", "A"},
+  order = {"A", "A", "B", "A", "B", "A+2"},
 }
 
 -- ------------------------------------------------------------------ Summer (summer.lua): all ours
@@ -1437,6 +1556,25 @@ M.SFX = {
   whoosh = fx({wave = "noise", a = 0.15, d = 0.35, s = 0, r = 0.1, vol = 0.2, lp = 1500, slide = 0.1}, "c4*14"),
   -- a chime: sparkle, fixed, found
   chime = fx({wave = "sine", a = 0.001, d = 0.5, s = 0.1, r = 0.4, vol = 0.14}, "c6 e6 g6 c7*12"),
+  -- a dinosaur's roar: low, growling, falling
+  roar = fx({wave = "saw", a = 0.05, d = 0.9, s = 0.5, r = 0.5, vol = 0.32, slide = 0.25, vib = {1.6, 13, 0}, lp = 900},
+            "e3*6 c2*34"),
+  -- a tick: a clock, a knife on the block, a camera's timer
+  tick = fx({wave = "noise", a = 0.001, d = 0.03, s = 0, r = 0.01, vol = 0.3, lp = 5000}, "c6"),
+  -- (the Texas rebuild, 2026-11-06) a duck: two nasal quacks
+  quack = fx({wave = "pulse", duty = 0.125, a = 0.002, d = 0.09, s = 0.4, r = 0.04, vol = 0.16, slide = 0.04, lp = 1800},
+             "f5*3 c5*2 . . f5*3 c5*3"),
+  -- a cow: a long low moo
+  moo = fx({wave = "saw", a = 0.12, d = 0.4, s = 0.8, r = 0.3, vol = 0.18, slide = 0.25, lp = 700, vib = {0.2, 5, 0.2}},
+           "a2*6 e3*10 c3*18"),
+  -- a horn: two toots
+  honk = fx({wave = "pulse", duty = 0.5, a = 0.005, d = 0.05, s = 0.8, r = 0.03, vol = 0.14, detune = 30, lp = 2200},
+            "g4*4 . . g4*8"),
+  -- a train whistle: two notes together, long
+  whistle = fx({wave = "sine", a = 0.08, d = 0.3, s = 0.85, r = 0.4, vol = 0.14, detune = 380, vib = {0.1, 5, 0.1}},
+               "b5*10 . b5*24"),
+  -- a sizzle: meat on the fire
+  sizzle = fx({wave = "noise", a = 0.05, d = 0.6, s = 0.5, r = 0.4, vol = 0.12, lp = 6000, trem = {0.5, 23}}, "c7*40"),
   -- "U! S! A!": three claps and the crowd
   usa = {bpm = 120, steps = 4, loop = false, gain = 1, inst = {},
          parts = {A = {drums = "x+k!*4 x+k!*4 x+k!*8"}}, order = {"A"}},
