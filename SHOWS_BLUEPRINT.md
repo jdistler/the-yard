@@ -74,6 +74,30 @@ UFO takes and gives back), but no flashing and nothing big.
 **Motion is not story.** A disco floor flashing or a flag waving moves the screen all the time and still tells
 nothing (New Year's party and midnight score high on motion, low on new). The "new" gate is what catches it.
 
+## Lessons from the rebuild (2026-11-05/06)
+
+* **Big soft smoke and fog under a zoomed camera are expensive.** Halloween's graveyard fell to 49 fps on the
+  cabinet with fog puffs (size 30, 20 a second) at zoom 1.5; size 22 at 6 a second holds 60. Keep puffs few and
+  small, and check every show on the cabinet after a camera change.
+* **A painted backdrop must not paint what the story builds.** Leaf piles, lit windows, the feast, the donuts,
+  the brisket: paint the empty place and build the thing live, or the progress cannot show.
+* **Titles and captions are on the screen, not in the picture.** showlib draws plates and captions after the
+  camera; hold a wide shot for the first ~9 s while the title is up, or the title lands on a zoomed sign.
+* **Black backgrounds hide motion from the measure** (and from kids across a room): small dots on black read as
+  "nothing happening". Give the scene something that fills in (a heart filling, a wall drawing itself).
+* **A second round must look different** (a maze, a power pellet, the ghosts chasing): repeating a loop scores
+  no "new" and bores the second time.
+* **The night sky is checked by eye**: at its scale twinkling stars and its small stories look the same to the
+  measure (show_pulse's gentle thresholds for "night" are a floor, not a gate).
+
+## Where the shows stand (2026-11-06)
+
+Every show rebuilt to these rules, measured on the PC and checked at 57-60 fps on the cabinet: Mission Control,
+Thanksgiving, Christmas, New Year's Eve, Texas, Summer, Halloween, Egg Hunt, Sweethearts, Longhorns (its
+off-season board now a chalkboard of plays and a countdown); the Freedom Show already passed. The night sky
+has small stories in its thinnest scenes (shooting stars, a fireball, the digger's treasure, the night train,
+the UFO giving its ghost back). `python3 games/test.py shows` is the gate: no scene more than 15 s still.
+
 ## What the measures found (2026-11-05, every show, start to end)
 
 12 of 89 scenes pass. The Freedom Show passes all eight: something happens every 1-3 s, and the story moves

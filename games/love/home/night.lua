@@ -142,6 +142,17 @@ scenes.stars = function(st, s, k)
       seg = seg + 1
     end
   end
+  -- A shooting star now and then, across the whole sky.
+  local sh = s % 14
+  if sh < 1.6 then
+    local f = sh / 1.6
+    local sx0 = (math.floor(s / 14) * 197) % (W - 200) + 100
+    local x, y = sx0 + f * 300, 90 + f * 140
+    lg.setColor(1, 1, 1, math.sin(f * math.pi) * k)
+    lg.setLineWidth(2)
+    lg.line(x, y, x - 60, y - 28)
+    lg.circle("fill", x, y, 2.5, 8)
+  end
   -- The stars, brightening one by one.
   for j, p in ipairs(pts) do
     if p then
@@ -289,6 +300,24 @@ scenes.meteors = function(st, s, k)
     st.m[#st.m + 1] = {t0 = st.next, x = st.r(-100, W), y = st.r(40, 300), vx = st.r(260, 420), vy = st.r(140, 240)}
     st.next = st.next + st.r(0.15, 0.9)
   end
+  -- every 20 s a big slow one, all the way to the horizon, and a soft glow where it lands
+  local bt = s % 20
+  if bt < 5 then
+    local f = bt / 4
+    local x0 = 80 + (math.floor(s / 20) * 233) % (W - 300)
+    local x, y = x0 + f * 260, 60 + f * (HZ - 70)
+    if f < 1 then
+      lg.setLineWidth(4)
+      for j = 1, 6 do
+        lg.setColor(1, 0.7 - j * 0.08, 0.4, (0.6 - j * 0.09) * k)
+        lg.line(x - j * 18, y - j * 30, x - (j - 1) * 18, y - (j - 1) * 30)
+      end
+      C.fx.glow(x, y, 26, 26, 1, 0.8, 0.5, 0.7 * k)
+    else
+      local g = (bt - 4)
+      C.fx.glow(x0 + 260, HZ - 6, 60 * g + 20, 24, 1, 0.6, 0.3, 0.5 * (1 - g) * k)
+    end
+  end
   lg.setLineWidth(2)
   for i = #st.m, 1, -1 do
     local m = st.m[i]
@@ -337,6 +366,23 @@ scenes.city = function(st, s, k)
       end
     end
   end
+  -- The night train across the foot of the skyline, every 22 s, its windows lit.
+  local tt = (s % 22) / 22
+  if rise > 0.95 then
+    local tx = W + 60 - tt * (W + 700)
+    for c = 0, 6 do
+      local cx = tx + c * 78
+      lg.setColor(0.08, 0.05, 0.16, k)
+      lg.rectangle("fill", cx, HZ - 26, 72, 22, 4, 4, 4)
+      lg.setColor(0.3, 0.9, 1, 0.8 * k)
+      lg.rectangle("line", cx, HZ - 26, 72, 22, 4, 4, 4)
+      for w = 0, 3 do
+        lg.setColor(1, 0.85, 0.45, 0.8 * k)
+        lg.rectangle("fill", cx + 8 + w * 16, HZ - 21, 9, 7)
+      end
+    end
+    C.fx.glow(tx - 6, HZ - 16, 30, 14, 1, 1, 0.8, 0.6 * k)
+  end
   -- The blimp, once a minute.
   local bt = (s % 60) / 60
   local bx, by = -220 + bt * (W + 440), 300 + math.sin(s * 0.5) * 8
@@ -366,6 +412,14 @@ scenes.ufo = function(st, s, k)
   else ux, uy = gx + (W + 160 - gx) * ease((t - 22) / 8), 300 - (t - 22) * 10 end
   -- The ghost: wanders on the horizon, then floats up in the beam.
   local lift = t < 13 and 0 or t < 21 and ease((t - 13) / 8) or 1
+  -- (last time's ghost given back: dropped down a beam far off as the saucer leaves)
+  if t > 24 and t < 29 and s > per then
+    local f = (t - 24) / 5
+    local bx2 = ux - 40
+    lg.setColor(0.6, 1, 0.8, 0.15 * k)
+    lg.polygon("fill", bx2 - 12, uy + 10, bx2 + 12, uy + 10, bx2 + 40, HZ, bx2 - 40, HZ)
+    C.fx.ghost(bx2, uy + 30 + f * (HZ - uy - 52), 14, {0.25, 0.95, 1}, 1, s, false, false, k)
+  end
   if lift < 1 then
     local gy = HZ - 22 - lift * (HZ - 22 - uy - 20)
     local wob = t < 12 and math.sin(t * 2) * 30 or 0
@@ -427,6 +481,33 @@ scenes.digger = function(st, s, k)
     lg.setLineWidth(22)
     lg.setColor(0.02, 0.0, 0.04, k)
     lg.line(pts)
+  end
+  -- Treasures buried along the way (cherries, gems): it digs to each, it sparkles, it's gone.
+  if not st.gems then
+    st.gems = {}
+    for i = 3, #st.path - 1, 2 do st.gems[#st.gems + 1] = {st.path[i][1], st.path[i][2], math.floor(st.r(0, 3))} end
+  end
+  for _, g in ipairs(st.gems) do
+    local dist = math.abs(g[1] - hx) + math.abs(g[2] - hy)
+
+    -- (found: once the tunnel has gone past it)
+    local found = false
+    local acc = 0
+    for i = 2, #st.path do
+      local a, b = st.path[i - 1], st.path[i]
+      if a[1] == g[1] and a[2] == g[2] then found = acc <= d break end
+      acc = acc + math.abs(b[1] - a[1]) + math.abs(b[2] - a[2])
+    end
+    local age = d - acc
+    if not found then
+      lg.setColor(0.6, 0.4, 0.25, 0.5 * k)
+      lg.circle("fill", g[1], g[2], 9, 10)
+      if g[3] == 0 then lg.setColor(1, 0.25, 0.3, 0.8 * k) elseif g[3] == 1 then lg.setColor(0.4, 0.9, 1, 0.8 * k) else lg.setColor(1, 0.85, 0.3, 0.8 * k) end
+      lg.circle("fill", g[1], g[2], 5, 8)
+    elseif age < 60 then
+      local f = age / 60
+      C.fx.glow(g[1], g[2] - f * 40, 24, 24, 1, 0.9, 0.5, (1 - f) * 0.8 * k)
+    end
   end
   -- The digger: a round body, a white helmet, a little pump.
   local bob = math.sin(s * 10) * 2

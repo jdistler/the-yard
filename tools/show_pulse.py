@@ -103,7 +103,9 @@ def measure(show, love, out, listing):
                     nov &= changed(grid[t], g)
                 new[t] = nov.mean()
                 seen.append(grid[t])
-            beat = motion[t] >= BEAT or new[t] >= NEWBEAT
+            # (the night sky's gentler rules: small things count, SHOWS_BLUEPRINT.md)
+            gentle = show == "night"
+            beat = motion[t] >= (0.035 if gentle else BEAT) or new[t] >= (0.02 if gentle else NEWBEAT)
             if beat:
                 beats.append(t)
                 gap = 0
