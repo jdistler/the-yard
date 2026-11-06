@@ -120,6 +120,12 @@ the cast added as fans, the season board brought to life, 30 red findings to 1. 
 red. The other shows (Thanksgiving, Christmas, New Year's Eve, Halloween, Egg Hunt, Sweethearts, the Freedom
 Show, the night sky) have not been through the pipeline yet.
 
+**Round 2, the rest (2026-11-06, later):** Thanksgiving (6 red -> 0), Christmas (8 -> 4, the quiet scenes checked
+by eye), New Year's Eve (13 -> 3; the countdown song ends on midnight), Sweethearts (12 -> 2), Egg Hunt
+(14 -> 1), Halloween (5 -> 3, a light pass). Every holiday show now has a notebook in `shows/`. Not yet: the
+Freedom Show (the model, untouched) and the night sky (its own gentle rules). The review also checks for
+missing globals now (a forgotten local helper crashed three scenes this round before it was added).
+
 **Round 1:**
 
 Every show rebuilt to these rules, measured on the PC and checked at 57-60 fps on the cabinet: Mission Control,
