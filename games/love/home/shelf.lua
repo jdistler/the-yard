@@ -188,6 +188,10 @@ end
 
 function S.count() return #games end
 
+function S.find(sys, file)
+  for _, g in ipairs(games) do if g.sys == sys and g.file == file then return g end end
+end
+
 local function row_index(key)
   for i, r in ipairs(rows) do if r.key == key then return i end end
 end
@@ -282,7 +286,8 @@ end
 local LETTER_BASE = {t0a = 0x0a, t0b = 0x0b, t11 = 0x11}
 local function letter(b, chars)
   if chars == "ascii" then
-    if (b >= 0x41 and b <= 0x5a) or (b >= 0x61 and b <= 0x7a) or (b >= 0x30 and b <= 0x39) or b == 0x2e or b == 0x21 then
+    if (b >= 0x41 and b <= 0x5a) or (b >= 0x61 and b <= 0x7a) or (b >= 0x30 and b <= 0x39) or b == 0x2e or b == 0x21
+       or b == 0x3f or b == 0x2d or b == 0x27 then
       return string.char(b):upper()
     end
     return " "
@@ -293,7 +298,19 @@ local function letter(b, chars)
   return " "
 end
 
--- A board's table, best first: {{score, name}, ...}, or nil when it has none yet.
+-- The boards' factory tables (LIB/defaults.tsv): "set|score|name" -> true. A row like that is the house's.
+local DEFAULTS
+local function load_defaults()
+  DEFAULTS = {}
+  for line in (read_file(LIB .. "/defaults.tsv") or ""):gmatch("[^\n]+") do
+    if not line:match("^#") then
+      local f = split_tab(line)
+      if f[3] then DEFAULTS[f[1] .. "|" .. f[2] .. "|" .. f[3]:upper()] = true end  -- (Home shows names in capitals)
+    end
+  end
+end
+
+-- A board's table, best first: {{score, name, house}, ...}, or nil when it has none yet.
 function S.arcade_table(set)
   if not SCORES then load_scores() end
   local sp = SCORES[set]
@@ -343,6 +360,8 @@ function S.arcade_table(set)
     end
   end
   if rows[1] and rows[1][2] ~= "" then rows.nameless = false end
+  if not DEFAULTS then load_defaults() end
+  for _, r in ipairs(rows) do r[3] = DEFAULTS[set .. "|" .. math.floor(r[1]) .. "|" .. r[2]] or false end
   return #rows > 0 and rows or nil
 end
 
@@ -484,6 +503,12 @@ local function picture_launch(g, r)
   lg.printf(table.concat(lines, "\n"), 60, 756, W - 120, "center")
 end
 
+-- A Shelf game's "get ready" from a FAVORITES card in Home (its box from Home's card when shelf has none).
+function S.picture_game(g, img, tint)
+  if img and g.art and not art[g.art] then art[g.art] = img end
+  picture_launch(g, {tint = tint or (SYS[g.sys] and SYS[g.sys].tint) or 0xff4fd8})
+end
+
 local function play_chosen(fresh)
   local g, r = cur_game()
   if not g then return end
@@ -498,7 +523,7 @@ local function play_chosen(fresh)
   if f then f:write(r.key .. "\t" .. g.file .. "\n") f:close() end
   save_recent(g)
   ctx.play("launch")
-  ctx.request("shelf " .. g.sys .. " " .. g.file, function() picture_launch(g, r) end)
+  ctx.request("shelf " .. g.sys .. " " .. g.file, function() picture_launch(g, r) end, "game:" .. g.sys .. "/" .. g.file)
 end
 
 -- A press in the browser. Returns "exit" to leave for Home's menu.

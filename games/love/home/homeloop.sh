@@ -203,6 +203,8 @@ while :; do
   RC=$?
   back_picture
   T1=$(cut -d. -f1 /proc/uptime)
+  # How long it was played, for Home's FAVORITES (favs.lua credits it to what Home launched, then drops it).
+  case "$WHAT" in classic|cart|native|yard|shelf) printf 'ran %s\n' $((T1 - T0)) >> $H/state ;; esac
   log "$WHAT returned $RC after $((T1 - T0)) s"
   # Home shows a note when a game did not start: an error within 5 s (a game's own exit code on a normal
   # quit is not trusted).

@@ -71,6 +71,14 @@ def table(data, s):
 
 def main():
     d = sys.argv[1]
+    if len(sys.argv) > 2 and sys.argv[2] == "--tsv":
+        # Every row of every table: set, score, name (games/shelf/defaults.tsv is this, from fresh boards).
+        for name, s in spec().items():
+            p = os.path.join(d, "hi" if s["file"] == "hi" else "nvram", name + "." + ("hi" if s["file"] == "hi" else "nv"))
+            if os.path.exists(p):
+                for v, n in table(open(p, "rb").read(), s):
+                    print(f"{name}\t{v}\t{n}")
+        return
     for name, s in spec().items():
         p = os.path.join(d, "hi" if s["file"] == "hi" else "nvram", name + "." + ("hi" if s["file"] == "hi" else "nv"))
         if not os.path.exists(p):

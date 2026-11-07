@@ -1,0 +1,141 @@
+# The boards' factory tables (tools/arcade_scores.py DIR --tsv on boards run once from blank): set, score, name.
+# Home shows a row that matches one of these as the house's, not a player's.
+1942	40000	CAPCOM
+1942	35000	ALL
+1942	30000	RIGHT
+1942	25000	RESERVED
+1942	20000	EXEDEXES
+1942	9999	VULGUS
+1942	8888	SONSON
+1942	7777	HIGEMARU
+1942	6666	EXEDEXES
+1942	5555	NAKASATO
+1942	1500	
+1942	1400	
+1942	1300	
+1942	1200	
+1942	1100	
+1942	1000	
+1942	900	
+1942	800	
+1942	700	
+1942	600	
+1942	500	
+1942	400	
+1942	300	
+1942	200	
+1942	100	
+1943	20000	TAE
+1943	15000	YAM
+1943	10000	POO
+1943	7000	MR
+1943	5000	BLB
+arkanoid	50000	SSB
+arkanoid	45000	SND
+arkanoid	40000	TOR
+arkanoid	35000	ONJ
+arkanoid	30000	AKR
+bublbobl	30000	I.F
+bublbobl	30000	MTJ
+bublbobl	30000	NSO
+bublbobl	30000	KIM
+bublbobl	30000	YSH
+commando	50000	VULGUS....
+commando	30000	SON.SON...
+commando	20000	HIGEMARU..
+commando	19420	CAPCOM....
+commando	12000	EXED.EXES.
+commando	10000	COMANDO...
+commando	8000	..........
+contra	25800	KKK
+contra	22200	SSS
+contra	19500	KKK
+contra	13800	HHH
+contra	13000	KKK
+contra	12000	KKK
+contra	11000	NNN
+contra	10000	INC
+dkong	7650	
+dkong	6100	
+dkong	5950	
+dkong	5050	
+dkong	4300	
+dkongjr	7650	HAM
+dkongjr	6100	MIY
+dkongjr	5950	ZOO
+dkongjr	5050	MSA
+dkongjr	4300	SEP
+mario	12000	AKI
+mario	9000	CHI
+mario	8000	SEI
+mario	5400	NAO
+mario	3200	IYO
+pang	100000	M.S
+pang	80000	M.K
+pang	70000	T.U
+pang	60000	K.H
+pang	50000	Y.N
+pang	40000	Y.K
+pang	30000	Y.F
+pang	20000	M.N
+pang	10000	M.M
+pang	5000	J.O
+strider	20000	CAP
+strider	19000	COM
+strider	18000	CAP
+strider	17000	COM
+strider	16000	CAP
+strider	15000	COM
+strider	14000	CAP
+strider	13000	COM
+strider	12000	CAP
+strider	11000	COM
+gng	10000	Yuk
+gng	10000	Fum
+gng	10000	Mik
+gng	10000	Tom
+gng	10000	Tan
+gng	10000	Kei
+gng	10000	Rum
+gng	10000	May
+gng	10000	Oot
+gng	10000	Hor
+ffight	20000	NIN
+ffight	19000	KNK
+ffight	18000	SIN
+ffight	17000	CAP
+ffight	16000	CAP
+frogger	4630	
+frogger	2050	
+frogger	1970	
+frogger	1580	
+frogger	1270	
+defender	21270	DRJ
+defender	18315	SAM
+defender	15920	LED
+defender	14285	PGD
+defender	12520	CRB
+defender	11035	MRS
+defender	8265	SSR
+defender	6010	TMH
+joust	23310	JRN
+joust	22917	PFZ
+joust	22552	KFL
+joust	20522	CWK
+joust	17635	JAN
+joust	16535	MRS
+simpsons	108	BAT
+simpsons	73	HOM
+simpsons	61	LIS
+simpsons	57	MAR
+simpsons	49	MAG
+simpsons	41	INC
+simpsons	37	SIM
+simpsons	33	MAT
+simpsons	20	FOX
+simpsons	19	KON
+snowbros	40000	
+snowbros	39000	
+snowbros	38000	
+snowbros	37000	
+snowbros	36000	

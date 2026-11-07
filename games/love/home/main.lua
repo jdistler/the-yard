@@ -138,6 +138,7 @@ local OURS = {
   {id = "chest", title = "CHEST", tint = 0x7fd6a0, blurb = "The key, the chest, Zam.", stat = {"gems", "%d GEMS", "1 GEM"}},
 }
 local SECTIONS = {
+  {name = "FAVORITES", tint = 0xff7ab8},
   {name = "CLASSICS", tint = 0xffd23f},
   {name = "ARCADE", tint = 0xffb43c},
   {name = "GAMES", tint = 0xff4fd8},
@@ -151,15 +152,17 @@ local LEAVE = {
   classic = {"HOLD  1-PLAYER  FOR 5 SECONDS", "to come back to Home (your high score is saved)"},
   cart = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
   native = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
+  game = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
   arcade = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
   yard = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
 }
-local ARCADE_SECTION, GAMES_SECTION, YARD_SECTION, TV_SECTION, SHOWS_SECTION, MORE_SECTION = 2, 3, 4, 5, 6, 7
+-- (FAVORITES is section 1 and CLASSICS 2, written as numbers: main.lua is at Lua's 200-local limit)
+local ARCADE_SECTION, GAMES_SECTION, YARD_SECTION, TV_SECTION, SHOWS_SECTION, MORE_SECTION = 3, 4, 5, 6, 7, 8
 
 local PREVIEW = os.getenv("HOME_MODE") == "preview"
 local items = {}
 for i, c in ipairs(CLASSICS) do
-  items[#items + 1] = {kind = "classic", index = i - 1, section = 1, title = c.title,
+  items[#items + 1] = {kind = "classic", index = i - 1, section = 2, title = c.title,
                        sub = c.year .. "  NAMCO", blurb = c.blurb, tint = c.tint}
 end
 -- The Shelf (shelf.lua): the games on the microSD card, a card per row (PARTY PICKS, then each system), each
@@ -167,6 +170,11 @@ end
 shelf.init()
 -- The arcade boards on the card (shelf.lua): a card each, like the classics, with the board's own high-score
 -- table (its top score and initials on the panel, the top five on the get-ready picture).
+-- The Hall of Fame (hall.lua): every board's record and the players ranked across them, first in ARCADE.
+if #shelf.arcade_games() > 0 then
+  items[#items + 1] = {kind = "hall", section = ARCADE_SECTION, title = "HALL OF FAME", sub = "EVERY RECORD  ·  THE CHAMPIONS",
+                       blurb = "The top score on every game, and who holds the most.", tint = 0xffd23f}
+end
 for _, g in ipairs(shelf.arcade_games()) do
   local meta = {}
   if g.year ~= "" then meta[#meta + 1] = g.year end
@@ -214,7 +222,8 @@ end
 
 -- A card's name in the state file (numbers move when cards are added).
 local function item_key(it)
-  return it.kind .. ":" .. tostring(it.id or it.show or it.index or it.title):gsub("%s", "_")
+  -- (a FAVORITES card has its own name, so coming back from the original card returns to the original)
+  return (it.fav and "fav:" or "") .. it.kind .. ":" .. tostring(it.id or it.show or it.index or it.title):gsub("%s", "_")
 end
 local function item_by_key(k)
   for i, it in ipairs(items) do if item_key(it) == k then return i end end
@@ -294,7 +303,8 @@ end
 local fonts = {}
 local font_data
 -- Starlight's state, in one table (main.lua is at Lua's 200 locals): the script face, the world, the marquee
-local ST = {script_fonts = {}, face = "round", world_want = "base", L = require("showlib"), initials = require("initials")}
+local ST = {script_fonts = {}, face = "round", world_want = "base", L = require("showlib"), initials = require("initials"),
+            hall = require("hall")}
 -- An arcade board's best score, and its line on the info panel ("23,310  JRN").
 function ST.arcade_best(it)
   local t = shelf.arcade_table(it.id)
@@ -307,6 +317,44 @@ function ST.arcade_score_text(it)
 end
 for _, it in ipairs(items) do
   if it.kind == "arcade" then it.table = shelf.arcade_table(it.id) it.score = ST.arcade_score_text(it) end
+end
+
+-- FAVORITES (favs.lua): the game played last, then the most played, as cards that launch straight away.
+ST.favs = require("favs")
+do
+  local stats = ST.favs.credit(STATE)
+  local last = ST.favs.last(stats)
+  local order, seen = {}, {}
+  if last then order[1], seen[last] = last, true end
+  for _, k in ipairs(ST.favs.ranked(stats)) do
+    if not seen[k] and #order < 8 then order[#order + 1], seen[k] = k, true end
+  end
+  local favs = {}
+  for i, k in ipairs(order) do
+    local base
+    local sys, file = k:match("^game:([^/]+)/(.+)$")
+    if sys then
+      local g = shelf.find(sys, file)
+      if g then
+        base = {kind = "game", game = g, id = sys .. "/" .. file, title = g.title:upper(), blurb = g.blurb,
+                tint = g.tint or 0xff4fd8}
+      end
+    else
+      for _, it in ipairs(items) do if item_key(it) == k then base = it break end end
+    end
+    if base and base.kind ~= "stock" then
+      local c = {}
+      for kk, vv in pairs(base) do c[kk] = vv end
+      c.section, c.fav, c.statkey = 1, true, k
+      c.sub = (i == 1 and k == last and "LAST PLAYED  ·  " or "") .. ST.favs.line(stats[k])
+      favs[#favs + 1] = c
+    end
+  end
+  if #favs == 0 then
+    favs[1] = {kind = "favhint", fav = true, section = 1, title = "FAVORITES", sub = "YOUR MOST-PLAYED GAMES",
+               blurb = "Play anything and it lands here: the last game played, then the ones played most.", tint = 0xff7ab8}
+  end
+  for i = #favs, 1, -1 do table.insert(items, 1, favs[i]) end
 end
 
 local trace_font                            -- (HOME_TRACE: a new font made; set once the trace exists)
@@ -682,7 +730,7 @@ local function load_art()
       else
         love.thread.getChannel("home_work"):push({"art", k, art_path(it)})
       end
-    elseif it.kind == "arcade" then
+    elseif it.kind == "arcade" or it.kind == "game" then
       -- The board's title screen, from the card (decoded on the worker; the reply sets it.shot).
       if it.game.art and not it.shot then
         if worker then love.thread.getChannel("home_work"):push({"art", k, it.game.art})
@@ -873,6 +921,18 @@ local function draw_tabs(cur)
   local total = 0
   for _, s in ipairs(SECTIONS) do total = total + font(px):getWidth(s.name) + 28 + gap end
   local x = math.floor((W - total + gap) / 2)
+  if total - gap > W - 20 then
+    -- Wider than the glass (eight sections since FAVORITES): slide so the chosen tab is in the middle.
+    local cx = 0
+    for i, s in ipairs(SECTIONS) do
+      local w = font(px):getWidth(s.name) + 28
+      if i == cur then cx = cx + w / 2 break end
+      cx = cx + w + gap
+    end
+    local want = math.max(W - 10 - (total - gap), math.min(10, W / 2 - cx))
+    ST.tab_x = ST.tab_x and (ST.tab_x + (want - ST.tab_x) * 0.2) or want
+    x = math.floor(ST.tab_x)
+  end
   lg.setColor(0.03, 0.02, 0.08, 0.6)
   rrect("fill", x - 10, 182, total - gap + 20, 46, 23)
   for i, s in ipairs(SECTIONS) do
@@ -1288,6 +1348,11 @@ local function draw_intro()
 end
 
 local function draw_scene()
+  if scene == "hall" then
+    ST.hall.draw()
+    draw_volume()
+    return
+  end
   if scene == "shelf" then
     shelf.draw()
     draw_volume()
@@ -1374,6 +1439,7 @@ end
 -- "Get ready": the game's logo (or name) big, and how to come back.
 local function picture_launch(it)
   if it.kind == "arcade" then return shelf.picture_arcade(it.game, it.shot, it.tint) end
+  if it.kind == "game" then return shelf.picture_game(it.game, it.shot, it.tint) end
   backdrop()
   local r, g, b = rgb(it.tint)
   fx.glow(W / 2, 430, 420, 240, r, g, b, 0.35)
@@ -1432,7 +1498,7 @@ end
 
 -- ------------------------------------------------------------------ actions
 
-local function request(s, it, picture)
+local function request(s, it, picture, gamekey)
   if picture and (not headless or os.getenv("HOME_FB")) then
     local ok, bytes = pcall(splash.render, picture)
     if ok then splash.show(bytes) end
@@ -1445,9 +1511,12 @@ local function request(s, it, picture)
   -- The classic's high score as it was: on the way back, a higher one is celebrated.
   local played = nil
   if it and it.kind ~= "stock" then played = sel end
-  save_state(it and it.kind == "classic" and ("score " .. it.index .. " " .. (high_score(it.index) or 0) .. "\n")
-             or it and it.kind == "arcade" and ("ascore " .. it.id .. " " .. ST.arcade_best(it) .. "\n") or nil,
-             played)
+  local extra = it and it.kind == "classic" and ("score " .. it.index .. " " .. (high_score(it.index) or 0) .. "\n")
+                or it and it.kind == "arcade" and ("ascore " .. it.id .. " " .. ST.arcade_best(it) .. "\n") or ""
+  -- (a Shelf game, from the browser or a FAVORITES card: favs.lua credits its play time to it)
+  gamekey = gamekey or (it and it.kind == "game" and ("game:" .. it.game.sys .. "/" .. it.game.file))
+  if gamekey then extra = extra .. "playedgame " .. gamekey .. "\n" end
+  save_state(extra ~= "" and extra or nil, played)
   if REQ then
     local f = io.open(REQ, "w")
     if f then f:write(s .. "\n") f:close() end
@@ -1462,6 +1531,7 @@ local function launch(it)
   elseif it.kind == "cart" then return "cart " .. it.id
   elseif it.kind == "native" then return "native " .. it.native
   elseif it.kind == "arcade" then return "shelf arcade " .. it.game.file
+  elseif it.kind == "game" then return "shelf " .. it.game.sys .. " " .. it.game.file
   elseif it.kind == "yard" then return "yard"
   else return "stock" end
 end
@@ -1532,7 +1602,7 @@ local function free_menu_pictures()
   menu_freed = true
   for _, it in ipairs(items) do
     if it.art then it.art:release() it.art = nil end
-    if it.kind == "arcade" and it.shot then it.shot:release() it.shot = nil end
+    if (it.kind == "arcade" or it.kind == "game") and it.shot then it.shot:release() it.shot = nil end
   end
   for k, e in pairs(neon_cache) do e.img:release() neon_cache[k] = nil end
   if ST.world then ST.world:release() ST.world = nil ST.world_name = nil end
@@ -1727,6 +1797,10 @@ local function handle(name)
     ST.initials.handle(name)
     return
   end
+  if scene == "hall" then
+    if ST.hall.handle(name) == "exit" then scene = "menu" end
+    return
+  end
   if launch_item then return end
   if name == "2p" then return end
   if secret(name) then
@@ -1771,6 +1845,10 @@ local function handle(name)
     attract_sel = sel
     play("launch")
     open_tiles(it.show)
+  elseif (name == "low" or name == "1p") and it.kind == "hall" then
+    scene = "hall"
+    ST.hall.enter()
+    play("launch")
   elseif (name == "low" or name == "1p") and it.kind == "shelf" then
     -- The browser opens in Home itself, at this card's row.
     if it.row then
@@ -1795,6 +1873,23 @@ end
 -- The TV guide's and the Shelf's drawing helpers, and coming back from one of their programs. (Out of
 -- love.load: LuaJIT allows a function 60 upvalues.)
 local function shelf_setup()
+  ST.hall.load({W = W, H = H, font = font, neon_draw = neon_draw, rgb = rgb, rrect = rrect, fx = fx, play = play,
+                down = down, commas = shelf.commas,
+                entries = function()
+                  local out = {}
+                  for k, it in ipairs(items) do
+                    if it.kind == "arcade" then
+                      it.table = shelf.arcade_table(it.id)
+                      out[#out + 1] = {title = it.title, tint = it.tint, img = it.shot, rows = it.table,
+                                       launch = function() sel, pos = k, k scene = "menu" launch_item = it launch_t = 0 end}
+                    elseif it.kind == "classic" and it.score then
+                      out[#out + 1] = {title = it.title, tint = it.tint, img = it.art, classic = true,
+                                       rows = {{tonumber(it.score) or 0, "", false}},
+                                       launch = function() sel, pos = k, k scene = "menu" launch_item = it launch_t = 0 end}
+                    end
+                  end
+                  return out
+                end})
   ST.initials.load({W = W, H = H, font = font, neon_draw = neon_draw, rgb = rgb, rrect = rrect, fx = fx, play = play,
                     down = down, commas = shelf.commas,
                     done = function(it, score, initials)
@@ -1837,7 +1932,7 @@ local function shelf_setup()
   shelf.load({W = W, H = H, font = font, neon_draw = neon_draw, rgb = rgb, rrect = rrect, fx = fx, play = play,
               log = log, down = down, backdrop = backdrop,
               request_art = worker and function(key, path) love.thread.getChannel("home_work"):push({"art", key, path}) end,
-              request = function(s, picture) request(s, nil, picture) end})
+              request = function(s, picture, key) request(s, nil, picture, key) end})
   do
     -- Back from a game on the Shelf: the browser, on that game.
     local key, file, failed = shelf.returning()
@@ -2064,6 +2159,10 @@ local function update_idle(dt)
     idle = 0
     if ST.initials.update(dt) == "done" then scene = "menu" end
   end
+  if scene == "hall" then
+    idle = 0
+    if ST.hall.update(dt) == "exit" then scene = "menu" end
+  end
   idle = idle + dt
   if scene == "menu" and idle > IDLE_ATTRACT then scene = "attract" attract_t = 0 attract_sel = sel end
   if scene == "attract" then
@@ -2138,7 +2237,7 @@ function love.update(dt)
         if msg[3] then shows.thumb_ready(msg[2], msg[3]) end
       elseif msg[1] == "art" and msg[3] and not menu_freed then
         local it = items[msg[2]]
-        if it.kind == "arcade" then it.shot = art_image(msg[3]) else it.art = art_image(msg[3]) end
+        if it.kind == "arcade" or it.kind == "game" then it.shot = art_image(msg[3]) else it.art = art_image(msg[3]) end
       end
       msg = love.thread.getChannel("home_done"):pop()
     end
