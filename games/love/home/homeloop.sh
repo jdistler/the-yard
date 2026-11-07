@@ -150,7 +150,7 @@ while :; do
   SEEN=/tmp/home-seen
   if ! grep -qx "$WHAT $2" "$SEEN" 2>/dev/null; then
     echo "$WHAT $2" >> "$SEEN"
-    case "$WHAT" in classic|cart|native|yard) sleep 1.5 ;; esac   # (tv: its "tuning in" stays up while it connects)
+    case "$WHAT" in classic|cart|native|yard|shelf) sleep 1.5 ;; esac   # (tv: its "tuning in" stays up while it connects)
   fi
   case "$WHAT" in
     classic) classic "$2" "$3" "$4" ;;
@@ -163,6 +163,27 @@ while :; do
       case "$2" in ""|*[!a-z0-9_-]*) log "bad native: $2"; continue ;; esac
       log "native $2"
       ( cd /data/Games && "./$2" ) ;;
+    shelf)
+      # The Shelf (games/native/play, games/love/home/shelf.lua): "shelf <system> <file>", the file in the
+      # card's library/<system>/. Home wrote /tmp/shelf.ret to come back on that game; a quick failure is
+      # added to it, so the browser can say so.
+      SLIB=/mnt/sdcard/library
+      SFILE=$(head -n 1 "$REQ" | cut -d' ' -f3-)
+      case "$2" in ""|*[!a-z0-9]*) log "bad shelf system: $2"; continue ;; esac
+      case "$SFILE" in ""|*/*|.*) log "bad shelf file: $SFILE"; continue ;; esac
+      if [ ! -x $SLIB/bin/play ] || [ ! -f "$SLIB/$2/$SFILE" ]; then
+        log "shelf: missing $2/$SFILE"
+        [ -f /tmp/shelf.ret ] && printf '%s\tfailed\n' "$(head -n 1 /tmp/shelf.ret)" > /tmp/shelf.ret
+        continue
+      fi
+      log "shelf $2 $SFILE"
+      ( cd $SLIB && PLAY_LIB=$SLIB PLAY_LOG=/tmp/play.log ALSA_CONFIG_PATH=$H/alsa.conf \
+          bin/play "$2" "$SLIB/$2/$SFILE" )
+      SRC=$?
+      if [ $SRC -ne 0 ] && [ $(( $(cut -d. -f1 /proc/uptime) - T0 )) -lt 5 ] && [ -f /tmp/shelf.ret ]; then
+        printf '%s\tfailed\n' "$(head -n 1 /tmp/shelf.ret)" > /tmp/shelf.ret
+      fi
+      (exit $SRC) ;;
     tv)
       # Live TV (games/tv): the channel the guide chose, and the ones flipped to; Home comes back on it.
       log "tv"

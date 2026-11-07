@@ -701,6 +701,16 @@ def cmd_push(a):
                 if ext == ".pkm" or (ext == ".png" and not base.endswith(".etc1") and
                                      not os.path.exists(os.path.join(show_art, sid, base + ".pkm"))):
                     files[f"/mnt/sdcard/partycade/art/{sid}/{f}"] = (os.path.join(show_art, sid, f), False)
+    # The Shelf (games/native/play): the player and its libretro cores live on the card beside the games
+    # (/data has no room). Cores come from games/shelf/build_cores.sh (~/partycade-build/cores). The library
+    # itself (games, index, art) is tools/shelf_sync.sh.
+    play_bin = os.path.join(HERE, "out", "cab", "play")
+    cores = os.path.expanduser("~/partycade-build/cores")
+    if os.path.exists(play_bin) and ssh("grep -q ' /mnt/sdcard ' /proc/mounts && echo card").stdout.strip() == "card":
+        files["/mnt/sdcard/library/bin/play"] = (play_bin, False)
+        for f in sorted(os.listdir(cores)) if os.path.isdir(cores) else []:
+            if f.endswith(".so"):
+                files[f"/mnt/sdcard/library/cores/{f}"] = (os.path.join(cores, f), False)
     for extra_file in a.also or []:
         src, dst = extra_file.split(":", 1)
         files[dst] = (os.path.abspath(src), False)
@@ -708,7 +718,7 @@ def cmd_push(a):
     # Orb). Home on its own (the front end since 2026-10-27) is stopped for the install and started again.
     busy_check = ("pidof yard >/dev/null && echo busy; "
                   "for p in $(pidof love.bin); do grep -q home.love /proc/$p/cmdline || echo busy; done; "
-                  "pidof PacMan SuperPacMan PacLand NS1 Galaga Galaxian Mappy DigDug orb start.sh >/dev/null && echo busy; "
+                  "pidof PacMan SuperPacMan PacLand NS1 Galaga Galaxian Mappy DigDug orb start.sh play >/dev/null && echo busy; "
                   "pidof tvloop tvplay >/dev/null && echo busy; "
                   "pidof homeloop >/dev/null && echo home; ")
     # (the list over stdin: with the shows' pictures it is too long for one command line)

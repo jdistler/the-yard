@@ -34,6 +34,7 @@ local night = require("night")
 local tv = require("tv")
 local music = require("music")
 local shows = require("shows")
+local shelf = require("shelf")
 local utgame = require("utgame")
 
 local W, H = 768, 1024                       -- the upright picture; the panel shows the framebuffer turned
@@ -138,6 +139,7 @@ local OURS = {
 }
 local SECTIONS = {
   {name = "CLASSICS", tint = 0xffd23f},
+  {name = "GAMES", tint = 0xff4fd8},
   {name = "THE YARD", tint = 0x6ef0c8},
   {name = "TV", tint = 0xff6b6b},
   {name = "SHOWS", tint = 0xff4a5a},
@@ -150,7 +152,7 @@ local LEAVE = {
   native = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
   yard = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
 }
-local TV_SECTION, SHOWS_SECTION, MORE_SECTION = 3, 4, 5
+local GAMES_SECTION, YARD_SECTION, TV_SECTION, SHOWS_SECTION, MORE_SECTION = 2, 3, 4, 5, 6
 
 local PREVIEW = os.getenv("HOME_MODE") == "preview"
 local items = {}
@@ -158,8 +160,23 @@ for i, c in ipairs(CLASSICS) do
   items[#items + 1] = {kind = "classic", index = i - 1, section = 1, title = c.title,
                        sub = c.year .. "  NAMCO", blurb = c.blurb, tint = c.tint}
 end
+-- The Shelf (shelf.lua): the games on the microSD card, a card per row (PARTY PICKS, then each system), each
+-- opening the browser there. No card in the slot: one card that says so.
+shelf.init()
+do
+  local cards = shelf.cards()
+  for _, c in ipairs(cards) do
+    items[#items + 1] = {kind = "shelf", row = c.key, section = GAMES_SECTION, title = c.title,
+                         sub = c.sub:upper(), blurb = shelf.card_blurb(c.key), tint = c.tint}
+  end
+  if #cards == 0 then
+    items[#items + 1] = {kind = "shelf", section = GAMES_SECTION, title = "GAMES", sub = "THE GAMES CARD",
+                         blurb = "Put the YARD card in the slot (power off first) for the arcade and console games.",
+                         tint = 0xff4fd8}
+  end
+end
 for _, g in ipairs(OURS) do
-  items[#items + 1] = {kind = g.native and "native" or "cart", id = g.id, native = g.native, section = 2,
+  items[#items + 1] = {kind = g.native and "native" or "cart", id = g.id, native = g.native, section = YARD_SECTION,
                        title = g.title, sub = "THE YARD", blurb = g.blurb, tint = g.tint, statdef = g.stat}
 end
 -- Live TV (tv.lua): one card, which opens the guide in Home itself.
@@ -1197,6 +1214,12 @@ local function draw_intro()
 end
 
 local function draw_scene()
+  if scene == "shelf" then
+    shelf.draw()
+    draw_volume()
+    draw_note()
+    return
+  end
   if scene == "tv" then
     -- The guide draws its own quiet backdrop (Home's sky under it cost ~15 fps: two extra full-screen passes).
     tv.draw()
@@ -1617,6 +1640,10 @@ local function handle(name)
     if tv.handle(name) == "exit" then scene = "menu" end
     return
   end
+  if scene == "shelf" then
+    if shelf.handle(name) == "exit" then scene = "menu" end
+    return
+  end
   if launch_item then return end
   if name == "2p" then return end
   if secret(name) then
@@ -1661,6 +1688,13 @@ local function handle(name)
     attract_sel = sel
     play("launch")
     open_tiles(it.show)
+  elseif (name == "low" or name == "1p") and it.kind == "shelf" then
+    -- The browser opens in Home itself, at this card's row.
+    if it.row then
+      scene = "shelf"
+      shelf.enter(it.row)
+      play("launch")
+    end
   elseif (name == "low" or name == "1p") and it.kind == "tv" then
     -- The guide opens in Home itself: no program to start.
     scene = "tv"
@@ -1674,6 +1708,34 @@ local function handle(name)
 end
 
 -- ------------------------------------------------------------------ the loop
+
+-- The TV guide's and the Shelf's drawing helpers, and coming back from one of their programs. (Out of
+-- love.load: LuaJIT allows a function 60 upvalues.)
+local function shelf_setup()
+  -- Live TV: the guide's lists, and coming back from a channel (tvloop wrote how it ended).
+  tv.load({W = W, H = H, font = font, neon_draw = neon_draw, rgb = rgb, rrect = rrect, fx = fx, play = play,
+           log = log, down = down, backdrop = backdrop,
+           request = function(s, picture) request(s, nil, picture) end,
+           save_picture = function(path, picture)
+             if headless and not os.getenv("HOME_FB") then return end
+             local ok, bytes = pcall(splash.render, picture)
+             if ok then splash.save(bytes, path, true) end
+           end})
+  shelf.load({W = W, H = H, font = font, neon_draw = neon_draw, rgb = rgb, rrect = rrect, fx = fx, play = play,
+              log = log, down = down, backdrop = backdrop,
+              request_art = worker and function(key, path) love.thread.getChannel("home_work"):push({"art", key, path}) end,
+              request = function(s, picture) request(s, nil, picture) end})
+  do
+    -- Back from a game on the Shelf: the browser, on that game.
+    local key, file, failed = shelf.returning()
+    if key then
+      for k, it in ipairs(items) do if it.kind == "shelf" and (it.row == key or (key == "recent" and it.row)) then sel, pos = k, k break end end
+      scene = "shelf"
+      shelf.enter_at(key, file, failed)
+      returning = true
+    end
+  end
+end
 
 function love.load()
   mark("love.load")
@@ -1751,15 +1813,7 @@ function love.load()
   else
     play("intro")
   end
-  -- Live TV: the guide's lists, and coming back from a channel (tvloop wrote how it ended).
-  tv.load({W = W, H = H, font = font, neon_draw = neon_draw, rgb = rgb, rrect = rrect, fx = fx, play = play,
-           log = log, down = down, backdrop = backdrop,
-           request = function(s, picture) request(s, nil, picture) end,
-           save_picture = function(path, picture)
-             if headless and not os.getenv("HOME_FB") then return end
-             local ok, bytes = pcall(splash.render, picture)
-             if ok then splash.save(bytes, path, true) end
-           end})
+  shelf_setup()
   shows_ctx = {request_art = worker and function(key, path)
                  love.thread.getChannel("home_work"):push({"art", key, path})
                end or nil, backdrop = backdrop, rgb = rgb, neon_draw = neon_draw, font = font, fx = fx, rrect = rrect, play = play}
@@ -1847,6 +1901,7 @@ end
 function love.quit()
   if worker then love.thread.getChannel("home_work"):push({"quit"}) end
   tv.quit()
+  shelf.quit()
   music.quit()
   return false
 end
@@ -1870,7 +1925,7 @@ local function music_tick()
       local act = cur_show.act and cur_show.act()
       if act ~= trace_seen.act then trace_seen.act = act trace("act", act) end
     end
-  elseif scene == "tv" then want = "tv"
+  elseif scene == "tv" or scene == "shelf" then want = "tv"
   elseif scene == "attract" then want = "attract" end
   -- (headless tests choose the song too, so a show that can't say which is caught on the PC, but play nothing)
   if headless then return end
@@ -1887,6 +1942,10 @@ local function update_idle(dt)
   if scene == "tv" then
     idle = 0
     if tv.update(dt) == "exit" then scene = "menu" end
+  end
+  if scene == "shelf" then
+    idle = 0
+    if shelf.update(dt) == "exit" then scene = "menu" end
   end
   idle = idle + dt
   if scene == "menu" and idle > IDLE_ATTRACT then scene = "attract" attract_t = 0 attract_sel = sel end
@@ -1956,7 +2015,9 @@ function love.update(dt)
   if worker then
     local msg = love.thread.getChannel("home_done"):pop()
     while msg do
-      if msg[1] == "art" and type(msg[2]) == "string" then
+      if msg[1] == "art" and type(msg[2]) == "string" and msg[2]:sub(1, 6) == "shelf:" then
+        if msg[3] then shelf.art_ready(msg[2], msg[3]) else shelf.art_failed(msg[2]) end
+      elseif msg[1] == "art" and type(msg[2]) == "string" then
         if msg[3] then shows.thumb_ready(msg[2], msg[3]) end
       elseif msg[1] == "art" and msg[3] and not menu_freed then items[msg[2]].art = art_image(msg[3])
       end

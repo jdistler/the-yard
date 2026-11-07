@@ -33,7 +33,7 @@ LUA_OBJ := $(LUA_SRC:engine/lua/%.c=$(OUT)/lua/%.o)
 LINKS := $(patsubst carts/%/info.lua,%,$(wildcard carts/*/info.lua))
 LINKS := $(filter-out yard orb,$(LINKS))
 
-all: $(OUT)/yard $(OUT)/orb $(OUT)/probe $(if $(filter pc,$(TARGET)),links)
+all: $(OUT)/yard $(OUT)/orb $(OUT)/probe $(OUT)/play $(if $(filter pc,$(TARGET)),links)
 
 engine/lib_lua.h: $(wildcard engine/lib/*.lua) tools/bin2c.py
 	python3 tools/bin2c.py
@@ -49,6 +49,10 @@ $(OUT)/orb: native/orb/orb.c $(ENGINE) $(ENGINE_H) | $(OUT)
 
 $(OUT)/probe: native/probe/probe.c $(ENGINE) $(ENGINE_H) | $(OUT)
 	$(CC) $(CFLAGS) -o $@ native/probe/probe.c $(ENGINE) $(LDLIBS)
+
+PLAY_SRC := native/play/play.c native/play/play_gl.c
+$(OUT)/play: $(PLAY_SRC) native/play/*.h $(ENGINE) $(ENGINE_H) | $(OUT)
+	$(CC) $(CFLAGS) -Inative/play -o $@ $(PLAY_SRC) $(ENGINE) $(LDLIBS) -ldl
 
 links: $(OUT)/yard
 	@for c in $(LINKS); do ln -sf yard $(OUT)/$$c; done

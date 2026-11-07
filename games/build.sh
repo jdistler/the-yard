@@ -13,7 +13,7 @@ cab() {
   docker image inspect partycade-armhf >/dev/null 2>&1 || docker build -t partycade-armhf toolchain
   docker run --rm -u "$(id -u):$(id -g)" -v "$PWD/..:/src" -v "$ROOTFS:/rootfs:ro" -w /src/games \
     partycade-armhf make TARGET=cab
-  for b in out/cab/yard out/cab/orb out/cab/probe; do ./check_binary.sh "$b"; done
+  for b in out/cab/yard out/cab/orb out/cab/probe out/cab/play; do ./check_binary.sh "$b"; done
 }
 
 case ${1:-all} in

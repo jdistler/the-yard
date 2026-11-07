@@ -1,0 +1,24 @@
+#!/bin/sh
+# tools/shelf_sync.sh [LIBRARY]: copy the Shelf's library (games, index.tsv, art/) from this PC onto the
+# cabinet's card, only what is new or changed (name and size). Default LIBRARY ~/partycade-card/library.
+# The player and cores are `games/cart push`. Run tools/shelf_index.py first when games were added.
+# Big copies stall Home (it reads its pictures from the same card: 254 MB at once froze it for 30-45 s,
+# 2026-11-07), so this refuses while a game or the Yard is running, and is best run when nobody is watching.
+set -e
+LIB=${1:-$HOME/partycade-card/library}
+HOST=$($(dirname "$0")/cab.sh host)
+SSH="ssh -i $HOME/yard_key_ecdsa -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=8 root@$HOST"
+$SSH 'grep -q " /mnt/sdcard " /proc/mounts' || { echo "no card mounted on the cabinet"; exit 1; }
+BUSY=$($SSH 'pidof yard play >/dev/null && echo busy; pidof PacMan SuperPacMan PacLand NS1 Galaga Galaxian Mappy DigDug orb start.sh tvplay >/dev/null && echo busy; true')
+case "$BUSY" in *busy*) echo "cabinet busy: not syncing"; exit 1;; esac
+# What the card has: "size path" for every file under library/ (cores and bin are cart push's).
+# (busybox has no stat: sizes from ls -ln, the name is everything after the eighth field)
+$SSH 'cd /mnt/sdcard/library 2>/dev/null && find . -type f ! -path "./cores/*" ! -path "./bin/*" ! -path "./saves/*" -exec ls -ln {} +' \
+  | awk '{ s = $5; for (i = 1; i <= 8; i++) sub(/^[^ ]+ +/, ""); print s " " $0 }' | sort > /tmp/shelf_have.txt || true
+(cd "$LIB" && find . -type f ! -path "./cores/*" ! -path "./bin/*" ! -path "./saves/*" ! -name recent.tsv -exec stat -c "%s %n" {} + | sort) > /tmp/shelf_want.txt
+comm -13 /tmp/shelf_have.txt /tmp/shelf_want.txt | cut -d' ' -f2- > /tmp/shelf_send.txt
+N=$(wc -l < /tmp/shelf_send.txt)
+[ "$N" = 0 ] && { echo "card is up to date"; exit 0; }
+echo "sending $N file(s)"
+(cd "$LIB" && tar -cf - -T /tmp/shelf_send.txt) | $SSH 'mkdir -p /mnt/sdcard/library && tar -C /mnt/sdcard/library -xf - && sync'
+echo done

@@ -11,7 +11,7 @@ set -e
 SPEC=$1; SECS=$2
 HOST=$($(dirname "$0")/cab.sh host)
 SSH="ssh -i $HOME/yard_key_ecdsa -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=8 root@$HOST"
-BUSY=$($SSH 'pidof yard >/dev/null && echo busy; for p in $(pidof love.bin); do grep -q home.love /proc/$p/cmdline || echo busy; done; pidof PacMan SuperPacMan PacLand NS1 Galaga Galaxian Mappy DigDug orb start.sh game tvloop tvplay >/dev/null && echo busy; true')
+BUSY=$($SSH 'pidof yard >/dev/null && echo busy; for p in $(pidof love.bin); do grep -q home.love /proc/$p/cmdline || echo busy; done; pidof PacMan SuperPacMan PacLand NS1 Galaga Galaxian Mappy DigDug orb start.sh game tvloop tvplay play >/dev/null && echo busy; true')
 case "$BUSY" in *busy*) echo "cabinet busy: not measuring"; exit 1;; esac
 $SSH "for p in \$(pidof homeloop) \$(pidof love.bin); do kill -9 \$p; done; n=0; while pidof love.bin >/dev/null && [ \$n -lt 20 ]; do sleep 0.3; n=\$((n+1)); done
 rm -rf /tmp/cs; mkdir -p /tmp/cs; cd /tmp/cs
