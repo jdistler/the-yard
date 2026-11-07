@@ -790,7 +790,7 @@ function D.auld(lt, len)
       lg.pop()
       if asleep and lt < len - 1 then
         local ph = (S.t * 0.6 + i * 0.2) % 1
-        G:text("z", x + 20 + ph * 20, y - 50 - ph * 50, 20 + ph * 8, {1, 1, 1}, 1 - ph, "left", 30)
+        G:text("z", x + 20 + ph * 20, y - 50 - ph * 50, ph < 0.5 and 20 or 28, {1, 1, 1}, 1 - ph, "left", 30)
       end
       -- the sparkler: lit from the one before
       if lt > lit_at(i) - 0.5 then

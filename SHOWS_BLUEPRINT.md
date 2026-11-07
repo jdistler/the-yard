@@ -108,6 +108,13 @@ nothing (New Year's party and midnight score high on motion, low on new). The "n
   for 38 s. Review every path a scene can take.
 * **Character comedy is quiet to the measure.** A hop, a tray sliding, a calf on a rope are real beats that move
   a few percent of the screen. A stretch of 8-15 s is checked on the film strip before it is "fixed".
+* **The cabinet is fill-bound.** Three full-screen pictures a frame (the Tower's layers) or 500 smoke puffs (the
+  launch's six a frame) took it to 38 fps; a blend-mode switch per glow (the River Walk's bulbs) to 41. Draw one
+  full-screen picture where one covers the rest, emit particles as a rate, batch additive passes. The review
+  flags over 250 puffs at once; `--cab` measures the rest.
+* **Memory over a long session.** Home was killed for memory twice, each 15 minutes into a session (menu,
+  attract, then Texas), and the supervisor fell back to the stock menu for the night. It now restarts Home
+  after a late death; `show_cab.sh auto` reproduces a session and samples Home's memory, the GPU's and shared.
 * **The cast belongs in every show.** The Longhorns show had no Pac-Man or ghosts at all: no hero. In caps, as
   fans, they tailgate, ride the Texas Star, carry the Golden Hat, light the candles and storm the field.
 

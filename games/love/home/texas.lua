@@ -2464,7 +2464,7 @@ function D.bigbend(lt, len)
   if lt > 61 then
     for k = 0, 2 do
       local ph = ((S.t * 0.5 + k / 3) % 1)
-      G:text("z", FIRE[1] + 40 + ph * 30, FIRE[2] - 20 - ph * 90, 22 + ph * 10, {1, 1, 1}, 1 - ph, "left", 40)
+      G:text("z", FIRE[1] + 40 + ph * 30, FIRE[2] - 20 - ph * 90, ph < 0.5 and 22 or 30, {1, 1, 1}, 1 - ph, "left", 40)
     end
   end
   if lt > 6.4 and lt < 8.6 then G:say("HELP!", TENT[1], TENT[2] - 50, 24, 1) end

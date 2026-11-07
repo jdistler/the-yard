@@ -1643,11 +1643,14 @@ function M.update(dt)
       -- the fire and the smoke: billowing out from the pad, then a trail behind the rocket
       local up = clamp(lt - 22, 0, 100)
       local ry = 870 - (up > 0 and (up ^ 2) * 1.6 or 0)
-      local n = lt < 40 and 6 or 2
+      -- (a rate, not a number a frame: six a frame filled the 500-puff cap and took the cabinet to 38 fps)
+      S.smoke_acc = (S.smoke_acc or 0) + dt * (lt < 40 and 45 or 15)
+      local n = floor(S.smoke_acc)
+      S.smoke_acc = S.smoke_acc - n
       for i = 1, n do
         local side = G.R:random() < 0.5 and -1 or 1
         G:puff(384 + side * G.R:random() * (60 + up * 4), 900 - G.R:random() * 20, {0.85, 0.85, 0.88}, 20 + G.R:random() * 30,
-               side * (60 + G.R:random() * 120), 4 + G.R:random() * 2, 18 + G.R:random() * 14, 0.6)
+               side * (60 + G.R:random() * 120), 3 + G.R:random() * 1.5, 22 + G.R:random() * 14, 0.6)
       end
       if ry > -100 then
         for i = 1, 4 do G:spark(384 + (G.R:random() - 0.5) * 40, ry + 30, (G.R:random() - 0.5) * 60, 200 + G.R:random() * 200, 0.4,

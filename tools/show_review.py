@@ -336,6 +336,13 @@ def measure(sc, d, dw, songs):
         m["cast_px"] = int(np.median(cast))
         m["cast_shown"] = len(cast) / max(1, len([1 for t, k, x in ev if k == "cast" and t - t0 >= SKIP]))
         m["hero_moving"] = m["hero_secs"] / max(1, m["secs"] - SKIP)
+    # fonts made while the scene plays (each one a texture: made every frame, they ran the cabinet out of memory)
+    m["fonts_made"] = len([1 for t, k, x in ev if k == "font" and t - t0 > 1])
+    # particles (the cabinet's fill: big soft smoke is the costly kind)
+    parts = [tuple(int(v) for v in x.split()) for t, k, x in ev if k == "parts"]
+    if parts:
+        m["smoke_max"] = max(p[0] for p in parts)
+        m["sparks_max"] = max(p[1] for p in parts)
     # sound
     sfx = [(t - t0, x) for t, k, x in ev if k == "sfx" and t - t0 >= 0]
     marks = [SKIP] + [t for t, _ in sfx if t >= SKIP] + [m["secs"]]
@@ -399,6 +406,12 @@ def findings(m, night=False):
                                           f"the blueprint's hero is a sixth of the screen (~170 px); bigger, or the camera in"))
     elif m.get("cast_shown") is not None and m.get("cast_shown", 0) <= 0.3:
         out.append(("info", "hero", f"the cast is on screen {m['cast_shown'] * 100:.0f}% of the scene: who is the hero?"))
+    if m.get("fonts_made", 0) > 30:
+        out.append(("red", "memory", f"{m['fonts_made']} fonts made while the scene plays: a text size that keeps "
+                                     "changing makes a new font (and texture) each time; the cabinet runs out of memory"))
+    if m.get("smoke_max", 0) > 250:
+        out.append(("yellow", "fill", f"{m['smoke_max']} smoke puffs at once (cap 500): the cabinet is fill-bound, "
+                                      "38 fps at Mission Control's launch with 500; emit a rate, keep them few"))
     if "cam_hold" not in m:
         out.append(("yellow", "camera", "no camera: the scene is one shot"))
     # the music and the sounds
@@ -567,7 +580,7 @@ def cab_fps(show, scenes):
             try:
                 if kind == "fps" and len(f) == 2:
                     fps.append((float(f[0]), float(f[1])))
-                elif kind == "mem" and len(f) == 3:
+                elif kind == "mem" and len(f) >= 3:
                     mem.append((float(f[0]), float(f[1]), float(f[2])))
             except ValueError:
                 pass

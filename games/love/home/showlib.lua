@@ -636,6 +636,7 @@ function G:look(x, y, z, shake)
     tr("cam", x, y, z)
     L.tracing = true
     tr("cast", L.cast_px * 2, L.cast_sx or 0, L.cast_sy or 0)
+    tr("parts", #self.smoke, #self.glow + #self.debris)
     if #L.cast_seen > 0 then tr("crowd", table.concat(L.cast_seen, " ")) end
     L.cast_px = 0
     L.cast_seen = {}

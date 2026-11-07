@@ -123,13 +123,19 @@ classic() {
 while :; do
   rm -f "$REQ"
   log "home: starting LOVE"
+  STARTED=$(cut -d. -f1 /proc/uptime)
   HOME_INTRO=$INTRO HOME_REQ=$REQ HOME_BACK=$BACK HOME_STATE=$H/state HOME_LOG=$LOG HOME_LOG_MAX=$LOG_MAX HOME_ART=$H/art HOME_GAMES=/data/Games HOME_MODE=$MODE \
     /data/love/run.sh $H/home.love
   CODE=$?
   INTRO=0
   if [ ! -s "$REQ" ]; then
+    # (a Home that ran a while and then died, killed for memory say, is restarted: only Home failing as it
+    # starts, twice running, means it's broken and the original menu should take over. 2026-11-06: two
+    # out-of-memory kills, each after 15 minutes of shows, put the cabinet on the stock menu for the night)
+    RAN=$(( $(cut -d. -f1 /proc/uptime) - STARTED ))
+    if [ $RAN -gt 120 ]; then FAILS=0; fi
     FAILS=$((FAILS + 1))
-    log "Home quit without a choice (code $CODE), $FAILS time(s)"
+    log "Home quit without a choice (code $CODE) after ${RAN} s, $FAILS time(s)"
     [ "$MODE" = preview ] && exit 0
     [ $FAILS -ge 2 ] && stock
     continue

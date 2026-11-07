@@ -267,14 +267,20 @@ local fonts = {}
 local font_data
 -- Starlight's state, in one table (main.lua is at Lua's 200 locals): the script face, the world, the marquee
 local ST = {script_fonts = {}, face = "round", world_want = "base", L = require("showlib")}
+local trace_font                            -- (HOME_TRACE: a new font made; set once the trace exists)
 local function font(px)
+  -- (whole pixels only: a size that changes smoothly, 22 + ph * 10, made a new font every frame, each with its
+  -- glyph texture, until the cabinet ran out of memory 14 minutes into Texas, 2026-11-06)
+  px = math.floor(px + 0.5)
   if not fonts[px] then
+    if trace_font then trace_font(px) end
     fonts[px] = font_data and lg.newFont(font_data, px) or lg.newFont(px)
   end
   return fonts[px]
 end
 -- Starlight's wordmark face (Pacifico, OFL; a subset): the marquee and the brand's titles
 function ST.script_font(px)
+  px = math.floor(px + 0.5)
   if not ST.script_fonts[px] then
     ST.script_fonts[px] = ST.script_data and lg.newFont(ST.script_data, px) or font(px)
   end
@@ -322,6 +328,7 @@ local function rrect(mode, x, y, w, h, r) lg.rectangle(mode, x, y, w, h, r, r, 1
 local neon_cache = {}
 local label_jobs = {}
 local function neon_img(s, px, c, glow)
+  px = math.floor(px + 0.5)                -- (whole pixels: one picture per text and size, not one a frame)
   local key = s .. "|" .. px .. "|" .. c .. "|" .. (glow or 1) .. (ST.face == "script" and "|s" or "")
   local e = neon_cache[key]
   if e then return e end
@@ -433,6 +440,11 @@ local trace_t, trace_seen = nil, {}
 local function trace(kind, a, b, c)
   if kind == "t" then trace_t = a return end
   local when = trace_t or frame / 60
+  if kind == "parts" then
+    if frame % 30 ~= 0 then return end
+    TRACE:write(string.format("%.2f parts %d %d\n", when, a, b))
+    return
+  end
   if kind == "crowd" then
     if frame % 6 ~= 0 then return end
     TRACE:write(string.format("%.2f crowd %s\n", when, a))
@@ -1683,6 +1695,7 @@ function love.load()
                     fx = fx, sfx = music.sfx,
                     log = log, rgb = rgb}
   if TRACE then
+    trace_font = function(px) trace("font", px) end
     show_ctx.trace = trace
     show_ctx.sfx = function(name, gain) trace("sfx", name) music.sfx(name, gain) end
   end
