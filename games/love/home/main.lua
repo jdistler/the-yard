@@ -313,6 +313,7 @@ end
 function ST.arcade_score_text(it)
   local t = shelf.arcade_table(it.id)
   if not t or t[1][1] <= 0 then return nil end
+  if t[1][3] then return shelf.commas(t[1][1]) .. "  (HOUSE)" end   -- (no player record yet: the house's to beat)
   return shelf.commas(t[1][1]) .. (t[1][2] ~= "" and ("  " .. t[1][2]) or "")
 end
 for _, it in ipairs(items) do
@@ -1017,12 +1018,14 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
     if tbl and tbl[1][1] > 0 then
       lg.setFont(font(math.floor(18 * sc)))
       lg.setColor(1, 0.85, 0.3, alpha)
-      lg.printf("HIGH SCORE", tx, y + 22 * sc, tw, "center")
+      local house = tbl[1][3]
+      lg.printf(house and "SCORE TO BEAT" or "HIGH SCORE", tx, y + 22 * sc, tw, "center")
       lg.setFont(font(math.floor(46 * sc)))
       lg.setColor(1, 1, 1, alpha)
       lg.printf(shelf.commas(tbl[1][1]), tx, y + 46 * sc, tw, "center")
       if not tbl.nameless then
-        neon_draw(tbl[1][2] ~= "" and tbl[1][2] or "---", tx, y + 100 * sc, 64, it.tint, 1.1, "center", tw, alpha, 0.62 * sc)
+        neon_draw(house and "THE HOUSE" or (tbl[1][2] ~= "" and tbl[1][2] or "---"), tx, y + 100 * sc, 64,
+                  house and 0x8a86a8 or it.tint, house and 0.5 or 1.1, "center", tw, alpha, (house and 0.42 or 0.62) * sc)
       end
       lg.setFont(font(math.floor(17 * sc)))
       for i = 2, math.min(3, #tbl) do
@@ -1144,7 +1147,8 @@ local function draw_info()
   if it.score or it.stat then
     lg.setFont(font(22))
     lg.setColor(1, 0.85, 0.3, 1)
-    lg.printf(it.score and ("HIGH SCORE  " .. it.score) or it.stat, 60, y + 22, W - 120, "right")
+    local house = type(it.score) == "string" and it.score:find("HOUSE")
+    lg.printf(it.score and ((house and "TO BEAT  " or "HIGH SCORE  ") .. it.score) or it.stat, 60, y + 22, W - 120, "right")
   end
   lg.setFont(font(26))
   lg.setColor(0.97, 0.95, 1, 1)

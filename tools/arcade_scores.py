@@ -10,6 +10,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SPEC = os.path.join(os.path.dirname(HERE), "games", "shelf", "scores.tsv")
+HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def spec():
@@ -64,7 +65,8 @@ def table(data, s):
         if v is None:
             continue
         name = "".join(letter(b, s["chars"]) for b in data[at + s["noff"]: at + s["noff"] + s["nlen"]]).strip() if s["nlen"] else ""
-        rows.append((v * s["mul"], " ".join(name.split())))
+        if v > 0:  # (a zero row is an empty one: a cleared table, tools/arcade_clear.py)
+            rows.append((v * s["mul"], " ".join(name.split())))
     rows.sort(key=lambda r: -r[0])
     return rows
 
