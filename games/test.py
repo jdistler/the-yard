@@ -1076,6 +1076,33 @@ def home():
     check(req == "", f"Home: a 1-player release it never saw pressed (the end of a game's exit hold) starts nothing ({req!r})")
     req = home_run(["30 down 1p", "1500 up 1p"])
     check(req == "", f"Home: a long 1-player hold is not a tap ({req!r})")
+    # FAVORITES (favs.lua): the empty card starts nothing; a game's time is credited once, and its card launches it.
+    w = tmpdir()
+    stats = os.path.join(w, "stats.tsv")
+    st = os.path.join(w, "state")
+    sc = os.path.join(w, "script")
+    env = dict(os.environ, SDL_AUDIODRIVER="dummy", SDL_VIDEODRIVER="offscreen", ALSOFT_DRIVERS="null",
+               HOME_HEADLESS="1", HOME_SKIP_INTRO="1", HOME_SCRIPT=sc, HOME_REQ=os.path.join(w, "req"),
+               HOME_STATE=st, HOME_LOG=os.path.join(w, "log"), HOME_GAMES=os.path.join(w, "games"),
+               HOME_ART=os.path.join(w, "art"), HOME_STATS=stats, SHELF_LIB=os.path.join(w, "nolib"))
+    open(st, "w").write("sel 2\nselkey fav:none\nshow auto\n")
+    open(sc, "w").write("30 press up\n40 press low\n2000 quit\n")
+    subprocess.run([LOVE_RUN, hl], cwd=w, env=env, capture_output=True, timeout=120)
+    check((read(w, "req") or "").strip() == "", "Home: the empty FAVORITES card starts nothing")
+    open(st, "w").write("sel 2\nselkey classic:6\nplayed 8\nplayedkey classic:6\nshow auto\nran 125\n")
+    open(sc, "w").write("30 quit\n")
+    subprocess.run([LOVE_RUN, hl], cwd=w, env=env, capture_output=True, timeout=120)
+    got = read(w, "stats.tsv") or ""
+    check("classic:6\t1\t125\t" in got and "ran" not in (read(w, "state") or ""),
+          f"Home: a game's play time is credited to what was launched, once ({got.strip()!r})")
+    open(st, "w").write("sel 1\nselkey fav:classic:6\nshow auto\n")
+    # (after 0.6 s: just back from a game, Home ignores a lower button still being mashed)
+    open(sc, "w").write("900 press low\n3000 quit\n")
+    if os.path.exists(os.path.join(w, "req")):
+        os.remove(os.path.join(w, "req"))
+    subprocess.run([LOVE_RUN, hl], cwd=w, env=env, capture_output=True, timeout=120)
+    req = (read(w, "req") or "").strip()
+    check(req.startswith("classic 6 "), f"Home: the FAVORITES card launches the game it stands for ({req!r})")
 
 
 def shows():

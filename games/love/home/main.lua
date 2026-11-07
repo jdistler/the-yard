@@ -690,6 +690,8 @@ local function load_state()
   if lp and items[lp] then last_played = items[lp] end
   -- At power-on, never on the original menu's card (the last choice made before the power went off).
   if os.getenv("HOME_INTRO") == "1" and items[sel].kind == "stock" then sel, pos = 1, 1 end
+  -- Nothing played yet: start on the first real card (Pac-Man), not on the empty FAVORITES card.
+  if items[sel].kind == "favhint" then sel, pos = 2, 2 end
   return s and s:match("returned (.+)")
 end
 local function save_state(extra, played)
@@ -1845,6 +1847,9 @@ local function handle(name)
     attract_sel = sel
     play("launch")
     open_tiles(it.show)
+  elseif (name == "low" or name == "1p") and it.kind == "favhint" then
+    -- The empty FAVORITES card: nothing to start (a launch here would have been the original menu).
+    play("back")
   elseif (name == "low" or name == "1p") and it.kind == "hall" then
     scene = "hall"
     ST.hall.enter()
