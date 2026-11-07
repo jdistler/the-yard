@@ -44,7 +44,11 @@ local t, idle = 0, 0
 local hold = {}
 local art = {}          -- path -> Image, false while asked, nil not asked
 local art_order = {}    -- paths with an Image, oldest first (at most ART_KEEP)
-local ART_KEEP, asking = 20, 0  -- (40 helped run Home out of memory beside the menu's pictures, 2026-11-07)
+-- At most this many pictures, and never one drawn in the last half second: 20 was fewer than the tiles on the
+-- screen, so pictures in view were evicted and asked for again, over and over (the flicker), and the decoded
+-- copies piled up until Home was killed for memory (2026-11-07).
+local ART_KEEP, asking = 32, 0
+local art_seen = {}   -- path -> t when last drawn
 local note, note_t
 
 local function read_file(path)
@@ -247,14 +251,26 @@ function S.art_ready(key, data)
   asking = math.max(0, asking - 1)
   if not data then return end
   local ok, img = pcall(lg.newImage, data)
+  pcall(function() data:release() end)   -- (the decoded copy: the picture has it now)
   if not ok then return end
+  -- Room for it: the least recently drawn picture goes, unless everything was on screen just now.
+  if #art_order >= ART_KEEP then
+    local oldest, oi
+    for i, p in ipairs(art_order) do
+      local seen = art_seen[p] or 0
+      if t - seen > 0.5 and (not oldest or seen < (art_seen[oldest] or 0)) then oldest, oi = p, i end
+    end
+    if not oldest then
+      img:release()
+      art[path] = nil
+      return
+    end
+    table.remove(art_order, oi)
+    if art[oldest] then art[oldest]:release() end
+    art[oldest] = nil
+  end
   art[path] = img
   art_order[#art_order + 1] = path
-  while #art_order > ART_KEEP do
-    local old = table.remove(art_order, 1)
-    if art[old] then art[old]:release() end
-    art[old] = nil
-  end
 end
 
 function S.art_failed(key)
@@ -342,7 +358,7 @@ function S.arcade_table(set)
         v = v * 10 + (b <= 9 and b or 0)
       end
     end
-    if ok and data:byte(at + sp.soff + sp.slen - 1) then
+    if ok and v > 0 and data:byte(at + sp.soff + sp.slen - 1) then  -- (zero: an empty row, a cleared table)
       local name = ""
       for i = 0, sp.nlen - 1 do name = name .. letter(data:byte(at + sp.noff + i) or 0, sp.chars) end
       rows[#rows + 1] = {v * sp.mul, (name:gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s+", " "))}
@@ -575,10 +591,11 @@ function S.update(dt)
   -- Art for what is on screen: the chosen game first, then the visible tiles.
   local g = cur_game()
   if g then ask_art(g.art) end
-  for i = math.max(1, sel - 1), math.min(#rows, sel + 2) do
+  -- (the tiles in view: this row and the one below it, five across)
+  for i = sel, math.min(#rows, sel + 1) do
     local r = rows[i]
     local lo = math.max(1, math.floor(xscroll[r.key] or 0))
-    for ci = lo, math.min(#r.games, lo + 5) do ask_art(r.games[ci].art) end
+    for ci = lo, math.min(#r.games, lo + 4) do ask_art(r.games[ci].art) end
   end
   if idle > IDLE_OUT then return "exit" end
 end
@@ -588,6 +605,7 @@ end
 local TOP, ROW_H, TW, TH, GAP = 470, 290, 150, 200, 22
 
 local function draw_art(g, cx, cy, mw, mh, a)
+  if g.art then art_seen[g.art] = t end
   local img = g.art and art[g.art]
   if img then
     local iw, ih = img:getDimensions()
@@ -767,7 +785,8 @@ end
 
 function S.quit()
   for _, img in pairs(art) do if img then img:release() end end
-  art, art_order, asking = {}, {}, 0
+  art, art_order, asking, art_seen = {}, {}, 0, {}
+  collectgarbage()
 end
 
 return S

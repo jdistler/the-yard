@@ -1760,8 +1760,17 @@ function ST.update_world()
     if g.state == "in" then
       parts[#parts + 1] = string.format("LIVE: TEXAS %d, %s %d", g.us or 0, g.opp_abbr, g.them or 0)
     elseif g.state == "pre" and g.kickoff - un < 8 * 86400 then
-      parts[#parts + 1] = "LONGHORNS " .. (g.home and "VS " or "AT ") .. string.upper(g.opp_abbr) .. " " ..
-                          (string.upper(os.date("%a %I:%M %p", g.kickoff)):gsub(" 0", " "))
+      -- A kickoff ESPN hasn't set yet (timeValid false) comes as 05:00Z, which reads 11:00 PM the night before:
+      -- the game's own day (utgame's g.day) and "TIME TBD" instead (2026-11-07: "AT LSU FRI 11:00 PM").
+      local when
+      if g.tbd and g.day then
+        local y, m, dd = g.day:match("(%d+)-(%d+)-(%d+)")
+        when = string.upper(os.date("%a", os.time({year = tonumber(y), month = tonumber(m), day = tonumber(dd), hour = 12})))
+               .. " · TIME TBD"
+      else
+        when = (string.upper(os.date("%a %I:%M %p", g.kickoff)):gsub(" 0", " "))
+      end
+      parts[#parts + 1] = "LONGHORNS " .. (g.home and "VS " or "AT ") .. string.upper(g.opp_abbr) .. " " .. when
     end
   end
   ST.now_line = #parts > 0 and table.concat(parts, "   ·   ") or nil
@@ -2276,6 +2285,7 @@ function love.update(dt)
       elseif msg[1] == "art" and msg[3] and not menu_freed then
         local it = items[msg[2]]
         if it.kind == "arcade" or it.kind == "game" then it.shot = art_image(msg[3]) else it.art = art_image(msg[3]) end
+        pcall(function() msg[3]:release() end)   -- (the decoded copy: the picture has it now)
       end
       msg = love.thread.getChannel("home_done"):pop()
     end
