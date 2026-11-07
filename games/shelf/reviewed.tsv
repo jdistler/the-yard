@@ -1,0 +1,12 @@
+# Games the pipeline (tools/shelf_check.py) flags that a person looked at and found fine: system, file, what was seen.
+# The scripted deck can't get past name entry, RPG menus, or a wall it walks into; a flag listed here shows as "reviewed".
+nes	Chip n Dale Rescue Rangers.nes	plays: the test holds right into a wall (2026-11-07)
+nes	Double Dragon.nes	title screen waits for a mode choice; boots and draws fine (2026-11-07)
+nes	Legend of Zelda.nes	name entry screen; the test types letters (2026-11-07)
+nes	Ninja Gaiden.nes	plays: the test holds right into a wall (2026-11-07)
+nes	Zelda II.nes	name entry screen (2026-11-07)
+snes	Chrono Trigger.sfc	battle-mode menu after New Game; sound comes after it (2026-11-07)
+gb	Final Fantasy Adventure.gb	title menu (2026-11-07)
+gb	Final Fantasy Legend.gb	title menu (2026-11-07)
+gb	Zelda Links Awakening.gb	name entry (2026-11-07)
+gg	Mortal Kombat.gg	long text intro, then the title: silent through the text (2026-11-07)

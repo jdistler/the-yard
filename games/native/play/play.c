@@ -248,6 +248,10 @@ static Uint32 *conv32; /* XRGB8888 packed */
 extern double play_t_upload, play_t_draw, play_t_present;
 static double t_core;
 static int bench; /* PLAY_BENCH=<seconds>: no screen, no sound; run the core flat out and report */
+/* The bench's sound: a running sum of squares of what the core made (after its first 2 s). */
+static double bench_sq;
+static long bench_n, bench_frames_in;
+static double bench_sound_level(void) { return bench_n ? sqrt(bench_sq / bench_n) : 0; }
 
 static void video_refresh(const void *data, unsigned w, unsigned h, size_t pitch)
 {
@@ -290,6 +294,15 @@ static void audio_fill(void *ud, Sint16 *out, int frames)
 /* Linear resampling from the core's rate to 44100, ratio nudged by drc. */
 static size_t audio_batch(const int16_t *data, size_t frames)
 {
+    if (bench) {
+        bench_frames_in += frames;
+        if (bench_frames_in > av.timing.sample_rate * 2)
+            for (size_t i = 0; i < frames * 2; i += 3) {
+                bench_sq += (double)data[i] * data[i];
+                bench_n++;
+            }
+        return frames;
+    }
     double step = src_ratio * drc;
     for (size_t i = 0; i < frames; i++) {
         Sint16 l = data[i * 2], r = data[i * 2 + 1];
@@ -319,12 +332,18 @@ static void audio_sample(int16_t l, int16_t r)
 
 static unsigned pad;  /* RetroPad bits for port 0 */
 static int coin_t;    /* arcade: frames left of the coin-then-start pulse */
+/* PLAY_ADVANCE=<frame>: the board's "Advance" key (F2) held for 10 frames from that frame. Only for making a
+ * Williams board's settings memory on the PC: blank, it stops on FACTORY SETTINGS RESTORED until an operator
+ * presses Advance, a key the deck doesn't have. games/shelf/nvram/ keeps the result. */
+static int advance_at = -1, advance_down;
 
 static void input_poll(void) {}
 
 static int16_t input_state(unsigned port, unsigned device, unsigned index, unsigned id)
 {
     (void)index;
+    if (device == RETRO_DEVICE_KEYBOARD)
+        return id == RETROK_F2 && advance_down;
     if (port != 0 || (device & RETRO_DEVICE_MASK) != RETRO_DEVICE_JOYPAD)
         return 0;
     if (id == RETRO_DEVICE_ID_JOYPAD_MASK)
@@ -334,6 +353,7 @@ static int16_t input_state(unsigned port, unsigned device, unsigned index, unsig
 
 /* The deck to RetroPad bits, through the system's map. While 1P and 2P are both down (the quit
  * hold) neither reaches the game, so leaving does not also press Start and Select. */
+extern int game_btn[3]; /* the game's own buttons, from the index (read_index) */
 static void read_deck(void)
 {
     unsigned p = 0;
@@ -344,16 +364,19 @@ static void read_deck(void)
     if (cab_down(0, CAB_RIGHT)) p |= 1u << RETRO_DEVICE_ID_JOYPAD_RIGHT;
     for (int i = 0; i < 3; i++) {
         static const int deck[3] = {CAB_LOW, CAB_TL, CAB_TR};
-        if (sys->btn[i] >= 0 && cab_down(0, deck[i]))
-            p |= 1u << sys->btn[i];
+        int b = game_btn[i] != -2 ? game_btn[i] : sys->btn[i];
+        if (b >= 0 && cab_down(0, deck[i]))
+            p |= 1u << b;
     }
     if (!both) {
         if (sys->coin_start) {
             /* Arcade: 1P is "play": a coin, then Start, so nobody hunts for a coin button. 2P is a coin. */
+            /* The coin for 6 frames, then a third of a second for the board to count it (1943 ignored a Start
+             * pressed as the coin was let go), then Start for 8 frames. */
             if (cab_pressed(0, CAB_1P))
-                coin_t = 24;
-            if (coin_t > 12) p |= 1u << RETRO_DEVICE_ID_JOYPAD_SELECT;
-            else if (coin_t > 4) p |= 1u << RETRO_DEVICE_ID_JOYPAD_START;
+                coin_t = 40;
+            if (coin_t > 34) p |= 1u << RETRO_DEVICE_ID_JOYPAD_SELECT;
+            else if (coin_t > 6 && coin_t <= 14) p |= 1u << RETRO_DEVICE_ID_JOYPAD_START;
             if (coin_t > 0) coin_t--;
             if (cab_down(0, CAB_2P)) p |= 1u << RETRO_DEVICE_ID_JOYPAD_SELECT;
         } else {
@@ -421,6 +444,7 @@ static void srm_flush(const char *why)
 /* The game's line in <lib>/index.tsv (tools/shelf_index.py): its proper title and what its buttons do.
  * system, file, title, year, maker, art, tags, blurb, labels ("FIRE|LOOP|"). */
 char play_verbs[3][32];
+int game_btn[3] = {-2, -2, -2}; /* -2: the system's own (play_sys.h) */
 int play_has_verbs;
 
 static void read_index(const char *rom)
@@ -447,6 +471,21 @@ static void read_index(const char *rom)
             continue;
         if (field[2][0])
             snprintf(rom_title, sizeof rom_title, "%s", field[2]);
+        if (n >= 11 && field[10][0]) {
+            /* This game's own buttons ("B|A|R"): RetroPad names for the lower, top-left and top-right. */
+            static const char *names[16] = {"B", "Y", "SELECT", "START", "UP", "DOWN", "LEFT", "RIGHT",
+                                            "A", "X", "L", "R", "L2", "R2", "L3", "R3"};
+            char *v = field[10];
+            for (int i = 0; i < 3 && v; i++) {
+                char *bar = strchr(v, '|');
+                if (bar)
+                    *bar = 0;
+                for (int k = 0; k < 16; k++)
+                    if (!strcmp(v, names[k]))
+                        game_btn[i] = k;
+                v = bar ? bar + 1 : NULL;
+            }
+        }
         if (n >= 9 && field[8][0]) {
             char *v = field[8];
             for (int i = 0; i < 3 && v; i++) {
@@ -569,6 +608,11 @@ int main(int argc, char **argv)
 
     if (getenv("PLAY_CORE"))
         snprintf(core_path, sizeof core_path, "%s", getenv("PLAY_CORE"));
+    else if (getenv("PLAY_CORES_DIR")) {
+        /* Tests on the PC: every core, the squashfs's too, from one directory of x86 builds. */
+        const char *b = strrchr(sys->core, '/');
+        snprintf(core_path, sizeof core_path, "%s/%s", getenv("PLAY_CORES_DIR"), b ? b + 1 : sys->core);
+    }
     else if (sys->core[0] == '/')
         snprintf(core_path, sizeof core_path, "%s", sys->core);
     else
@@ -620,6 +664,8 @@ int main(int argc, char **argv)
          av.geometry.base_height, av.geometry.max_width, av.geometry.max_height, av.geometry.aspect_ratio, fps,
          av.timing.sample_rate, rotation);
     srm_load();
+    if (getenv("PLAY_ADVANCE"))
+        advance_at = atoi(getenv("PLAY_ADVANCE"));
 
     if (getenv("PLAY_BENCH")) {
         /* Emulation speed alone, with nothing else drawn: can this core keep up on this CPU? Holds
@@ -633,7 +679,15 @@ int main(int argc, char **argv)
         t0 = SDL_GetTicks() / 1000.0;
         do {
             Uint32 a = SDL_GetTicks();
-            pad = (n % 120) < 6 ? 1u << RETRO_DEVICE_ID_JOYPAD_START : (n % 30 < 15 ? 1u << RETRO_DEVICE_ID_JOYPAD_RIGHT : 0);
+            /* Every 3 s: a coin (arcade) and Start; between, the stick right and the lower button tapped. */
+            {
+                int k = n % 180;
+                pad = 0;
+                if (sys->coin_start && k < 6) pad |= 1u << RETRO_DEVICE_ID_JOYPAD_SELECT;
+                else if (k >= 26 && k < 34) pad |= 1u << RETRO_DEVICE_ID_JOYPAD_START;
+                else if (k > 30) pad |= (1u << RETRO_DEVICE_ID_JOYPAD_RIGHT) | (n % 16 < 8 ? 1u << sys->btn[0] : 0);
+            }
+            advance_down = advance_at >= 0 && n >= advance_at && n < advance_at + 10;
             core.run();
             n++;
             if (n > 60 && (SDL_GetTicks() - a) / 1000.0 > worst)
@@ -646,8 +700,9 @@ int main(int argc, char **argv)
                     rss = atol(line + 6);
             fclose(st);
         }
-        printf("bench %s: %.1f frames/s (needs %.1f), worst frame %.1f ms, rss %ld MB\n", sys->id, n / (t1 - t0), fps,
-               worst * 1000, rss / 1024);
+        printf("bench %s: %.1f frames/s (needs %.1f), worst frame %.1f ms, rss %ld MB, sound %.0f\n", sys->id,
+               n / (t1 - t0), fps, worst * 1000, rss / 1024, bench_sound_level());
+        srm_flush("bench");
         core.unload_game();
         core.deinit();
         return 0;
@@ -666,6 +721,7 @@ int main(int argc, char **argv)
         Uint32 now = SDL_GetTicks();
         int runs = 1;
         read_deck();
+        advance_down = advance_at >= 0 && frame_no >= advance_at && frame_no < advance_at + 10;
         if (!vsync_lock || cab_scripted() || SDL_GL_GetSwapInterval() != 1) {
             acc += (now - last_tick) / 1000.0;
             if (acc > 0.1)

@@ -82,6 +82,46 @@ bilinear" in one pass).
   the width at the right aspect with sharp pixels instead, and stands vertical arcade boards up to fill the tall
   screen.
 
+## Testing pipeline (`tools/shelf_check.py`)
+
+Every game, every time the library or the player changes:
+
+1. **PC pass** (~3 min, 144 games): `games/out/pc/play` with x86 builds of every core (`~/partycade-build/pc-cores`)
+   and a scripted deck (1P a few times, then right held and the lower button), 40 s of game time each. A game
+   passes when it loads, its picture has detail and changes, and it makes sound. Pictures every 5 s; a
+   contact sheet per system; `report.md`, `results.tsv` in `~/partycade-build/check/latest`.
+2. **Cabinet pass** (`--cab`): each game's emulation speed and sound level on the cabinet's CPU and cores
+   (`PLAY_BENCH`, which also coins and starts), one at a time, waiting for 50 MB free and capped at 100 MB.
+   The cabinet's MAME 2000 (2020 build) is the reference for arcade sound: today's source, built for the PC,
+   is silent on Bomb Jack, Joust and Defender, which have sound on the cabinet.
+3. **By eye**: a flag a person checked and found fine goes in `games/shelf/reviewed.tsv` (name-entry screens,
+   RPG menus and walls the script walks into look "stuck").
+4. **On the glass**: `tools/play_cab.sh` for one game with remote presses and screen grabs.
+
+First run (2026-11-07): 129 of 144 passed the PC pass; the 15 flags were 10 false (reviewed), 3 PC-core
+silences, and two real: 1943 never started (the coin-then-Start press came too fast: fixed, 6 frames of coin,
+a third of a second, Start) and Joust/Defender stopping on FACTORY SETTINGS RESTORED with blank memory
+(fixed: `games/shelf/nvram/`, seeded onto the card by `tools/shelf_sync.sh`). Removed from the card:
+`ghoulsu`, `sengoku` (they crash MAME 2000), kept in `~/partycade-card/unplayable/`.
+
+## Arcade section and high scores
+
+Home's **ARCADE** section (after CLASSICS): a card per board, its title screen and its leaderboard (the
+record, its initials, 2nd and 3rd), the score on the info panel, the top five on the get-ready picture. The
+lower button goes straight into the game. Back with a better record: the classics' confetti and
+"NEW HIGH SCORE!", with the initials. The initials are entered in the game's own name entry, so they are
+the board's own table, kept across power-off.
+
+The tables: `games/shelf/scores.tsv` says where each board keeps its table and how (record length, BCD or a
+digit a byte, the letter codes), `tools/arcade_scores.py` decodes them (the reference), `shelf.lua` the same
+in Home. 18 boards so far; checked against the board's own screen: Contra, Donkey Kong, Pang, Joust (the
+DAILY BUZZARDS table; its JOUST CHAMPIONS table is a different layout, not decoded yet), Simpsons, Defender.
+Not decoded yet: Bomb Jack, Circus, Elevator Action, TMNT, Tron, Vendetta, X-Men, Dig Dug (also a Classic).
+Mario Bros. is silent: this MAME plays its sounds from separate sample recordings (`mario.zip` of samples,
+not on the card).
+
+Per-game buttons: `curation.tsv`'s last column, e.g. Defender `B|A|R` (fire, thrust, reverse).
+
 ## Next
 
 * High scores for the party picks (arcade `.hi` tables already persist; console scores by reading game RAM),

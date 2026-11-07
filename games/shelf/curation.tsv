@@ -128,7 +128,7 @@ arcade	bublbobl			party	Blow bubbles. Pop the monsters. Fruit.	BUBBLE|JUMP|
 arcade	circus			party	Bounce the clowns. Pop the balloons.	||	
 arcade	commando			party	Super Joe, alone, with grenades.	FIRE|GRENADE|	
 arcade	contra			party	The arcade original.	FIRE|JUMP|	
-arcade	defender				Five buttons on the real one: fire here, the rest are hard.	FIRE|THRUST|BOMB	
+arcade	defender			party	Save the humanoids. Stick up and down, thrust, reverse.	FIRE|THRUST|REVERSE		B|A|R
 arcade	digdug			party	The arcade board (Dig Dug is a Classic too).	PUMP||	
 arcade	dkong			party	Jumpman, barrels, a 25-meter climb.	JUMP||	
 arcade	dkongjr			party	Junior climbs vines to free Papa.	JUMP||	

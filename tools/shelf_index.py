@@ -143,10 +143,10 @@ def curation():
             if line.startswith("#") or not line.strip():
                 continue
             f = line.rstrip("\n").split("\t")
-            f += [""] * (8 - len(f))
-            sysid, stem, year, maker, tags, blurb, labels, alias = f[:8]
+            f += [""] * (9 - len(f))
+            sysid, stem, year, maker, tags, blurb, labels, alias, pad = f[:9]
             out[(sysid, stem)] = {"year": year, "maker": maker, "tags": tags, "blurb": blurb, "labels": labels,
-                                  "alias": alias}
+                                  "alias": alias, "pad": pad}
     return out
 
 
@@ -157,6 +157,23 @@ def fit_art(src, dst):
     canvas.paste(im)
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     canvas.save(dst, optimize=True)
+
+
+def tint_of(path):
+    """The picture's most common vivid colour, brightened: the card's glow (index column 10)."""
+    import colorsys
+    im = Image.open(path).convert("RGB").resize((48, 64))
+    buckets = {}
+    for r, g, b in im.getdata():
+        h, sat, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+        if sat > 0.45 and v > 0.45:
+            k = int(h * 18) % 18
+            buckets[k] = buckets.get(k, 0) + 1
+    if not buckets:
+        return "ffb43c"
+    h = (max(buckets, key=buckets.get) + 0.5) / 18
+    r, g, b = colorsys.hsv_to_rgb(h, 0.7, 1.0)
+    return "%02x%02x%02x" % (int(r * 255), int(g * 255), int(b * 255))
 
 
 def main():
@@ -199,10 +216,11 @@ def main():
                     fit_art(src, os.path.join(LIB, art))
             else:
                 missing.append(f"{sysid}/{fn}")
+            tint = tint_of(os.path.join(LIB, art)) if art else ""
             rows.append([sysid, fn, title, c.get("year") or year, c.get("maker") or maker, art, c.get("tags", ""),
-                         c.get("blurb", ""), c.get("labels", "")])
+                         c.get("blurb", ""), c.get("labels", ""), tint, c.get("pad", "")])
     with open(os.path.join(LIB, "index.tsv"), "w") as f:
-        f.write("# system\tfile\ttitle\tyear\tmaker\tart\ttags\tblurb\tlabels  (tools/shelf_index.py)\n")
+        f.write("# system\tfile\ttitle\tyear\tmaker\tart\ttags\tblurb\tlabels\ttint\tpad  (tools/shelf_index.py)\n")
         for r in rows:
             f.write("\t".join(x.replace("\t", " ") for x in r) + "\n")
     print(f"{len(rows)} games, {len(rows) - len(missing)} with art -> {LIB}/index.tsv")

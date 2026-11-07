@@ -139,6 +139,7 @@ local OURS = {
 }
 local SECTIONS = {
   {name = "CLASSICS", tint = 0xffd23f},
+  {name = "ARCADE", tint = 0xffb43c},
   {name = "GAMES", tint = 0xff4fd8},
   {name = "THE YARD", tint = 0x6ef0c8},
   {name = "TV", tint = 0xff6b6b},
@@ -150,9 +151,10 @@ local LEAVE = {
   classic = {"HOLD  1-PLAYER  FOR 5 SECONDS", "to come back to Home (your high score is saved)"},
   cart = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
   native = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
+  arcade = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
   yard = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
 }
-local GAMES_SECTION, YARD_SECTION, TV_SECTION, SHOWS_SECTION, MORE_SECTION = 2, 3, 4, 5, 6
+local ARCADE_SECTION, GAMES_SECTION, YARD_SECTION, TV_SECTION, SHOWS_SECTION, MORE_SECTION = 2, 3, 4, 5, 6, 7
 
 local PREVIEW = os.getenv("HOME_MODE") == "preview"
 local items = {}
@@ -163,6 +165,15 @@ end
 -- The Shelf (shelf.lua): the games on the microSD card, a card per row (PARTY PICKS, then each system), each
 -- opening the browser there. No card in the slot: one card that says so.
 shelf.init()
+-- The arcade boards on the card (shelf.lua): a card each, like the classics, with the board's own high-score
+-- table (its top score and initials on the panel, the top five on the get-ready picture).
+for _, g in ipairs(shelf.arcade_games()) do
+  local meta = {}
+  if g.year ~= "" then meta[#meta + 1] = g.year end
+  if g.maker ~= "" then meta[#meta + 1] = g.maker:upper() end
+  items[#items + 1] = {kind = "arcade", id = g.set, game = g, section = ARCADE_SECTION, title = g.title:upper(),
+                       sub = table.concat(meta, "  "), blurb = g.blurb, tint = g.tint or 0xffb43c}
+end
 do
   local cards = shelf.cards()
   for _, c in ipairs(cards) do
@@ -284,6 +295,20 @@ local fonts = {}
 local font_data
 -- Starlight's state, in one table (main.lua is at Lua's 200 locals): the script face, the world, the marquee
 local ST = {script_fonts = {}, face = "round", world_want = "base", L = require("showlib")}
+-- An arcade board's best score, and its line on the info panel ("23,310  JRN").
+function ST.arcade_best(it)
+  local t = shelf.arcade_table(it.id)
+  return t and t[1][1] or 0
+end
+function ST.arcade_score_text(it)
+  local t = shelf.arcade_table(it.id)
+  if not t or t[1][1] <= 0 then return nil end
+  return shelf.commas(t[1][1]) .. (t[1][2] ~= "" and ("  " .. t[1][2]) or "")
+end
+for _, it in ipairs(items) do
+  if it.kind == "arcade" then it.table = shelf.arcade_table(it.id) it.score = ST.arcade_score_text(it) end
+end
+
 local trace_font                            -- (HOME_TRACE: a new font made; set once the trace exists)
 local function font(px)
   -- (whole pixels only: a size that changes smoothly, 22 + ph * 10, made a new font every frame, each with its
@@ -657,6 +682,16 @@ local function load_art()
       else
         love.thread.getChannel("home_work"):push({"art", k, art_path(it)})
       end
+    elseif it.kind == "arcade" then
+      -- The board's title screen, from the card (decoded on the worker; the reply sets it.shot).
+      if it.game.art and not it.shot then
+        if worker then love.thread.getChannel("home_work"):push({"art", k, it.game.art})
+        else
+          local b = read_file(it.game.art)
+          local ok, data = pcall(function() return love.image.newImageData(love.filesystem.newFileData(b, "a.png")) end)
+          if ok then it.shot = art_image(data) end
+        end
+      end
     elseif it.id and love.filesystem.getInfo("art/" .. it.id .. ".png") then
       -- Our games: a frame of the game itself (cart shots), packed into home.love.
       it.shot = lg.newImage("art/" .. it.id .. ".png")
@@ -896,6 +931,45 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
     -- No logo on this machine (a PC test): the name in neon.
     local px = math.floor(cw * (#it.title > 9 and 0.09 or 0.12))
     neon_draw(it.title, x, cy - px * 0.62, 64, it.tint, 1.2, "center", cw, alpha, px / 64)
+  elseif it.kind == "arcade" then
+    -- An arcade board: its title screen on the left, its leaderboard on the right (the board's own table).
+    local aw = cw * 0.42
+    if it.shot then
+      -- (title screens: portrait for vertical boards, landscape for the rest; at most 45% of the card)
+      local iw, ih = it.shot:getDimensions()
+      local s = math.min((ch - 20) / ih, cw * 0.45 / iw)
+      aw = iw * s
+      lg.setColor(1, 1, 1, alpha)
+      lg.draw(it.shot, x + 12, cy - ih * s / 2, 0, s, s)
+      lg.setColor(r, g, b, 0.9 * alpha)
+      lg.setLineWidth(2)
+      lg.rectangle("line", x + 12, cy - ih * s / 2, iw * s, ih * s)
+    end
+    local tx = x + 24 + aw
+    local tw = x + cw - tx - 16
+    local sc = cw / 540
+    local tbl = it.table
+    if focus > 0.05 then fx.glow(tx + tw / 2, cy, tw * 0.55, ch * 0.4, r, g, b, 0.12 * focus * alpha) end
+    if tbl and tbl[1][1] > 0 then
+      lg.setFont(font(math.floor(18 * sc)))
+      lg.setColor(1, 0.85, 0.3, alpha)
+      lg.printf("HIGH SCORE", tx, y + 22 * sc, tw, "center")
+      lg.setFont(font(math.floor(46 * sc)))
+      lg.setColor(1, 1, 1, alpha)
+      lg.printf(shelf.commas(tbl[1][1]), tx, y + 46 * sc, tw, "center")
+      if not tbl.nameless then
+        neon_draw(tbl[1][2] ~= "" and tbl[1][2] or "---", tx, y + 100 * sc, 64, it.tint, 1.1, "center", tw, alpha, 0.62 * sc)
+      end
+      lg.setFont(font(math.floor(17 * sc)))
+      for i = 2, math.min(3, #tbl) do
+        lg.setColor(0.86, 0.84, 0.98, 0.85 * alpha)
+        lg.printf(i .. ".  " .. (tbl.nameless and "" or ((tbl[i][2] ~= "" and tbl[i][2] or "---") .. "   ")) .. shelf.commas(tbl[i][1]), tx,
+                  y + (170 + (i - 2) * 24) * sc, tw, "center")
+      end
+    else
+      local px = math.min(cw * 0.09, 64 * tw / (font(64):getWidth(it.title) + 20))
+      neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", tw, alpha, px / 64)
+    end
   elseif it.shot then
     -- A portrait frame of the game on the left, the name in neon on the right.
     local iw, ih = it.shot:getDimensions()
@@ -1298,6 +1372,7 @@ end
 
 -- "Get ready": the game's logo (or name) big, and how to come back.
 local function picture_launch(it)
+  if it.kind == "arcade" then return shelf.picture_arcade(it.game, it.shot, it.tint) end
   backdrop()
   local r, g, b = rgb(it.tint)
   fx.glow(W / 2, 430, 420, 240, r, g, b, 0.35)
@@ -1369,7 +1444,8 @@ local function request(s, it, picture)
   -- The classic's high score as it was: on the way back, a higher one is celebrated.
   local played = nil
   if it and it.kind ~= "stock" then played = sel end
-  save_state(it and it.kind == "classic" and ("score " .. it.index .. " " .. (high_score(it.index) or 0) .. "\n") or nil,
+  save_state(it and it.kind == "classic" and ("score " .. it.index .. " " .. (high_score(it.index) or 0) .. "\n")
+             or it and it.kind == "arcade" and ("ascore " .. it.id .. " " .. ST.arcade_best(it) .. "\n") or nil,
              played)
   if REQ then
     local f = io.open(REQ, "w")
@@ -1384,6 +1460,7 @@ local function launch(it)
     return "classic " .. it.index .. " " .. smooth[i] .. " " .. speed[i]
   elseif it.kind == "cart" then return "cart " .. it.id
   elseif it.kind == "native" then return "native " .. it.native
+  elseif it.kind == "arcade" then return "shelf arcade " .. it.game.file
   elseif it.kind == "yard" then return "yard"
   else return "stock" end
 end
@@ -1454,6 +1531,7 @@ local function free_menu_pictures()
   menu_freed = true
   for _, it in ipairs(items) do
     if it.art then it.art:release() it.art = nil end
+    if it.kind == "arcade" and it.shot then it.shot:release() it.shot = nil end
   end
   for k, e in pairs(neon_cache) do e.img:release() neon_cache[k] = nil end
   if ST.world then ST.world:release() ST.world = nil ST.world_name = nil end
@@ -1712,6 +1790,22 @@ end
 -- The TV guide's and the Shelf's drawing helpers, and coming back from one of their programs. (Out of
 -- love.load: LuaJIT allows a function 60 upvalues.)
 local function shelf_setup()
+  -- Back from an arcade board with a better score than it had: the classics' celebration, with the initials.
+  do
+    local st = STATE and read_file(STATE) or ""
+    local set, before = st:match("ascore (%S+) (%d+)")
+    before = tonumber(before)
+    for _, it in ipairs(items) do
+      if it.kind == "arcade" and it.id == set and before and os.getenv("HOME_INTRO") ~= "1" then
+        local t = shelf.arcade_table(it.id)
+        if t and t[1][1] > before then
+          celebrate = {score = shelf.commas(t[1][1]), title = it.title .. (t[1][2] ~= "" and ("   ·   " .. t[1][2]) or ""),
+                       tint = it.tint, t = 0}
+          log("new arcade high score " .. set .. " " .. before .. " -> " .. t[1][1] .. " " .. t[1][2])
+        end
+      end
+    end
+  end
   -- Live TV: the guide's lists, and coming back from a channel (tvloop wrote how it ended).
   tv.load({W = W, H = H, font = font, neon_draw = neon_draw, rgb = rgb, rrect = rrect, fx = fx, play = play,
            log = log, down = down, backdrop = backdrop,
@@ -2019,7 +2113,9 @@ function love.update(dt)
         if msg[3] then shelf.art_ready(msg[2], msg[3]) else shelf.art_failed(msg[2]) end
       elseif msg[1] == "art" and type(msg[2]) == "string" then
         if msg[3] then shows.thumb_ready(msg[2], msg[3]) end
-      elseif msg[1] == "art" and msg[3] and not menu_freed then items[msg[2]].art = art_image(msg[3])
+      elseif msg[1] == "art" and msg[3] and not menu_freed then
+        local it = items[msg[2]]
+        if it.kind == "arcade" then it.shot = art_image(msg[3]) else it.art = art_image(msg[3]) end
       end
       msg = love.thread.getChannel("home_done"):pop()
     end

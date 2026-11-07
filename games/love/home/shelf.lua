@@ -101,24 +101,29 @@ local function build_rows()
   rows = {}
   local by_key, party = {}, {}
   for _, g in ipairs(games) do by_key[g.sys .. "/" .. g.file] = g end
-  for _, g in ipairs(games) do if g.tags.party then party[#party + 1] = g end end
+  -- The arcade boards have Home's ARCADE section to themselves (a card each, with their high scores).
+  for _, g in ipairs(games) do if g.tags.party and g.sys ~= "arcade" then party[#party + 1] = g end end
   table.sort(party, function(a, b) return a.title:lower() < b.title:lower() end)
   if #party > 0 then
     rows[#rows + 1] = {key = "party", title = "PARTY PICKS", sub = "short turns, a score to beat: pass the stick",
                        tint = 0xff4fd8, games = party}
   end
   local recent = {}
-  for _, k in ipairs(load_recent()) do if by_key[k] then recent[#recent + 1] = by_key[k] end end
+  for _, k in ipairs(load_recent()) do
+    if by_key[k] and by_key[k].sys ~= "arcade" then recent[#recent + 1] = by_key[k] end
+  end
   if #recent > 0 then
     rows[#rows + 1] = {key = "recent", title = "CONTINUE", sub = "played lately", tint = 0x6ef0c8, games = recent}
   end
   for _, s in ipairs(SYSTEMS) do
+    if s.id == "arcade" then goto next_system end
     local list = {}
     for _, g in ipairs(games) do if g.sys == s.id then list[#list + 1] = g end end
     if #list > 0 then
       rows[#rows + 1] = {key = s.id, title = s.name, sub = #list .. (#list == 1 and " game" or " games"), tint = s.tint,
                          games = list}
     end
+    ::next_system::
   end
   if sel > #rows then sel = math.max(1, #rows) end
 end
@@ -140,7 +145,7 @@ local function load_index()
         end
         games[#games + 1] = {sys = f[1], file = f[2], title = f[3] ~= "" and f[3] or f[2], year = f[4] or "",
                              maker = f[5] or "", art = (f[6] or "") ~= "" and (LIB .. "/" .. f[6]) or nil, tags = tags,
-                             blurb = f[8] or "", labels = labels}
+                             blurb = f[8] or "", labels = labels, tint = tonumber(f[10] or "", 16)}
       end
     end
   end
@@ -241,6 +246,158 @@ function S.art_failed(key)
   art[key:sub(7)] = nil
 end
 
+
+-- ------------------------------------------------------------------ arcade high scores
+
+-- How each board keeps its table: LIB/scores.tsv (games/shelf/scores.tsv; tools/arcade_scores.py is the
+-- reference decoder, keep the two in step). The tables themselves are the boards' own: MAME 2000 saves them
+-- (saves/arcade/mame2000/hi/<set>.hi), or the board does in its settings memory (nvram/<set>.nv).
+local SCORES
+local function load_scores()
+  SCORES = {}
+  for line in (read_file(LIB .. "/scores.tsv") or ""):gmatch("[^\n]+") do
+    if not line:match("^#") then
+      local f = split_tab(line)
+      if #f >= 12 then
+        SCORES[f[1]] = {file = f[2], first = tonumber(f[3]), stride = tonumber(f[4]), count = tonumber(f[5]),
+                        soff = tonumber(f[6]), slen = tonumber(f[7]), enc = f[8], mul = tonumber(f[9]),
+                        noff = tonumber(f[10]), nlen = tonumber(f[11]), chars = f[12]}
+      end
+    end
+  end
+end
+
+local LETTER_BASE = {t0a = 0x0a, t0b = 0x0b, t11 = 0x11}
+local function letter(b, chars)
+  if chars == "ascii" then
+    if (b >= 0x41 and b <= 0x5a) or (b >= 0x61 and b <= 0x7a) or (b >= 0x30 and b <= 0x39) or b == 0x2e or b == 0x21 then
+      return string.char(b):upper()
+    end
+    return " "
+  end
+  local base = LETTER_BASE[chars]
+  if base and b >= base and b < base + 26 then return string.char(65 + b - base) end
+  if b <= 9 then return tostring(b) end
+  return " "
+end
+
+-- A board's table, best first: {{score, name}, ...}, or nil when it has none yet.
+function S.arcade_table(set)
+  if not SCORES then load_scores() end
+  local sp = SCORES[set]
+  if not sp then return nil end
+  local dir = LIB .. "/saves/arcade/mame2000/"
+  local data = read_file(sp.file == "hi" and (dir .. "hi/" .. set .. ".hi") or (dir .. "nvram/" .. set .. ".nv"))
+  if not data then return nil end
+  local first = sp.first
+  if sp.file == "nv4" then
+    -- A Williams board: four bits a byte. Pack the low nibbles from the first offset.
+    local out = {}
+    for i = sp.first + 1, #data - 1, 2 do
+      out[#out + 1] = string.char((data:byte(i) % 16) * 16 + data:byte(i + 1) % 16)
+    end
+    data, first = table.concat(out), 0
+  end
+  local rows = {}
+  for k = 0, sp.count - 1 do
+    local at = first + k * sp.stride + 1
+    local v, ok = 0, true
+    for i = 0, sp.slen - 1 do
+      local idx = sp.enc:match("le$") and (at + sp.soff + sp.slen - 1 - i) or (at + sp.soff + i)
+      local b = data:byte(idx) or 0
+      if sp.enc:match("^bcd") then
+        local hi, lo = math.floor(b / 16), b % 16
+        if hi > 9 or lo > 9 then ok = false break end
+        v = v * 100 + hi * 10 + lo
+      else
+        v = v * 10 + (b <= 9 and b or 0)
+      end
+    end
+    if ok and data:byte(at + sp.soff + sp.slen - 1) then
+      local name = ""
+      for i = 0, sp.nlen - 1 do name = name .. letter(data:byte(at + sp.noff + i) or 0, sp.chars) end
+      rows[#rows + 1] = {v * sp.mul, (name:gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s+", " "))}
+    end
+  end
+  table.sort(rows, function(a, b) return a[1] > b[1] end)
+  rows.nameless = sp.nlen == 0
+  return #rows > 0 and rows or nil
+end
+
+function S.commas(n)
+  local s = tostring(math.floor(n))
+  while true do
+    local k
+    s, k = s:gsub("^(%d+)(%d%d%d)", "%1,%2")
+    if k == 0 then return s end
+  end
+end
+
+-- The arcade boards for Home's ARCADE section, the walk-up score games first (games/shelf/curation.tsv tags
+-- party), then the long ones (beat-'em-ups, run-and-guns).
+local ARCADE_FIRST = {"dkong", "dkongjr", "mario", "joust", "defender", "frogger", "1942", "1943", "pang", "bublbobl",
+                      "snowbros", "arkanoid", "bombjack", "commando", "elevator", "tron", "circus", "gng", "contra",
+                      "strider"}
+function S.arcade_games()
+  local list, rank = {}, {}
+  for i, id in ipairs(ARCADE_FIRST) do rank[id] = i end
+  for _, g in ipairs(games) do
+    if g.sys == "arcade" then
+      g.set = g.file:gsub("%.zip$", "")
+      list[#list + 1] = g
+    end
+  end
+  table.sort(list, function(a, b)
+    local ra, rb = rank[a.set] or 100, rank[b.set] or 100
+    if ra ~= rb then return ra < rb end
+    return a.title:lower() < b.title:lower()
+  end)
+  return list
+end
+
+function S.art_path(g) return g.art end
+
+-- An arcade board's "get ready": its title screen, the scores to beat, the buttons, how to come back.
+function S.picture_arcade(g, img, tint)
+  ctx.backdrop()
+  local rr, gg, bb = ctx.rgb(tint)
+  ctx.fx.glow(W / 2, 300, 300, 240, rr, gg, bb, 0.35)
+  if img then
+    local iw, ih = img:getDimensions()
+    local sc = math.min(250 / iw, 330 / ih)
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(img, W / 2, 300, 0, sc, sc, iw / 2, ih / 2)
+  end
+  lg.setFont(ctx.font(38))
+  lg.setColor(1, 1, 1, 1)
+  lg.printf(fit(ctx.font(38), g.title, W - 80, 1), 40, 482, W - 80, "center")
+  local t = S.arcade_table(g.set)
+  if t then
+    ctx.neon_draw("SCORES TO BEAT", 0, 540, 34, 0xffd23f, 1, "center", W)
+    lg.setFont(ctx.font(26))
+    for i = 1, math.min(5, #t) do
+      local y = 590 + (i - 1) * 34
+      lg.setColor(i == 1 and 1 or 0.9, i == 1 and 0.85 or 0.88, i == 1 and 0.3 or 1, 1)
+      lg.printf(i .. ".", 150, y, 50, "right")
+      lg.printf(t[i][2] ~= "" and t[i][2] or "---", 220, y, 200, "left")
+      lg.printf(S.commas(t[i][1]), 400, y, 220, "right")
+    end
+  else
+    ctx.neon_draw("GET READY!", 0, 560, 44, 0xffd23f, 1, "center", W)
+  end
+  lg.setColor(0.04, 0.0, 0.10, 0.85)
+  ctx.rrect("fill", 60, 790, W - 120, 200, 24)
+  lg.setColor(rr, gg, bb, 0.9)
+  lg.setLineWidth(2)
+  ctx.rrect("line", 60, 790, W - 120, 200, 24)
+  lg.setFont(ctx.font(23))
+  lg.setColor(0.92, 0.9, 1, 1)
+  local lines = S.legend_lines(g)
+  lines[#lines + 1] = "1-PLAYER   coin and start      2-PLAYER   coin"
+  lines[#lines + 1] = "HOLD 1-PLAYER + 2-PLAYER   back to Home"
+  lg.printf(table.concat(lines, "\n"), 60, 812, W - 120, "center")
+end
+
 -- ------------------------------------------------------------------ moving
 
 local function cur_game()
@@ -261,7 +418,7 @@ local function move_col(d)
   if n ~= c then cols[r.key] = n ctx.play("move") end
 end
 
-local function legend_lines(g)
+function S.legend_lines(g)
   local l = g.labels
   local out = {}
   local names = {"LOWER", "TOP-LEFT", "TOP-RIGHT"}
@@ -292,7 +449,7 @@ local function picture_launch(g, r)
   ctx.rrect("line", 60, 730, W - 120, 250, 24)
   lg.setFont(ctx.font(24))
   lg.setColor(0.92, 0.9, 1, 1)
-  local lines = legend_lines(g)
+  local lines = S.legend_lines(g)
   local start = g.sys == "arcade" and "1-PLAYER   coin and start" or "1-PLAYER   start / pause"
   lines[#lines + 1] = start
   lines[#lines + 1] = "HOLD 1-PLAYER + 2-PLAYER   back here"
@@ -436,7 +593,7 @@ local function draw_info()
   -- What the buttons do in this game.
   lg.setFont(ctx.font(17))
   lg.setColor(0.86, 0.84, 0.98, 0.9)
-  local lines = legend_lines(g)
+  local lines = S.legend_lines(g)
   local yb = math.max(y, y0 + 330 - 26 - #lines * 22 - 30)
   for i, l in ipairs(lines) do lg.print(l, x, yb + (i - 1) * 22) end
   -- Tags, bottom right.

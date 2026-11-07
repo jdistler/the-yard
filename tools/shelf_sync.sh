@@ -18,7 +18,15 @@ $SSH 'cd /mnt/sdcard/library 2>/dev/null && find . -type f ! -path "./cores/*" !
 (cd "$LIB" && find . -type f ! -path "./cores/*" ! -path "./bin/*" ! -path "./saves/*" ! -name recent.tsv -exec stat -c "%s %n" {} + | sort) > /tmp/shelf_want.txt
 comm -13 /tmp/shelf_have.txt /tmp/shelf_want.txt | cut -d' ' -f2- > /tmp/shelf_send.txt
 N=$(wc -l < /tmp/shelf_send.txt)
-[ "$N" = 0 ] && { echo "card is up to date"; exit 0; }
-echo "sending $N file(s)"
-(cd "$LIB" && tar -cf - -T /tmp/shelf_send.txt) | $SSH 'mkdir -p /mnt/sdcard/library && tar -C /mnt/sdcard/library -xf - && sync'
-echo done
+if [ "$N" = 0 ]; then echo "card is up to date"; else
+  echo "sending $N file(s)"
+  (cd "$LIB" && tar -cf - -T /tmp/shelf_send.txt) | $SSH 'mkdir -p /mnt/sdcard/library && tar -C /mnt/sdcard/library -xf - && sync'
+  echo done
+fi
+# Williams boards' settings memory, where the card has none yet (games/shelf/nvram; see its README line in
+# games/shelf/README.md): blank, those boards stop on FACTORY SETTINGS RESTORED.
+for nv in $(dirname "$0")/../games/shelf/nvram/*.nv; do
+  n=$(basename "$nv")
+  $SSH "[ -f /mnt/sdcard/library/saves/arcade/mame2000/nvram/$n ]" || \
+    { cat "$nv" | $SSH "mkdir -p /mnt/sdcard/library/saves/arcade/mame2000/nvram && cat > /mnt/sdcard/library/saves/arcade/mame2000/nvram/$n"; echo "seeded $n"; }
+done
