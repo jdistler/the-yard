@@ -294,7 +294,7 @@ end
 local fonts = {}
 local font_data
 -- Starlight's state, in one table (main.lua is at Lua's 200 locals): the script face, the world, the marquee
-local ST = {script_fonts = {}, face = "round", world_want = "base", L = require("showlib")}
+local ST = {script_fonts = {}, face = "round", world_want = "base", L = require("showlib"), initials = require("initials")}
 -- An arcade board's best score, and its line on the info panel ("23,310  JRN").
 function ST.arcade_best(it)
   local t = shelf.arcade_table(it.id)
@@ -1351,6 +1351,7 @@ local function draw_scene()
   end
   draw_volume()
   draw_celebration()
+  if scene == "initials" then ST.initials.draw() end
   draw_note()
   draw_hold()
   if launch_item then
@@ -1722,6 +1723,10 @@ local function handle(name)
     if shelf.handle(name) == "exit" then scene = "menu" end
     return
   end
+  if scene == "initials" then
+    ST.initials.handle(name)
+    return
+  end
   if launch_item then return end
   if name == "2p" then return end
   if secret(name) then
@@ -1790,6 +1795,15 @@ end
 -- The TV guide's and the Shelf's drawing helpers, and coming back from one of their programs. (Out of
 -- love.load: LuaJIT allows a function 60 upvalues.)
 local function shelf_setup()
+  ST.initials.load({W = W, H = H, font = font, neon_draw = neon_draw, rgb = rgb, rrect = rrect, fx = fx, play = play,
+                    down = down, commas = shelf.commas,
+                    done = function(it, score, initials)
+                      shelf.save_name(it.id, score, initials)
+                      it.table = shelf.arcade_table(it.id)
+                      it.score = ST.arcade_score_text(it)
+                      celebrate = {score = shelf.commas(score), title = it.title .. "   ·   " .. initials, tint = it.tint, t = 0}
+                      log("initials " .. it.id .. " " .. score .. " " .. initials)
+                    end})
   -- Back from an arcade board with a better score than it had: the classics' celebration, with the initials.
   do
     local st = STATE and read_file(STATE) or ""
@@ -1799,9 +1813,14 @@ local function shelf_setup()
       if it.kind == "arcade" and it.id == set and before and os.getenv("HOME_INTRO") ~= "1" then
         local t = shelf.arcade_table(it.id)
         if t and t[1][1] > before then
-          celebrate = {score = shelf.commas(t[1][1]), title = it.title .. (t[1][2] ~= "" and ("   ·   " .. t[1][2]) or ""),
-                       tint = it.tint, t = 0}
           log("new arcade high score " .. set .. " " .. before .. " -> " .. t[1][1] .. " " .. t[1][2])
+          if t[1][2] == "" then
+            -- The board asked for no initials: Home does (initials.lua), then celebrates.
+            ST.initials.start(it, t[1][1])
+            scene = "initials"
+          else
+            celebrate = {score = shelf.commas(t[1][1]), title = it.title .. "   ·   " .. t[1][2], tint = it.tint, t = 0}
+          end
         end
       end
     end
@@ -2040,6 +2059,10 @@ local function update_idle(dt)
   if scene == "shelf" then
     idle = 0
     if shelf.update(dt) == "exit" then scene = "menu" end
+  end
+  if scene == "initials" then
+    idle = 0
+    if ST.initials.update(dt) == "done" then scene = "menu" end
   end
   idle = idle + dt
   if scene == "menu" and idle > IDLE_ATTRACT then scene = "attract" attract_t = 0 attract_sel = sel end

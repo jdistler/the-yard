@@ -7,7 +7,7 @@
 # score encoding (bcd: two digits a byte; dig: one digit a byte; bcdle: bcd, low byte first), multiplier (the boards that store a score
 # without its last 0), name offset, name bytes (0: no names), letters (ascii; t0a: 0x0a is A; t0b: 0x0b is A; t11: 0x11 is A),
 # checked: the board's own high-score screen that the decode was compared with.
-1942	hi	0	16	10	1	4	bcd	1	5	8	t0a	-
+1942	hi	0	16	25	1	4	bcd	1	5	8	t0a	-
 1943	hi	0	16	5	0	8	dig	1	8	3	t0a	-
 arkanoid	hi	0	7	5	0	3	bcd	10	4	3	ascii	-
 bublbobl	hi	0	7	5	0	3	bcd	10	4	3	ascii	-

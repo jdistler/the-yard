@@ -321,7 +321,23 @@ function S.arcade_table(set)
   end
   table.sort(rows, function(a, b) return a[1] > b[1] end)
   rows.nameless = sp.nlen == 0
+  -- Initials Home asked for (initials.lua) where the board keeps none: names.tsv, by set and score.
+  for line in (read_file(LIB .. "/saves/arcade/names.tsv") or ""):gmatch("[^\n]+") do
+    local f = split_tab(line)
+    if f[1] == set then
+      for _, r in ipairs(rows) do
+        if r[1] == tonumber(f[2]) and r[2] == "" then r[2] = f[3] end
+      end
+    end
+  end
+  if rows[1] and rows[1][2] ~= "" then rows.nameless = false end
   return #rows > 0 and rows or nil
+end
+
+function S.save_name(set, score, initials)
+  os.execute("mkdir -p '" .. LIB .. "/saves/arcade'")
+  local f = io.open(LIB .. "/saves/arcade/names.tsv", "a")
+  if f then f:write(set .. "\t" .. math.floor(score) .. "\t" .. initials .. "\n") f:close() end
 end
 
 function S.commas(n)
