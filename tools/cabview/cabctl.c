@@ -300,7 +300,9 @@ static int watch(int secs)
         if (select(fd + 1, &rs, 0, 0, &tv) <= 0) continue;
         if (read(fd, &ev, sizeof ev) != sizeof ev) break;
         if (ev.type != EV_KEY) continue;
-        printf("%8.3f %s %s\n", el, name_of(ev.code), ev.value == 1 ? "down" : ev.value == 0 ? "up" : "repeat");
+        /* the kernel's own time of the event (µs), then ours: the deck's cadence shows in the first */
+        printf("%8.3f %s %s %ld.%06ld\n", el, name_of(ev.code), ev.value == 1 ? "down" : ev.value == 0 ? "up" : "repeat",
+               (long)ev.time.tv_sec, (long)ev.time.tv_usec);
         fflush(stdout);
     }
     return 0;

@@ -588,6 +588,11 @@ static void four_way(void)
             held[0][d] = 0;
 }
 
+/* Went down at any moment since the last poll, even if already up again: a tap shorter than a frame
+ * (17 ms presses were logged on this deck) still reaches a game that samples once a frame. */
+static Uint8 tapped[CAB_PLAYERS][CAB_NUM_BUTTONS];
+int cab_tapped(int player, int button) { return tapped[player][button]; }
+
 int cab_poll(void)
 {
     SDL_Event e;
@@ -599,6 +604,7 @@ int cab_poll(void)
     /* held[0] carried last frame's bot buttons. Events and the script work on
      * the deck's own state; the bot is laid on top again below. */
     memcpy(held[0], human, sizeof human);
+    memset(tapped, 0, sizeof tapped);
     while (SDL_PollEvent(&e)) {
         int p, b;
         if (cab_event_hook)
@@ -612,6 +618,8 @@ int cab_poll(void)
             if (e.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
                 quit = 1;
             b = key_button(e.key.keysym.scancode);
+            if (b >= 0 && e.type == SDL_KEYDOWN && !e.key.repeat)
+                tapped[0][b] = 1;
             if (b >= 0 && b <= CAB_RIGHT)
                 key_dir[b] = e.type == SDL_KEYDOWN;
             else if (b >= 0)
@@ -623,8 +631,11 @@ int cab_poll(void)
         case SDL_JOYBUTTONDOWN:
         case SDL_JOYBUTTONUP:
             p = player_of(e.jbutton.which);
-            if (p >= 0 && e.jbutton.button < 32 && (b = joy_map[e.jbutton.button]) >= 0)
+            if (p >= 0 && e.jbutton.button < 32 && (b = joy_map[e.jbutton.button]) >= 0) {
                 held[p][b] = e.jbutton.state == SDL_PRESSED;
+                if (held[p][b])
+                    tapped[p][b] = 1;
+            }
             break;
         case SDL_JOYAXISMOTION:
             p = player_of(e.jaxis.which);

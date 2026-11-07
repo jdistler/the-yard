@@ -357,18 +357,21 @@ static int16_t input_state(unsigned port, unsigned device, unsigned index, unsig
 /* The deck to RetroPad bits, through the system's map. While 1P and 2P are both down (the quit
  * hold) neither reaches the game, so leaving does not also press Start and Select. */
 extern int game_btn[3]; /* the game's own buttons, from the index (read_index) */
+/* Held now, or pressed and let go since the last frame (cab_tapped): no tap is lost. */
+static int deck(int b) { return cab_down(0, b) || cab_tapped(0, b); }
+
 static void read_deck(void)
 {
     unsigned p = 0;
     int both = cab_down(0, CAB_1P) && cab_down(0, CAB_2P);
-    if (cab_down(0, CAB_UP)) p |= 1u << RETRO_DEVICE_ID_JOYPAD_UP;
-    if (cab_down(0, CAB_DOWN)) p |= 1u << RETRO_DEVICE_ID_JOYPAD_DOWN;
-    if (cab_down(0, CAB_LEFT)) p |= 1u << RETRO_DEVICE_ID_JOYPAD_LEFT;
-    if (cab_down(0, CAB_RIGHT)) p |= 1u << RETRO_DEVICE_ID_JOYPAD_RIGHT;
+    if (deck(CAB_UP)) p |= 1u << RETRO_DEVICE_ID_JOYPAD_UP;
+    if (deck(CAB_DOWN)) p |= 1u << RETRO_DEVICE_ID_JOYPAD_DOWN;
+    if (deck(CAB_LEFT)) p |= 1u << RETRO_DEVICE_ID_JOYPAD_LEFT;
+    if (deck(CAB_RIGHT)) p |= 1u << RETRO_DEVICE_ID_JOYPAD_RIGHT;
     for (int i = 0; i < 3; i++) {
-        static const int deck[3] = {CAB_LOW, CAB_TL, CAB_TR};
+        static const int decks[3] = {CAB_LOW, CAB_TL, CAB_TR};
         int b = game_btn[i] != -2 ? game_btn[i] : sys->btn[i];
-        if (b >= 0 && cab_down(0, deck[i]))
+        if (b >= 0 && deck(decks[i]))
             p |= 1u << b;
     }
     if (!both) {

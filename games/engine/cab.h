@@ -76,6 +76,7 @@ int cab_human_any(void);
 /* A script is driving the deck (CAB_SCRIPT). Games skip wall-clock pacing then. */
 int cab_scripted(void);
 int cab_pressed(int player, int button); /* went down this frame */
+int cab_tapped(int player, int button);  /* went down at any moment since the last poll (even if up again) */
 int cab_was_down(int player, int button); /* held last frame */
 const char *cab_button_name(int button);
 
