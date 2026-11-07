@@ -18,6 +18,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 secs = int(sys.argv[1]) if len(sys.argv) > 1 else 45
 print(f"recording {secs} s: diagonals, circles, fast taps...", flush=True)
 out = subprocess.run([os.path.join(HERE, "cab.sh"), "watch", str(secs)], capture_output=True, text=True).stdout
+raw = os.path.expanduser("~/partycade-build/deck_test.txt")
+os.makedirs(os.path.dirname(raw), exist_ok=True)
+open(raw, "w").write(out)
+print("raw events:", raw)
 ev = []
 for line in out.splitlines():
     f = line.split()
@@ -57,4 +61,9 @@ ts = sorted(set(round(t * 1000, 1) for t, _, _ in ev))
 steps = sorted(round(b - a, 1) for a, b in zip(ts, ts[1:]) if b - a < 60)
 print("smallest distinct times between events (ms):", steps[:12])
 same = sum(1 for (a, _, _), (b, _, _) in zip(ev, ev[1:]) if abs(a - b) < 0.0005)
+# A direction let go and another pressed in the same report: the stick went round a corner without the deck
+# ever reporting both (a 4-way gate, or a deck that sends one direction only).
+hand = sum(1 for (a, k1, v1), (b, k2, v2) in zip(ev, ev[1:])
+           if abs(a - b) < 0.0005 and k1 in DIRS and k2 in DIRS and k1 != k2 and {v1, v2} == {"up", "down"})
+print(f"direction handoffs in one report: {hand}")
 print(f"events arriving together (same report): {same}")
