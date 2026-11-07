@@ -55,7 +55,13 @@ darkens the ones the game doesn't use.
   emulation takes 8-9 ms a frame, so it can only safely wait 1-2 ms: a small gain, kept.
 * **Autofire** for shooters that want the button tapped (tag `turbo`: 1942, 1943, Commando, Defender, NES
   Contra): held, the lower button fires ten times a second. 1942 with fire held: 800 points against 350.
-* **4-way or 8-way?** Not settled: the device tree gives each direction its own key, so an 8-way stick would
+* **The deck, measured with a hand on it (2026-11-07, `tools/deck_test.py`, 90 s: diagonals held, circles, fast
+  taps; 292 events).** It reports every **20 ms** (all events on a 20 ms grid: 0-20 ms before Linux sees a
+  press, on top of the 23 ms above). **No bounce** (shortest press and gap 20 ms: the deck's controller
+  debounces). **Never two directions at once**, diagonals held included: to the software this is a 4-way
+  stick. Whether the gate is 4-way or the deck's controller reports one direction only is the open question
+  (39 events arrived paired in one report, consistent with direction handoffs).
+* **4-way or 8-way?** Before the measurement above: the device tree gives each direction its own key, so an 8-way stick would
   show as two keys down together, but no recording has a diagonal in it yet. `tools/deck_test.py` measures
   it (diagonals, bounce, the deck's report cadence) with someone at the stick. MAME 2000 keeps 4-way boards
   (Donkey Kong, Mario Bros., Frogger) 4-way itself; `CAB_FOURWAY` (cab.c) exists for the rest.
