@@ -44,7 +44,7 @@ local t, idle = 0, 0
 local hold = {}
 local art = {}          -- path -> Image, false while asked, nil not asked
 local art_order = {}    -- paths with an Image, oldest first (at most ART_KEEP)
-local ART_KEEP, asking = 40, 0
+local ART_KEEP, asking = 20, 0  -- (40 helped run Home out of memory beside the menu's pictures, 2026-11-07)
 local note, note_t
 
 local function read_file(path)
@@ -767,7 +767,7 @@ end
 
 function S.quit()
   for _, img in pairs(art) do if img then img:release() end end
-  art, art_order = {}, {}
+  art, art_order, asking = {}, {}, 0
 end
 
 return S

@@ -176,11 +176,13 @@ local function draw_row(e, y, focus, a)
     lg.setLineWidth(3)
     ctx.rrect("line", 28, y, W - 56, ROW_H - 12, 16)
   end
-  if e.img then
-    local iw, ih = e.img:getDimensions()
+  -- (the card's picture as it is now: it may arrive from the worker after the Hall opened)
+  local img = e.img or (e.item and (e.item.shot or e.item.art))
+  if img then
+    local iw, ih = img:getDimensions()
     local s = math.min(110 / iw, (ROW_H - 24) / ih)
     lg.setColor(1, 1, 1, a)
-    lg.draw(e.img, 40 + (110 - iw * s) / 2, y + 6 + (ROW_H - 24 - ih * s) / 2, 0, s, s)
+    lg.draw(img, 40 + (110 - iw * s) / 2, y + 6 + (ROW_H - 24 - ih * s) / 2, 0, s, s)
   end
   local x = 166
   lg.setFont(ctx.font(22))

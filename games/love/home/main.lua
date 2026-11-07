@@ -733,8 +733,10 @@ local function load_art()
         love.thread.getChannel("home_work"):push({"art", k, art_path(it)})
       end
     elseif it.kind == "arcade" or it.kind == "game" then
-      -- The board's title screen, from the card (decoded on the worker; the reply sets it.shot).
-      if it.game.art and not it.shot then
+      -- The board's title screen, from the card (decoded on the worker; the reply sets it.shot). Only the cards
+      -- near the chosen one: all of them at once, with the browser's box art, ran Home out of memory.
+      if it.game.art and not it.shot and not it.asked and math.abs(k - sel) <= 3 then
+        it.asked = true
         if worker then love.thread.getChannel("home_work"):push({"art", k, it.game.art})
         else
           local b = read_file(it.game.art)
@@ -1605,6 +1607,7 @@ local function free_menu_pictures()
   for _, it in ipairs(items) do
     if it.art then it.art:release() it.art = nil end
     if (it.kind == "arcade" or it.kind == "game") and it.shot then it.shot:release() it.shot = nil end
+    it.asked = nil
   end
   for k, e in pairs(neon_cache) do e.img:release() neon_cache[k] = nil end
   if ST.world then ST.world:release() ST.world = nil ST.world_name = nil end
@@ -1623,6 +1626,24 @@ local function stop_show()
     for k, e in pairs(neon_cache) do e.img:release() neon_cache[k] = nil end
   end
 end
+-- Arcade and FAVORITES pictures follow the chosen card: asked for within 3, released beyond 5.
+function ST.near_shots(all)
+  if menu_freed or (ST.near_sel == sel and not all) then return end
+  ST.near_sel = sel
+  for k, it in ipairs(items) do
+    if (it.kind == "arcade" or it.kind == "game") and it.game.art then
+      local d = math.abs(k - sel)
+      if (d <= 3 or (all and it.kind == "arcade")) and not it.shot and not it.asked and worker then
+        it.asked = true
+        love.thread.getChannel("home_work"):push({"art", k, it.game.art})
+      elseif d > 5 and it.shot and not all then
+        it.shot:release()
+        it.shot, it.asked = nil, nil
+      end
+    end
+  end
+end
+
 local function restore_menu_pictures()
   stop_show()
   if not menu_freed then return end
@@ -1635,6 +1656,19 @@ local function restore_menu_pictures()
   manage_labels(false)
   label_jobs[#label_jobs + 1] = function() neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1) end
   lg.setCanvas()
+end
+
+-- The games browser takes the menu's pictures' memory while it's open (2026-11-07: both at once, with its box
+-- art, ran Home out of memory), and gives it back on the way out.
+function ST.shelf_open(row, file, failed)
+  free_menu_pictures()
+  scene = "shelf"
+  if file then shelf.enter_at(row, file, failed) else shelf.enter(row) end
+end
+function ST.shelf_close()
+  shelf.quit()
+  scene = "menu"
+  restore_menu_pictures()
 end
 
 -- Play a show (from its segment seg, if given; demo: from its tiles).
@@ -1792,7 +1826,7 @@ local function handle(name)
     return
   end
   if scene == "shelf" then
-    if shelf.handle(name) == "exit" then scene = "menu" end
+    if shelf.handle(name) == "exit" then ST.shelf_close() end
     return
   end
   if scene == "initials" then
@@ -1800,7 +1834,7 @@ local function handle(name)
     return
   end
   if scene == "hall" then
-    if ST.hall.handle(name) == "exit" then scene = "menu" end
+    if ST.hall.handle(name) == "exit" then scene = "menu" ST.near_sel = nil end
     return
   end
   if launch_item then return end
@@ -1852,13 +1886,13 @@ local function handle(name)
     play("back")
   elseif (name == "low" or name == "1p") and it.kind == "hall" then
     scene = "hall"
+    ST.near_shots(true)   -- (its rows show every board's title screen)
     ST.hall.enter()
     play("launch")
   elseif (name == "low" or name == "1p") and it.kind == "shelf" then
     -- The browser opens in Home itself, at this card's row.
     if it.row then
-      scene = "shelf"
-      shelf.enter(it.row)
+      ST.shelf_open(it.row)
       play("launch")
     end
   elseif (name == "low" or name == "1p") and it.kind == "tv" then
@@ -1885,10 +1919,10 @@ local function shelf_setup()
                   for k, it in ipairs(items) do
                     if it.kind == "arcade" then
                       it.table = shelf.arcade_table(it.id)
-                      out[#out + 1] = {title = it.title, tint = it.tint, img = it.shot, rows = it.table,
+                      out[#out + 1] = {title = it.title, tint = it.tint, item = it, rows = it.table,
                                        launch = function() sel, pos = k, k scene = "menu" launch_item = it launch_t = 0 end}
                     elseif it.kind == "classic" and it.score then
-                      out[#out + 1] = {title = it.title, tint = it.tint, img = it.art, classic = true,
+                      out[#out + 1] = {title = it.title, tint = it.tint, item = it, classic = true,
                                        rows = {{tonumber(it.score) or 0, "", false}},
                                        launch = function() sel, pos = k, k scene = "menu" launch_item = it launch_t = 0 end}
                     end
@@ -1943,8 +1977,7 @@ local function shelf_setup()
     local key, file, failed = shelf.returning()
     if key then
       for k, it in ipairs(items) do if it.kind == "shelf" and (it.row == key or (key == "recent" and it.row)) then sel, pos = k, k break end end
-      scene = "shelf"
-      shelf.enter_at(key, file, failed)
+      ST.shelf_open(key, file, failed)
       returning = true
     end
   end
@@ -2158,7 +2191,7 @@ local function update_idle(dt)
   end
   if scene == "shelf" then
     idle = 0
-    if shelf.update(dt) == "exit" then scene = "menu" end
+    if shelf.update(dt) == "exit" then ST.shelf_close() end
   end
   if scene == "initials" then
     idle = 0
@@ -2166,7 +2199,7 @@ local function update_idle(dt)
   end
   if scene == "hall" then
     idle = 0
-    if ST.hall.update(dt) == "exit" then scene = "menu" end
+    if ST.hall.update(dt) == "exit" then scene = "menu" ST.near_sel = nil end
   end
   idle = idle + dt
   if scene == "menu" and idle > IDLE_ATTRACT then scene = "attract" attract_t = 0 attract_sel = sel end
@@ -2290,6 +2323,7 @@ function love.update(dt)
     if vol_read <= 0 then vol_read = nil read_volume() end
   end
   pos = pos + (sel - pos) * math.min(1, dt * 11)
+  if scene ~= "hall" then ST.near_shots() end
   if note then note_t = note_t - dt if note_t <= 0 then note = nil end end
   if launch_item then
     launch_t = launch_t + dt
