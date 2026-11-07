@@ -98,6 +98,11 @@ Every game, every time the library or the player changes:
    RPG menus and walls the script walks into look "stuck").
 4. **On the glass**: `tools/play_cab.sh` for one game with remote presses and screen grabs.
 
+Second run, cabinet included (2026-11-07, 119 games): 118 pass; every game at least 1.3x full speed on the
+cabinet's CPU (slowest: Elevator Action 80 fps of 60, Strider 98, Simpsons 109). The one flag, Wonder Boy III
+"silent on the cabinet", is the test's: on a Master System, Start is the console's Pause, and the benchmark
+presses it every 3 s.
+
 First run (2026-11-07): 129 of 144 passed the PC pass; the 15 flags were 10 false (reviewed), 3 PC-core
 silences, and two real: 1943 never started (the coin-then-Start press came too fast: fixed, 6 frames of coin,
 a third of a second, Start) and Joust/Defender stopping on FACTORY SETTINGS RESTORED with blank memory
@@ -117,8 +122,7 @@ digit a byte, the letter codes), `tools/arcade_scores.py` decodes them (the refe
 in Home. 18 boards so far; checked against the board's own screen: Contra, Donkey Kong, Pang, Joust (the
 DAILY BUZZARDS table; its JOUST CHAMPIONS table is a different layout, not decoded yet), Simpsons, Defender.
 Not decoded yet: Bomb Jack, Circus, Elevator Action, TMNT, Tron, Vendetta, X-Men, Dig Dug (also a Classic).
-Mario Bros. is silent: this MAME plays its sounds from separate sample recordings (`mario.zip` of samples,
-not on the card).
+Mario Bros. has sound (11136 on the cabinet; an early "silent" was the coin-and-Start timing).
 
 Per-game buttons: `curation.tsv`'s last column, e.g. Defender `B|A|R` (fire, thrust, reverse).
 
@@ -128,6 +132,14 @@ Jack, Elevator Action, 1942 below its name-entry ranks), Home asks: `initials.lu
 (stick, lower button, top-left back) before the celebration; kept in `saves/arcade/names.tsv` and merged
 into that board's table. Verified on the PC: a 1942 game's 770 was in its saved table after the quit; a
 new record brought up the picker, "CBE" was saved and shown on the card.
+
+**Verified on the cabinet (2026-11-07).** A real game of 1942, launched from its ARCADE card through the
+get-ready "SCORES TO BEAT" (table lowered for the test): 5,300, the board's own name entry took the initials,
+its table was saved on the way out, and Home came back with NEW HIGH SCORE 5,300 and the initials on the card.
+The real tables were put back afterwards. Pokemon Red: a new game played to an in-game SAVE on the cabinet,
+quit with the hold, relaunched (resume skipped): CONTINUE with the saved player; continuing returns to the
+room. The test saves were moved to /mnt/sdcard/cut/testsaves. Every arcade card shows its board's default
+table from the first boot (the cabinet pass ran each board once, which writes it).
 
 ## The library, trimmed (2026-11-07)
 
