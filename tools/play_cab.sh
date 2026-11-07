@@ -5,6 +5,7 @@
 #   sN         sleep N seconds            shot:NAME   grab the screen (tools/cab.sh shot) to OUT/NAME.png
 #   key:K      press a control (up down left right 1p 2p low tl tr)
 #   quit       hold 1P+2P for 1.5 s (the player should leave by itself; checked)
+#   mash:K:N:S press K N times, S seconds apart, looped on the cabinet (fast: no SSH per press)
 # Default ACTIONS: "s3 key:1p sN shot:play" (Start, then a screenshot near the end). OUT is PLAY_OUT or
 # /tmp/play_cab. Prints the player's log (its fps lines every 5 s, with where the time went).
 # Refuses while the cabinet is in use (a game, the yard, the TV), like show_cab.sh.
@@ -32,6 +33,8 @@ for a in $ACTIONS; do
     key:*) $T/cab.sh key "${a#key:}" >/dev/null 2>&1 ;;
     quit) $T/cab.sh hold 1p 2p 1500 >/dev/null 2>&1; sleep 1
           $SSH 'pidof play >/dev/null' && echo "QUIT HOLD: player still running" || { echo "quit hold: player left"; LEFT=1; } ;;
+    mash:*) set -- $(echo "$a" | tr ':' ' ')
+            $SSH "i=0; while [ \$i -lt $3 ]; do /data/tools/cabctl press $2 >/dev/null 2>&1; sleep $4; i=\$((i+1)); done" ;;
     s[0-9]*) sleep "${a#s}" ;;
   esac
 done

@@ -55,6 +55,9 @@ static struct {
     void (*unload_game)(void);
     void *(*get_memory_data)(unsigned);
     size_t (*get_memory_size)(unsigned);
+    size_t (*serialize_size)(void);
+    bool (*serialize)(void *, size_t);
+    bool (*unserialize)(const void *, size_t);
 } core;
 
 static const struct play_sys *sys;
@@ -389,8 +392,56 @@ static void read_deck(void)
 
 /* ------------------------------------------------------------------ saves */
 
+/* Suspend and resume (consoles only; an arcade board always starts fresh, so its scores mean something):
+ * leaving with the 1P+2P hold keeps the game's whole state in saves/<system>/<rom>.state, and the next launch
+ * goes on from there. /tmp/shelf.fresh (written by Home's browser for "start over") skips it once. */
+static char state_path[1200];
+
+static void state_resume(void)
+{
+    FILE *f;
+    long n;
+    void *buf;
+    if (sys->coin_start || !state_path[0])
+        return;
+    if (!access("/tmp/shelf.fresh", F_OK)) {
+        unlink("/tmp/shelf.fresh");
+        plog("starting over (no resume)");
+        return;
+    }
+    if (!(f = fopen(state_path, "rb")))
+        return;
+    fseek(f, 0, SEEK_END);
+    n = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    buf = malloc(n > 0 ? n : 1);
+    if (buf && fread(buf, 1, n, f) == (size_t)n) {
+        core.run(); /* (some cores take a state only after their first frame) */
+        plog(core.unserialize(buf, n) ? "resumed (%ld bytes)" : "resume refused (%ld bytes)", n);
+    }
+    free(buf);
+    fclose(f);
+}
+
+static void state_suspend(void)
+{
+    size_t n;
+    void *buf;
+    if (sys->coin_start || !state_path[0] || !(n = core.serialize_size()))
+        return;
+    if ((buf = malloc(n)) && core.serialize(buf, n)) {
+        extern int write_state_file(const char *, const void *, size_t);
+        if (write_state_file(state_path, buf, n) == 0)
+            plog("suspended (%zu bytes)", n);
+    }
+    free(buf);
+}
+
 static unsigned char *srm_copy;
 static size_t srm_size;
+
+static int write_file(const char *path, const void *data, size_t n);
+int write_state_file(const char *path, const void *data, size_t n) { return write_file(path, data, n); }
 
 static int write_file(const char *path, const void *data, size_t n)
 {
@@ -535,6 +586,9 @@ static int load_core(const char *path)
     SYM(unload_game, "retro_unload_game");
     SYM(get_memory_data, "retro_get_memory_data");
     SYM(get_memory_size, "retro_get_memory_size");
+    SYM(serialize_size, "retro_serialize_size");
+    SYM(serialize, "retro_serialize");
+    SYM(unserialize, "retro_unserialize");
 #undef SYM
     return 0;
 }
@@ -602,6 +656,7 @@ int main(int argc, char **argv)
         if ((dot = strrchr(base, '.')))
             *dot = 0;
         snprintf(srm_path, sizeof srm_path, "%s/%s.srm", savedir, base);
+        snprintf(state_path, sizeof state_path, "%s/%s.state", savedir, base);
     }
     title_from_path(rom, rom_title, sizeof rom_title);
     read_index(rom);
@@ -702,7 +757,8 @@ int main(int argc, char **argv)
         }
         printf("bench %s: %.1f frames/s (needs %.1f), worst frame %.1f ms, rss %ld MB, sound %.0f\n", sys->id,
                n / (t1 - t0), fps, worst * 1000, rss / 1024, bench_sound_level());
-        srm_flush("bench");
+        /* (no srm_flush: a benchmark's mashing must not become anyone's save; MAME's own .hi/.nv are written
+         * by the core as the game unloads) */
         core.unload_game();
         core.deinit();
         return 0;
@@ -713,6 +769,7 @@ int main(int argc, char **argv)
     /* A cushion of silence (about 46 ms) so the first slow frame does not starve the sound. */
     ring_w = 2048;
     cab_audio_open(audio_fill, NULL);
+    state_resume(); /* (after the screen exists: the frame it runs first is drawn) */
     SDL_PauseAudio(0);
 
     vsync_lock = fabs(fps - 60.0) < 0.6 && !getenv("PLAY_CLOCK");
@@ -778,6 +835,7 @@ int main(int argc, char **argv)
     }
     SDL_PauseAudio(1);
     srm_flush("quit");
+    state_suspend();
     plog("left after %d frames, %d audio underruns", frame_no, underruns);
     core.unload_game();
     core.deinit();

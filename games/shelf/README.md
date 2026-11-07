@@ -122,6 +122,27 @@ not on the card).
 
 Per-game buttons: `curation.tsv`'s last column, e.g. Defender `B|A|R` (fire, thrust, reverse).
 
+**Initials for every record.** Boards with a name entry (Donkey Kong, Joust, Pang, Bubble Bobble, Contra,
+Strider, Commando...) take the initials themselves. When a new record comes back with no name (Frogger, Bomb
+Jack, Elevator Action, 1942 below its name-entry ranks), Home asks: `initials.lua`, a three-letter picker
+(stick, lower button, top-left back) before the celebration; kept in `saves/arcade/names.tsv` and merged
+into that board's table. Verified on the PC: a 1942 game's 770 was in its saved table after the quit; a
+new record brought up the picker, "CBE" was saved and shown on the card.
+
+## The library, trimmed (2026-11-07)
+
+144 -> 119 games. Cut (kept in `~/partycade-card/cut/` and `/mnt/sdcard/cut/`, not deleted): arcade Dig Dug
+(a Classic already), Tron and Circus (spinner and paddle games), Arkanoid (sluggish on a stick), Final
+Fight, Vendetta and X-Men (beat-'em-ups for four, solo here; The Simpsons and TMNT stay); Sonic on Master
+System, Game Gear and GBA (the three Genesis Sonics stay); NBA Jam but the Genesis one; most of Game Gear
+(Columns and Puyo Puyo 2 stay); and the Pokemon that aren't English.
+
+**Check the language.** `tools/rom_region.py` reads each console game's header for its country. Of six
+Pokemon files only Red was the English game: Blue German, Gold Korean, Silver and Crystal Japanese, Yellow a
+Chinese fan translation; Golden Sun was the French release (cut). Action games from Japan (Tetris, Super
+Mario Land, Super Metroid...) play the same and stay. Pokemon Red here is itself a modified edition (its
+title menu says ADVANCED, and the start menu has POKEMON from the first room).
+
 ## Next
 
 * High scores for the party picks (arcade `.hi` tables already persist; console scores by reading game RAM),

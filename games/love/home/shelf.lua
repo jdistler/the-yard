@@ -192,9 +192,21 @@ local function row_index(key)
   for i, r in ipairs(rows) do if r.key == key then return i end end
 end
 
+-- Which games have a suspended spot (the player's saves/<system>/<stem>.state).
+local function mark_resume()
+  for _, g in ipairs(games) do
+    if g.sys ~= "arcade" then
+      local f = io.open(LIB .. "/saves/" .. g.sys .. "/" .. g.file:gsub("%.[^.]+$", "") .. ".state", "rb")
+      g.resume = f ~= nil
+      if f then f:close() end
+    end
+  end
+end
+
 function S.enter(key)
   idle, note = 0, nil
   build_rows()
+  mark_resume()
   sel = row_index(key) or 1
   yscroll = sel
 end
@@ -472,9 +484,16 @@ local function picture_launch(g, r)
   lg.printf(table.concat(lines, "\n"), 60, 756, W - 120, "center")
 end
 
-local function play_chosen()
+local function play_chosen(fresh)
   local g, r = cur_game()
   if not g then return end
+  -- Start over: the player skips the suspended spot once (and keeps the new one when it's left).
+  if fresh and g.resume then
+    local f = io.open("/tmp/shelf.fresh", "w")
+    if f then f:close() end
+  else
+    os.remove("/tmp/shelf.fresh")
+  end
   local f = io.open(RET, "w")
   if f then f:write(r.key .. "\t" .. g.file .. "\n") f:close() end
   save_recent(g)
@@ -491,7 +510,8 @@ function S.handle(name)
   elseif name == "right" then move_col(1)
   elseif name == "tl" then move_col(-5)
   elseif name == "tr" then move_col(5)
-  elseif name == "low" or name == "1p" then play_chosen()
+  elseif name == "low" then play_chosen(false)
+  elseif name == "1p" then play_chosen(true)
   elseif name == "2p" then
     ctx.play("back")
     return "exit"
@@ -615,7 +635,8 @@ local function draw_info()
   -- Tags, bottom right.
   local tags = {}
   if g.tags.party then tags[#tags + 1] = "PARTY PICK" end
-  if g.tags.solo then tags[#tags + 1] = "SAVES AS YOU GO" end
+  if g.resume then tags[#tags + 1] = "PICKS UP WHERE YOU LEFT OFF  ·  1-PLAYER: START OVER"
+  elseif g.tags.solo then tags[#tags + 1] = "SAVES AS YOU GO" end
   if #tags > 0 then
     lg.setFont(ctx.font(16))
     lg.setColor(tr, tg, tb, 0.95)
@@ -660,6 +681,15 @@ local function draw_rows()
             lg.setLineWidth(3)
             ctx.rrect("line", cx - w / 2 - 4, cy - h / 2 - 4, w + 8, h + 8, 8)
           end
+          if g.resume then
+            -- A suspended game: a RESUME tab on the box's top edge.
+            lg.setFont(ctx.font(13))
+            local bw = ctx.font(13):getWidth("RESUME") + 14
+            lg.setColor(tr, tg, tb, a)
+            ctx.rrect("fill", cx - bw / 2, cy - h / 2 - 9, bw, 18, 9)
+            lg.setColor(0.06, 0.02, 0.12, a)
+            lg.printf("RESUME", cx - bw / 2, cy - h / 2 - 7, bw, "center")
+          end
           if focus_row then
             lg.setFont(ctx.font(15))
             lg.setColor(0.92, 0.9, 1, a * (focus and 1 or 0.7))
@@ -698,7 +728,9 @@ function S.draw()
   lg.rectangle("fill", 0, H - 44, W, 44)
   lg.setFont(ctx.font(17))
   lg.setColor(0.86, 0.84, 0.98, 0.9)
-  lg.printf("LOWER: play     STICK: browse     TOP BUTTONS: skip 5     2-PLAYER: back", 0, H - 32, W, "center")
+  local g = cur_game()
+  lg.printf(g and g.resume and "LOWER: continue     1-PLAYER: start over     TOP: skip 5     2-PLAYER: back"
+            or "LOWER: play     STICK: browse     TOP BUTTONS: skip 5     2-PLAYER: back", 0, H - 32, W, "center")
   if note then
     lg.setColor(0.25, 0.02, 0.1, 0.92)
     ctx.rrect("fill", 60, 440, W - 120, 70, 16)

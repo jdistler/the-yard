@@ -181,7 +181,7 @@ def cab_bench(results):
         cmd = (f"n=0; while [ $(awk '/MemAvailable/ {{print int($2/1024)}}' /proc/meminfo) -lt 50 ] && [ $n -lt 20 ]; "
                f"do sleep 1; n=$((n+1)); done; cd /mnt/sdcard/library && (ulimit -v 102400; PLAY_LIB=$PWD PLAY_BENCH=6 "
                f"SDL_VIDEODRIVER=dummy nice -n 19 bin/play {r['sys']} \"{r['sys']}/{r['file']}\") 2>&1 "
-               f"| grep -E 'bench|refused' | head -1")
+               f"| grep -E '^bench|refused' | head -1")
         try:
             out = subprocess.run(ssh + [cmd], capture_output=True, text=True, timeout=120).stdout.strip()
         except subprocess.TimeoutExpired:
