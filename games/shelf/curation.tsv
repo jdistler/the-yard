@@ -1,12 +1,13 @@
 # The Shelf's curation (tools/shelf_index.py reads it): system, file stem, year, maker, tags, blurb,
 # button names (lower|top-left|top-right), thumbnail name when the file name doesn't find one.
 # tags: party (short turns, a score to beat: pass the stick), solo (a long game with saves), long,
+# turbo (holding the lower button fires 10 times a second: shooters that want it tapped),
 # hide (does not run here).
 nes	Battletoads	1991	Rare	solo	Toads, a turbo tunnel, and no mercy.	PUNCH|JUMP	
 nes	Castlevania III	1989	Konami	solo	Pick your partners. Climb to Dracula.	JUMP|WHIP	
 nes	Castlevania	1987	Konami	party	Whip, stairs, bats. One more try.	JUMP|WHIP	
 nes	Chip n Dale Rescue Rangers	1990	Capcom		Throw crates. Rescue the rangers.	JUMP|THROW	
-nes	Contra	1988	Konami	party	Thirty lives, if you know the code.	JUMP|FIRE	
+nes	Contra	1988	Konami	party turbo	Thirty lives, if you know the code.	JUMP|FIRE	
 nes	Double Dragon	1988	Technos		Elbows, whips, and Billy's girlfriend.	KICK|PUNCH	
 nes	Final Fantasy	1990	Square	solo long	Four warriors, four crystals.	OK|BACK	
 nes	Kirbys Adventure	1993	HAL		Inhale the enemy. Steal its power.	JUMP|INHALE	
@@ -120,15 +121,15 @@ gg	Shinobi II	1992	Sega		Four ninjas, five colors.	ATTACK|JUMP	Shinobi II - The 
 gg	Sonic Drift	1994	Sega	party	Sonic, kart racing.	GAS|BRAKE	
 gg	Sonic The Hedgehog 2	1992	Sega	party	Sonic 2, handheld.	JUMP|JUMP	
 gg	Sonic The Hedgehog	1991	Sega	party	Sonic, handheld.	JUMP|JUMP	
-arcade	1942			party	Loop the loop. Down the Ayako.	FIRE|LOOP	
-arcade	1943			party	Midway, with an energy bar.	FIRE|LOOP	
+arcade	1942			party turbo	Loop the loop. Down the Ayako.	FIRE|LOOP	
+arcade	1943			party turbo	Midway, with an energy bar.	FIRE|LOOP	
 arcade	arkanoid			party	Break the bricks. Catch the capsules.	FIRE||	
 arcade	bombjack			party	Collect the bombs. Lit ones first.	JUMP||	
 arcade	bublbobl			party	Blow bubbles. Pop the monsters. Fruit.	BUBBLE|JUMP|	
 arcade	circus			party	Bounce the clowns. Pop the balloons.	||	
-arcade	commando			party	Super Joe, alone, with grenades.	FIRE|GRENADE|	
+arcade	commando			party turbo	Super Joe, alone, with grenades.	FIRE|GRENADE|	
 arcade	contra			party	The arcade original.	FIRE|JUMP|	
-arcade	defender			party	Save the humanoids. Stick up and down, thrust, reverse.	FIRE|THRUST|REVERSE		B|A|R
+arcade	defender			party turbo	Save the humanoids. Stick up and down, thrust, reverse.	FIRE|THRUST|REVERSE		B|A|R
 arcade	digdug			party	The arcade board (Dig Dug is a Classic too).	PUMP||	
 arcade	dkong			party	Jumpman, barrels, a 25-meter climb.	JUMP||	
 arcade	dkongjr			party	Junior climbs vines to free Papa.	JUMP||	

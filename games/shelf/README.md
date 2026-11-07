@@ -45,6 +45,23 @@ while both are held neither reaches the game. Lower / top-left / top-right per s
 The player's legend under the picture names each button by what it does in that game (`curation.tsv`) and
 darkens the ones the game doesn't use.
 
+## Input: measured and handled (2026-11-07)
+
+* **No tap is lost.** The player samples the deck once a frame; this deck logged presses of 17 ms. A control
+  that went down since the last frame now counts for that frame even if already up (`cab_tapped`, cab.c).
+* **Lag.** Press (the kernel's event time) to the flip of the frame that has it: median 23 ms, 14-31 ms (NES
+  Contra, SNES Super Mario World; `PLAY_INPUTLOG=1`, matched against `cabctl watch`). About 1.4 frames, then
+  the panel's scan-out. A frame delay (read the deck later in the frame) adapts to each game, but this CPU's
+  emulation takes 8-9 ms a frame, so it can only safely wait 1-2 ms: a small gain, kept.
+* **Autofire** for shooters that want the button tapped (tag `turbo`: 1942, 1943, Commando, Defender, NES
+  Contra): held, the lower button fires ten times a second. 1942 with fire held: 800 points against 350.
+* **4-way or 8-way?** Not settled: the device tree gives each direction its own key, so an 8-way stick would
+  show as two keys down together, but no recording has a diagonal in it yet. `tools/deck_test.py` measures
+  it (diagonals, bounce, the deck's report cadence) with someone at the stick. MAME 2000 keeps 4-way boards
+  (Donkey Kong, Mario Bros., Frogger) 4-way itself; `CAB_FOURWAY` (cab.c) exists for the rest.
+* `PLAY_DARK=1` runs the player with a black screen (tests beside a sleeping child); `tools/cab_quiet.sh on|off`
+  stops Home, blacks the screen and mutes the speaker, and puts it all back.
+
 ## Measured on the cabinet (2026-11-07)
 
 Emulation alone (`PLAY_BENCH`, niced, next to Home): Game Boy 456 fps, GBA (Aria of Sorrow) 223, Master System

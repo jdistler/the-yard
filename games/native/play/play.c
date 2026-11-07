@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include "play_sys.h"
@@ -334,6 +335,17 @@ static void audio_sample(int16_t l, int16_t r)
 /* ------------------------------------------------------------------ input */
 
 static unsigned pad;  /* RetroPad bits for port 0 */
+/* PLAY_INPUTLOG=1: for each new press, how old the deck's event was when this loop took it, when the core ran
+ * with it, and when that frame went to the display (ms since SDL received the event). */
+static int inputlog, press_pending, delay_ms;
+static double work_ms = 16;
+static Uint32 last_period; /* ms between the starts of the last two passes */
+static Uint32 ev_ticks;          /* SDL's time of the latest joystick button-down */
+static void ev_hook(const SDL_Event *e)
+{
+    if (e->type == SDL_JOYBUTTONDOWN || e->type == SDL_KEYDOWN)
+        ev_ticks = e->common.timestamp;
+}
 static int coin_t;    /* arcade: frames left of the coin-then-start pulse */
 /* PLAY_ADVANCE=<frame>: the board's "Advance" key (F2) held for 10 frames from that frame. Only for making a
  * Williams board's settings memory on the PC: blank, it stops on FACTORY SETTINGS RESTORED until an operator
@@ -357,6 +369,7 @@ static int16_t input_state(unsigned port, unsigned device, unsigned index, unsig
 /* The deck to RetroPad bits, through the system's map. While 1P and 2P are both down (the quit
  * hold) neither reaches the game, so leaving does not also press Start and Select. */
 extern int game_btn[3]; /* the game's own buttons, from the index (read_index) */
+extern int play_turbo;
 /* Held now, or pressed and let go since the last frame (cab_tapped): no tap is lost. */
 static int deck(int b) { return cab_down(0, b) || cab_tapped(0, b); }
 
@@ -371,7 +384,15 @@ static void read_deck(void)
     for (int i = 0; i < 3; i++) {
         static const int decks[3] = {CAB_LOW, CAB_TL, CAB_TR};
         int b = game_btn[i] != -2 ? game_btn[i] : sys->btn[i];
-        if (b >= 0 && deck(decks[i]))
+        int on = deck(decks[i]);
+        /* Autofire: held past the first press, the lower button goes 3 frames on, 3 off. */
+        if (i == 0 && play_turbo && on && !cab_tapped(0, decks[i])) {
+            static int held_for;
+            held_for = cab_was_down(0, decks[i]) ? held_for + 1 : 0;
+            if (held_for > 6 && (held_for / 3) % 2)
+                on = 0;
+        }
+        if (b >= 0 && on)
             p |= 1u << b;
     }
     if (!both) {
@@ -498,6 +519,9 @@ static void srm_flush(const char *why)
 /* The game's line in <lib>/index.tsv (tools/shelf_index.py): its proper title and what its buttons do.
  * system, file, title, year, maker, art, tags, blurb, labels ("FIRE|LOOP|"). */
 char play_verbs[3][32];
+/* Autofire on the lower button (index.tsv's tags include "turbo": shooters that want the button tapped fast).
+ * Held, it fires 10 times a second; a tap is still a tap. */
+int play_turbo;
 int game_btn[3] = {-2, -2, -2}; /* -2: the system's own (play_sys.h) */
 int play_has_verbs;
 
@@ -523,6 +547,8 @@ static void read_index(const char *rom)
         }
         if (n < 3 || strcmp(field[0], sys->id) || strcmp(field[1], base))
             continue;
+        if (n >= 7 && strstr(field[6], "turbo"))
+            play_turbo = 1;
         if (field[2][0])
             snprintf(rom_title, sizeof rom_title, "%s", field[2]);
         if (n >= 11 && field[10][0]) {
@@ -776,11 +802,25 @@ int main(int argc, char **argv)
     SDL_PauseAudio(0);
 
     vsync_lock = fabs(fps - 60.0) < 0.6 && !getenv("PLAY_CLOCK");
+    if ((inputlog = getenv("PLAY_INPUTLOG") != NULL))
+        cab_event_hook = ev_hook;
     last_tick = save_tick = stat_tick = last_tick_prev = SDL_GetTicks();
     while (cab_poll()) {
         Uint32 now = SDL_GetTicks();
+        static Uint32 prev_start;
+        last_period = prev_start ? now - prev_start : 16;
+        prev_start = now;
         int runs = 1;
-        read_deck();
+        {
+            unsigned before = pad;
+            read_deck();
+            if (inputlog && (pad & ~before)) {
+                struct timeval tv;
+                gettimeofday(&tv, NULL);
+                plog("input: new press read at %ld.%06ld (delay %d ms)", (long)tv.tv_sec, (long)tv.tv_usec, delay_ms);
+                press_pending = 1;
+            }
+        }
         advance_down = advance_at >= 0 && frame_no >= advance_at && frame_no < advance_at + 10;
         if (!vsync_lock || cab_scripted() || SDL_GL_GetSwapInterval() != 1) {
             acc += (now - last_tick) / 1000.0;
@@ -811,6 +851,29 @@ int main(int argc, char **argv)
             if (drc > 1.005) drc = 1.005;
         }
         play_gl_draw(sys, rom_title, &av, rotation, cab_quit_progress());
+        if (inputlog && press_pending) {
+            struct timeval tv;
+            gettimeofday(&tv, NULL);
+            plog("input: its frame flipped at %ld.%06ld", (long)tv.tv_sec, (long)tv.tv_usec);
+            press_pending = 0;
+        }
+        /* Frame delay: after the flip, wait before the next pass reads the deck, so a press made in that time
+         * still makes the next frame (up to this many ms less lag). The wait is what the frame has left after
+         * this game's CPU work (core and drawing, measured) with 6 ms kept for the GPU; at most 6 ms; a missed
+         * refresh takes 2 ms off. Off under a script or with PLAY_NODELAY. */
+        if (vsync_lock && !cab_scripted() && !getenv("PLAY_NODELAY")) {
+            extern double play_last_swap;
+            double cpu = (SDL_GetTicks() - now) - play_last_swap * 1000;
+            work_ms = work_ms * 0.95 + (cpu < 0 ? 0 : cpu > 40 ? 40 : cpu) * 0.05;
+            if (last_period > 22 && delay_ms > 0)
+                delay_ms -= 2;
+            else if (frame_no % 60 == 0) {
+                int want = (int)(16.7 - work_ms - 6);
+                delay_ms = want < 0 ? 0 : want > 6 ? 6 : want;
+            }
+            if (delay_ms > 0)
+                SDL_Delay(delay_ms);
+        }
         if (!vsync_lock && SDL_GL_GetSwapInterval() != 1 && !cab_scripted()) {
             Uint32 spent = SDL_GetTicks() - now;
             if (spent < 16)
@@ -823,10 +886,10 @@ int main(int argc, char **argv)
         last_tick_prev = now;
         if (now - stat_tick >= 5000) {
             plog("%.1f fps, %d slow, sound queue %u, underruns %d, core frames %d; ms a frame: core %.1f (upload %.1f) "
-                 "draw %.1f present %.1f",
+                 "draw %.1f present %.1f; input wait %d ms",
                  stat_frames * 1000.0 / (now - stat_tick), stat_slow, ring_fill(), underruns, frame_no,
                  (t_core - play_t_upload) * 1000 / stat_frames, play_t_upload * 1000 / stat_frames,
-                 play_t_draw * 1000 / stat_frames, play_t_present * 1000 / stat_frames);
+                 play_t_draw * 1000 / stat_frames, play_t_present * 1000 / stat_frames, delay_ms);
             t_core = play_t_upload = play_t_draw = play_t_present = 0;
             stat_tick = now;
             stat_frames = stat_slow = 0;

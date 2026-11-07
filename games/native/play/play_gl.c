@@ -151,7 +151,8 @@ static const char *fs_rgba = "precision mediump float; varying vec2 v_uv; unifor
                              "void main() { gl_FragColor = texture2D(u_tex, v_uv); }\n";
 
 static GLuint p_rgb, p_bgr, p_rgba;
-static int to_screen, screen_rot; /* drawing on the real framebuffer, which is turned on the cabinet */
+static int to_screen, screen_rot;
+static int dark = -1; /* drawing on the real framebuffer, which is turned on the cabinet */
 static GLuint t_game, t_pre, f_pre, t_top, t_bot, t_quit;
 static int tex_w, tex_h, pre_w, pre_h, game_fmt_32;
 static unsigned frame_w, frame_h;
@@ -160,7 +161,7 @@ static size_t conv_cap;
 static gsurf *s_top, *s_bot, *s_quit;
 static int top_h, bot_h, bands_dirty = 1;
 static char note[128];
-double play_t_upload, play_t_draw, play_t_present; /* seconds, summed; play.c logs and clears them */
+double play_t_upload, play_t_draw, play_t_present, play_last_swap; /* seconds, summed; play.c logs and clears them */
 static double now_s(void) { return SDL_GetPerformanceCounter() / (double)SDL_GetPerformanceFrequency(); }
 static float last_quit = -1;
 
@@ -478,6 +479,8 @@ void play_gl_draw(const struct play_sys *sys, const char *title, const struct re
     int scale, src_w, src_h, whole;
     GLuint src;
     double t0 = now_s(), t1;
+    if (dark < 0)
+        dark = getenv("PLAY_DARK") != NULL;
     if (!frame_w)
         return;
     layout(av, rotation, &x, &y, &w, &h);
@@ -591,6 +594,11 @@ void play_gl_draw(const struct play_sys *sys, const char *title, const struct re
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, whole ? GL_NEAREST : GL_LINEAR);
     }
     quad(x, y, w, h, VW, VH, uv);
+    if (dark) {
+        /* PLAY_DARK=1 (tests beside a sleeping child): the same work, then a black screen. */
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
 
     /* The quit meter, over the middle of the game while 1P+2P are held. */
     if (quit > 0) {
@@ -613,7 +621,8 @@ void play_gl_draw(const struct play_sys *sys, const char *title, const struct re
     play_t_draw += t1 - t0;
     cab_shot_if_due();
     SDL_GL_SwapWindow(cab_window);
-    play_t_present += now_s() - t1;
+    play_last_swap = now_s() - t1;
+    play_t_present += play_last_swap;
 }
 
 void play_gl_shutdown(void) { cab_gl_shutdown(); }

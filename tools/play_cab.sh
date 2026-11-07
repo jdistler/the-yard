@@ -18,12 +18,13 @@ HOST=$($T/cab.sh host)
 SSH="ssh -i $HOME/yard_key_ecdsa -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=8 root@$HOST"
 BUSY=$($SSH 'pidof yard play >/dev/null && echo busy; for p in $(pidof love.bin); do grep -q home.love /proc/$p/cmdline || echo busy; done; pidof PacMan SuperPacMan PacLand NS1 Galaga Galaxian Mappy DigDug orb start.sh game tvloop tvplay >/dev/null && echo busy; true')
 case "$BUSY" in *busy*) echo "cabinet busy: not running"; exit 1;; esac
+HOME_WAS=$($SSH 'pidof homeloop >/dev/null && echo up || echo down')   # (quiet mode: leave Home off after)
 $SSH "for p in \$(pidof homeloop) \$(pidof love.bin); do kill -9 \$p; done; n=0; while pidof love.bin >/dev/null && [ \$n -lt 20 ]; do sleep 0.3; n=\$((n+1)); done
 rm -rf /tmp/pc; mkdir -p /tmp/pc; cd /mnt/sdcard/library
 dmesg -c >/dev/null 2>&1 || true
 (PLAY_LIB=/mnt/sdcard/library PLAY_LOG=/tmp/pc/log ALSA_CONFIG_PATH=/data/home/alsa.conf ${PLAY_ENV:-} \
   setsid bin/play $SYS \"$ROM\" </dev/null >/tmp/pc/out 2>&1 &)"
-trap '$SSH "pidof play >/dev/null && kill \$(pidof play); sleep 1; pidof homeloop >/dev/null || (setsid /data/home/homeloop </dev/null >/dev/null 2>&1 &)"' INT TERM
+trap '$SSH "pidof play >/dev/null && kill \$(pidof play); sleep 1; [ $HOME_WAS = up ] && { pidof homeloop >/dev/null || (setsid /data/home/homeloop </dev/null >/dev/null 2>&1 &); }"' INT TERM
 set +e
 START=$(date +%s)
 LEFT=0
@@ -43,7 +44,8 @@ $SSH "p=\$(pidof play); [ -n \"\$p\" ] && awk '/VmRSS/ {print \"rss \" int(\$2 /
 free -m | awk '/Mem:/ {print \"available \" \$4 + \$6 + \$7 \" MB\"}'
 [ -n \"\$p\" ] && kill \$p; n=0; while pidof play >/dev/null && [ \$n -lt 20 ]; do sleep 0.3; n=\$((n+1)); done
 pidof play >/dev/null && { echo 'play did not quit on SIGTERM: killed'; kill -9 \$(pidof play); }
-pidof homeloop >/dev/null || (setsid /data/home/homeloop </dev/null >/dev/null 2>&1 &)
+[ $HOME_WAS = up ] && { pidof homeloop >/dev/null || (setsid /data/home/homeloop </dev/null >/dev/null 2>&1 &); }
+[ $HOME_WAS = up ] || dd if=/dev/zero of=/dev/fb0 bs=65536 2>/dev/null
 grep -E 'play:|core:.*(rror|arn)' /tmp/pc/log | sed 's/^ *[0-9.]* //' | head -40
 ls /mnt/sdcard/library/saves/$SYS 2>/dev/null | sed 's/^/save: /'
 dmesg | grep -E 'Out of memory|Killed process|segfault' | tail -3; true"
