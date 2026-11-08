@@ -1721,20 +1721,29 @@ local function update_cards()
       local text = shows.BY_ID.longhorns.blurb
       if g and g.kickoff then
         local now = utgame.now()
-        local where = (g.home and "VS " or "AT ") .. string.upper(g.opp_loc ~= "" and g.opp_loc or g.opp)
+        local where = (g.home and "VS " or "AT ") .. string.upper(g.opp_loc ~= "" and g.opp_loc or g.opp or "")
         if g.state == "in" then
-          text = string.format("LIVE NOW: TEXAS %d, %s %d  ·  %s%s", g.us or 0, g.opp_abbr, g.them or 0, string.upper(g.detail),
+          local det = (g.detail and g.detail ~= "") and ("  ·  " .. string.upper(g.detail)) or ""
+          text = string.format("LIVE NOW: TEXAS %d, %s %d%s%s", g.us or 0, g.opp_abbr or "OPP", g.them or 0, det,
                                g.net and ("  ·  " .. g.net) or "")
         elseif g.state == "post" and now - g.kickoff < 24 * 3600 then
-          text = string.format("FINAL: TEXAS %d, %s %d%s", g.us or 0, g.opp_abbr, g.them or 0, (g.us or 0) > (g.them or 0) and "  ·  HOOK 'EM!" or "")
+          text = string.format("FINAL: TEXAS %d, %s %d%s", g.us or 0, g.opp_abbr or "OPP", g.them or 0, (g.us or 0) > (g.them or 0) and "  ·  HOOK 'EM!" or "")
         elseif g.state == "pre" and g.kickoff - now < 10 * 86400 then
-          text = "NEXT: " .. where .. "  ·  " .. string.upper(os.date("%a %b %d, %I:%M %p", g.kickoff)):gsub(" 0", " ") ..
-                 (g.net and ("  ·  " .. g.net) or "")
+          local when
+          if g.tbd and g.day then
+            local y, m, dd = g.day:match("(%d+)-(%d+)-(%d+)")
+            when = string.upper(os.date("%a %b %d", os.time({year = tonumber(y), month = tonumber(m), day = tonumber(dd), hour = 12}))):gsub(" 0", " ")
+                   .. ", TIME TBD"
+          else
+            when = string.upper(os.date("%a %b %d, %I:%M %p", g.kickoff)):gsub(" 0", " ")
+          end
+          text = "NEXT: " .. where .. "  ·  " .. when .. (g.net and ("  ·  " .. g.net) or "")
         end
       end
       it.blurb = text
     end
   end
+  tv.tick()
   ST.update_world()
 end
 

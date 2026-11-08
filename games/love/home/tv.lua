@@ -543,6 +543,57 @@ local function repeat_held(dt)
   end
 end
 
+local function poll_worker()
+  if not worker then return end
+  local ch = love.thread.getChannel("tv_done")
+  local msg = ch:pop()
+  while msg do
+    if msg[1] == "sync" then
+      local line = msg[3]
+      for _, pl in ipairs(playlists) do
+        if pl.name == msg[2] then
+          if line:match("^channels") then load_lists(pl) build_rows()
+          elseif line:match("^epg") then load_epg(pl) build_rows() for _, r in ipairs(rows) do for _, c in ipairs(r.channels) do c._np_t = nil end end
+          elseif line:match("^error") then
+            pl.status, pl.err = "error", line
+            ctx.log("tv: " .. pl.name .. " " .. line)
+          end
+        end
+      end
+    elseif msg[1] == "syncdone" then
+      syncing[msg[2]] = nil
+      for _, pl in ipairs(playlists) do
+        if pl.name == msg[2] then
+          os.execute("mkdir -p " .. TMP .. "/" .. pl.name)
+          if pl.status ~= "error" then
+            pl.status = "ok"
+            write_file(TMP .. "/" .. pl.name .. "/synced", tostring(os.time()))
+            os.remove(TMP .. "/" .. pl.name .. "/failed")
+          else
+            local up = (read_file("/proc/uptime") or "0"):match("^(%S+)")
+            write_file(TMP .. "/" .. pl.name .. "/failed", up)
+          end
+          build_rows()
+        end
+      end
+    elseif msg[1] == "logo" then
+      if msg[3] == "ok" or msg[3] == "have" then load_logo(msg[2]) else logos[msg[2]] = false end
+    elseif msg[1] == "logosdone" then
+      logo_busy = false
+    end
+    msg = ch:pop()
+  end
+  local err = worker:getError()
+  if err then ctx.log("tvworker: " .. err) worker = nil end
+end
+
+-- Called from Home's menu loop too: at power-on T.load runs before Wi-Fi is up (~39 s), so the first sync
+-- fails and the clock stays at 1970 until a retry after Wi-Fi connects.
+function T.tick()
+  poll_worker()
+  if not clock_ok() then sync_stale() end
+end
+
 function T.update(dt)
   t = t + dt
   idle = idle + dt
@@ -553,49 +604,7 @@ function T.update(dt)
     xscroll[r.key] = (xscroll[r.key] or want) + (want - (xscroll[r.key] or want)) * math.min(1, dt * 12)
   end
   if note_t then note_t = note_t - dt if note_t <= 0 then note, note_t = nil, nil end end
-  -- The network thread's answers.
-  if worker then
-    local ch = love.thread.getChannel("tv_done")
-    local msg = ch:pop()
-    while msg do
-      if msg[1] == "sync" then
-        local line = msg[3]
-        for _, pl in ipairs(playlists) do
-          if pl.name == msg[2] then
-            if line:match("^channels") then load_lists(pl) build_rows()
-            elseif line:match("^epg") then load_epg(pl) build_rows() for _, r in ipairs(rows) do for _, c in ipairs(r.channels) do c._np_t = nil end end
-            elseif line:match("^error") then
-              pl.status, pl.err = "error", line
-              ctx.log("tv: " .. pl.name .. " " .. line)
-            end
-          end
-        end
-      elseif msg[1] == "syncdone" then
-        syncing[msg[2]] = nil
-        for _, pl in ipairs(playlists) do
-          if pl.name == msg[2] then
-            os.execute("mkdir -p " .. TMP .. "/" .. pl.name)
-            if pl.status ~= "error" then
-              pl.status = "ok"
-              write_file(TMP .. "/" .. pl.name .. "/synced", tostring(os.time()))
-              os.remove(TMP .. "/" .. pl.name .. "/failed")
-            else
-              local up = (read_file("/proc/uptime") or "0"):match("^(%S+)")
-              write_file(TMP .. "/" .. pl.name .. "/failed", up)
-            end
-            build_rows()
-          end
-        end
-      elseif msg[1] == "logo" then
-        if msg[3] == "ok" or msg[3] == "have" then load_logo(msg[2]) else logos[msg[2]] = false end
-      elseif msg[1] == "logosdone" then
-        logo_busy = false
-      end
-      msg = ch:pop()
-    end
-    local err = worker:getError()
-    if err then ctx.log("tvworker: " .. err) worker = nil end
-  end
+  poll_worker()
   logo_wait = logo_wait - dt
   if logo_wait <= 0 then logo_wait = 0.4 ask_logos() end
   if idle > IDLE_OUT then return "exit" end

@@ -1103,6 +1103,20 @@ def home():
     subprocess.run([LOVE_RUN, hl], cwd=w, env=env, capture_output=True, timeout=120)
     req = (read(w, "req") or "").strip()
     check(req.startswith("classic 6 "), f"Home: the FAVORITES card launches the game it stands for ({req!r})")
+    # 2026-11-08: ut_season.txt written while a game was "in" (no score, no detail) crashed Home on the next
+    # power-on before ut.json existed (main.lua update_cards: string.upper(g.detail) on nil).
+    ut_season = os.path.join(w, "ut_season.txt")
+    open(ut_season, "w").write(
+        "team\t7\t6-2\n"
+        "game\t2026-11-07T17:00Z\t1\tin\t2\tMIZ\tMissouri\tMissouri\t0\t0\t\t\t0\tMemorial Stadium\t\t18\n"
+        "game\t2026-11-14T05:00Z\t0\tpre\t2\tLSU\tLSU\tLSU\t0\t0\t\t\t0\tTiger Stadium (LA)\t\t14\n")
+    open(sc, "w").write("30 quit\n")
+    open(os.path.join(w, "log"), "w").close()
+    env_ut = dict(env, HOME_UT_JSON=os.path.join(w, "no_ut.json"), HOME_UT_SEASON=ut_season, HOME_UT_NOW="10")
+    r = subprocess.run([LOVE_RUN, hl], cwd=w, env=env_ut, capture_output=True, text=True, timeout=120)
+    ut_log = read(w, "log") or ""
+    check(r.returncode == 0 and "ERROR" not in ut_log and "utgame: season 2 games" in ut_log,
+          f"Home: a cached ut_season.txt with an 'in' row starts cleanly at cold boot (rc {r.returncode})")
 
 
 def shows():

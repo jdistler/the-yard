@@ -2048,17 +2048,24 @@ local function bug_lines()
   if not g or not g.kickoff then return nil end
   local now = ut.now()
   local line, line2
-  local where = (g.home and "VS " or "AT ") .. string.upper(g.opp_loc ~= "" and g.opp_loc or g.opp)
+  local where = (g.home and "VS " or "AT ") .. string.upper(g.opp_loc ~= "" and g.opp_loc or g.opp or "")
   if g.state == "in" then
-    line = string.format("TEXAS %d   %s %d", g.us or 0, g.opp_abbr, g.them or 0)
-    line2 = string.upper(g.detail) .. (g.net and ("  ·  ON " .. g.net) or "")
+    line = string.format("TEXAS %d   %s %d", g.us or 0, g.opp_abbr or "OPP", g.them or 0)
+    line2 = string.upper(g.detail or "") .. (g.net and ("  ·  ON " .. g.net) or "")
   elseif g.state == "post" and now - g.kickoff < 8 * 3600 then
-    line = string.format("FINAL: TEXAS %d   %s %d", g.us or 0, g.opp_abbr, g.them or 0)
+    line = string.format("FINAL: TEXAS %d   %s %d", g.us or 0, g.opp_abbr or "OPP", g.them or 0)
     line2 = (g.us or 0) > (g.them or 0) and "HOOK 'EM!" or "NEXT WEEK"
   elseif g.state == "pre" and g.kickoff - now < 7 * 86400 then
     line = "NEXT: " .. where
-    line2 = (ut.countdown(now) or string.upper(os.date("%a %b %d  %I:%M %p", g.kickoff)):gsub(" 0", " ")) ..
-            (g.net and ("  ·  " .. g.net) or "")
+    local when
+    if g.tbd and g.day then
+      local y, m, dd = g.day:match("(%d+)-(%d+)-(%d+)")
+      when = string.upper(os.date("%a %b %d", os.time({year = tonumber(y), month = tonumber(m), day = tonumber(dd), hour = 12}))):gsub(" 0", " ")
+             .. "  TIME TBD"
+    else
+      when = ut.countdown(now) or string.upper(os.date("%a %b %d  %I:%M %p", g.kickoff)):gsub(" 0", " ")
+    end
+    line2 = when .. (g.net and ("  ·  " .. g.net) or "")
   else
     return nil
   end

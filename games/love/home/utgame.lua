@@ -35,7 +35,7 @@ local season_text
 local log = function() end
 
 local next_fetch, next_read, fetching = 0, 0, false
-local last_size
+local last_size, from_season
 
 function U.now()
   return tonumber(os.getenv("HOME_UT_NOW") or "") or os.time()
@@ -112,13 +112,15 @@ local function read()
   if old and old.state == "in" and g.us and old.us and g.us > old.us then U.scored = g.us - old.us end
   -- a game just ended: the schedule again soon, for the result
   if old and old.state ~= "post" and g.state == "post" then U.sched_soon = true end
-  U.game = g
+  U.game, from_season = g, false
   log(string.format("utgame: %s %s, %s, %s %s-%s", g.home and "vs" or "at", g.opp_abbr, g.state, g.detail,
                     tostring(g.us), tostring(g.them)))
 end
 
--- How long until the next fetch: often near and during a game, else every three hours.
+-- How long until the next fetch: often near and during a game, else every three hours (or 15 s at boot while
+-- Wi-Fi is still coming up).
 local function interval()
+  if not last_size and clock < 180 then return 15 end
   local g = U.game
   if not g or not g.kickoff then return 3 * 3600 end
   if g.state == "in" then return 30 end
@@ -129,7 +131,7 @@ local function interval()
 end
 
 -- ------------------------------------------------------------------ the season (ESPN's schedule)
-local sched_next_fetch, sched_next_read, sched_size, sched_thread = 20, 2, nil, nil
+local sched_next_fetch, sched_next_read, sched_size, sched_thread, sched_fetched = 20, 2, nil, nil, false
 
 local function sched_parse(text)
   if text == "" then return end
@@ -144,15 +146,24 @@ local function sched_parse(text)
     elseif f[1] == "game" then
       local tbd = f[3] == "0"
       local kickoff = iso_epoch(f[2])
-      local g = {kickoff = kickoff, tbd = tbd, state = f[4], post = f[5] == "3", opp_abbr = f[6], opp = f[7],
-                 opp_loc = f[8], home = f[9] == "1", neutral = f[10] == "1", us = tonumber(f[11]), them = tonumber(f[12]),
-                 won = f[13] == "1", venue = f[14], note = f[15] ~= "" and f[15] or nil, opp_rank = tonumber(f[16])}
+      local us, them = tonumber(f[11]), tonumber(f[12])
+      -- The schedule has no live clock or scores while a game is on (ut.json does); a row kept in ut_season.txt
+      -- from a game in progress is not still live on the next boot.
+      local state = (f[4] == "in" and (not us or not them)) and "pre" or f[4]
+      local g = {kickoff = kickoff, tbd = tbd, state = state, post = f[5] == "3", opp_abbr = f[6], opp = f[7],
+                 opp_loc = f[8], home = f[9] == "1", neutral = f[10] == "1", us = us, them = them,
+                 won = f[13] == "1", venue = f[14], note = f[15] ~= "" and f[15] or nil, opp_rank = tonumber(f[16]),
+                 detail = ""}
       g.day = U.day_of(f[2], tbd, kickoff)
       season.games[#season.games + 1] = g
     end
   end
   table.sort(season.games, function(a, b) return (a.kickoff or 0) < (b.kickoff or 0) end)
   U.season = season
+  if not U.game or from_season then
+    local nx = U.next()
+    if nx then U.game, from_season = nx, true end
+  end
   log(string.format("utgame: season %d games, %s, rank %s", #season.games, season.record or "?", season.rank or "-"))
 end
 
@@ -161,6 +172,7 @@ local function sched_update()
     local text = love.thread.getChannel("ut_sched"):pop()
     if text then
       sched_thread = nil
+      if text ~= "" then sched_fetched = true end
       local old = season_text
       sched_parse(text)
       if not sched_fixed and text ~= "" then
@@ -183,7 +195,7 @@ local function sched_update()
     return
   end
   if clock >= sched_next_read then
-    sched_next_read = clock + 60
+    sched_next_read = clock + ((not sched_fetched and clock < 180) and 5 or 60)
     local f = io.open(SCHED_FILE, "rb")
     if f then
       local size = f:seek("end")
@@ -200,7 +212,8 @@ local function sched_update()
     sched_next_fetch = math.min(sched_next_fetch, clock + 900)
   end
   if not sched_fixed and clock >= sched_next_fetch then
-    sched_next_fetch = clock + 6 * 3600
+    sched_next_fetch = clock + ((not sched_fetched and clock < 180) and 20 or 6 * 3600)
+    sched_next_read = math.min(sched_next_read, clock + 4)
     os.execute(string.format("%s/tvnet get '%s' %s >/dev/null 2>&1 &", BIN, SCHED_URL, SCHED_FILE))
   end
 end
@@ -209,7 +222,7 @@ end
 -- place, newest data first.
 function U.games()
   local out, seen = {}, {}
-  local g = U.game
+  local g = not from_season and U.game or nil
   if g and g.day then out[1] = g seen[g.day] = true end
   for _, s in ipairs(U.season and U.season.games or {}) do
     if s.day and not seen[s.day] then out[#out + 1] = s seen[s.day] = true end
@@ -239,6 +252,7 @@ end
 function U.next(now)
   now = now or U.now()
   local today = os.date("%Y-%m-%d", now)
+  if not from_season and U.game and U.game.day and U.game.day > today then today = U.game.day end
   for _, g in ipairs(U.games()) do
     if g.state ~= "post" and g.day >= today then return g end
   end
@@ -286,7 +300,7 @@ function U.start(logf)
   end
   if not U.game then
     local nx = U.next()
-    if nx then U.game = nx end
+    if nx then U.game, from_season = nx, true end
   end
   next_fetch = 5                         -- a first look soon after Home starts (the network may come later)
 end
