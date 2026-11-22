@@ -137,6 +137,7 @@ local OURS = {
   {id = "tea", title = "TEA", tint = 0xff9ccf, blurb = "Tea with the cats.", stat = {"visits", "%d VISITS", "1 VISIT"}},
   {id = "chest", title = "CHEST", tint = 0x7fd6a0, blurb = "Zam, Pika, and the chest.", stat = {"gems", "%d GEMS", "1 GEM"}},
   {id = "dig", title = "DIG", tint = 0xffa84c, blurb = "Dig tunnels, pop foes, find gems.", stat = {"hi", "BEST %d"}},
+  {id = "chomp", title = "CHOMP", tint = 0xffdc36, blurb = "Gobble dots, grab Power Pellets, outsmart ghosts.", stat = {"hi", "BEST %d"}},
   {id = "kart", title = "STAR KART", tint = 0xff5a6e, blurb = "Race rivals, grab item boxes.", stat = {"best", "BEST %d"}},
   {id = "safari", title = "SAFARI", tint = 0x58d68d, blurb = "Befriend meadow monsters.", stat = {"caught", "%d/8 FRIENDS", "1/8 FRIENDS"}},
   {id = "tower", title = "TOWER", tint = 0xe86b9a, blurb = "Climb ladders, hop barrels.", stat = {"best", "BEST %d"}},
