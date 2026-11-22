@@ -38,7 +38,7 @@ find_host() {
 H=$(find_host) || { echo "cabinet not found on the network (Wi-Fi starts when The Yard is opened after a boot)" >&2; exit 3; }
 mkdir -p "$(dirname "$CACHE")" && echo "$H" > "$CACHE"
 SSH="ssh $OPTS -o ConnectTimeout=8 root@$H"
-MENU='pidof game >/dev/null || { rm -f /tmp/.minigui_freeze; cd / && env -i PATH=/sbin:/usr/sbin:/bin:/usr/bin HOME=/ XDG_CONFIG_HOME=/userdata/ MG_CFG_PATH=/etc setsid /usr/bin/game </dev/null >/dev/null 2>&1 & sleep 3; }; echo "video: $(cat /sys/class/drm/card0-HDMI-A-1/enabled)"'
+MENU='if [ -x /data/home/homeloop ] && [ ! -e /data/home/disabled ]; then pidof homeloop >/dev/null || { rm -f /tmp/.minigui_freeze; setsid /data/home/homeloop </dev/null >/dev/null 2>&1 & sleep 3; }; else pidof game >/dev/null || { rm -f /tmp/.minigui_freeze; cd / && env -i PATH=/sbin:/usr/sbin:/bin:/usr/bin HOME=/ XDG_CONFIG_HOME=/userdata/ MG_CFG_PATH=/etc setsid /usr/bin/game </dev/null >/dev/null 2>&1 & sleep 3; }; fi; echo "video: $(cat /sys/class/drm/card0-HDMI-A-1/enabled)"'
 # /tmp/.minigui_freeze: the stock menu makes it while a game runs and draws nothing while it exists; one left
 # by a killed menu keeps the next one black (2026-10-27), so MENU removes it.
 # Also Home (homeloop), LÖVE, holdwatch, and every game Home started (they outlive a killed homeloop and
