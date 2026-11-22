@@ -12,6 +12,9 @@
  *                                descriptions only for the next 4 h)
  *       Each file is written beside and renamed into place. Progress on stdout, a line per step:
  *         ok handshake <server time> | groups N | channels N | epg N | error <step> <message>
+ *   tvnet now CONF NAME OUT / tvnet line CONF NAME STREAM_ID OUT
+ *       The Pink TV household (the playlist is the home panel gate, plans in ~/Projects/tivi-remote): what
+ *       the other screens watch, and whether a channel's line is free/shared/busy (see now_cmd, line_cmd).
  *   tvnet logos LISTFILE OUTDIR W H
  *       Each line of LISTFILE: "key url". The logo is fetched, decoded (PNG, JPEG, GIF, WebP, BMP) and scaled
  *       to fit W x H, then written as OUTDIR/key.rgba: "RGBA", width and height (16-bit little-endian each),
@@ -253,7 +256,7 @@ static int jarray(const char *s, size_t n, Fields *f, void (*fn)(Fields *, void 
             for (int i = 0; i < f->n; i++) if (key.p && !strcmp(key.p, f->keys[i])) which = i;
             if (which >= 0 && *j.s == '"') {
                 if (jstring(&j, &f->val[which]) < 0) return -1;
-            } else if (which >= 0 && *j.s != '{' && *j.s != '[') {
+            } else if (which >= 0) {   /* numbers, booleans, and (raw) arrays/objects a caller asked for */
                 const char *a = j.s;
                 if (jskip(&j) < 0) return -1;
                 if (!(j.s - a == 4 && !memcmp(a, "null", 4))) buf_add(&f->val[which], a, j.s - a);
@@ -346,11 +349,59 @@ static void tsv(FILE *f, Buf *v, int last)
 
 static void on_group(Fields *f, void *ctx) { FILE *o = ctx; tsv(o, &f->val[0], 0); tsv(o, &f->val[1], 1); }
 
+/* channels.tsv lines, gathered so a channel in several groups (the Pink TV gate's category_ids: ESPN is in
+ * Favorites AND US Sports) gets a line in each, sorted into each group's own order (gate_pos). */
+typedef struct { char *line; char cat[64]; long pos, seq; } Row;
+static Row *rows_v; static size_t rows_n, rows_cap;
+
+static void row_add(const char *cat, long pos, Fields *f)
+{
+    if (rows_n == rows_cap) { rows_cap = rows_cap ? rows_cap * 2 : 1024; rows_v = realloc(rows_v, rows_cap * sizeof *rows_v); }
+    Row *r = &rows_v[rows_n];
+    snprintf(r->cat, sizeof r->cat, "%s", cat);
+    r->pos = pos; r->seq = (long)rows_n;
+    size_t n = strlen(cat) + 2;
+    for (int i = 1; i < 5; i++) n += f->val[i].n + 1;
+    r->line = malloc(n + 1);
+    char *w = r->line;
+    w += sprintf(w, "%s\t", cat);
+    for (int i = 1; i < 5; i++) { memcpy(w, f->val[i].p ? f->val[i].p : "", f->val[i].n); w += f->val[i].n; *w++ = i == 4 ? '\n' : '\t'; }
+    *w = 0;
+    rows_n++;
+}
+
+static int row_cmp(const void *a, const void *b)
+{
+    const Row *x = a, *y = b;
+    int c = strcmp(x->cat, y->cat);
+    if (c) return c;
+    if (x->pos != y->pos) return x->pos < y->pos ? -1 : 1;
+    return x->seq < y->seq ? -1 : x->seq > y->seq;
+}
+
 static void on_stream(Fields *f, void *ctx)
 {
-    FILE *o = ctx;
-    for (int i = 0; i < 5; i++) tsv(o, &f->val[i], i == 4);
+    (void)ctx;
     if (f->val[3].p) id_add(f->val[3].p);
+    const char *ids = f->val[5].p, *pos = f->val[6].p;
+    if (!ids || f->val[5].n < 2 || ids[0] != '[') { row_add(f->val[0].p ? f->val[0].p : "", (long)rows_n, f); return; }
+    /* every quoted id in the array; its position from gate_pos {"id":n,...} */
+    for (const char *q = strchr(ids, '"'); q; q = strchr(q, '"')) {
+        const char *e = strchr(q + 1, '"');
+        if (!e) break;
+        char cat[64];
+        size_t n = (size_t)(e - q - 1) < sizeof cat - 1 ? (size_t)(e - q - 1) : sizeof cat - 1;
+        memcpy(cat, q + 1, n); cat[n] = 0;
+        long at = (long)rows_n;
+        if (pos) {
+            char key[80];
+            snprintf(key, sizeof key, "\"%s\":", cat);
+            const char *k = strstr(pos, key);
+            if (k) at = strtol(k + strlen(key), NULL, 10);
+        }
+        row_add(cat, at, f);
+        q = e + 1;
+    }
 }
 
 /* Days since 1970-01-01 of a civil date (Howard Hinnant's algorithm). */
@@ -599,13 +650,16 @@ static int sync_list(int argc, char **argv)
     out_close(&o);
     say("groups %d", n);
 
-    Fields g = {{"category_id", "stream_id", "name", "epg_channel_id", "stream_icon"}, {{0}}, 5};
+    Fields g = {{"category_id", "stream_id", "name", "epg_channel_id", "stream_icon", "category_ids", "gate_pos"}, {{0}}, 7};
     b.n = 0;
     snprintf(url, sizeof url, "%s/player_api.php?username=%s&password=%s&action=get_live_streams", server, user, pass);
     if (fetch(url, &b, 24 << 20, err, sizeof err) < 0) { say("error channels %s", err); return 1; }
     if (out_open(&o, listdir, "channels.tsv") < 0) { say("error channels cannot write"); return 1; }
+    rows_n = 0;
     n = jarray(b.p, b.n, &g, on_stream, o.f);
     if (n < 0) { fclose(o.f); unlink(o.tmp); say("error channels bad answer"); return 1; }
+    qsort(rows_v, rows_n, sizeof *rows_v, row_cmp);
+    for (size_t i = 0; i < rows_n; i++) { fputs(rows_v[i].line, o.f); free(rows_v[i].line); }
     out_close(&o);
     free(b.p);
     say("channels %d", n);
@@ -700,6 +754,103 @@ static int logos(int argc, char **argv)
 
 /* tvnet get URL OUT: a public URL's body into OUT (written whole, then renamed into place), at most 2 MB.
  * Home's game-day data (games/love/home/utgame.lua: ESPN's public team endpoint). */
+/* ------------------------------------------------------------------ the household (Pink TV's panel gate) */
+
+/* The playlist NAME's server, user and password from CONF (into the static line), or -1. */
+static int conf_find(const char *conf, const char *name, char **server, char **user, char **pass)
+{
+    static char line[2048];
+    FILE *cf = fopen(conf, "r");
+    int found = -1;
+    while (cf && fgets(line, sizeof line, cf)) {
+        line[strcspn(line, "\r\n")] = 0;
+        char *f[4], *p = line;
+        int k = 0;
+        for (; k < 4 && p; k++) { f[k] = p; p = strchr(p, '\t'); if (p) *p++ = 0; }
+        if (k == 4 && line[0] != '#' && !strcmp(f[0], name)) { *server = f[1]; *user = f[2]; *pass = f[3]; found = 0; break; }
+    }
+    if (cf) fclose(cf);
+    return found;
+}
+
+/* One "watching" entry of the gate's answer as a TSV line: label, stream id, channel name, shareable. */
+static void watching_row(Fields *f, void *ctx)
+{
+    FILE *o = ctx;
+    if (!f->val[1].n || !strcmp(f->val[1].p, "null")) return;   /* not a channel this login has */
+    for (int i = 0; i < 4; i++) for (char *c = f->val[i].p; c && *c; c++) if (*c == '\t' || *c == '\n') *c = ' ';
+    fprintf(o, "%s\t%s\t%s\t%s\n", f->val[0].p, f->val[1].p, f->val[2].n ? f->val[2].p : "", f->val[3].p);
+}
+
+/* Write the gate's "watching" array from answer B to OUT (TSV, renamed into place). */
+static int write_watching(Buf *b, const char *out)
+{
+    char tmp[1024];
+    snprintf(tmp, sizeof tmp, "%s.new", out);
+    FILE *o = fopen(tmp, "w");
+    if (!o) return -1;
+    const char *w = strstr(b->p, "\"watching\"");
+    int n = 0;
+    if (w && (w = strchr(w, '['))) {
+        Fields f = {{"label", "streamId", "name", "shareable"}, {{0}}, 4};
+        n = jarray(w, b->n - (w - b->p), &f, watching_row, o);
+    }
+    fclose(o);
+    rename(tmp, out);
+    return n < 0 ? 0 : n;
+}
+
+/*   tvnet now CONF NAME OUT
+ *       What the household's other screens are watching (the gate's /__gate/now), as OUT:
+ *         label  stream_id  name  shareable("true"|"false")      (stream ids in this login's lineup)
+ *       stdout: "ok now N" | "error now <message>". Only for a playlist that is the household gate. */
+static int now_cmd(int argc, char **argv)
+{
+    if (argc < 5) return 2;
+    char *server, *user, *pass;
+    if (conf_find(argv[2], argv[3], &server, &user, &pass) < 0) { say("error now no playlist %s", argv[3]); return 1; }
+    char url[1024], err[256];
+    Buf b = {0};
+    snprintf(url, sizeof url, "%s/__gate/now?username=%s&password=%s", server, user, pass);
+    if (fetch_once(url, &b, 256 << 10, err, sizeof err) < 0) { say("error now %s", err); return 1; }
+    say("ok now %d", write_watching(&b, argv[4]));
+    return 0;
+}
+
+/*   tvnet line CONF NAME STREAM_ID OUT
+ *       Can this login play STREAM_ID right now (the gate's /__gate/line)? OUT gets one line:
+ *         ok | shared<TAB>who | busy<TAB>who      and, when busy, the holders' channels as in "now" below it.
+ *       stdout: "ok line ok|shared|busy" | "error line <message>". */
+static int line_cmd(int argc, char **argv)
+{
+    if (argc < 6) return 2;
+    char *server, *user, *pass;
+    if (conf_find(argv[2], argv[3], &server, &user, &pass) < 0) { say("error line no playlist %s", argv[3]); return 1; }
+    char url[1024], err[256];
+    Buf b = {0};
+    snprintf(url, sizeof url, "%s/__gate/line?stream=%s&username=%s&password=%s", server, argv[4], user, pass);
+    if (fetch_once(url, &b, 64 << 10, err, sizeof err) < 0) { say("error line %s", err); return 1; }
+    const char *verdict = strstr(b.p, "\"busy\":true") ? "busy" : strstr(b.p, "\"shared\":true") ? "shared" : "ok";
+    /* who: the first name in "with" (shared) or "holders" (busy) */
+    char who[128] = "";
+    const char *k = strstr(b.p, verdict[0] == 'b' ? "\"holders\"" : "\"with\"");
+    if (k && (k = strchr(k, '[')) && (k = strchr(k, '"'))) {
+        const char *e = strchr(k + 1, '"');
+        if (e && e - k - 1 < (long)sizeof who) { memcpy(who, k + 1, e - k - 1); who[e - k - 1] = 0; }
+    }
+    char tmp[1024], wl[1024];
+    snprintf(tmp, sizeof tmp, "%s.new", argv[5]);
+    snprintf(wl, sizeof wl, "%s.watching", argv[5]);
+    if (verdict[0] == 'b') write_watching(&b, wl); else unlink(wl);
+    FILE *o = fopen(tmp, "w");
+    if (!o) { say("error line write"); return 1; }
+    if (verdict[0] == 'o') fprintf(o, "ok\n"); else fprintf(o, "%s\t%s\n", verdict, who);
+    fclose(o);
+    rename(tmp, argv[5]);
+    say("ok line %s", verdict);
+    return 0;
+}
+
 static int get(int argc, char **argv)
 {
     if (argc < 4) return 2;
@@ -724,6 +875,8 @@ int main(int argc, char **argv)
     if (argc >= 2 && !strcmp(argv[1], "sync")) return sync_list(argc, argv);
     if (argc >= 2 && !strcmp(argv[1], "logos")) return logos(argc, argv);
     if (argc >= 2 && !strcmp(argv[1], "get")) return get(argc, argv);
-    fprintf(stderr, "tvnet sync CONF NAME LISTDIR EPGDIR | tvnet logos LISTFILE OUTDIR W H | tvnet get URL OUT\n");
+    if (argc >= 2 && !strcmp(argv[1], "now")) return now_cmd(argc, argv);
+    if (argc >= 2 && !strcmp(argv[1], "line")) return line_cmd(argc, argv);
+    fprintf(stderr, "tvnet sync CONF NAME LISTDIR EPGDIR | tvnet logos LISTFILE OUTDIR W H | tvnet get URL OUT | tvnet now CONF NAME OUT | tvnet line CONF NAME STREAM_ID OUT\n");
     return 2;
 }

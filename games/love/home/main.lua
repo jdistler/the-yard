@@ -2089,7 +2089,10 @@ function love.load()
   for k, it in ipairs(items) do
     if it.kind == "tv" then
       local n, g, p = tv.channel_count()
-      if n > 0 then it.blurb = string.format("%d channels in %d groups, from %d playlists.", n, g, p) end
+      if n > 0 then
+        it.blurb = p == 1 and string.format("%d groups from the Pink TV household. What the TVs are watching is at the top.", g)
+                   or string.format("%d channels in %d groups, from %d playlists.", n, g, p)
+      end
       if not tv.has_playlists() then it.blurb = "No TV playlists on this cabinet yet." end
     end
   end

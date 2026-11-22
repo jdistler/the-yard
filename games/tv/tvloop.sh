@@ -41,7 +41,7 @@ while :; do
   [ -n "$URL" ] || { RC=30; break; }
   T0=$(cut -d. -f1 /proc/uptime)
   LD_LIBRARY_PATH=/data/love/lib SDL_VIDEODRIVER=kmsdrm SDL_KMSDRM_PIPELINE=1 ALSA_CONFIG_PATH=/data/home/alsa.conf \
-    TVPLAY_LOG=$TMP/tvplay.log TVPLAY_NAME="$NAME" TVPLAY_SUB="$PL · ${GROUP:+$GROUP · }$IDX of $N" \
+    TVPLAY_LOG=$TMP/tvplay.log TVPLAY_NAME="$NAME" TVPLAY_SUB="$(echo "$PL" | tr _ ' ') · ${GROUP:+$GROUP · }$IDX of $N" \
     TVPLAY_LOGO="${KEY:+$LOGOS/$KEY.rgba}" TVPLAY_EPG="$TMP/$PL/epg.tsv" TVPLAY_EPGID="$EPGID" \
     TVPLAY_VIEW="$DIR/view" TVPLAY_FONT="$DIR/tvfont.gz" TVPLAY_HINT=$HINT TVPLAY_TUNING="$TUNING" \
     "$BIN/tvplay" "$URL" </dev/null >/dev/null 2>&1

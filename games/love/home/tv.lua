@@ -47,6 +47,13 @@ local syncing = {}
 local hold = {}                             -- held stick directions: seconds held, time to the next repeat
 local TINTS = {0x6ef0c8, 0xff9c5a, 0x8ab4ff, 0xff6bd6}
 local RECENT_TINT = 0xffd23f
+local NOW_TINT = 0x7cf2c8                     -- "ON THE TVS NOW": the household's TVs (the Pink TV gate)
+-- What the household's other screens are watching (tvnet now -> TMP/<playlist>/now.tsv): {pl, sid, who, shareable}
+local watching = {}
+local NOW_EVERY = 30
+local now_asked = -1e9
+-- A playlist name is one word ("PINK_TV": names go on shell command lines); "_" shows as a space.
+local function label(name) return ((name or ""):gsub("_", " ")) end
 
 -- ------------------------------------------------------------------ small helpers
 
@@ -228,14 +235,21 @@ local function build_rows()
     local ch = find_channel(r[1], r[2])
     if ch then rc[#rc + 1] = ch end
   end
+  -- Watching together: a channel another screen is on plays on the same line (the gate shares it).
+  local nc = {}
+  for _, w in ipairs(watching) do
+    local ch = find_channel(w.pl, w.sid)
+    if ch then nc[#nc + 1] = setmetatable({who = w.who}, {__index = ch}) end
+  end
+  if #nc > 0 then rows[#rows + 1] = {key = "now", title = "ON THE TVS NOW", tint = NOW_TINT, channels = nc} end
   if #rc > 0 then rows[#rows + 1] = {key = "recent", title = "RECENT", tint = RECENT_TINT, channels = rc} end
   for i, pl in ipairs(playlists) do
     for k, g in ipairs(pl.groups or {}) do
       rows[#rows + 1] = {key = pl.name .. "/" .. g.id, title = g.name, tint = pl.tint, channels = g.channels,
-                         header = k == 1 and pl.name or nil, pl = pl}
+                         header = k == 1 and label(pl.name) or nil, pl = pl}
     end
     if (pl.groups == nil or #pl.groups == 0) then
-      rows[#rows + 1] = {key = pl.name .. "/none", title = pl.name, tint = pl.tint, channels = {}, header = pl.name,
+      rows[#rows + 1] = {key = pl.name .. "/none", title = label(pl.name), tint = pl.tint, channels = {}, header = label(pl.name),
                          pl = pl, empty = true}
     end
   end
@@ -364,7 +378,7 @@ function T.load(c)
   playlists = {}
   local conf = read_file(DIR .. "/account.conf") or ""
   for line in conf:gmatch("[^\n]+") do
-    local name = line:match("^(%w+)\t")
+    local name = line:match("^([%w_]+)\t")
     if name and #playlists < 4 then
       playlists[#playlists + 1] = {name = name, tint = TINTS[#playlists + 1], status = "ok"}
     end
@@ -417,6 +431,10 @@ function T.enter(rc, idx)
     note = rc == 30 and "That channel isn't on the air right now." or rc == 31 and "The channel stopped. Try it again?"
            or "That channel's picture can't play on the cabinet."
     note_t = 5
+    -- No picture may just mean a TV has the household's line: ask the gate, and say who (linedone).
+    if ch and rc == 30 and worker then
+      love.thread.getChannel("tv_work"):push({"line", ch.pl, BIN, DIR, TMP, tostring(ch.sid)})
+    end
   end
   yscroll = sel
   sync_stale()
@@ -516,7 +534,7 @@ function T.handle(name)
   elseif name == "tr" then jump_playlist(1)
   elseif name == "low" or name == "1p" then
     local r = rows[sel]
-    if r and r.empty then sync(r.pl.name) note, note_t = "Trying " .. r.pl.name .. " again...", 3
+    if r and r.empty then sync(r.pl.name) note, note_t = "Trying " .. label(r.pl.name) .. " again...", 3
     else play_chosen() end
   elseif name == "2p" then
     ctx.play("back")
@@ -580,6 +598,31 @@ local function poll_worker()
       if msg[3] == "ok" or msg[3] == "have" then load_logo(msg[2]) else logos[msg[2]] = false end
     elseif msg[1] == "logosdone" then
       logo_busy = false
+    elseif msg[1] == "nowdone" then
+      -- Every playlist that is the household gate answers; others (a plain panel) just fail quietly.
+      local fresh = {}
+      for _, pl in ipairs(playlists) do
+        for line in (read_file(TMP .. "/" .. pl.name .. "/now.tsv") or ""):gmatch("[^\n]+") do
+          local who, sid = line:match("^([^\t]*)\t(%d+)")
+          if who and sid then fresh[#fresh + 1] = {pl = pl.name, sid = sid, who = who} end
+        end
+      end
+      local sig = function(l) local o = {} for _, w in ipairs(l) do o[#o + 1] = w.who .. w.sid end return table.concat(o, ",") end
+      if sig(fresh) ~= sig(watching) then watching = fresh build_rows() end
+    elseif msg[1] == "linedone" then
+      local v, who = (read_file(TMP .. "/line.txt") or ""):match("^(%a+)\t?([^\n]*)")
+      if v == "busy" then
+        local what
+        for line in (read_file(TMP .. "/line.txt.watching") or ""):gmatch("[^\n]+") do
+          local w, _, name = line:match("^([^\t]*)\t(%d*)\t([^\t]*)")
+          if w == who and name ~= "" then what = name end
+        end
+        dead[msg[2] .. "/" .. msg[3]] = nil   -- the channel is fine; the line is taken
+        note = (who ~= "" and who or "Another TV") .. " is watching" .. (what and (" " .. what) or "") ..
+               ", and the TV service allows one at a time." .. (what and " Pick it in ON THE TVS NOW to watch along." or "")
+        note_t = 7
+        now_asked = -1e9                     -- show the row at once
+      end
     end
     msg = ch:pop()
   end
@@ -596,6 +639,10 @@ end
 
 function T.update(dt)
   t = t + dt
+  if worker and t - now_asked > NOW_EVERY then
+    now_asked = t
+    for _, pl in ipairs(playlists) do love.thread.getChannel("tv_work"):push({"now", pl.name, BIN, DIR, TMP}) end
+  end
   idle = idle + dt
   repeat_held(dt)
   yscroll = yscroll + (sel - yscroll) * math.min(1, dt * 12)
@@ -755,11 +802,11 @@ local function draw_info()
   if r.empty then
     lg.setFont(ctx.font(30))
     lg.setColor(1, 1, 1, 1)
-    lg.printf(r.pl.name, 48, y0 + 30, W - 96, "left")
+    lg.printf(label(r.pl.name), 48, y0 + 30, W - 96, "left")
     lg.setFont(ctx.font(22))
     lg.setColor(0.9, 0.88, 1, 0.9)
     local msg = syncing[r.pl.name] and "Getting the channel list..." or
-                (r.pl.err and "Can't reach " .. r.pl.name .. " right now. The provider may be down; press the lower button to try again."
+                (r.pl.err and "Can't reach " .. label(r.pl.name) .. " right now. The provider may be down; press the lower button to try again."
                  or "No channels yet.")
     lg.printf(msg, 48, y0 + 84, W - 96, "left")
     return
@@ -814,7 +861,7 @@ local function draw_info()
   end
   -- The playlist and group, bottom right.
   lg.setFont(ctx.font(15))
-  local tag = (ch.pl or "") .. "  ·  " .. r.title
+  local tag = ch.who and (ch.who .. " is watching this  ·  watch along, same line") or (label(ch.pl) .. "  ·  " .. r.title)
   lg.setColor(tr, tg, tb, 0.85)
   lg.printf(tag, 44, y0 + 210, W - 96, "right")
 end
