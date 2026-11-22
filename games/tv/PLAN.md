@@ -1,4 +1,17 @@
-# Partycade TV: the plan (2026-10-27; status 2026-11-01 below)
+# Partycade TV: the plan (2026-10-27; status 2026-11-01 and 2026-11-22 below)
+
+## Status 2026-11-22: the Pink TV household (verified on the cabinet)
+
+The two Skywave syndication proxies this plan was built on are gone (deleted 2026-11-20 with the rest of
+Skywave's Supabase sync). The cabinet is now a screen of the Pink TV household (~/Projects/tivi-remote,
+plans/reunification): one playlist, `PINK_TV`, whose server is the home panel gate on the LAN
+(`http://192.168.1.10:8800`, login `arcade.home`). The gate gives it the household's curated lineup and
+guide, logos that keep their shape, failover between Nova and 4K Live, and it plays every stream through the
+gate, sharing a TV's line when the arcade picks the channel a TV is watching. Playlist names are one word
+(they go on shell command lines); `_` shows as a space. tvnet has `now` and `line` for the gate's
+`/__gate/now` and `/__gate/line`; channels.tsv has a line per group membership (the gate's `category_ids`),
+in each group's order. The sections below are the original plan; where they say "proxy" or "fullent" /
+"Strong", read "the gate".
 
 ## Status (2026-11-01, verified on the cabinet)
 
