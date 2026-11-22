@@ -303,9 +303,10 @@ function D.street(lt, len)
   local eave_n = floor(lin(lt, 8, 26) * (EAVE[5] + 1) + 0.001)
   local ridge_n = floor(lin(lt, 14, 25) * (RIDGE[5] + 1) + 0.001)
   if lt > 26 then eave_n = EAVE[5] + 1 end
-  -- (Pac-Man strings from the right end leftwards: the bulbs count from x1)
+  if lt > 25 then ridge_n = RIDGE[5] + 1 end
+  -- (Pac-Man and Inky both string right-to-left: bulbs count from x1)
   lights(EAVE[3], EAVE[4], EAVE[1], EAVE[2], EAVE[5], S.t, 6, eave_n, on, lt > 60 and lt < 72)
-  lights(RIDGE[1], RIDGE[2], RIDGE[3], RIDGE[4], RIDGE[5], S.t + 1, 4, ridge_n, on, lt > 60 and lt < 72)
+  lights(RIDGE[3], RIDGE[4], RIDGE[1], RIDGE[2], RIDGE[5], S.t + 1, 4, ridge_n, on, lt > 60 and lt < 72)
   -- the tree's bulbs in the window
   for i = 0, 5 do
     local c = BULBS[i % #BULBS + 1]
@@ -345,15 +346,17 @@ function D.street(lt, len)
   L.longhorn_head(0, -40, 0.65, {0.75, 0.34, 0}, 1)
   santa_hat(4, -66, 18, -0.2)
   lg.pop()
-  -- the pump, worked by Blinky then Clyde
+  -- the pump, worked by Blinky (Pac-Man inflatable) then Clyde (Longhorn inflatable)
   if lt > 29 and lt < 45 then
-    local px = lt < 39 and 690 or 460
-    local h = abs(sin(S.t * 6)) * 20
+    local is_blinky = lt < 34.5
+    local px = is_blinky and 690 or 460
+    local pumping = (lt > 30 and lt < 34) or (lt > 35 and lt < 38) or (lt > 41.5 and lt < 43.5)
+    local h = pumping and abs(sin(S.t * 6)) * 20 or 0
     lg.setColor(0.3, 0.3, 0.35, 1)
     lg.rectangle("fill", px - 8, 900 - 50, 16, 50)
     lg.rectangle("fill", px - 2, 850 - 30 + h, 4, 30)
     lg.rectangle("fill", px - 18, 820 + h, 36, 6)
-    L.ghost(px + 30, 860 - (lt < 39 and h * 0.5 or h), 30, GH[lt < 39 and 1 or 4], S.t, -1, 0.4, nil)
+    L.ghost(px + 30, 860 - (is_blinky and h * 0.5 or h), 30, GH[is_blinky and 1 or 4], S.t, -1, 0.4, nil)
   end
   -- Inky up on the ridge with the second string
   if lt > 12 and lt < 28 then
@@ -372,31 +375,13 @@ function D.street(lt, len)
     L.ghost(700, 900 - (lt > 49 and lt < 51 and L.hop(lt, 0.5, 20) or 0), 30, GH[4], S.t, -1, lt < 49 and 1 or 0, lt > 49 and "happy" or nil)
     lg.setColor(0.9, 0.9, 0.92, 1)
     lg.rectangle("fill", 676, 930, 16, 10)
-  end
-  -- the snowball fight
-  if lt > 56 and lt < 72 then
-    for k = 0, 5 do
-      local t0 = 57 + k * 2.4
-      if lt > t0 and lt < t0 + 1.2 then
-        local f = (lt - t0) / 1.2
-        local from = k % 2 == 0 and {150, 860} or {735, 860}
-        local to = k == 4 and {420, 820} or (k % 2 == 0 and {715, 840} or {170, 840})
-        lg.setColor(0.7, 0.75, 0.85, 0.5)
-        lg.ellipse("fill", lerp(from[1], to[1], f), 880, 14, 4, 10)
-        lg.setColor(1, 1, 1, 1)
-        lg.circle("fill", lerp(from[1], to[1], f), lerp(from[2], to[2], f) - sin(f * pi) * 160, 18, 14)
-      end
-      -- the splat where it hits
-      if lt > t0 + 1.2 and lt < t0 + 2 then
-        local to = k == 4 and {420, 820} or (k % 2 == 0 and {715, 840} or {170, 840})
-        local g = (lt - t0 - 1.2) / 0.8
-        lg.setColor(1, 1, 1, 1 - g)
-        for d = 0, 5 do
-          local a = d / 6 * 2 * pi
-          lg.circle("fill", to[1] + cos(a) * 30 * g, to[2] - 20 + sin(a) * 20 * g, 10 * (1 - g) + 3, 8)
-        end
-      end
+    if lt > ON_AT - 0.05 and lt < ON_AT + 0.6 then
+      local sf = 1 - lin(lt, ON_AT - 0.05, ON_AT + 0.6)
+      C.fx.glow(684, 935, 48 * sf + 12, 48 * sf + 12, 1, 0.95, 0.55, 0.9 * sf)
     end
+  end
+  -- the snowball fight (throwers first; snowballs & splats drawn after cast for clean z-order)
+  if lt > 56 and lt < 72 then
     for k, gi in ipairs({1, 2}) do
       local hit = false
       for j = 0, 5 do
@@ -421,18 +406,48 @@ function D.street(lt, len)
   if lt > 72 then
     for k, gi in ipairs({1, 2, 3, 4}) do
       local gx = lerp(-80 - k * 60, 140 + k * 90, prog(lt, 72, 76))
-      L.ghost(gx, 880 - L.hop(lt + k * 0.4, 1, 6), 30, GH[gi], S.t + k, 0, -0.6, "happy")
+      local gy = 880 - L.hop(lt + k * 0.4, 1, 6)
+      L.ghost(gx, gy, 30, GH[gi], S.t + k, 0, -0.6, "happy")
+      -- warm breath puff in the cold air
+      local bf = (S.t * 0.85 + k * 0.27) % 1
+      lg.setColor(0.95, 0.98, 1, (1 - bf) * 0.35)
+      lg.ellipse("fill", gx + 10 + bf * 14, gy - 12 - bf * 22, 6 + bf * 8, 4 + bf * 5, 10)
       notes(gx, 830, S.t + k)
     end
   end
   -- Pac-Man: up the ladder, along the eaves, down, the plug, the snowballs, the carols
   local px, py = pac_street(lt)
-  local snowy = lt > 66.6 and lt < 72
-  L.pac(px, py - 30 + (lt > 8 and lt < 26 and -L.hop(S.t, 0.5, 6) or 0), 30, (lt > 8 and lt < 30) and pi or 0, S.t, snowy and 0.2 or nil)
-  santa_hat(px - 4, py - 66, 16, -0.25)
+  local snowy = lt > 67.8 and lt < 72
+  local phop = (lt > 8 and lt < 26) and -L.hop(S.t, 0.5, 6) or 0
+  L.pac(px, py - 30 + phop, 30, (lt > 8 and lt < 30) and pi or 0, S.t, snowy and 0.2 or nil)
+  santa_hat(px - 4, py - 66 + phop, 16, -0.25)
   if snowy then
     lg.setColor(1, 1, 1, 0.95)
     lg.circle("fill", px + 6, py - 36, 22, 16)
+  end
+  -- flying snowballs & splats in front of cast
+  if lt > 56 and lt < 72 then
+    for k = 0, 5 do
+      local t0 = 57 + k * 2.4
+      if lt > t0 and lt < t0 + 1.2 then
+        local f = (lt - t0) / 1.2
+        local from = k % 2 == 0 and {150, 860} or {735, 860}
+        local to = k == 4 and {420, 820} or (k % 2 == 0 and {715, 840} or {170, 840})
+        lg.setColor(0.7, 0.75, 0.85, 0.5)
+        lg.ellipse("fill", lerp(from[1], to[1], f), 880, 14, 4, 10)
+        lg.setColor(1, 1, 1, 1)
+        lg.circle("fill", lerp(from[1], to[1], f), lerp(from[2], to[2], f) - sin(f * pi) * 160, 18, 14)
+      end
+      if lt > t0 + 1.2 and lt < t0 + 2 then
+        local to = k == 4 and {420, 820} or (k % 2 == 0 and {715, 840} or {170, 840})
+        local g = (lt - t0 - 1.2) / 0.8
+        lg.setColor(1, 1, 1, 1 - g)
+        for d = 0, 5 do
+          local a = d / 6 * 2 * pi
+          lg.circle("fill", to[1] + cos(a) * 30 * g, to[2] - 20 + sin(a) * 20 * g, 10 * (1 - g) + 3, 8)
+        end
+      end
+    end
   end
   -- a sleigh across the moon, far off
   if lt > 82 and lt < 89 then
@@ -449,7 +464,7 @@ function D.street(lt, len)
   if lt > 47.5 and lt < 50.5 then G:say("...?", px, py - 80, 28, 1) end
   if lt > 49 and lt < 51.5 then G:say("FOUND IT!", 700, 820, 24, 1) end
   if lt > 39 and lt < 41.5 then G:say("PFFFT!", 380, 860, 26, 1) end
-  if lt > ON_AT + 0.5 and lt < ON_AT + 4 then G:say("OOOOH!", 300, 820, 30, 1) end
+  if lt > ON_AT + 0.5 and lt < ON_AT + 4 then G:say("OOOOH!", px, py - 80, 30, 1) end
   if snowy then G:say("BRRR!", px, py - 80, 24, 1) end
   snowfall()
 end
@@ -464,14 +479,16 @@ CAM.street = function(lt)
   return x, y, z, (lt > ON_AT and lt < ON_AT + 0.4) and 6 or 0
 end
 CUES.street = {{4, "pop", 0.4}, {28, "boing"}, {30, "pop", 0.4}, {34, "ding"}, {38, "ding"}, {39, "boo"}, {43.5, "ding"},
-               {47.5, "clunk"}, {49, "boing"}, {ON_AT, "clunk"}, {ON_AT + 0.1, "power"}, {ON_AT + 0.3, "cheer"}, {66.6, "pop"}, {72, "chime"},
-               {82, "chime"}}
+               {47.5, "clunk"}, {49, "boing"}, {ON_AT, "clunk"}, {ON_AT + 0.1, "power"}, {ON_AT + 0.3, "cheer"}, {67.8, "pop"}, {72, "chime"},
+               {82, "chime"},
+               {ON_AT, function()
+                 for i = 1, 10 do G:spark(684, 935, (G.R:random() - 0.5) * 160, -40 - G.R:random() * 100, 0.5, {1, 0.92, 0.45}, 5, 220, true) end
+               end}}
 for n = 0, 26, 2 do CUES.street[#CUES.street + 1] = {8 + n / 27 * 18, "tick", 0.35} end
 for k = 0, 5 do
   CUES.street[#CUES.street + 1] = {57 + k * 2.4, "whoosh", 0.35}
   CUES.street[#CUES.street + 1] = {57 + k * 2.4 + 1.2, "splash", 0.4}
 end
-for k = 0, 5 do CUES.street[#CUES.street + 1] = {57 + k * 2.4, "whoosh", 0.4} end
 
 -- ------------------------------------------------------------------ the sleigh: the roof, the chimney
 local CHIM = {120, 700}                     -- the chimney on the roof (live, over the painted one), its top
@@ -505,12 +522,16 @@ function D.sleigh(lt, len)
   for k = 0, 3 do lg.rectangle("fill", CHIM[1] - 24, CHIM[2] + 8 + k * 16, 48, 2) end
   local sx, sy = sleigh_pos(lt)
   local s = sleigh_scale(lt)
-  local tilt = (lt < 14 and -0.12) or (lt > 16 and lt < 28 and 0.12) or ((lt > 48 and lt < 52) and -0.2) or 0
-  local landed = lt > 28 and lt < 48
+  local tilt = (lt < 14 and -0.12) or (lt > 15 and lt < 27 and 0.12) or ((lt > 48 and lt < 52) and -0.2) or 0
+  local dir = ((lt > 15 and lt < 27) or (lt > 52 and lt < 58)) and -1 or 1
   local pac_out = lt > 29 and lt < 48
   if lt < 59 or lt > 60 then
-    reindeer(sx, sy, s, S.t, 1)
-    sleigh_draw(sx, sy, s, tilt, not pac_out)
+    lg.push()
+    lg.translate(sx, sy)
+    lg.scale(dir, 1)
+    reindeer(0, 0, s, S.t, 1)
+    sleigh_draw(0, 0, s, tilt, not pac_out)
+    lg.pop()
   end
   -- Pac-Man and the presents
   if pac_out then
@@ -522,13 +543,11 @@ function D.sleigh(lt, len)
       lg.setColor(0.42, 0.18, 0.14, 1)
       lg.rectangle("fill", CHIM[1] - 24, CHIM[2] + 4, 48, 30)
     end
-    lg.setColor(0.96, 0.97, 1, 1)
-    lg.rectangle("fill", CHIM[1] - 28, CHIM[2] - 4, 56, 10, 4, 4, 4)
     for k = 0, 2 do
       local t0 = 32 + k * 3
       if lt > t0 and lt < t0 + 1.5 then
         local f = (lt - t0) / 1.5
-        present(CHIM[1] - 14, lerp(CHIM[2] - 90, CHIM[2] + 6, f * f), 28, 24, BULBS[k + 1], {1, 0.9, 0.3})
+        present(CHIM[1] - 14, lerp(CHIM[2] - 46, CHIM[2] + 6, f * f), 28, 24, BULBS[k + 1], {1, 0.9, 0.3})
       end
     end
     -- the reindeer pulling him out: a rope, the tug
@@ -542,12 +561,15 @@ function D.sleigh(lt, len)
   -- the chimney's top always over what goes in
   lg.setColor(0.96, 0.97, 1, 1)
   lg.rectangle("fill", CHIM[1] - 28, CHIM[2] - 4, 56, 10, 4, 4, 4)
-  -- the trail of sparkles behind
-  if lt > 59 and lt < 80 then
+  -- the trail of sparkles behind (clamped per flight segment so it never bridges teleport cuts)
+  if lt > 60 and lt < 80 then
     for k = 1, 10 do
-      local tx, ty = sleigh_pos(lt - k * 0.25)
-      lg.setColor(1, 0.9, 0.5, (1 - k / 10) * 0.9)
-      L.star(tx - 30, ty, 4 + (k % 3), S.t + k)
+      local ts = lt - k * 0.25
+      if (lt < 73.25 and ts > 60) or (lt >= 73.5 and ts > 73.5) then
+        local tx, ty = sleigh_pos(ts)
+        lg.setColor(1, 0.9, 0.5, (1 - k / 10) * 0.9)
+        L.star(tx - 30, ty, 4 + (k % 3), S.t + k)
+      end
     end
   end
   -- presents down the chimneys along the street, one every three seconds (61-73)
@@ -598,6 +620,13 @@ for k = 0, 2 do
     for i = 1, 14 do G:spark(CHIM[1], CHIM[2], (G.R:random() - 0.5) * 160, -60 - G.R:random() * 140, 0.9, BULBS[i % #BULBS + 1], 6, 200, true) end
   end}
 end
+for _, st in ipairs({42.8, 44.2, 45.6, 46.6}) do
+  CUES.sleigh[#CUES.sleigh + 1] = {st, function()
+    for i = 1, 3 do
+      G:puff(CHIM[1] + (G.R:random() - 0.5) * 26, CHIM[2] - 8, {0.18, 0.16, 0.16}, 14 + G.R:random() * 8, (G.R:random() - 0.5) * 24, -40 - G.R:random() * 20, 0.9, 0.55)
+    end
+  end}
+end
 
 -- ------------------------------------------------------------------ a Texas Christmas
 local SNOWMAN_X = 220
@@ -627,13 +656,25 @@ function D.texas(lt, len)
     lg.circle("fill", CACTUS[1] + cos(a) * (20 + i * 2), CACTUS[2] - 40 + sin(a) * 50 - i * 2, 3.5, 8)
   end
   lg.setBlendMode("alpha")
+  -- 72 deg sunny-day thermometer prop on the left post
+  lg.setColor(0.45, 0.3, 0.16, 1)
+  lg.rectangle("fill", 56, 770, 8, 120)
+  lg.setColor(0.96, 0.95, 0.92, 1)
+  lg.rectangle("fill", 40, 742, 40, 96, 8, 8, 6)
+  lg.setColor(0.25, 0.25, 0.3, 1)
+  lg.rectangle("fill", 56, 754, 8, 60, 4, 4, 4)
+  lg.setColor(0.9, 0.16, 0.16, 1)
+  lg.rectangle("fill", 57, 774, 6, 40, 3, 3, 4)
+  lg.circle("fill", 60, 818, 10, 14)
+  G:text("72°", 36, 720, 18, {0.9, 0.18, 0.14}, 1, "center", 48)
   -- the star on the cactus: lassoed up there
+  local star_x, star_y
   if lt > 38 then
     local f = prog(lt, 38, 40.5)
-    local sx, sy = lerp(640, CACTUS[1] - 10, f), lerp(800, CACTUS[2] - 150, f) - sin(f * pi) * 120
-    if lit then C.fx.glow(sx, sy, 40, 40, 1, 0.9, 0.4, 0.6) end
+    star_x, star_y = lerp(640, CACTUS[1] - 10, f), lerp(800, CACTUS[2] - 150, f) - sin(f * pi) * 120
+    if lit then C.fx.glow(star_x, star_y, 40, 40, 1, 0.9, 0.4, 0.6) end
     lg.setColor(1, 0.85, 0.25, 1)
-    L.star(sx, sy, 20, lt * (lt < 40.5 and 6 or 0))
+    L.star(star_x, star_y, 20, lt * (lt < 40.5 and 6 or 0))
   end
   -- the tumbleweed snowman, ball by ball
   for k = 1, 3 do
@@ -706,44 +747,71 @@ function D.texas(lt, len)
       lg.line(8, -50, 0, -100)
     end
     lg.pop()
+    -- lasso rope connecting Cowboy Santa to the star in flight
+    if lt > 38 and lt < 41.2 and star_x then
+      lg.setColor(0.82, 0.66, 0.36, 1 - lin(lt, 40.6, 41.2))
+      lg.setLineWidth(2.5)
+      lg.line(rx - 10, 795, star_x, star_y)
+      lg.ellipse("line", star_x, star_y, 20, 10, 14)
+      lg.setLineWidth(1)
+    end
   end
   -- the cast: rolling the tumbleweeds, dancing in the fake snow, then lined up for the photo
   for k, gi in ipairs({1, 2, 3, 4}) do
     local gx, gy
+    local rest_x = k == 4 and 500 or (100 + k * 70)
+    local dance_x = 120 + k * 110
     if lt < 30 then
       local x, y, show = tumble_in(lt, min(k, 3))
-      gx, gy = (show and lt < 10 + (min(k, 3) - 1) * 6 + 4) and x - 60 or 100 + k * 70, 900
-      if k == 4 then gx = 500 end
+      local t_end = 10 + (min(k, 3) - 1) * 6 + 4
+      if k < 4 and show and lt < t_end then
+        gx = x - 60
+      elseif k < 4 and lt >= t_end then
+        gx = lerp(SNOWMAN_X - 60, rest_x, prog(lt, t_end, t_end + 1.2))
+      else
+        gx = rest_x
+      end
+      gy = 900
     elseif lt < 60 then
-      gx, gy = 120 + k * 110, 900 - ((lt > 46) and L.hop(lt + k * 0.3, 0.45, 30) or 0)
-      if k == 3 and lt > 44 then gx = 600 end
+      gx = lerp(rest_x, dance_x, prog(lt, 30, 31.8))
+      if k == 3 and lt > 42.5 then gx = lerp(dance_x, 600, prog(lt, 42.5, 44)) end
+      gy = 900 - ((lt > 46) and L.hop(lt + k * 0.3, 0.45, 30) or 0)
     else
-      gx, gy = lerp(120 + k * 110, ({130, 300, 450, 520})[k], prog(lt, 60, 63)), 900 - (lt > 72 and L.hop(lt + k * 0.3, 0.5, 20) or 0)
+      local from_x = k == 3 and 600 or dance_x
+      gx = lerp(from_x, ({130, 300, 450, 520})[k], prog(lt, 60, 63))
+      gy = 900 - (lt > 72 and L.hop(lt + k * 0.3, 0.5, 20) or 0)
     end
     L.ghost(gx, gy, 32, GH[gi], S.t + k, 0, lt > 46 and lt < 58 and -1 or 0, (lt > 46 and lt < 60) and "happy" or nil)
   end
-  local px = lt < 26 and -80 or (lt < 30 and lerp(-60, SNOWMAN_X + 40, prog(lt, 26, 28)) or (lt < 60 and 330 or lerp(330, 380, prog(lt, 60, 63))))
-  L.pac(px, 890 - ((lt > 27.5 and lt < 28.5) and 60 or 0) - ((lt > 46 and lt < 60) and L.hop(lt, 0.4, 30) or 0), 34, 0, S.t, nil)
-  santa_hat(px - 4, 852, 18, -0.25)
-  -- the photo: the flash, then the picture held, with its white border
+  local px = lt < 26 and -80 or (lt < 30 and lerp(-60, SNOWMAN_X + 40, prog(lt, 26, 28)) or
+             (lt < 60 and lerp(SNOWMAN_X + 40, 330, prog(lt, 30, 31.5)) or lerp(330, 380, prog(lt, 60, 63))))
+  local py = 890 - ((lt > 27.5 and lt < 28.5) and sin(lin(lt, 27.5, 28.5) * pi) * 60 or 0)
+                 - ((lt > 46 and lt < 60) and L.hop(lt, 0.4, 30) or 0)
+  L.pac(px, py, 34, 0, S.t, nil)
+  santa_hat(px - 4, py - 38, 18, -0.25)
+  -- the photo: the flash, then the picture held, with its white Polaroid border in screen space
   if lt > 67 then
     local f = 1 - lin(lt, 67, 68.2)
     if f > 0 then
-      lg.setColor(1, 1, 1, f)
-      lg.rectangle("fill", 0, 0, W, H)
+      G:after_cam(function()
+        lg.setColor(1, 1, 1, f)
+        lg.rectangle("fill", 0, 0, W, H)
+      end)
     end
   end
   if lt > 64 and lt < 67 then G:say("SAY \"Y'ALL\"!", 384, 760, 28, 1) end
-  -- the picture: its white border, the caption
+  -- the Polaroid white border & bottom-chin caption drawn in screen space via after_cam
   if lt > 67 then
-    local b = 26
-    lg.setColor(1, 1, 1, 0.92 * lin(lt, 67, 67.6))
-    lg.rectangle("fill", 0, 0, W, b)
-    lg.rectangle("fill", 0, 0, b, H)
-    lg.rectangle("fill", W - b, 0, b, H)
-    lg.rectangle("fill", 0, H - b * 5, W, b * 5)
+    G:after_cam(function()
+      local b = 26
+      lg.setColor(1, 1, 1, 0.94 * lin(lt, 67, 67.6))
+      lg.rectangle("fill", 0, 0, W, b)
+      lg.rectangle("fill", 0, 0, b, H)
+      lg.rectangle("fill", W - b, 0, b, H)
+      lg.rectangle("fill", 0, H - b * 5, W, b * 5)
+      G:plate("MERRY CHRISTMAS, Y'ALL", H - 114, 34, 0xff4040, L.window(lt, 68, 80, 1))
+    end)
   end
-  G:plate("MERRY CHRISTMAS, Y'ALL", 200, 34, 0xff4040, L.window(lt, 68, 80, 1))
   if lt > 38.5 and lt < 41.5 then G:say("YEE-HAW!", rx, 720, 28, 1) end
   if lt > 28 and lt < 31 then G:say("HOWDY!", SNOWMAN_X, 760, 24, 1) end
   if lt > 50 and lt < 54 then G:say("IT'S SNOWING!", 300, 800, 24, 1) end
@@ -752,7 +820,7 @@ CAM.texas = function(lt)
   local x, y, z = L.shot(lt, {{0, 384, 512, 1}, {8, 384, 760, 1.25}, {11, 120, 860, 1.55}, {13.5, 250, 860, 1.5}, {17, 120, 860, 1.55}, {19.5, 250, 860, 1.5},
                               {23, 120, 860, 1.55}, {25.5, 250, 860, 1.5}, {28, 260, 860, 1.5}, {31, 500, 800, 1.3},
                               {37, 600, 720, 1.4}, {41, 560, 700, 1.4}, {45, 460, 840, 1.3}, {58, 460, 840, 1.3}, {62, 384, 700, 1.1},
-                              {67, 384, 700, 1.1}, {67.1, 384, 700, 1.1, "cut"}, {80, 384, 760, 1.25}}, W, H)
+                              {67, 384, 700, 1.1}, {80, 384, 760, 1.25}}, W, H)
   return x, y, z, 0
 end
 CUES.texas = {{3, "whoosh", 0.4}, {13, "clunk", 0.5}, {19, "clunk", 0.5}, {25, "clunk", 0.5}, {28, "pop"}, {30, "jet", 0.3},
@@ -800,6 +868,16 @@ function D.tree(lt, len)
   lg.polygon("fill", 560, 780, 600, 640 + sin(S.t * 7) * 10, 640, 780)
   lg.setColor(1, 0.85, 0.3, 0.8)
   lg.polygon("fill", 580, 780, 600, 690 + sin(S.t * 9) * 8, 620, 780)
+  -- rising fireplace embers
+  lg.setBlendMode("add")
+  for k = 1, 6 do
+    local ef = (S.t * (0.45 + k * 0.07) + k * 0.19) % 1
+    local ex = 576 + ((k * 17) % 48) + sin(S.t * 3 + k * 2) * 8
+    local ey = 768 - ef * 125
+    lg.setColor(1, 0.65, 0.18, (1 - ef) * 0.85)
+    lg.circle("fill", ex, ey, 2.5 * (1 - ef * 0.5), 6)
+  end
+  lg.setBlendMode("alpha")
   -- the stockings filling: a lump in each as a present goes in
   for i = 1, 5 do
     local t0 = 54 + (i - 1) * 1.6
@@ -837,11 +915,13 @@ function D.tree(lt, len)
   -- the ghosts: hanging ornaments in turn; then Pinky with the string of lights spiralling up; then lifting Pac-Man
   for i, c in ipairs(GH) do
     local gx, gy, carrying
+    local box_x, box_y = BOX[1] + (i - 2.5) * 50, BOX[2] - 70 - (i % 2) * 30
+    local watch_x, watch_y = 420 + i * 60, 700 + sin(S.t + i) * 20
     if lt < 6 then
-      gx, gy = lerp(-60 - i * 50, 260 + i * 60, prog(lt, 1, 6)), 700
+      gx, gy = lerp(-60 - i * 50, box_x, prog(lt, 1, 6)), lerp(700, box_y, prog(lt, 4.5, 6))
     elseif lt < STRING_T[1] then
       gx, gy, carrying = ghost_tree(lt, i)
-      if not gx then gx, gy = BOX[1] + (i - 2.5) * 50, BOX[2] - 70 - (i % 2) * 30 end
+      if not gx then gx, gy = box_x, box_y end
     elseif lt < STRING_T[2] + 1 then
       if i == 2 then
         local h = strung * 380 * TREE[3]
@@ -849,13 +929,18 @@ function D.tree(lt, len)
         local w = (1 - strung) * 150 * TREE[3] + 20
         gx, gy = TREE[1] + cos(a) * w, TREE[2] - 40 - h
       else
-        gx, gy = 420 + i * 60, 700 + sin(S.t + i) * 20
+        local f = prog(lt, STRING_T[1], STRING_T[1] + 1.4)
+        gx, gy = lerp(box_x, watch_x, f), lerp(box_y, watch_y, f)
       end
     elseif lt < STAR_T + 2 then
       -- holding Pac-Man up between them
-      local up = prog(lt, STRING_T[2] + 1, STAR_T - 1)
-      local px, py = TREE[1] + 70, lerp(820, 450, up)
-      gx, gy = px + (i - 2.5) * 46, py + 60 + abs(i - 2.5) * 10
+      local gather = prog(lt, STRING_T[2] + 1, STRING_T[2] + 2.2)
+      local up = prog(lt, STRING_T[2] + 2.2, STAR_T - 1)
+      local px0, py0 = TREE[1] + 70, lerp(820, 450, up)
+      local tx, ty = px0 + (i - 2.5) * 46, py0 + 60 + abs(i - 2.5) * 10
+      local sx0 = i == 2 and (TREE[1] + 20) or watch_x
+      local sy0 = i == 2 and (TREE[2] - 40 - 380 * TREE[3]) or watch_y
+      gx, gy = lerp(sx0, tx, gather), lerp(sy0, ty, gather)
     else
       gx, gy = lerp(TREE[1] + 70 + (i - 2.5) * 46, 470 + i * 56, prog(lt, STAR_T + 2, STAR_T + 6)), lerp(510, 900, prog(lt, STAR_T + 2, STAR_T + 6))
       if lt > 62 then gy = 900 - L.hop(lt + i, 2.5, 6) end
@@ -869,16 +954,18 @@ function D.tree(lt, len)
   end
   -- Pac-Man: the box first, then up with the star
   local px, py
-  if lt < STRING_T[2] + 1 then px, py = lerp(-60, BOX[1] + 70, prog(lt, 0.5, 5)), 930
+  if lt < STRING_T[2] + 1 then
+    px, py = lerp(-60, BOX[1] + 70, prog(lt, 0.5, 5)), 930
   elseif lt < STAR_T + 2 then
-    local up = prog(lt, STRING_T[2] + 1, STAR_T - 1)
-    px, py = TREE[1] + 70 - 60 * prog(lt, STAR_T - 1, STAR_T), lerp(820, 450, up) + sin(S.t * 9) * 4 * (up < 1 and 0 or 1)
+    local gather = prog(lt, STRING_T[2] + 1, STRING_T[2] + 2.2)
+    local up = prog(lt, STRING_T[2] + 2.2, STAR_T - 1)
+    px = lerp(BOX[1] + 70, TREE[1] + 70, gather) - 60 * prog(lt, STAR_T - 1, STAR_T)
+    py = lerp(930, 820, gather) + (lerp(820, 450, up) - 820) + sin(S.t * 9) * 4 * (up < 1 and 0 or 1)
   else
     px, py = lerp(TREE[1] + 10, 640, prog(lt, STAR_T + 2, STAR_T + 6)), lerp(450, 880, prog(lt, STAR_T + 2, STAR_T + 6))
   end
   -- cocoa (58-64): Pac-Man round with the mugs, one each
   if lt > 58 and lt < 64.5 then
-    local k = clamp(floor((lt - 58) / 1.3) + 1, 1, 5)
     px = L.path(lt, {{58, 640, 0}, {59.3, 470 + 56, 0}, {60.6, 470 + 112, 0}, {61.9, 470 + 168, 0}, {63.2, 470 + 224, 0}, {64.5, 640, 0}})
     py = 880
   end
@@ -906,7 +993,8 @@ function D.tree(lt, len)
     end
     lg.setBlendMode("alpha")
   end
-  L.pac(px, py, 30, 0, S.t, lt > 66 and 0.9 or nil)
+  local pdir = ((lt > 58 and lt < 59.3) or (lt > 63.2 and lt < 64.5)) and pi or 0
+  L.pac(px, py, 30, pdir, S.t, (lt > 74 and lt < 77) and 0.9 or nil)
   santa_hat(px - 4, py - 32, 16, -0.25)
   if lt > STRING_T[2] + 1 and lt < STAR_T then
     lg.setColor(1, 0.85, 0.25, 1)
@@ -919,18 +1007,14 @@ function D.tree(lt, len)
   G:plate("O CHRISTMAS TREE", 120, 34, 0x5fd16a, L.window(lt, STAR_T + 1, 72, 1.5))
 end
 CAM.tree = function(lt)
-  local keys = {{0, 384, 512, 1}, {6, 300, 640, 1.35}, {32, 240, 600, 1.35}}
-  local x, y, z
-  if lt > 58 and lt < 64.5 then return L.shot(lt, {{58, 560, 820, 1.5}, {64.5, 640, 820, 1.5}}, W, H) end
-  if lt > 64.5 and lt < 76 then return L.shot(lt, {{64.5, 400, 700, 1.2}, {70, TREE[1] + 60, 600, 1.3}, {76, 384, 600, 1.1}}, W, H) end
   if lt > STRING_T[1] and lt < STRING_T[2] then
     local h = lin(lt, STRING_T[1], STRING_T[2]) * 380 * TREE[3]
     return L.shot(0, {{0, TREE[1] + 20, TREE[2] - 40 - h, 1.6}}, W, H)
   end
   return L.shot(lt, {{0, 384, 512, 1}, {6, 300, 640, 1.35}, {31, 260, 600, 1.35}, {32, TREE[1] + 20, TREE[2] - 40, 1.6},
                      {42, TREE[1] + 20, TREE[2] - 40 - 456, 1.6}, {STAR_T - 1, TREE[1] + 40, 440, 1.6}, {STAR_T + 1.5, TREE[1] + 40, 440, 1.6},
-                     {STAR_T + 4, 384, 512, 1}, {54, 384, 512, 1}, {58, 520, 640, 1.4}, {62, 520, 700, 1.3}, {72, 420, 680, 1.15},
-                     {80, 384, 600, 1.05}}, W, H)
+                     {STAR_T + 4, 384, 512, 1}, {54, 384, 512, 1}, {58, 560, 820, 1.5}, {64.5, 620, 800, 1.45},
+                     {66.5, 400, 700, 1.2}, {71, TREE[1] + 60, 600, 1.3}, {76, 384, 600, 1.1}, {80, 384, 600, 1.05}}, W, H)
 end
 CUES.tree = {{STAR_T, "power"}, {STAR_T + 0.2, "cheer"}, {STAR_T + 0.1, "chime"}, {STRING_T[1], "whoosh", 0.4}, {74, "boing", 0.4},
              {64.2, "clunk"}, {64.5, "chime"}, {67, "chime", 0.6}, {70, "chime", 0.7}}
@@ -990,7 +1074,7 @@ function D.cookies(lt, len)
   -- the crumbs: a trail from the plate to the curtain, more with every cookie gone
   local gone = 8 - (lt < 49 and left or 0)
   lg.setColor(0.65, 0.42, 0.22, 1)
-  for k = 0, gone * 3 do
+  for k = 1, gone * 3 do
     local f = k / 24
     lg.circle("fill", lerp(PLATE[1] - 160, 20, f) + sin(k * 3.1) * 8, lerp(740, 600, f) + cos(k * 2.3) * 10, 3, 6)
   end
@@ -1002,19 +1086,50 @@ function D.cookies(lt, len)
   -- the sneaks: in from the left on tiptoe, looking round, the grab, away
   for _, sn in ipairs(SNEAK) do
     local t0, who, n = sn[1], sn[2], sn[3]
-    if lt > t0 and lt < t0 + 6.5 then
-      local x
-      if lt < t0 + 2.5 then x = lerp(-60, PLATE[1] - 140, prog(lt, t0, t0 + 2.5))
-      elseif lt < t0 + 4.2 then x = PLATE[1] - 140 + (who == 2 and lt > t0 + 3 and 300 or 0)
-      else x = lerp(PLATE[1] - 140, -80, prog(lt, t0 + 4.2, t0 + 6.5)) end
-      if who == 2 and lt > t0 + 3 and lt < t0 + 4.2 then x = 560 end
-      local look = (lt < t0 + 2.5) and (sin(lt * 5) > 0 and 1 or -1) or 1
+    local dur = who == 2 and 7.2 or 6.5
+    if lt > t0 and lt < t0 + dur then
+      local x, look, happy
+      if who == 2 then
+        -- Pinky walks to plate, then walks smoothly to the milk glass (540), drinks (17.5..19.2), then walks out
+        if lt < t0 + 2.5 then
+          x = lerp(-60, PLATE[1] - 140, prog(lt, t0, t0 + 2.5))
+          look = sin(lt * 5) > 0 and 1 or -1
+        elseif lt < t0 + 3.5 then
+          x = lerp(PLATE[1] - 140, 540, prog(lt, t0 + 2.5, t0 + 3.5))
+          look = 1
+        elseif lt < t0 + 5.2 then
+          x = 540
+          look = 1
+          happy = true
+        else
+          x = lerp(540, -80, prog(lt, t0 + 5.2, t0 + dur))
+          look = -1
+        end
+      else
+        if lt < t0 + 2.5 then
+          x = lerp(-60, PLATE[1] - 140, prog(lt, t0, t0 + 2.5))
+          look = sin(lt * 5) > 0 and 1 or -1
+        elseif lt < t0 + 4.2 then
+          x = PLATE[1] - 140
+          look = 1
+          happy = lt > t0 + 3
+        else
+          x = lerp(PLATE[1] - 140, -80, prog(lt, t0 + 4.2, t0 + 6.5))
+          look = -1
+        end
+      end
       local tip = lt < t0 + 2.5 and abs(sin(lt * 7)) * 8 or 0
-      L.ghost(x, 620 - tip, 34, GH[who], S.t, look, 0, (lt > t0 + 3 and lt < t0 + 4.2) and "happy" or nil)
-      if lt > t0 + 3.5 and lt < t0 + 6.5 then
+      L.ghost(x, 620 - tip, 34, GH[who], S.t, look, 0, happy and "happy" or nil)
+      -- Pinky's white milk mustache after sipping
+      if who == 2 and lt > 18.2 then
+        lg.setColor(1, 1, 1, 0.95)
+        lg.ellipse("fill", x - 6, 628 - tip, 7, 3.5, 10)
+        lg.ellipse("fill", x + 6, 628 - tip, 7, 3.5, 10)
+      end
+      if lt > t0 + 3.5 and lt < t0 + dur then
         for k = 1, n do
           lg.setColor(0.8, 0.55, 0.3, 1)
-          lg.ellipse("fill", x + 30, 640 - k * 12, 20, 9, 12)
+          lg.ellipse("fill", x + look * 30, 640 - k * 12, 20, 9, 12)
         end
       end
     end
@@ -1026,10 +1141,10 @@ function D.cookies(lt, len)
           (lt > 40 and lt < 42) and 0.9 or nil)
     santa_hat(px - 4, 562, 18, -0.25)
   end
-  -- the four of them, caught behind the curtain at the left, crumbs on their faces
-  if lt > 44 then
+  -- the four of them, caught behind the curtain at the left once Pac-Man arrives (46s), crumbs on their faces
+  if lt > 46 then
     for k = 1, 4 do
-      local out = lt < 48 and prog(lt, 44 + k * 0.4, 44.6 + k * 0.4) or (lt < 56 and 1 or 1)
+      local out = lt < 50 and prog(lt, 46 + (k - 1) * 0.35, 46.5 + (k - 1) * 0.35) or 1
       local gx = lerp(-40, 40, out)
       local gy = 480 + k * 70
       if lt > 50 then gx, gy = lerp(40, 380 + (k - 2.5) * 110, prog(lt, 50, 52)), lerp(gy, 520, prog(lt, 50, 52)) - (lt > 56 and L.hop(lt + k, 0.4, 20) or 0) end
@@ -1038,29 +1153,40 @@ function D.cookies(lt, len)
         lg.setColor(0.65, 0.42, 0.22, 1)
         lg.circle("fill", gx + 10, gy + 12, 3, 6)
         lg.circle("fill", gx - 6, gy + 16, 2.5, 6)
+        if k == 2 then
+          lg.setColor(1, 1, 1, 0.95)
+          lg.ellipse("fill", gx - 5, gy + 8, 6, 3, 10)
+          lg.ellipse("fill", gx + 5, gy + 8, 6, 3, 10)
+        end
       end
     end
   end
   if lt > 40 and lt < 43 then G:say("?!", 420, 540, 32, 1) end
   if lt > 47 and lt < 50 then G:say("WASN'T US!", 60, 500, 24, 1) end
-  if lt > 18 and lt < 19.5 then G:say("GLUG GLUG", 560, 560, 22, 1) end
+  if lt > 17.5 and lt < 19.2 then G:say("GLUG GLUG", 540, 560, 22, 1) end
 end
 CAM.cookies = function(lt)
   local keys = {{0, 384, 512, 1}, {5, 300, 650, 1.3}}
   for _, sn in ipairs(SNEAK) do
     local t0 = sn[1]
-    local tx = sn[2] == 2 and 560 or PLATE[1] - 120
+    local tx = sn[2] == 2 and 540 or PLATE[1] - 120
     keys[#keys + 1] = {t0 + 0.3, 120, 620, 1.75}
-    keys[#keys + 1] = {t0 + 2.5, tx, 640, 1.75}
-    keys[#keys + 1] = {t0 + 4.2, tx, 650, 1.9}
-    keys[#keys + 1] = {t0 + 6.3, 260, 650, 1.35}
+    keys[#keys + 1] = {t0 + 2.5, PLATE[1] - 120, 640, 1.75}
+    if sn[2] == 2 then
+      keys[#keys + 1] = {t0 + 3.6, tx, 640, 1.85}
+      keys[#keys + 1] = {t0 + 5.2, tx, 650, 1.85}
+      keys[#keys + 1] = {t0 + 7.0, 260, 650, 1.35}
+    else
+      keys[#keys + 1] = {t0 + 4.2, tx, 650, 1.9}
+      keys[#keys + 1] = {t0 + 6.3, 260, 650, 1.35}
+    end
   end
   for _, k in ipairs({{37, 300, 650, 1.35}, {39, 420, 640, 1.3}, {43, 420, 640, 1.3},
                      {46, 170, 620, 1.6}, {50, 170, 620, 1.6}, {52, 330, 640, 1.3}, {54, 620, 800, 1.6}, {57, 620, 800, 1.6},
                      {60, 384, 512, 1}}) do keys[#keys + 1] = k end
   return L.shot(lt, keys, W, H)
 end
-CUES.cookies = {{40, "boing"}, {44.4, "pop", 0.4}, {44.8, "pop", 0.4}, {45.2, "pop", 0.4}, {45.6, "pop", 0.4}, {55, "chime"}, {56, "cheer"}}
+CUES.cookies = {{40, "boing"}, {46.0, "pop", 0.4}, {46.35, "pop", 0.4}, {46.7, "pop", 0.4}, {47.05, "pop", 0.4}, {55, "chime"}, {56, "cheer"}}
 for _, sn in ipairs(SNEAK) do CUES.cookies[#CUES.cookies + 1] = {sn[1] + 3.5, "pop"} end
 for k = 0, 7 do CUES.cookies[#CUES.cookies + 1] = {49 + k * 0.7, "tick", 0.5} end
 
@@ -1129,7 +1255,7 @@ function D.silent(lt, len)
     end
   end
   -- snow angels in the new snow (50-60): down on their backs, wings swept, up again; the angels stay
-  if lt > 49.5 then
+  if lt >= 50 then
     for k = 1, 4 do
       local ax = 150 + (k - 1) * 150
       local ay = 935
@@ -1143,53 +1269,26 @@ function D.silent(lt, len)
         lg.polygon("fill", ax, ay - 10, ax + 40 + 30 * sweep, ay - 40 + 10 * sweep, ax + 30, ay + 10)
       end
       if lt < 61 then
-        local x = lerp(-80 - k * 60, ax, prog(lt, 49.5 + k * 0.3, 51.5 + k * 0.3))
+        local x = lerp(-80 - k * 60, ax, prog(lt, 50 + k * 0.25, 51.8 + k * 0.25))
         if lt > 58.5 then x = lerp(ax, W + 100 + k * 60, prog(lt, 58.5 + k * 0.2, 61)) end
         lg.push()
         lg.translate(x, ay)
-        if lt > 52 + k * 0.4 and lt < 58.5 then lg.rotate(-pi / 2 * 0) lg.scale(1, 0.85) end
+        if lt > 52 + k * 0.4 and lt < 58.5 then lg.rotate(-pi / 2) lg.scale(1, 0.85) end
         L.ghost(0, (lt > 52 + k * 0.4 and lt < 58.5) and 0 or -24, 30, GH[k], S.t + k, 0, -1, "happy")
         lg.pop()
       end
     end
   end
-  -- Santa across the sky, a present dropped (a falling sparkle) into a chimney
+  -- Santa across the sky with Ghost Reindeer for continuity, a present dropped into a chimney
   if lt > 70 and lt < 82 then
-    local f = lin(lt, 70, 82)
     local sx, sy = santa_xy(lt)
-    lg.push()
-    lg.translate(sx, sy)
-    -- the reindeer (the one in front with his nose), the reins, the red sleigh, Santa Pac-Man in his hat
-    for k = 4, 1, -1 do
-      local rx, ry = 70 + k * 56, -26 + sin(S.t * 6 + k) * 6
-      lg.setColor(0.55, 0.36, 0.2, 1)
-      lg.ellipse("fill", rx, ry, 24, 12, 14)
-      lg.circle("fill", rx + 24, ry - 12, 9, 10)
-      lg.setLineWidth(2)
-      lg.line(rx + 22, ry - 20, rx + 18, ry - 34, rx + 12, ry - 36)
-      lg.line(rx + 26, ry - 20, rx + 30, ry - 34, rx + 36, ry - 36)
-      for l = -1, 1, 2 do lg.line(rx + l * 10, ry + 8, rx + l * 12 + sin(S.t * 12 + k) * 6, ry + 22) end
-    end
-    C.fx.glow(70 + 4 * 56 + 33, -38, 40, 40, 1, 0.1, 0.1, 0.9)
-    lg.setColor(1, 0.15, 0.15, 1)
-    lg.circle("fill", 70 + 4 * 56 + 33, -38, 5, 8)
-    lg.setColor(0.8, 0.7, 0.4, 1)
-    lg.setLineWidth(1.5)
-    lg.line(50, -20, 126, -26)
-    lg.setColor(0.85, 0.12, 0.15, 1)
-    lg.polygon("fill", -60, -30, 40, -30, 60, 10, -50, 10)
-    lg.setColor(1, 0.85, 0.3, 1)
-    lg.setLineWidth(4)
-    lg.line(-66, 18, 64, 18, 72, 8)
-    L.pac(-6, -44, 22, 0, S.t, 0.4)
-    santa_hat(-10, -66, 14, -0.2)
-    lg.setColor(0.55, 0.35, 0.2, 1)
-    lg.ellipse("fill", -40, -36, 16, 12, 12)
-    lg.pop()
+    reindeer(sx, sy, 0.72, S.t, 1)
+    sleigh_draw(sx, sy, 0.72, -0.08, true)
   end
   if lt > 76 and lt < 79 then
     local f = lin(lt, 76, 79)
-    C.fx.glow(lerp(430, 455, f), lerp(300, 610, f), 14, 14, 1, 0.9, 0.5, 1)
+    local dx0, dy0 = santa_xy(76)
+    C.fx.glow(lerp(dx0, 455, f), lerp(dy0, 610, f), 14, 14, 1, 0.9, 0.5, 1)
   end
   -- a shooting star
   if lt > 88 and lt < 89.5 then
@@ -1242,7 +1341,6 @@ local function toy(i, x, a)
   elseif i == 2 then                                   -- a toy rocket, up on its sparks and down on a parachute
     local up = a < 1.6 and ease(a / 1.6) * 520 or 520 - min(520, (a - 1.6) * 60)
     local rx, ry = x, y - up
-    if a < 1.6 then G:spark(rx, ry + 30, (G.R:random() - 0.5) * 40, 120, 0.4, {1, 0.7, 0.2}, 5, 0, true) end
     if a > 1.6 then lg.setColor(1, 1, 1, 1) lg.arc("fill", "pie", rx, ry - 50, 34, pi, 2 * pi, 14) lg.setLineWidth(1) lg.line(rx - 34, ry - 50, rx, ry - 20, rx + 34, ry - 50) end
     lg.setColor(0.9, 0.9, 0.95, 1) lg.rectangle("fill", rx - 9, ry - 30, 18, 46, 8, 8, 6)
     lg.setColor(1, 0.3, 0.3, 1) lg.polygon("fill", rx - 9, ry - 26, rx + 9, ry - 26, rx, ry - 44)
@@ -1263,7 +1361,6 @@ local function toy(i, x, a)
       lg.setColor(({{0.9, 0.2, 0.2}, {0.2, 0.6, 0.3}, {0.2, 0.4, 0.9}})[c + 1]) lg.rectangle("fill", cx - 16, ty - 22, 32, 20, 4, 4, 4)
       lg.setColor(0.1, 0.1, 0.1, 1) lg.circle("fill", cx - 8, ty, 5, 8) lg.circle("fill", cx + 8, ty, 5, 8)
     end
-    if G.R:random() < 0.2 then G:puff(tx, ty - 34, {0.9, 0.9, 0.95}, 30, 0, 1, 6, 0.4) end
   elseif i == 5 then                                   -- a balloon, up and away
     local bx, by = x + sin(a * 1.5) * 20, y - 40 - a * 40
     if by > -60 then
@@ -1272,10 +1369,16 @@ local function toy(i, x, a)
     end
   else                                                 -- a puppy, wagging, hopping
     local px, py = x + sin(a * 0.7) * 40, y - L.hop(a, 0.6, 16)
-    lg.setColor(0.75, 0.55, 0.35, 1) lg.ellipse("fill", px, py - 20, 30, 20, 16) lg.circle("fill", px + 26, py - 40, 16, 14)
-    lg.setColor(0.55, 0.38, 0.22, 1) lg.ellipse("fill", px + 34, py - 50, 7, 12, 8)
-    lg.setLineWidth(5) lg.line(px - 28, py - 26, px - 44, py - 40 + sin(a * 20) * 8)
-    lg.setColor(0.1, 0.1, 0.1, 1) lg.circle("fill", px + 30, py - 44, 3, 6) lg.circle("fill", px + 40, py - 38, 4, 6)
+    local pdir = cos(a * 0.7) >= 0 and 1 or -1
+    lg.push()
+    lg.translate(px, py)
+    lg.scale(pdir, 1)
+    lg.setColor(0.75, 0.55, 0.35, 1) lg.ellipse("fill", 0, -20, 30, 20, 16) lg.circle("fill", 26, -40, 16, 14)
+    lg.setColor(0.55, 0.38, 0.22, 1) lg.ellipse("fill", 34, -50, 7, 12, 8)
+    lg.setLineWidth(5) lg.line(-28, -26, -44, -40 + sin(a * 20) * 8)
+    lg.setColor(0.1, 0.1, 0.1, 1) lg.circle("fill", 30, -44, 3, 6) lg.circle("fill", 40, -38, 4, 6)
+    lg.setLineWidth(1)
+    lg.pop()
   end
 end
 function D.finale(lt, len)
@@ -1298,13 +1401,19 @@ function D.finale(lt, len)
       end
     end
   end
+  -- draw all 6 gift boxes first, then all opened toys in a second pass so toy train passes cleanly in front
   for i = 1, 6 do
     local t0 = 10 + i * 3.6
     if lt > t0 - 1.2 then
       local x = 100 + (i - 1) * 113
       local y = lerp(-60, 820, prog(lt, t0 - 1.2, t0))
       present(x - 40, y, 80, 60, BULBS[i % #BULBS + 1], {1, 0.9, 0.3}, lt > t0 + 0.4 and prog(lt, t0 + 0.4, t0 + 0.9) or nil)
-      if lt > t0 + 0.6 then toy(i, x, lt - t0 - 0.6) end
+    end
+  end
+  for i = 1, 6 do
+    local t0 = 10 + i * 3.6
+    if lt > t0 + 0.6 then
+      toy(i, 100 + (i - 1) * 113, lt - t0 - 0.6)
     end
   end
   snowfall(120)
@@ -1367,11 +1476,12 @@ function M.start(seed, at)
     local w = (1 - h / 410) * 140
     S.tlights[i] = {(R:random() * 2 - 1) * w * 0.9, -50 - h}
   end
-  for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
-  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8}, {"CHRISTMAS", 80, 0xff4040},
-                      {"MERRY CHRISTMAS", 70, 0xff4040}, {"AND A HAPPY NEW YEAR", 34, 0x5fd16a}, {"MERRY CHRISTMAS, Y'ALL", 34, 0xff4040},
-                      {"O CHRISTMAS TREE", 34, 0x5fd16a}}) do
-    G:label(l[1], l[2], l[3])
+  for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff, s[1]) end end
+  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8, 0}, {"CHRISTMAS", 80, 0xff4040, 0},
+                      {"MERRY CHRISTMAS", 70, 0xff4040, 500}, {"AND A HAPPY NEW YEAR", 34, 0x5fd16a, 500},
+                      {"MERRY CHRISTMAS, Y'ALL", 34, 0xff4040, 180},
+                      {"O CHRISTMAS TREE", 34, 0x5fd16a, 260}}) do
+    G:label(l[1], l[2], l[3], l[4])
   end
 end
 
@@ -1406,6 +1516,28 @@ function M.update(dt)
       S.fw = 0.5 + G.R:random() * 0.6
       G:rocket(120 + G.R:random() * 520, 120 + G.R:random() * 200,
                {from = 1024, colours = {{1, 0.2, 0.2}, {0.2, 0.9, 0.3}, {1, 0.85, 0.3}, {1, 1, 1}}})
+    end
+    -- toy rocket sparks (gift #2, opens at 17.8, ascends 1.6s)
+    local ra = lt - (10 + 2 * 3.6 + 0.6)
+    if ra > 0 and ra < 1.6 then
+      S.rspark = (S.rspark or 0) - dt
+      if S.rspark <= 0 then
+        S.rspark = 0.04
+        local rx = 100 + 113
+        local ry = 820 - ease(ra / 1.6) * 520
+        G:spark(rx, ry + 30, (G.R:random() - 0.5) * 40, 120, 0.4, {1, 0.7, 0.2}, 5, 0, true)
+      end
+    end
+    -- toy train steam puffs (gift #4, opens at 25.0)
+    local ta = lt - (10 + 4 * 3.6 + 0.6)
+    if ta > 0 then
+      S.tpuff = (S.tpuff or 0) - dt
+      if S.tpuff <= 0 then
+        S.tpuff = 0.14
+        local tx = 384 + cos(ta * 0.9) * 300
+        local ty = 930 + sin(ta * 0.9) * 30
+        G:puff(tx, ty - 34, {0.9, 0.9, 0.95}, 18, 0, -24, 0.7, 0.35)
+      end
     end
   end
   return S.t >= LEN

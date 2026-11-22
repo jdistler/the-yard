@@ -112,6 +112,7 @@ local CHANTS = {346, 368, 404}
 -- ------------------------------------------------------------------ state of one showing
 local S                                          -- the show's state (F.start)
 local R                                          -- its random numbers
+local ticker_x = 0
 
 -- ------------------------------------------------------------------ pictures, made once
 local atlas, Q = nil, {}
@@ -516,10 +517,10 @@ local function draw_jet(x, y, s, dir)
 end
 
 -- ------------------------------------------------------------------ particles
-local function spark(x, y, vx, vy, life, c, size, grav, add)
+local function spark(x, y, vx, vy, life, c, size, grav, add, fg)
   local list = add and S.glow or S.debris
   if #list > (add and 900 or 500) then return end
-  list[#list + 1] = {x = x, y = y, vx = vx, vy = vy, life = life, max = life, c = c, size = size or 3, g = grav or 200}
+  list[#list + 1] = {x = x, y = y, vx = vx, vy = vy, life = life, max = life, c = c, size = size or 3, g = grav or 200, fg = fg}
 end
 
 local FIREWORK_COLOURS = {{1, 0.25, 0.3}, {1, 1, 1}, {0.35, 0.5, 1}, {1, 0.85, 0.35}, {1, 0.4, 0.8}}
@@ -642,6 +643,7 @@ end
 
 local LABELS = {}
 function F.start(seed, at)
+  ticker_x = 0
   if not made then make_pictures() made = true end
   for _, n in ipairs({"yard", "cloud", "hotdog"}) do
     if not art[n] then art[n] = load_art(n) end
@@ -797,6 +799,11 @@ local function update_battle(dt)
         S.cannon_cool = t > 300 and 0.5 or (4.5 + R:random() * 2.5)
         local miss = t < 300 and R:random() < 0.5 and (R:random() < 0.5 and -34 or 34) or 0
         S.shots[#S.shots + 1] = {x = S.cannon_x + miss, y = GROUND - 50}
+        -- cannon muzzle flash + sparks (foreground)
+        spark(S.cannon_x, GROUND - 54, 0, -40, 0.14, {1, 0.94, 0.55}, 24, 0, true, true)
+        for _ = 1, 4 do
+          spark(S.cannon_x, GROUND - 52, (R:random() - 0.5) * 140, -120 - R:random() * 120, 0.25, {1, 0.8, 0.35}, 4, 240, true, true)
+        end
         C.sfx("pew", 0.8)
       end
     end
@@ -836,7 +843,7 @@ local function update_battle(dt)
         S.holes[#S.holes + 1] = {u = b.u, v = b.v, r = r}
         burn_hole(b.u, b.v, r)
       end
-      for _ = 1, 8 do spark(b.x, b.y, (R:random() - 0.5) * 200, -R:random() * 150, 0.4, {1, 0.6, 0.2}, 3, 300, true) end
+      for _ = 1, 8 do spark(b.x, b.y, (R:random() - 0.5) * 200, -R:random() * 150, 0.4, {1, 0.6, 0.2}, 4, 300, true, true) end
       table.remove(S.bullets, i)
     end
   end
@@ -886,6 +893,11 @@ local function update_battle(dt)
     if sc.x > W + 60 then sc.x = -60 end
     sc.y = 76 + sin(S.t * 2) * 10
     sc.flash = max(0, sc.flash - dt)
+    -- mothership damage sparks & smoke when injured
+    if sc.hp < 6 and R:random() < dt * (10 + (6 - sc.hp) * 4) then
+      spark(sc.x + (R:random() - 0.5) * 56, sc.y + (R:random() - 0.5) * 14,
+            (R:random() - 0.5) * 140, 40 + R:random() * 80, 0.45, {1, 0.7, 0.25}, 5, 220, true, true)
+    end
     if sc.hp <= 0 or at(322) then
       for i = 1, 5 do S.later[#S.later + 1] = {S.t + i * 0.12, "boom"} end
       for i = 1, 6 do explode(sc.x + (R:random() - 0.5) * 60, sc.y + (R:random() - 0.5) * 30, {1, 0.3, 0.3}, 20) end
@@ -907,6 +919,13 @@ local function update_battle(dt)
   end
   if at(328) then
     for r = 1, ROWS do for c = 1, COLS do if S.inv[r][c].alive then kill(r, c, "cannon") end end end
+    -- clear any remaining scared invaders on the lawn before Act IV Victory
+    for _, f in ipairs(S.fallen) do
+      if not f.eaten then
+        spark(f.x, f.y, (R:random() - 0.5) * 120, -80 - R:random() * 60, 0.4, {0.4, 0.6, 1}, 5, 200, true, true)
+      end
+    end
+    S.fallen = {}
   end
 end
 
@@ -942,8 +961,11 @@ function F.update(dt)
               {{PERCH_X + 70, PERCH_Y - 60}, {PERCH_X + 40, PERCH_Y - 40}, {PERCH_X + 10, PERCH_Y - 10}, {PERCH_X, PERCH_Y}})
     C.sfx("screech")
   end
+  if at(34) then C.sfx("sizzle", 0.5) end
   if at(40) then start_parade(906) end
-  if at(76) then start_parade(906) end
+  if at(43) then C.sfx("cheer", 0.5) end
+  if at(92) then start_parade(906) end
+  if at(82) then C.sfx("cheer") C.sfx("power") end
   if at(95) then
     C.sfx("jet")
     for i = 1, 3 do
@@ -1142,8 +1164,30 @@ function F.update(dt)
   end
   for i = #S.dogs, 1, -1 do
     local d = S.dogs[i]
-    d.y, d.rot = d.y + d.vy * dt, d.rot + d.vr * dt
-    if d.y > GROUND + 80 then table.remove(S.dogs, i) end
+    if d.rest then
+      d.rest = d.rest - dt
+      if d.rest <= 0 then
+        -- playful chomp/pop sparkle on the lawn
+        for _ = 1, 4 do
+          spark(d.x, d.y, (R:random() - 0.5) * 90, -50 - R:random() * 60, 0.35, {1, 0.85, 0.35}, 4, 240, true, true)
+        end
+        table.remove(S.dogs, i)
+      end
+    else
+      d.vy = d.vy + (d.bounced and 480 or 0) * dt
+      d.y, d.rot = d.y + d.vy * dt, d.rot + d.vr * dt
+      local floor_y = GROUND + 44 + (i % 4) * 10
+      if d.y >= floor_y then
+        d.y = floor_y
+        if not d.bounced then
+          d.bounced = true
+          d.vy = -140 - R:random() * 60
+          d.vr = d.vr * 0.5
+        else
+          d.rest = 0.55
+        end
+      end
+    end
   end
   return t >= LEN
 end
@@ -1227,13 +1271,15 @@ local function draw_searchlights()
   lg.setBlendMode("alpha")
 end
 
-local function draw_glow()
+local function draw_glow(fg)
   glowb:clear()
   for _, p in ipairs(S.glow) do
-    local k = p.life / p.max
-    glowb:setColor(p.c[1], p.c[2], p.c[3], min(1, k * 1.6))
-    local s = p.size / 8 * (0.6 + 0.4 * k)
-    glowb:add(p.x, p.y, 0, s, s, 8, 8)
+    if (p.fg == true) == (fg == true) then
+      local k = p.life / p.max
+      glowb:setColor(p.c[1], p.c[2], p.c[3], min(1, k * 1.6))
+      local s = p.size / 8 * (0.6 + 0.4 * k)
+      glowb:add(p.x, p.y, 0, s, s, 8, 8)
+    end
   end
   lg.setBlendMode("add")
   lg.setColor(1, 1, 1, 1)
@@ -1265,7 +1311,7 @@ local function draw_trails()
   for _, j in ipairs(S.jets) do draw_jet(j.x, j.y, 1.1, j.dir) end
 end
 
-local function draw_pix()
+local function draw_pix_back()
   pix:clear()
   local act = F.act()
   if act == "alert" or act == "battle" then
@@ -1289,6 +1335,12 @@ local function draw_pix()
     if sc.flash > 0 then pix:setColor(1, 1, 1, 1) else pix:setColor(1, 0.25, 0.3, 1) end
     pix:add(Q.saucer, sc.x, sc.y, 0, 5, 5, 8, 3.5)
   end
+  lg.setColor(1, 1, 1, 1)
+  lg.draw(pix)
+end
+
+local function draw_pix_front()
+  pix:clear()
   pix:setColor(1, 1, 1, 1)
   for _, s in ipairs(S.shots) do pix:add(Q.px, s.x - 2, s.y, 0, 4, 18) end
   for _, b in ipairs(S.bullets) do
@@ -1309,20 +1361,30 @@ local function draw_pix()
 end
 
 local function draw_flag_and_pole()
-  -- the pole
+  -- the pole + halyard rope
   lg.setColor(0.78, 0.78, 0.82, 1)
   lg.rectangle("fill", POLE_X - 5, POLE_TOP, 10, GROUND - POLE_TOP)
   lg.setColor(1, 1, 1, 0.35)
   lg.rectangle("fill", POLE_X - 3, POLE_TOP, 2, GROUND - POLE_TOP)
+  lg.setColor(0.88, 0.86, 0.82, 0.75)
+  lg.setLineWidth(1.5)
+  lg.line(POLE_X + 6, POLE_TOP + 6, POLE_X + 6, GROUND - 10)
+  lg.setLineWidth(1)
   lg.setColor(GOLD[1], GOLD[2], GOLD[3], 1)
   lg.circle("fill", POLE_X, POLE_TOP - 6, 11, 20)
   lg.setColor(1, 1, 1, 0.6)
   lg.circle("fill", POLE_X - 3, POLE_TOP - 9, 3.5, 10)
-  -- the cloth
+  -- the cloth (unfurls smoothly at t = 7..8.5, no instant pop)
   if S.t >= 7 then
+    local unfurl = ease((S.t - 7) / 1.5)
     update_cloth()
-    lg.setColor(1, 1, 1, 1)
+    lg.push()
+    lg.translate(FLAG_X, 0)
+    lg.scale(0.15 + 0.85 * unfurl, 1)
+    lg.translate(-FLAG_X, 0)
+    lg.setColor(1, 1, 1, unfurl)
     lg.draw(mesh)
+    lg.pop()
   end
   -- the eagle
   local e = S.eagle
@@ -1369,23 +1431,82 @@ local function draw_grill(t)
   lg.arc("fill", "pie", x, y - 22, 40, 0, pi, 20)
   lg.setColor(0.35, 0.35, 0.38, 1)
   lg.rectangle("fill", x - 42, y - 24, 84, 4)
-  -- burgers, one in the air
+  -- burgers: left burger (at x - 15) flipped right off the spatula blade!
   lg.setColor(0.45, 0.25, 0.12, 1)
-  lg.ellipse("fill", x - 22, y - 28, 11, 4, 12)
-  lg.ellipse("fill", x + 4, y - 28, 11, 4, 12)
   local by = y - 28 - (flip < 0.3 and sin(flip / 0.3 * pi) * 40 or 0)
-  lg.ellipse("fill", x + 24, by, 11, flip < 0.3 and 2 + abs(cos(flip / 0.3 * pi)) * 3 or 4, 12)
+  lg.ellipse("fill", x - 15, by, 11, flip < 0.3 and 2 + abs(cos(flip / 0.3 * pi)) * 3 or 4, 12)
+  lg.ellipse("fill", x + 6, y - 28, 11, 4, 12)
+  lg.ellipse("fill", x + 26, y - 28, 11, 4, 12)
+  lg.setLineWidth(1)
+end
+-- Backyard Pie-Eating Contest beat on the lawn (t = 60..90s): brings the ticker joke to life!
+local function draw_pie_contest(t)
+  local a = ease((t - 60) / 1.2) * (1 - ease((t - 88.5) / 1.5))
+  if a <= 0 then return end
+  local tx, ty = 320, 916
+  local eating = t >= 64 and t < 82
+  local champ = t >= 82
+  -- contestants behind the table: Blinky (left), Pac-Man (center), Pinky (right)
+  local b_bob = eating and abs(sin(t * 7)) * 6 or 0
+  local p_bob = eating and abs(sin(t * 14)) * 9 or (champ and abs(sin(t * 6)) * 12 or 0)
+  local k_bob = eating and abs(sin(t * 6.5 + 1)) * 6 or 0
+  C.fx.ghost(tx - 96, ty - 26 - b_bob, 20, GHOST_COLOURS[1], 1, t, false, false, a)
+  C.fx.ghost(tx + 96, ty - 26 - k_bob, 20, GHOST_COLOURS[2], -1, t + 1, false, false, a)
+  C.fx.chomper(tx, ty - 28 - p_bob, 24, 1, t * (eating and 2.2 or 0.6), a)
+  draw_hat(tx, ty - 28 - p_bob, 24, -0.1)
+  -- folding picnic table with checkered cloth & red-white-blue bunting
+  lg.setColor(0.42, 0.28, 0.16, a)
+  lg.rectangle("fill", tx - 144, ty + 2, 8, 32)
+  lg.rectangle("fill", tx + 136, ty + 2, 8, 32)
+  lg.setColor(0.95, 0.94, 0.9, a)
+  lg.rectangle("fill", tx - 152, ty - 14, 304, 24, 4, 4, 4)
+  for i = 0, 5 do
+    local c = (i % 3 == 0) and RED or ((i % 3 == 1) and WHITE or BLUE)
+    lg.setColor(c[1], c[2], c[3], a)
+    lg.polygon("fill", tx - 150 + i * 50, ty + 8, tx - 100 + i * 50, ty + 8, tx - 125 + i * 50, ty + 22)
+  end
+  -- pie stacks shrinking as they eat (Pac-Man devours all 5 pies!)
+  local p_left = max(0, 5 - floor(clamp((t - 64) / 18, 0, 1) * 5.2))
+  local b_left = max(1, 3 - floor(clamp((t - 64) / 18, 0, 1) * 2.1))
+  local k_left = max(1, 3 - floor(clamp((t - 64) / 18, 0, 1) * 1.9))
+  local function pie_stack(px, n)
+    for s = 0, n - 1 do
+      local py = ty - 14 - s * 7
+      lg.setColor(0.84, 0.62, 0.34, a)
+      lg.ellipse("fill", px, py, 19, 6, 12)
+      lg.setColor(0.75, 0.18, 0.18, a)
+      lg.ellipse("fill", px, py - 2, 15, 4, 12)
+    end
+  end
+  pie_stack(tx - 96, b_left)
+  pie_stack(tx, p_left)
+  pie_stack(tx + 96, k_left)
+  -- trophy + "1ST!" ribbon when Pac-Man wins!
+  if champ then
+    local rise = ease((t - 82) / 0.7)
+    local gy = ty - 72 - rise * 14
+    lg.setColor(GOLD[1], GOLD[2], GOLD[3], a * rise)
+    lg.ellipse("fill", tx, gy, 14, 12, 14)
+    lg.rectangle("fill", tx - 4, gy + 10, 8, 10)
+    lg.rectangle("fill", tx - 12, gy + 18, 24, 5, 2, 2, 4)
+    lg.setFont(C.font(18))
+    lg.setColor(1, 0.95, 0.5, a * rise)
+    lg.printf("PIE CHAMP!", tx - 70, gy - 32, 140, "center")
+  end
 end
 local function draw_lawn_life()
   local t = S.t
   if grill_on(t) then draw_grill(t) end
-  -- the parade: Pac-Man in the hat, the ghosts with little flags
+  if t > 60 and t < 90 then draw_pie_contest(t) end
+  -- the parade: Pac-Man in the hat, the ghosts with little flags (omit Clyde while he's grilling!)
   local p = S.parade
   if p.x then
     local bob = abs(sin(t * 6)) * 4
     C.fx.chomper(p.x, p.y - bob, 22, 1, t, 1)
     draw_hat(p.x, p.y - bob, 22, -0.15)
-    for i, c in ipairs(GHOST_COLOURS) do
+    local n_ghosts = grill_on(t) and 3 or 4
+    for i = 1, n_ghosts do
+      local c = GHOST_COLOURS[i]
       local x = p.x - 70 - (i - 1) * 64
       local b = abs(sin(t * 6 + i)) * 4
       C.fx.ghost(x, p.y - b, 20, c, 1, t + i, false, false, 1)
@@ -1407,15 +1528,52 @@ local function draw_lawn_life()
     C.fx.chomper(pc.x, pc.y - r + 22, r, pc.dir, t, 1)
     draw_hat(pc.x, pc.y - r + 22, r, pc.dir > 0 and -0.15 or 0.15)
   end
-  -- the pellet, before it is eaten
-  if t > 280 and t < 288 then
-    local a = 0.6 + 0.4 * sin(t * 10)
-    C.fx.glow(330, 900, 40, 40, 1, 0.85, 0.3, a * 0.6)
-    lg.setColor(1, 0.9, 0.5, 1)
-    lg.circle("fill", 330, 900, 12, 20)
+  -- the Freedom Pellet: spawns at t = 273 (before "IS THAT A PELLET?" at 274!)
+  if t > 273 and t < 288 then
+    local pop = ease((t - 273) / 0.5)
+    local a = (0.6 + 0.4 * sin(t * 10)) * pop
+    C.fx.glow(330, 900, 44 * pop, 44 * pop, 1, 0.85, 0.3, a * 0.65)
+    lg.setColor(1, 0.9, 0.5, pop)
+    lg.circle("fill", 330, 900, 12 * pop, 20)
   end
   -- the cannon
   if t > 172 and t < 336 then draw_cannon(S.cannon_x, GROUND + 6) end
+  -- sunset: cast silhouettes sitting together on the lawn watching the fireworks + drifting fireflies
+  if t >= 450 then
+    local sa = ease((t - 450) / 3)
+    local xs = {240, 305, 384, 463, 528}
+    for i, sx in ipairs(xs) do
+      local sy = 924 + sin(t * 1.4 + i) * 2
+      -- warm golden sunset rim-light behind each silhouette
+      lg.setColor(1, 0.62, 0.3, 0.25 * sa)
+      lg.circle("fill", sx, sy - 2, i == 3 and 27 or 23, 18)
+      lg.setColor(0.08, 0.05, 0.14, 0.92 * sa)
+      if i == 3 then
+        lg.circle("fill", sx, sy, 24, 20)
+      else
+        lg.circle("fill", sx, sy - 4, 20, 18)
+        lg.rectangle("fill", sx - 20, sy - 4, 40, 20)
+        for k = -1, 1 do lg.circle("fill", sx + k * 13, sy + 16, 7, 10) end
+      end
+    end
+    if t > 500 then
+      local fa = ease((t - 500) / 4)
+      lg.setBlendMode("add")
+      for i = 1, 18 do
+        local on = sin(t * (1.2 + (i % 4) * 0.45) + i * 2.1)
+        if on > 0.15 then
+          local fx = ((i * 89 + sin(t * 0.4 + i) * 45) % (W - 60)) + 30
+          local fy = 740 + ((i * 53) % 190) + cos(t * 0.55 + i) * 18
+          local b = (on - 0.15) / 0.85 * fa
+          lg.setColor(1, 0.92, 0.4, 0.3 * b)
+          lg.circle("fill", fx, fy, 12, 10)
+          lg.setColor(1, 1, 0.78, 0.85 * b)
+          lg.circle("fill", fx, fy, 3.5, 8)
+        end
+      end
+      lg.setBlendMode("alpha")
+    end
+  end
 end
 
 local function draw_dogs()
@@ -1429,7 +1587,6 @@ local function draw_dogs()
   lg.draw(b)
 end
 
-local ticker_x = 0
 local function draw_hud()
   local t = S.t
   local act = F.act()
@@ -1440,7 +1597,7 @@ local function draw_hud()
       if C.brand_draw then C.brand_draw(356, 80, a1) end
       C.neon_draw("PRESENTS", 0, 470, 30, 0x6ef0c8, 0.8, "center", W, a1)
     end
-    local a2 = ease((t - 3) / 0.8)
+    local a2 = ease((t - 3) / 0.8) * (1 - ease((t - 5.2) / 0.8))
     if a2 > 0 then
       local sc = 0.85 + 0.15 * ease((t - 3) / 1.2)
       C.neon_draw("THE FREEDOM SHOW", 0, 420, 58, 0xffffff, 1.2, "center", W, a2, sc)
@@ -1513,6 +1670,16 @@ local function draw_hud()
     lg.setColor(0.2, 0.2, 0.25, a)
     lg.rectangle("fill", 88, y + 50, 4, 26)
     lg.circle("fill", 90, y + 48, 6, 10)
+    -- flashing red LIVE dot in Blinky's camera box
+    lg.setColor(0.75, 0.1, 0.14, 0.9 * a)
+    lg.rectangle("fill", 26, y + 12, 48, 18, 4, 4, 4)
+    if floor(t * 2.5) % 2 == 0 then
+      lg.setColor(1, 0.25, 0.25, a)
+      lg.circle("fill", 34, y + 21, 4, 8)
+    end
+    lg.setFont(C.font(13))
+    lg.setColor(1, 1, 1, a)
+    lg.print("LIVE", 41, y + 14)
     lg.setFont(C.font(22))
     lg.setColor(1, 0.85, 0.3, a)
     lg.print("BLINKY GHOSTWORTH  ·  LIVE FROM THE BACKYARD", 136, y + 14)
@@ -1546,7 +1713,7 @@ local function draw_hud()
     if S.tear then
       local k = S.tear
       lg.setColor(0.55, 0.82, 1, a)
-      local ty = hy - 4 + k * 70
+      local ty = hy - 4 + k * 50
       lg.circle("fill", hx + 18, ty, 7, 14)
       lg.polygon("fill", hx + 12, ty - 2, hx + 24, ty - 2, hx + 18, ty - 14)
       lg.setColor(1, 1, 1, 0.8 * a)
@@ -1585,12 +1752,13 @@ local function draw_hud()
       C.neon_draw("U! S! A!", 0, 440, 96, 0xff3344, 1.4, "center", W, min(1, (T + 4 - t) * 2), sc)
     end
   end
-  -- BREAKING NEWS lower third (alert) and the ticker (always after the opening)
+  -- BREAKING NEWS lower third (alert) and the ticker (always after the opening, fading smoothly at 555..569)
   local text = TICKER[act]
-  if text then
+  local ta = t > 555 and clamp(1 - (t - 555) / 14, 0, 1) or 1
+  if text and ta > 0 then
     text = text .. "     "
     local y = H - 62
-    lg.setColor(0.05, 0.06, 0.22, 0.92)
+    lg.setColor(0.05, 0.06, 0.22, 0.92 * ta)
     lg.rectangle("fill", 0, y, W, 50)
     local label = (act == "alert" or act == "battle") and "BREAKING" or (act == "victory" and "VICTORY" or "FREEDOM NEWS")
     lg.setFont(C.font(22))
@@ -1598,13 +1766,13 @@ local function draw_hud()
     ticker_x = ticker_x - 110 * (S.dt or 0.016)
     local tw = C.font(22):getWidth(text)
     if ticker_x < -tw then ticker_x = ticker_x + tw end
-    lg.setColor(1, 1, 1, 0.95)
+    lg.setColor(1, 1, 1, 0.95 * ta)
     lg.print(text, lw + 10 + ticker_x, y + 13)
     lg.print(text, lw + 10 + ticker_x + tw, y + 13)
     local blink = (act == "alert") and (floor(t * 3) % 2 == 0) and 0.75 or 1
-    lg.setColor(RED[1] * blink, RED[2] * blink, RED[3] * blink, 1)
+    lg.setColor(RED[1] * blink, RED[2] * blink, RED[3] * blink, ta)
     lg.rectangle("fill", 0, y, lw, 50)
-    lg.setColor(1, 1, 1, 1)
+    lg.setColor(1, 1, 1, ta)
     lg.print(label, 14, y + 13)
   end
 end
@@ -1616,15 +1784,18 @@ function F.draw()
   draw_sun(dark)
   draw_clouds()
   draw_searchlights()
-  draw_glow()
+  draw_glow(false)
   draw_trails()
-  draw_pix()
+  draw_pix_back()
   -- (the yard first: the pole stands in front of it; drawn after, the trees covered the flag)
   draw_ground(dark)
   draw_flag_and_pole()
   draw_lawn_life()
   if #S.smoke > 0 then draw_puffs(S.smoke) end
   draw_dogs()
+  -- foreground shots, bullets, debris, confetti & impact sparks IN FRONT of houses, fence, and flag!
+  draw_pix_front()
+  draw_glow(true)
   if fade > 0 then
     lg.setColor(0.01, 0.0, 0.04, fade)
     lg.rectangle("fill", 0, 0, W, H)

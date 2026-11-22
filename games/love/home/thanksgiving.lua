@@ -63,10 +63,12 @@ local function turkey(x, y, s, dir, t, run, fan, pumpkin, medal)
   lg.scale(s * dir, s)
   fan = fan or 1
   local big = max(1, fan)
-  for i = -3, 3 do
-    local a = -pi / 2 + i * 0.32 * min(fan, 1.4) - 0.4
-    rgba(LEAF[(i + 4) % #LEAF + 1])
-    lg.ellipse("fill", -18 + cos(a) * 40 * big, -24 + sin(a) * 40 * big, 12 * big, 26 * big, 12)
+  if not pumpkin then
+    for i = -3, 3 do
+      local a = -pi / 2 + i * 0.32 * min(fan, 1.4) - 0.4
+      rgba(LEAF[(i + 4) % #LEAF + 1])
+      lg.ellipse("fill", -18 + cos(a) * 40 * big, -24 + sin(a) * 40 * big, 12 * big, 26 * big, 12)
+    end
   end
   lg.setColor(0.42, 0.26, 0.15, 1)
   lg.ellipse("fill", 0, 0, 34, 28, 20)
@@ -246,13 +248,28 @@ function D.parade(lt, len)
     lg.setColor(0.95, 0.15, 0.2, 1)
     lg.ellipse("fill", bx, by, 18, 22, 16)
   end
+  -- the float behind the turkey: a horn of plenty (drawn behind balloons/handlers so it never overlaps them)
+  local fx = lerp(-300, W + 300, (lt - BALLOON_T[3]) / 30) - 340
+  if lt > 48 and fx < W + 200 then
+    lg.setColor(0.6, 0.35, 0.15, 1)
+    lg.rectangle("fill", fx, 780, 340, 68, 10, 10, 6)
+    lg.setColor(0.2, 0.2, 0.22, 1)
+    for i = 0, 3 do lg.circle("fill", fx + 40 + i * 86, 850, 16, 12) end
+    lg.setColor(0.85, 0.6, 0.25, 1)
+    lg.polygon("fill", fx + 40, 780, fx + 210, 700, fx + 230, 780)
+    for i, c in ipairs({{1, 0.5, 0.1}, {0.8, 0.15, 0.15}, {0.95, 0.85, 0.2}, {0.5, 0.25, 0.6}, {0.3, 0.6, 0.2}}) do
+      rgba(c)
+      lg.circle("fill", fx + 230 + i * 18, 760 - (i % 2) * 14, 16, 14)
+    end
+  end
   -- the balloons, their handlers and ropes
   for i, kind in ipairs({"pac", "ghost", "turkey"}) do
     local x = balloon_x(i, lt)
     if x > -320 and x < W + 320 then
       local by = balloon_y(i, lt)
       local lifted = (i == 2 and lt > 39 and lt < 45) and 70 * sin(lin(lt, 39, 45) * pi) or 0
-      local loose_now = i == 3 and lt > LOOSE and lt < 76
+      local loose_now = i == 3 and lt > LOOSE
+      local tie_y = by + (kind == "turkey" and 145 or 110)
       for h = -2, 2 do
         local hx = x + h * 40
         local hy = 860 - lifted * (1 - abs(h) * 0.2)
@@ -260,7 +277,7 @@ function D.parade(lt, len)
         if not loose then
           lg.setColor(0.85, 0.85, 0.88, 0.8)
           lg.setLineWidth(2)
-          lg.line(hx, hy, x + h * 30, by + 120)
+          lg.line(hx, hy, x + h * (kind == "turkey" and 22 or 30), tie_y)
           lg.setColor(0.2, 0.35, 0.7, 1)
           lg.rectangle("fill", hx - 8, hy, 16, 30, 4, 4, 4)
           lg.setColor(0.9, 0.72, 0.58, 1)
@@ -275,17 +292,19 @@ function D.parade(lt, len)
         end
       end
       if loose_now then
-        -- the loose rope, trailing; Pac-Man on the end of it once he has it
-        local rx, ry = x + 60, by + 120
+        -- the loose rope, trailing; Pac-Man keeps holding it cleanly after catching it at lt = 71
+        local rx, ry = x + 44, tie_y
         local ex, ey = x + 40 + sin(lt * 2) * 20, by + 330
         if lt > 71 then
           local px, py = pac_rescue(lt)
-          ex, ey = px, py - 30
+          ex, ey = px, py - 24 - (lt > 76 and L.hop(lt, 0.4, 20) or 0)
         end
         lg.setColor(0.85, 0.85, 0.88, 0.9)
         lg.setLineWidth(2)
-        lg.line(rx, ry, (rx + ex) / 2 + sin(lt * 3) * 14, (ry + ey) / 2, ex, ey)
+        local sag = lt > 71 and 4 or 14
+        lg.line(rx, ry, (rx + ex) / 2 + sin(lt * 3) * sag, (ry + ey) / 2, ex, ey)
       end
+      lg.setLineWidth(1)
       if kind == "pac" then
         local open = (lt > 15.8 and lt < 18) and (0.2 + 0.8 * abs(sin((lt - 15.8) * 5))) or nil
         L.pac(x, by, 130, 0, S.t * 0.2, open)
@@ -297,20 +316,6 @@ function D.parade(lt, len)
       else
         turkey(x, by + 40, 3.2, 1, S.t, false, 0.9 + 0.1 * sin(S.t))
       end
-    end
-  end
-  -- the float under the turkey: a horn of plenty
-  local fx = lerp(-300, W + 300, (lt - BALLOON_T[3]) / 30) - 180
-  if lt > 46 and fx < W + 200 then
-    lg.setColor(0.6, 0.35, 0.15, 1)
-    lg.rectangle("fill", fx, 780, 360, 70, 10, 10, 6)
-    lg.setColor(0.2, 0.2, 0.22, 1)
-    for i = 0, 3 do lg.circle("fill", fx + 40 + i * 90, 852, 16, 12) end
-    lg.setColor(0.85, 0.6, 0.25, 1)
-    lg.polygon("fill", fx + 40, 780, fx + 220, 700, fx + 240, 780)
-    for i, c in ipairs({{1, 0.5, 0.1}, {0.8, 0.15, 0.15}, {0.95, 0.85, 0.2}, {0.5, 0.25, 0.6}, {0.3, 0.6, 0.2}}) do
-      rgba(c)
-      lg.circle("fill", fx + 240 + i * 18, 760 - (i % 2) * 14, 16, 14)
     end
   end
   -- Pac-Man to the rescue: in at a run, the jump, the rope, hauling the turkey back down
@@ -405,6 +410,11 @@ end
 CUES.parade = {{3, "cheer"}, {17.2, "pop"}, {17.4, "power", 0.5}, {18, "cheer"}, {39, "whoosh"}, {44.5, "cheer"},
                {LOOSE, "pop"}, {LOOSE + 0.2, "whoosh"}, {70.6, "boing"}, {76, "cheer"}, {90, "cheer"},
                {76.2, function() G:confetti(60, {{1, 0.5, 0.1}, {0.95, 0.8, 0.2}, {0.8, 0.2, 0.15}, {1, 1, 1}}) end}}
+-- marching-band drum cadence (82..100s)
+for step = 0, 23 do
+  local t = 82.2 + step * 0.75
+  CUES.parade[#CUES.parade + 1] = {t, step % 2 == 0 and "clunk" or "tick", step % 2 == 0 and 0.28 or 0.22}
+end
 
 -- ------------------------------------------------------------------ the turkey chase
 local FEET = 830
@@ -413,7 +423,7 @@ local TURKEY = {{0, 384, FEET}, {8.2, 384, FEET}, {12, 600, 880}, {15, 610, 940}
                 {56, 120, 800}, {66, 120, 800}, {68, 250, 830}, {90, 250, 830}}
 local PAC = {{0, -80, FEET}, {7, 220, FEET, "lin"}, {8.6, 230, FEET}, {12.5, 450, 880, "lin"}, {16, 520, 930, "lin"}, {28, 520, 930},
              {29.2, 480, 950}, {35, 560, 640, "lin"}, {36.5, 600, 600}, {46.5, 600, 600}, {48, 600, 690}, {55, 260, 830, "lin"},
-             {57, 300, 830}, {60, 520, 830, "lin"}, {62, 200, 800}, {64, 210, 760}, {65.5, 300, 830}, {68, 430, 830}, {90, 430, 830}}
+             {57, 300, 830}, {60, 520, 830, "lin"}, {62, 120, 795}, {64, 120, 795}, {65.5, 300, 830}, {68, 430, 830}, {90, 430, 830}}
 local BALE_Q
 local function in_barn(lt) return lt > 35.5 and lt < 46.5 end
 function D.chase(lt, len)
@@ -426,10 +436,10 @@ function D.chase(lt, len)
   end
   -- the barn shaking while they are in it, feathers out of its door and windows
   if in_barn(lt) and painted then
-    S.barn_q = S.barn_q or lg.newQuad(400, 280, 330, 330, W, H)
+    S.barn_q = S.barn_q or lg.newQuad(466, 284, 268, 320, W, H)
     local j = 4 * sin(S.t * 40)
     lg.setColor(1, 1, 1, 1)
-    lg.draw(S.art.farm, S.barn_q, 400 + j, 280 + abs(j) * 0.5)
+    lg.draw(S.art.farm, S.barn_q, 466 + j, 284 + abs(j) * 0.5)
   end
   local tx, ty, tdir = L.path(lt, TURKEY)
   local px, py, pdir = L.path(lt, PAC)
@@ -512,8 +522,8 @@ for t = 380, 460, 6 do
   CUES.chase[#CUES.chase + 1] = {t / 10, function()
     for i = 1, 6 do
       local c = LEAF[G.R:random(1, #LEAF)]
-      local fx, fy = ({{520, 420}, {680, 420}, {600, 560}})[G.R:random(1, 3)][1], 420
-      G:spark(fx + (G.R:random() - 0.5) * 40, fy + G.R:random() * 140, (G.R:random() - 0.5) * 200, -100 - G.R:random() * 150, 1.6, c, 8, 180)
+      local pt = ({{520, 420}, {680, 420}, {600, 560}})[G.R:random(1, 3)]
+      G:spark(pt[1] + (G.R:random() - 0.5) * 40, pt[2] + (G.R:random() - 0.5) * 30, (G.R:random() - 0.5) * 200, -100 - G.R:random() * 150, 1.6, c, 8, 180)
     end
   end}
 end
@@ -562,12 +572,12 @@ function D.autumn(lt, len)
       lg.ellipse("fill", PILE[1] + cos(a) * r * 1.2, PILE[2] - abs(sin(a)) * r * 0.6 - (1 - i / 90) * 90 * ps, 16, 9, 8)
     end
   end
-  -- the rakers (raking until Pac-Man lands; then in the pile)
+  -- the rakers (raking until Pac-Man lands at 35.5, then diving into the leaf pile 35.5..36.6!)
   for k2 = 1, 2 do
     local rx, ry = rakers(lt, k2)
-    if lt < 38 then
+    local gi = k2 == 1 and 1 or 3
+    if lt < 35.5 then
       local mood = (lt > 20.5 and lt < 23) and "wide" or nil
-      local gi = k2 == 1 and 1 or 3
       L.ghost(rx, ry, 34, GH[gi], S.t + k2, k2 == 1 and 1 or -1, 0.3, mood)
       local sw = sin(lt * 2.4 + k2) * 0.4
       lg.setColor(0.55, 0.38, 0.2, 1)
@@ -577,6 +587,12 @@ function D.autumn(lt, len)
       lg.line(hx, hy, ex, ey)
       lg.setColor(0.4, 0.4, 0.42, 1)
       lg.rectangle("fill", ex - 14, ey, 28, 6)
+      lg.setLineWidth(1)
+    elseif lt < 36.6 then
+      local f = lin(lt, 35.5, 36.6)
+      local dx = lerp(rx, PILE[1] + (k2 == 1 and -70 or 70), f)
+      local dy = lerp(ry, PILE[2] - 20, f) - sin(f * pi) * 140
+      L.ghost(dx, dy, 34, GH[gi], S.t + k2, k2 == 1 and 1 or -1, 0.4, "happy")
     end
   end
   -- Pac-Man's run and jump, then heads popping up out of the pile
@@ -585,35 +601,48 @@ function D.autumn(lt, len)
     if lt > 33.2 then py = py - sin(lin(lt, 33.2, 35.5) * pi) * 220 end
     pac(px, py, 36, -1, S.t, lt > 33 and 0.9 or nil)
   end
-  if lt > 36.5 and lt < 44 then
+  if lt > 36.6 and lt < 44 then
     for i, who in ipairs({0, 1, 3}) do
-      local up = prog(lt, 36.5 + i * 0.8, 37.3 + i * 0.8) * 30
+      local up = prog(lt, 36.6 + i * 0.6, 37.4 + i * 0.6) * 30
       local x = PILE[1] + (i - 2) * 70
       if who == 0 then pac(x, PILE[2] - 30 - up + 30, 30, 1, S.t, 0.8)
       else L.ghost(x, PILE[2] - up, 28, GH[who], S.t + i, 0, -0.5, "happy") end
     end
   end
-  -- the porch at dusk: everyone up there, the rocking chair going
+  -- the porch at dusk: everyone up there (including Clyde on the steps!), the rocking chair going
   if lt > 44 then
     local a = prog(lt, 44, 46)
     lg.push()
     local rock = sin(S.t * 1.2) * 0.08
     lg.translate(640, 900)
     lg.rotate(rock)
-    lg.setColor(0.4, 0.25, 0.15, 1)
+    lg.setColor(0.4, 0.25, 0.15, a)
     lg.rectangle("fill", -30, -100, 8, 100)
     lg.rectangle("fill", -30, -40, 60, 8)
     lg.rectangle("fill", 22, -40, 8, 40)
     lg.setLineWidth(6)
-    lg.arc("line", "open", 0, -10, 40, 0.2, pi - 0.2, 16)
+    lg.arc("line", "open", 0, -36, 36, 0.25, pi - 0.25, 16)
+    lg.setLineWidth(1)
     L.pac(0, -64, 32, pi, S.t * 0.2, 0.2, a)
     lg.pop()
-    for i, gi in ipairs({1, 3, 2}) do
-      local gx = ({450, 525, 735})[i]
-      L.ghost(gx, 860 - L.hop(lt + i, 3, 4), 30, GH[gi], S.t + i, 1, 0, "happy", a)
-      -- a mug of cider, steaming
+    -- Blinky, Inky, Pinky (shifted off the hay bale) + Clyde on the porch steps
+    local porch_cast = {{1, 460, 860}, {3, 535, 860}, {2, 706, 860}, {4, 385, 892}}
+    for i, pc in ipairs(porch_cast) do
+      local gi, gx, gy = pc[1], pc[2], pc[3]
+      local bob = L.hop(lt + i, 3, 4)
+      L.ghost(gx, gy - bob, 30, GH[gi], S.t + i, 1, 0, "happy", a)
+      -- a mug of cider with warm curling steam
+      local mx, my = gx + 20, gy - 4 - bob
       lg.setColor(0.9, 0.85, 0.75, a)
-      lg.rectangle("fill", gx + 20, 856, 12, 14, 2, 2, 4)
+      lg.rectangle("fill", mx, my, 12, 14, 2, 2, 4)
+      lg.setColor(1, 0.96, 0.88, 0.45 * a)
+      lg.setLineWidth(1.5)
+      for st = 0, 1 do
+        local sy = my - 4 - st * 6
+        local sx = mx + 4 + st * 4
+        lg.line(sx, sy, sx + sin(S.t * 4 + i + st) * 3, sy - 6, sx - sin(S.t * 4 + i + st) * 3, sy - 12)
+      end
+      lg.setLineWidth(1)
     end
   end
   if lt > 21 and lt < 24 then G:say("NOOO!", 330, 780, 26, 1) end
@@ -687,6 +716,15 @@ local function dish(kind, x, y, full)
     lg.ellipse("fill", x, y - 8, 22 * full, 8 * full, 16)
   end
 end
+-- Sue's tall white chef hat
+local function chef_hat(cx, cy)
+  lg.setColor(1, 1, 1, 1)
+  lg.rectangle("fill", cx - 18, cy - 54, 36, 22, 4, 4, 4)
+  lg.circle("fill", cx - 14, cy - 56, 12, 12)
+  lg.circle("fill", cx + 6, cy - 60, 14, 12)
+  lg.circle("fill", cx + 18, cy - 54, 10, 12)
+end
+
 -- how much food is on a guest's plate (0..1): slices from the carving, eaten down
 local function plate_food(lt, i) return prog(lt, 28 + i * 2, 29 + i * 2) * (1 - prog(lt, 52 + i, 68 + i)) end
 function D.table(lt, len)
@@ -696,21 +734,42 @@ function D.table(lt, len)
     lg.setColor(0.95, 0.92, 0.85, 1)
     lg.rectangle("fill", 70, 620, 628, 290, 10, 10, 6)
   end
-  -- night coming on in the window
-  lg.setColor(0.05, 0.05, 0.15, 0.6 * prog(lt, 50, 85))
-  lg.rectangle("fill", 280, 120, 208, 260)
-  -- the candles' flames
+  -- night coming on in the window, preserving the wooden mullions over the tint
+  local nt = prog(lt, 50, 85)
+  if nt > 0 then
+    lg.setColor(0.05, 0.05, 0.15, 0.6 * nt)
+    lg.rectangle("fill", 280, 120, 208, 260)
+    lg.setColor(0.32, 0.2, 0.12, nt)
+    lg.rectangle("fill", 381, 120, 6, 260)
+    lg.rectangle("fill", 280, 247, 208, 6)
+  end
+  -- the candles' flames & warm dining room candlelight glow
   for _, x in ipairs({96, 672}) do
     local f = 1 + sin(S.t * 13 + x) * 0.15
     lg.setColor(1, 0.8, 0.3, 1)
     lg.ellipse("fill", x, 692, 5 * f, 11 * f, 10)
-    C.fx.glow(x, 690, 40, 40, 1, 0.75, 0.4, 0.45)
+    C.fx.glow(x, 690, 44 * f, 44 * f, 1, 0.75, 0.4, 0.45)
   end
   -- the guests behind their plates
   local eating = lt > 52 and lt < 70
+  local active_speaker = nil
+  for k, th in ipairs(THANKS) do
+    local t0 = 38 + (k - 1) * 2.8
+    if lt > t0 and lt < t0 + 2.6 then active_speaker = th[2] end
+  end
   for i, s in ipairs(SEATS) do
     local x, who = s[1], s[2]
     local bob = eating and abs(sin(S.t * 5 + i)) * 6 or 0
+    -- eager anticipation bob while Pac-Man carves, and excited hop when their slice lands
+    if lt > 26 and lt < 38 then bob = max(bob, abs(sin(S.t * 4 + i * 1.3)) * 10) end
+    local slice_t = lt - (28 + i * 2)
+    if slice_t > 0 and slice_t < 1.5 then bob = max(bob, L.hop(slice_t, 0.5, 32)) end
+    -- proud hop when speaking, gentle cheering sway for the others during "WHAT ARE YOU THANKFUL FOR?"
+    if active_speaker == i then
+      bob = max(bob, L.hop(lt, 0.55, 34))
+    elseif active_speaker then
+      bob = max(bob, abs(sin(S.t * 4.5 + i)) * 10)
+    end
     -- (the bowl going round: a hop as it comes to them)
     local pt = lt - PASS_T - (i - 1) * PASS_DT
     if pt > 0 and pt < 0.6 then bob = L.hop(pt, 0.6, 30) end
@@ -718,12 +777,21 @@ function D.table(lt, len)
     local looking = (lt > 4 and lt < 18) and 1 or 0
     local wide = lt > TURKEY_IN and lt < TURKEY_IN + 4
     if who == 0 then
-      local stand = (lt > 25 and lt < 40) and 30 or 0
+      local stand = (lt > 25 and lt < 40) and (30 + abs(sin(S.t * 6)) * 14) or 0
       L.pac(x, 582 - stand - bob + full_lean, 38, pi / 2 * 0, S.t * (eating and 1 or 0.2), eating and nil or (lt > 72 and 0.15 or 0.3))
     else
-      local mood = wide and "wide" or (lt > 72 and "happy" or nil)
+      local mood = wide and "wide" or ((lt > 72 or active_speaker == i or (slice_t > 0 and slice_t < 1.5)) and "happy" or nil)
       L.ghost(x, 590 - bob + full_lean, 34, GH[who], S.t + i, (lt > 38 and lt < 52) and 0 or looking * (x < 384 and 1 or -1),
               (lt > 4 and lt < 26) and 0.7 or 0, mood)
+    end
+    -- raised cider mug toast during each "THANKFUL FOR" beat!
+    if active_speaker then
+      local raise = active_speaker == i and 24 or 10
+      local mx, my = x + (x < 384 and 28 or -38), 584 - bob - raise
+      lg.setColor(0.95, 0.85, 0.6, 1)
+      lg.rectangle("fill", mx, my, 12, 16, 2, 2, 4)
+      lg.setColor(0.75, 0.42, 0.12, 1)
+      lg.rectangle("fill", mx + 2, my + 2, 8, 6)
     end
     -- the food on the plate
     local f = plate_food(lt, i)
@@ -736,13 +804,16 @@ function D.table(lt, len)
       lg.circle("fill", x + 2, 660, 5 * f, 8)
     end
   end
-  -- the dishes on the table, emptying as they eat
+  -- the dishes on the table, emptying as they eat (appear right at t0 + half; hide static potatoes while passing!)
+  local passing_pot = lt > PASS_T - 0.5 and lt < PASS_T + 4 * PASS_DT + 0.8
   for i, d in ipairs(DISHES) do
-    if lt > d[4] + 2 then dish(d[1], d[2], d[3], 1 - 0.85 * prog(lt, 50, 70)) end
+    if lt >= d[4] + 2.2 * 0.6 and not (d[1] == "potatoes" and passing_pot) then
+      dish(d[1], d[2], d[3], 1 - 0.85 * prog(lt, 50, 70))
+    end
   end
-  -- the turkey: carried in, carved, eaten to the bones
+  -- the turkey: carried in, set down at TURKEY_IN + 2.4 (no vanishing!), carved, eaten to the bones
   local meat = 1 - 0.3 * prog(lt, 27, 38) - 0.7 * prog(lt, 52, 70)
-  if lt > TURKEY_IN + 4 then roast(384, 760, 0.9, meat) end
+  if lt >= TURKEY_IN + 4 * 0.6 then roast(384, 760, 0.9, meat) end
   -- Sue the cook: in from the kitchen (the right) with each dish, and with the turkey
   local trips = {}
   for i, d in ipairs(DISHES) do trips[#trips + 1] = {d[4], d[2], d[3] - 60, d[1]} end
@@ -761,12 +832,7 @@ function D.table(lt, len)
         cx, cy = lerp(tr[2], W + 60, f), lerp(tr[3], 560, f)
       end
       L.ghost(cx, cy, 36, GH[5], S.t, -1, 0.5, "happy")
-      -- the chef's hat
-      lg.setColor(1, 1, 1, 1)
-      lg.rectangle("fill", cx - 18, cy - 54, 36, 22, 4, 4, 4)
-      lg.circle("fill", cx - 14, cy - 56, 12, 12)
-      lg.circle("fill", cx + 6, cy - 60, 14, 12)
-      lg.circle("fill", cx + 18, cy - 54, 10, 12)
+      chef_hat(cx, cy)
       -- what she carries (until it is set down)
       if lt < t0 + half then
         if tr[4] == "turkey" then roast(cx, cy + 30, 0.6, 1)
@@ -774,11 +840,13 @@ function D.table(lt, len)
       end
     end
   end
-  -- the carving: the knife, a slice flying to each plate
+  -- the carving: the knife (with wooden handle!), a slice flying to each plate
   if lt > 26 and lt < 39 then
     local cut = abs(sin(S.t * 6)) * 18
     lg.setColor(0.8, 0.82, 0.86, 1)
     lg.polygon("fill", 430, 720 + cut, 470, 680 + cut, 476, 686 + cut, 436, 726 + cut)
+    lg.setColor(0.36, 0.2, 0.1, 1)
+    lg.polygon("fill", 470, 680 + cut, 496, 654 + cut, 504, 662 + cut, 476, 686 + cut)
     for i, s in ipairs(SEATS) do
       local t0 = 27 + i * 2
       if lt > t0 and lt < t0 + 1 then
@@ -844,11 +912,13 @@ function D.table(lt, len)
   if lt > 67 and lt < 70.5 then G:say("I GET THE WISH!", 270, 520, 22, 1) end
   if lt > 80 and lt < 85 then G:say("PIE LATER?", W - 120, 520, 24, 1) end
   if lt > 79 and lt < 86 then
-    L.ghost(lerp(W + 60, W - 80, prog(lt, 79, 80)) + (lt > 85 and (lt - 85) * 200 or 0), 600, 36, GH[5], S.t, -1, 0, "happy")
-    pie(lerp(W + 60, W - 80, prog(lt, 79, 80)) + (lt > 85 and (lt - 85) * 200 or 0), 650, 40, "pumpkin", 0)
+    local sx = lerp(W + 60, W - 80, prog(lt, 79, 80)) + (lt > 85 and (lt - 85) * 200 or 0)
+    L.ghost(sx, 600, 36, GH[5], S.t, -1, 0, "happy")
+    chef_hat(sx, 600)
+    pie(sx, 650, 40, "pumpkin", 0)
   end
   if lt > 85 and lt < 88 then G:say("OOF!", 384, 520, 28, 1) end
-  G:plate("WHAT ARE YOU THANKFUL FOR?", 860, 32, 0xffffff, L.window(lt, 37, 52.5, 1))
+  G:plate("WHAT ARE YOU THANKFUL FOR?", 140, 32, 0xffffff, L.window(lt, 37, 52.5, 1))
 end
 CAM.table = function(lt)
   local keys = {{0, 384, 512, 1}, {5, 384, 640, 1.2}, {17, 460, 680, 1.25}, {20, 384, 680, 1.3}, {26, 384, 700, 1.5}, {37, 384, 680, 1.4}}
@@ -866,50 +936,172 @@ CUES.table = {{TURKEY_IN + 2, "cheer"}, {66, "pop"}, {66, "clunk"}, {66.2, "boin
 for i = 1, 5 do CUES.table[#CUES.table + 1] = {PASS_T + (i - 1) * PASS_DT, "pop", 0.35} end
 for _, d in ipairs(DISHES) do CUES.table[#CUES.table + 1] = {d[4] + 1.3, "clunk", 0.5} end
 for i = 1, 5 do CUES.table[#CUES.table + 1] = {28 + i * 2, "pop", 0.5} end
-for i = 1, #THANKS do CUES.table[#CUES.table + 1] = {38 + (i - 1) * 2.8, "ding", 0.6} end
+for i = 1, #THANKS do
+  local sx = SEATS[THANKS[i][2]][1]
+  CUES.table[#CUES.table + 1] = {38 + (i - 1) * 2.8, function()
+    C.sfx("ding", 0.6)
+    for k = 1, 14 do
+      local a = k / 14 * 2 * pi
+      G:spark(sx, 540, cos(a) * 110, sin(a) * 90 - 40, 0.9, {1, 0.85, 0.35}, 7, 120, true)
+    end
+  end}
+end
 
 -- ------------------------------------------------------------------ football on TV
 local TV = {150, 156, 468, 288}
 local function tv_game(lt)
   local x0, y0, w, h = TV[1], TV[2], TV[3], TV[4]
-  -- the field, scrolled to follow the ball
-  local ball = L.path(lt, {{0, 30, 0}, {8, 30, 0}, {11, 42, 0}, {14, 55, 0}, {17, 68, 0}, {20, 82, 0}, {22, 100, 0}, {30, 100, 0},
-                           {30.1, 75, 0}, {33, 68, 0}, {36, 60, 0}, {39, 55, 0}, {42, 52, 0}, {44, 52, 0}})
-  local scroll = (ball - 50) * 9
-  G:gradient(x0, y0, x0 + w, y0 + h, {0.2, 0.55, 0.2}, {0.15, 0.45, 0.15})
-  -- (everything on the screen kept inside its edges)
+  local field_h = h - 34
+  local mid_y = y0 + field_h * 0.54
+  -- determine ball yardage (0..105) and camera scroll
+  local ball_yd, ball_y, in_air
+  if lt < 18 then
+    ball_yd = L.path(lt, {{0, 30, 0}, {8, 30, 0}, {11, 42, 0}, {14, 58, 0}, {18, 76, 0}})
+    ball_y = mid_y + sin(lt * 3.5) * 14
+  elseif lt < 22 then
+    -- visible arcing TD pass from Texas QB (76) to Texas WR in the TEXAS end zone (104)!
+    local f = lin(lt, 18, 22)
+    ball_yd = lerp(76, 104, f)
+    ball_y = lerp(mid_y + 10, mid_y - 16, f) - sin(f * pi) * 58
+    in_air = true
+  elseif lt < 30.1 then
+    ball_yd, ball_y = 104, mid_y - 16
+  elseif lt < 40.5 then
+    -- A&M driving left from 75 to 56
+    ball_yd = L.path(lt, {{30.1, 75, 0}, {33, 70, 0}, {36, 63, 0}, {39, 58, 0}, {40.5, 56, 0}})
+    ball_y = mid_y + sin(lt * 3.2) * 12
+  elseif lt < 42.0 then
+    -- A&M pass leftward, intercepted mid-air at yd = 48 by burnt-orange Texas DB!
+    local f = lin(lt, 40.5, 42.0)
+    ball_yd = lerp(56, 48, f)
+    ball_y = lerp(mid_y, mid_y - 10, f) - sin(f * pi) * 42
+    in_air = true
+  else
+    -- Texas DB sprints RIGHT with the interception!
+    local f = lin(lt, 42.0, 47.0)
+    ball_yd = lerp(48, 82, f)
+    ball_y = mid_y - 10 + sin(lt * 8) * 6
+  end
+  local scroll = (ball_yd - 50) * 9
+  local function yd_x(yd) return x0 + w / 2 + (yd - 50) * 9 - scroll end
   local function span(a, b)
     a, b = max(a, x0), min(b, x0 + w)
     return a, b - a
   end
-  lg.setColor(1, 1, 1, 0.8)
+  -- field grass with alternating turf stripes
+  G:gradient(x0, y0, x0 + w, y0 + field_h, {0.18, 0.54, 0.18}, {0.14, 0.44, 0.14})
+  for yd = 0, 95, 10 do
+    local a, sw = span(yd_x(yd), yd_x(yd + 5))
+    if sw > 0 then
+      lg.setColor(1, 1, 1, 0.05)
+      lg.rectangle("fill", a, y0, sw, field_h)
+    end
+  end
+  -- burnt-orange TEXAS end zone (yd = 100..112)
+  local ez = yd_x(100)
+  local a, ew = span(ez, ez + 108)
+  if ew > 0 then
+    lg.setColor(0.75, 0.33, 0.04, 1)
+    lg.rectangle("fill", a, y0, ew, field_h)
+    if ew > 44 then
+      G:text("TEXAS", a, y0 + field_h * 0.42, 22, {1, 1, 1}, 0.85, "center", ew)
+    end
+  end
+  -- yard lines, hash marks, and yard numbers
+  lg.setColor(1, 1, 1, 0.82)
   for yd = 0, 100, 10 do
-    local x = x0 + w / 2 + (yd - 50) * 9 - scroll
-    local a, sw = span(x, x + 3)
-    if sw > 0 then lg.rectangle("fill", a, y0, sw, h) end
+    local x = yd_x(yd)
+    local lx, lw = span(x, x + 3)
+    if lw > 0 then lg.rectangle("fill", lx, y0, lw, field_h) end
+    if yd > 0 and yd < 100 and x > x0 + 18 and x < x0 + w - 18 then
+      local num = yd <= 50 and yd or (100 - yd)
+      G:text(tostring(num), x - 16, y0 + 10, 14, {1, 1, 1}, 0.72, "center", 32)
+      G:text(tostring(num), x - 16, y0 + field_h - 24, 14, {1, 1, 1}, 0.72, "center", 32)
+    end
   end
-  -- the end zone (Texas's way: the right)
-  lg.setColor(0.75, 0.33, 0.05, 1)
-  local ez = x0 + w / 2 + 50 * 9 - scroll
-  local a, ew = span(ez, ez + 90)
-  if ew > 0 then lg.rectangle("fill", a, y0, ew, h) end
-  -- the players: orange and maroon, around the ball
-  local bx = x0 + w / 2 + (ball - 50) * 9 - scroll
-  local by = y0 + h * 0.55
-  for i = 0, 9 do
-    local side = i % 2
-    local ox = (i - 5) * 16 + sin(S.t * 4 + i) * 6
-    local oy = ((i * 37) % 120) - 60
-    lg.setColor(side == 0 and 0.95 or 0.45, side == 0 and 0.45 or 0.05, side == 0 and 0.05 or 0.1, 1)
-    if bx + ox > x0 + 8 and bx + ox < x0 + w - 8 then lg.circle("fill", bx + ox, by + oy, 7, 10) end
+  lg.setColor(1, 1, 1, 0.45)
+  for yd = 2, 98, 2 do
+    local x = yd_x(yd)
+    if x > x0 + 2 and x < x0 + w - 2 then
+      lg.rectangle("fill", x, y0 + field_h * 0.33, 2, 5)
+      lg.rectangle("fill", x, y0 + field_h * 0.67, 2, 5)
+    end
   end
-  lg.setColor(0.5, 0.3, 0.1, 1)
-  if bx > x0 + 8 and bx < x0 + w - 8 then lg.ellipse("fill", bx, by, 6, 4, 10) end
+  -- helper to draw a Texas (burnt-orange jersey + white helmet) or A&M (maroon jersey/helmet) player
+  local function player(px, py, is_tex)
+    if px <= x0 + 10 or px >= x0 + w - 10 or py <= y0 + 10 or py >= y0 + field_h - 10 then return end
+    if is_tex then
+      lg.setColor(0.84, 0.36, 0.04, 1) -- burnt orange shoulders
+      lg.ellipse("fill", px, py + 2, 9, 6, 10)
+      lg.setColor(1, 1, 1, 1)          -- white Texas helmet
+      lg.circle("fill", px, py - 3, 5.5, 10)
+      lg.setColor(0.84, 0.36, 0.04, 1) -- orange helmet stripe
+      lg.rectangle("fill", px - 1, py - 8, 2, 10)
+    else
+      lg.setColor(0.45, 0.05, 0.12, 1) -- maroon A&M jersey
+      lg.ellipse("fill", px, py + 2, 9, 6, 10)
+      lg.setColor(0.52, 0.07, 0.15, 1) -- maroon helmet
+      lg.circle("fill", px, py - 3, 5.5, 10)
+      lg.setColor(1, 1, 1, 0.9)        -- white stripe
+      lg.rectangle("fill", px - 1, py - 8, 2, 10)
+    end
+  end
+  local bx = yd_x(ball_yd)
+  if lt < 30.1 then
+    -- DRIVE 1: Texas offense (burnt-orange) driving RIGHT toward TEXAS end zone
+    local qb_yd = lt < 18 and ball_yd or 76
+    local wr_yd = lt < 18 and (ball_yd + 14) or (lt < 22 and lerp(90, 104, lin(lt, 18, 22)) or 104)
+    local cel = lt >= 22 and abs(sin(S.t * 10)) * 8 or 0
+    -- Texas QB & WR
+    player(yd_x(qb_yd), mid_y + 10, true)
+    player(yd_x(wr_yd), mid_y - 16 - cel, true)
+    -- Texas O-line & blockers
+    for k = 1, 4 do
+      local oy = (k - 2.5) * 26
+      player(yd_x(qb_yd + 5 + (k % 2) * 4), mid_y + oy + sin(S.t * 5 + k) * 3, true)
+    end
+    -- A&M maroon defenders pursuing
+    for k = 1, 5 do
+      local dy = (k - 3) * 28
+      local dx = lt < 18 and (ball_yd + 11 + k * 2.5) or lerp(88 + k * 2, 97 + k, lin(lt, 18, 22))
+      player(yd_x(dx), mid_y + dy + cos(S.t * 6 + k) * 4, false)
+    end
+  else
+    -- DRIVE 2: A&M offense (maroon) driving LEFT, then intercepted by burnt-orange Texas DB!
+    local am_qb = lt < 40.5 and ball_yd or 56
+    local db_yd = lt < 40.5 and (ball_yd - 11) or (lt < 42.0 and lerp(46, 48, lin(lt, 40.5, 42.0)) or ball_yd)
+    -- A&M QB & WR
+    player(yd_x(am_qb), mid_y, false)
+    player(yd_x(am_qb - 10), mid_y - 14, false)
+    -- A&M O-line
+    for k = 1, 4 do
+      player(yd_x(am_qb - 4 - (k % 2) * 3), mid_y + (k - 2.5) * 26 + sin(S.t * 5 + k) * 3, false)
+    end
+    -- Texas DB (intercepts at 42.0 and sprints right!) + 4 Texas defenders
+    player(yd_x(db_yd), lt >= 42.0 and ball_y or (mid_y - 10), true)
+    for k = 1, 4 do
+      local tx_yd = lt < 42.0 and (am_qb - 10 - k * 2) or (ball_yd - 8 - k * 3)
+      player(yd_x(tx_yd), mid_y + (k - 2.5) * 30 + cos(S.t * 6 + k) * 4, true)
+    end
+  end
+  -- the football (with white laces & slight arc shadow when in air!)
+  if bx > x0 + 8 and bx < x0 + w - 8 then
+    if in_air then
+      lg.setColor(0, 0, 0, 0.25)
+      lg.ellipse("fill", bx, mid_y + 8, 6, 3, 8)
+    end
+    lg.setColor(0.54, 0.28, 0.08, 1)
+    lg.ellipse("fill", bx, ball_y, in_air and 8 or 6, in_air and 5 or 4, 10)
+    lg.setColor(1, 1, 1, 0.9)
+    lg.rectangle("fill", bx - 3, ball_y - 1, 6, 1.5)
+  end
+  -- scorebug + clean game clock ticking down to 0:00 right at lt = 44
   local tex = lt < 22 and 17 or 24
-  lg.setColor(0, 0, 0, 0.75)
-  lg.rectangle("fill", x0, y0 + h - 34, w, 34)
-  local clock = lt < 44 and string.format("4TH %d:%02d", floor((240 - lt * 5) / 60), floor(240 - lt * 5) % 60) or "FINAL"
-  G:text(string.format("TEX %d   TA&M 17   %s", tex, clock), x0, y0 + h - 28, 20, {1, 1, 1}, 1, "center", w)
+  lg.setColor(0, 0, 0, 0.78)
+  lg.rectangle("fill", x0, y0 + field_h, w, 34)
+  local rem = max(0, floor((44 - lt) * 3))
+  local clock = lt < 44 and string.format("4TH %d:%02d", floor(rem / 60), rem % 60) or "FINAL"
+  G:text(string.format("TEX %d   TA&M 17   %s", tex, clock), x0, y0 + field_h + 6, 20, {1, 1, 1}, 1, "center", w)
   if lt > 22 and lt < 28 then
     G:text("TOUCHDOWN", x0, y0 + 60, 48, {1, 0.6, 0.15}, 1, "center", w)
     G:text("TEXAS!", x0, y0 + 116, 48, {1, 1, 1}, 1, "center", w)
@@ -924,21 +1116,36 @@ function D.football(lt, len)
     lg.rectangle("fill", 60, 760, 648, 180, 30, 30, 8)
   end
   tv_game(lt)
-  -- the couch: the ghosts (too full, then not) and Pac-Man asleep in the middle
+  -- subtle TV screen glow cast onto the couch
+  C.fx.glow(384, 590, 340, 220, 0.55, 0.78, 0.62, 0.16 + 0.04 * sin(S.t * 4))
+  -- the couch: the ghosts (too full, then not; sleep delayed until lt > 56 so Pinky shouts "YES!!!" awake!)
   local try = lt > 22 and lt < 26
   local leap = lt > 42 and lt < 47
   for i = 1, 4 do
     local x = 130 + (i - 1) * 110 + (i > 2 and 140 or 0)
     local lift = try and abs(sin((lt - 22) * 6)) * 10 or (leap and L.hop(lt + i * 0.2, 0.55, 90) or 0)
     local mood = try and "wide" or (leap and "happy" or ((lt > 30 and lt < 42 and i == 3) and "sleep" or nil))
-    if lt > 54 then mood = "sleep" end
+    if lt > 56 then mood = "sleep" end
     L.ghost(x, 760 - lift, 38, GH[i], S.t + i, 0, -0.6, mood)
   end
-  -- the popcorn bowl on Inky's lap
+  -- the popcorn bowl aligned on Inky's lap (x = 490), flipping upside down at 42.3s!
+  local bx_p, by_p, brot = 490, 800, 0
+  if lt >= 42.3 then
+    local f = lin(lt, 42.3, 43.2)
+    bx_p = lerp(490, 525, f)
+    by_p = lerp(800, 834, f) - sin(f * pi) * 110
+    brot = f * pi
+  end
+  lg.push()
+  lg.translate(bx_p, by_p)
+  lg.rotate(brot)
   lg.setColor(0.85, 0.2, 0.2, 1)
-  lg.ellipse("fill", 460, 800, 34, 14, 16)
-  lg.setColor(1, 0.95, 0.8, 1)
-  for i = 0, 6 do lg.circle("fill", 440 + i * 7, 790 - (i % 2) * 5, 6, 8) end
+  lg.ellipse("fill", 0, 0, 34, 14, 16)
+  if lt < 42.3 then
+    lg.setColor(1, 0.95, 0.8, 1)
+    for i = 0, 6 do lg.circle("fill", -20 + i * 7, -10 - (i % 2) * 5, 6, 8) end
+  end
+  lg.pop()
   local awake = lt > 49 and lt < 56
   if awake then
     L.pac(384, 760 - L.hop(lt, 0.5, 20), 52, 0, S.t, 0.7)
@@ -948,6 +1155,7 @@ function D.football(lt, len)
     lg.setColor(0.1, 0.05, 0.1, 1)
     lg.setLineWidth(3)
     lg.line(370, 744, 386, 744)
+    lg.setLineWidth(1)
     for i = 0, 2 do
       local k = ((S.t * 0.5 + i / 3) % 1)
       G:text("z", 420 + k * 50, 700 - k * 90, floor(22 + k * 20), {0.85, 0.85, 1}, 1 - k, "left", 40)
@@ -964,7 +1172,7 @@ CAM.football = function(lt)
 end
 CUES.football = {{4, "pew", 0.4}, {22, "cheer"}, {22.3, "boing"}, {42, "cheer"}, {42.2, "boing"}, {47, "power"}, {52.5, "cheer"},
                  {42.3, function()
-                   for i = 1, 50 do G:spark(460, 790, (G.R:random() - 0.5) * 400, -200 - G.R:random() * 300, 2, {1, 0.95, 0.8}, 7, 500) end
+                   for i = 1, 50 do G:spark(490, 790, (G.R:random() - 0.5) * 400, -200 - G.R:random() * 300, 2, {1, 0.95, 0.8}, 7, 500) end
                  end},
                  {48, function() for i = 1, 3 do G:firework(200 + i * 120, 230, false) end end}}
 for t = 11, 20, 3 do CUES.football[#CUES.football + 1] = {t, "tick", 0.5} end
@@ -1028,7 +1236,8 @@ function D.pie(lt, len)
       local px, py = x, y
       local r = 44 + 18 * prog(lt, 42.5, 44)
       if lt > 40 and lt < 44 then px, py = L.path(lt, {{40, 384, 860}, {41.5, 140, 600}, {43, 140, 600}, {44, 384, 860}}) end
-      L.pac(px, py - hop, r, (lt > 40 and lt < 42.6) and pi * 0.75 or -pi / 2 * 0, S.t, munch and nil or ((lt > 41 and lt < 43) and 0.95 or 0.25))
+      local pdir = (lt > 40.5 and lt < 43) and -pi / 2 or 0
+      L.pac(px, py - hop, r, pdir, S.t, munch and nil or ((lt > 41 and lt < 43) and 0.95 or 0.25))
     else
       local mood = (lt > 42.5 and lt < 46) and "wide" or (munch and "happy" or nil)
       if who == 1 and lt > 22.5 and lt < 30 then mood = "wide" end
@@ -1050,17 +1259,17 @@ function D.pie(lt, len)
         lg.rectangle("fill", x - 58, y - 38, 16, 8, 3, 3, 4)
       end
     end
-    -- whipped cream on the slice, once Clyde's been by
+    -- the plate held at each guest's seat (Clyde leaves his plate at his seat l[1] while spraying!)
+    lg.setColor(0.96, 0.96, 0.98, 1)
+    lg.ellipse("fill", l[1], y + 54, 36, 10, 16)
+    -- whipped cream on the slice, synced to actual pie slices once Clyde's been by
     local sprayed = lt > 16 + (5 - i) * 1.2
     if sprayed and lt < 34 then
       lg.setColor(1, 1, 0.98, 1)
-      lg.circle("fill", l[1] - 8, y + 34, 10, 10)
-      lg.circle("fill", l[1] + 8, y + 34, 10, 10)
-      lg.circle("fill", l[1], y + 24, 9, 10)
+      lg.circle("fill", l[1] - 8, y + 40, 9, 10)
+      lg.circle("fill", l[1] + 8, y + 40, 9, 10)
+      lg.circle("fill", l[1], y + 32, 8, 10)
     end
-    -- the plate held up
-    lg.setColor(0.96, 0.96, 0.98, 1)
-    lg.ellipse("fill", x, y + 54, 36, 10, 16)
   end
   -- the slices in the air, and on the plates being eaten
   for n = 0, NSLICE - 1 do
@@ -1099,31 +1308,31 @@ for n = 0, NSLICE - 1 do
   CUES.pie[#CUES.pie + 1] = {t0 + 1, "pop", 0.4}
 end
 for k = 0, 4 do CUES.pie[#CUES.pie + 1] = {16 + k * 1.2, "tape", 0.35} end
-for n = 0, NSLICE - 1 do
-  local _, _, t0 = slice_plan(n)
-  CUES.pie[#CUES.pie + 1] = {t0, "whoosh", 0.4}
-  CUES.pie[#CUES.pie + 1] = {t0 + 1, "pop", 0.4}
-end
 
 -- ------------------------------------------------------------------ HAPPY THANKSGIVING
 function D.finale(lt, len)
   if not art("finale") then G:gradient(0, 0, W, H, {0.35, 0.15, 0.08}, {0.8, 0.42, 0.15}) end
   C.fx.glow(384, 460, 340, 260, 1, 0.65, 0.25, 0.35)
   turkey(384, 640, 2.2, 1, S.t, false, 1, false, true)
-  -- the cast hopping in, one by one, along the bottom
-  for i, who in ipairs({1, 2, 0, 3, 4}) do
-    local t0 = 2 + i * 1.4
+  -- the cast hopping in, one by one, along the bottom (including Sue in her chef hat!)
+  for i, who in ipairs({1, 2, 0, 3, 4, 5}) do
+    local t0 = 2 + i * 1.2
     if lt > t0 then
-      local x = 120 + (i - 1) * 132
+      local x = 84 + (i - 1) * 120
       local y = lerp(H + 60, 800, prog(lt, t0, t0 + 0.6)) - L.hop(lt + i * 0.2, 0.45, 20)
-      if who == 0 then L.pac(x, y, 40, 0, S.t, nil) else L.ghost(x, y, 38, GH[who], S.t + i, 0, -0.4, "happy") end
+      if who == 0 then
+        L.pac(x, y, 40, 0, S.t, nil)
+      else
+        L.ghost(x, y, 36, GH[who], S.t + i, 0, -0.4, "happy")
+        if who == 5 then chef_hat(x, y) end
+      end
     end
   end
   G:caption("HAPPY", 300, 56, 0xffffff, L.window(lt, 0.5, len, 1))
   G:caption("THANKSGIVING", 370, 72, 0xffb347, L.window(lt, 1, len, 1))
 end
 CAM.finale = function(lt) return L.shot(lt, {{0, 384, 512, 1}, {12, 384, 560, 1.12}, {20, 384, 512, 1}}, W, H) end
-CUES.finale = {{3.4, "pop"}, {4.8, "pop"}, {6.2, "pop"}, {7.6, "pop"}, {9, "pop"}, {10, "cheer"}}
+CUES.finale = {{3.2, "pop"}, {4.4, "pop"}, {5.6, "pop"}, {6.8, "pop"}, {8.0, "pop"}, {9.2, "pop"}, {10.2, "cheer"}}
 
 -- ------------------------------------------------------------------ the show
 function M.load(ctx)
@@ -1186,6 +1395,19 @@ function M.update(dt)
   if sc[2] == "pie" and G.R:random() < dt * 6 then
     local p = PIES[G.R:random(1, 3)]
     G:puff(p[2] + (G.R:random() - 0.5) * 80, p[3] - 10, {1, 1, 1}, 30, 4, 2, 6, 0.25)
+  end
+  -- running dust puffs during Turkey Chase
+  if sc[2] == "chase" and ((lt > 8 and lt < 15) or (lt > 24 and lt < 35) or (lt > 46 and lt < 56)) and G.R:random() < dt * 10 then
+    local tx, ty = L.path(lt, TURKEY)
+    G:puff(tx + (G.R:random() - 0.5) * 24, ty + 38, {0.82, 0.74, 0.55}, 18, (G.R:random() - 0.5) * 20, 0.9, 6, 0.3)
+  end
+  -- whipped-cream squirt sparks & pecan pie crumb bursts in Save Room for Pie
+  if sc[2] == "pie" and lt > 16 and lt < 23.4 and G.R:random() < dt * 18 then
+    local cx = cream_x(lt)
+    G:spark(cx - 56, 828, -90 - G.R:random() * 80, -40 + G.R:random() * 70, 0.55, {1, 1, 0.98}, 6, 240, false)
+  end
+  if sc[2] == "pie" and lt > 41 and lt < 42.6 and G.R:random() < dt * 24 then
+    G:spark(140 + (G.R:random() - 0.5) * 70, 540, (G.R:random() - 0.5) * 220, -100 - G.R:random() * 140, 0.8, {0.65, 0.4, 0.2}, 6, 360, false)
   end
   return S.t >= LEN
 end

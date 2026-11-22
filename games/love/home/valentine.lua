@@ -56,23 +56,29 @@ local function heart(x, y, s)
   lg.polygon("fill", x - s * 1.02, y + s * 0.14, x + s * 1.02, y + s * 0.14, x, y + s * 1.25)
 end
 
--- Ms. Pac-Man: the chomper, a bow, a beauty mark, lipstick.
+-- Ms. Pac-Man: the chomper, a bow, a beauty mark, lipstick on the lips (never floating inside open mouth).
 local function ms(x, y, r, dir, t, al)
   al = al or 1
   C.fx.chomper(x, y, r, dir, t, al)
   local d = dir > 0 and 1 or -1
+  local o = (t and t > 0) and ((0.15 + 0.85 * abs(sin(t * 14))) * 0.42) or 0.08
   lg.setColor(0.95, 0.1, 0.25, al)
   local bx, by = x + r * 0.15 * d, y - r * 0.92
   lg.polygon("fill", bx, by, bx - r * 0.5, by - r * 0.32, bx - r * 0.5, by + r * 0.28)
   lg.polygon("fill", bx, by, bx + r * 0.5, by - r * 0.32, bx + r * 0.5, by + r * 0.28)
   lg.setColor(0.3, 0.4, 1, al)
   lg.circle("fill", bx, by, r * 0.14, 10)
+  -- lipstick placed on upper & lower lip edges so it moves with the mouth
   lg.setColor(0.95, 0.1, 0.25, al)
-  lg.circle("fill", x + r * 0.62 * d, y + r * 0.08, r * 0.1, 8)
+  local lx = x + cos(o) * r * 0.92 * d
+  local ly = sin(o) * r * 0.92
+  lg.circle("fill", lx, y - ly, r * 0.09, 8)
+  lg.circle("fill", lx, y + ly, r * 0.09, 8)
   lg.setColor(0.1, 0.05, 0.1, al)
   lg.circle("fill", x - r * 0.25 * d, y + r * 0.35, r * 0.05, 6)
   lg.setLineWidth(max(1, r * 0.06))
   lg.line(x + r * 0.1 * d, y - r * 0.62, x + r * 0.25 * d, y - r * 0.78)
+  lg.setLineWidth(1)
 end
 
 local function blush(x, y, r, a)
@@ -124,10 +130,13 @@ function D.meet(lt, len)
   lg.rectangle("fill", 0, 0, W, H)
   lg.setColor(0.13, 0.2, 1, 1)
   lg.setLineWidth(5)
-  lg.rectangle("line", 20, 380, W - 40, 100, 18, 18, 8)
+  -- open center corridor (x = 300..468) in the upper wall so Pac-Man & Ms. Pac-Man hop into an open lane
+  lg.rectangle("line", 20, 380, 280, 100, 18, 18, 8)
+  lg.rectangle("line", 468, 380, 280, 100, 18, 18, 8)
   lg.rectangle("line", 20, 640, W - 40, 100, 18, 18, 8)
-  lg.rectangle("line", 300, 120, 168, 200, 18, 18, 8)
+  lg.rectangle("line", 300, 80, 168, 140, 18, 18, 8)
   lg.rectangle("line", 300, 800, 168, 150, 18, 18, 8)
+  lg.setLineWidth(1)
   local c = lt % 24
   local y = 560
   -- the dots ahead of them
@@ -157,8 +166,8 @@ function D.meet(lt, len)
       C.fx.ghost(W - gx, y, 30, GHOSTS[2], -1, S.t, false, false, 1)
     else
       local b = min((c - 9.6) * 2, 1)
-      C.fx.ghost(352 - b * 40, y + b * 20, 30, GHOSTS[3], 1, S.t, true, false, 1)
-      C.fx.ghost(416 + b * 40, y + b * 20, 30, GHOSTS[2], -1, S.t, true, false, 1)
+      L.ghost(352 - b * 40, y + b * 20, 30, GHOSTS[3], S.t, 1, 0, "wide")
+      L.ghost(416 + b * 40, y + b * 20, 30, GHOSTS[2], S.t, -1, 0, "wide")
       for i = 0, 3 do
         local an = S.t * 4 + i * pi / 2
         lg.setColor(1, 1, 0.4, 1)
@@ -167,6 +176,8 @@ function D.meet(lt, len)
     end
     if c > 10 then
       local hk = ease((c - 10) / 1)
+      blush(330 + j * 20, py, 30, hk)
+      blush(438 - j * 20, py, 30, hk)
       lg.setColor(RED[1], RED[2], RED[3], 1)
       heart(384, py - 90, 40 * hk * (1 + 0.08 * sin(S.t * 8)))
     end
@@ -212,25 +223,36 @@ function D.candy(lt, len)
     end
     lg.pop()
   end
-  -- the jar's glass over them
+  -- the jar's glass over them (lid tilted open while hearts rain in so they don't fall through a closed lid)
   lg.setColor(0.85, 0.95, 1, 0.22)
   lg.rectangle("fill", 170, 420, 428, 480, 30, 30, 12)
   lg.setColor(1, 1, 1, 0.5)
   lg.setLineWidth(4)
   lg.rectangle("line", 170, 420, 428, 480, 30, 30, 12)
   lg.rectangle("fill", 196, 450, 14, 380, 6, 6, 4)
+  lg.setLineWidth(1)
+  local lid_open = 1 - prog(lt, 60, 62)
+  lg.push()
+  lg.translate(568, 411)
+  lg.rotate(0.55 * lid_open)
   lg.setColor(0.85, 0.3, 0.45, 1)
-  lg.rectangle("fill", 200, 396, 368, 30, 8, 8, 4)
+  lg.rectangle("fill", -368, -15, 368, 30, 8, 8, 4)
+  lg.pop()
   local sn = lt % 16
   if sn > 9 and sn < 14 then
     local f = (sn - 9) / 5
-    local px = lerp(-60, 300, math.min(f * 2, 1))
-    if f > 0.6 then px = lerp(300, -60, (f - 0.6) / 0.4) end
-    C.fx.chomper(px, 820, 40, f > 0.6 and -1 or 1, S.t, 1)
-    if f > 0.45 and f < 0.6 then G:say("JUST ONE...", px, 760, 22, 1) end
+    local px = lerp(-60, 230, min(f * 2.2, 1))
+    if f > 0.6 then px = lerp(230, -60, (f - 0.6) / 0.4) end
+    local py = 820 - sin(clamp((f - 0.3) / 0.4, 0, 1) * pi) * 380
+    C.fx.chomper(px, py, 40, f > 0.6 and -1 or 1, S.t, 1)
+    if f > 0.55 then
+      rgba(CANDY[1])
+      heart(px - 28, py - 4, 14)
+    end
+    if f > 0.42 and f < 0.62 then G:say("JUST ONE...", px, py - 60, 22, 1) end
   end
-  -- the newest one, close up
-  local i = min(floor(lt / 4) + 1, n)
+  -- the newest fallen heart, close up (cycles through newly fallen hearts)
+  local i = clamp(floor(lt / 4) * 4 + 1, 1, n)
   local h = S.candy[i]
   local a = min(clamp((lt % 4) * 3, 0, 1), clamp((4 - lt % 4) * 3, 0, 1))
   rgba(h.c, a)
@@ -267,6 +289,16 @@ function D.card(lt, len)
   if trip then by = 800 + sin(clamp((lt - 7) / 0.5, 0, 1) * pi / 2) * 24 * (1 - clamp((lt - 9.5), 0, 1)) end
   S.card_bx, S.card_by = bx, by
   local open = clamp((lt - 22) / 3, 0, 1)
+  -- door swinging open with warm golden light spilling out
+  if open > 0 then
+    lg.setColor(1, 0.88, 0.55, 0.42 * open)
+    lg.rectangle("fill", 500, 660, 140, 260, 70, 70, 16)
+    lg.setColor(1, 0.85, 0.45, 0.16 * open)
+    lg.polygon("fill", 500, 920, 640, 920, 700, 1024, 420, 1024)
+    local dw = lerp(140, 22, open)
+    lg.setColor(0.38, 0.18, 0.32, 0.92)
+    lg.rectangle("fill", 640 - dw, 664, dw, 256, 8, 8, 4)
+  end
   local px = lerp(570, 520, open)
   -- after the YES (42): Pinky jumps; then the two twirl up round each other (46-56) and come down
   local py = 800 + sin(S.t * 2 + 1) * 6
@@ -292,24 +324,27 @@ function D.card(lt, len)
     C.fx.ghost(lerp(-60, 110, k), 860 - L.hop(S.t, 0.5, 14), 40, GHOSTS[3], 1, S.t, false, false, 1)
     C.fx.ghost(lerp(W + 60, 660, k), 860 - L.hop(S.t + 0.2, 0.5, 14), 40, GHOSTS[4], -1, S.t, false, false, 1)
   end
-  -- the card: offered, then read
-  local read = clamp((lt - 30) / 2, 0, 1)
-  local cx, cy = lerp(bx + 60, 384, read), lerp(by - 10, 360, read)
-  if trip then
-    local f = clamp((lt - 7.2) / 2.3, 0, 1)
-    cx, cy = lerp(bx + 60, bx + 70, f), by - 10 - sin(f * pi) * 260
-  end
-  local cw = lerp(60, 380, read)
-  lg.setColor(1, 0.95, 0.97, 1)
-  lg.rectangle("fill", cx - cw / 2, cy - cw * 0.35, cw, cw * 0.7, 6, 6, 4)
-  lg.setColor(RED[1], RED[2], RED[3], 1)
-  heart(cx, cy - cw * 0.18, cw * 0.12)
-  if read > 0.9 then
-    -- the lines, one at a time
-    if lt > 32 then G:text("ROSES ARE RED", cx - 180, cy - 30, 22, {0.8, 0.2, 0.35}, 1, "center", 360) end
-    if lt > 34.5 then G:text("PINKY, YOU'RE PINK", cx - 180, cy, 22, {0.8, 0.2, 0.35}, 1, "center", 360) end
-    if lt > 37 then G:text("WILL YOU BE MY PLAYER 2?", cx - 180, cy + 30, 22, {0.8, 0.2, 0.35}, 1, "center", 360) end
-    if lt > 37 then G:text("- B.", cx - 180, cy + 70, 18, {0.5, 0.3, 0.4}, 1, "right", 340) end
+  -- the card: offered, then read, then folded/faded out after 43s before they twirl
+  local card_a = 1 - lin(lt, 43, 45.2)
+  if card_a > 0 then
+    local read = clamp((lt - 30) / 2, 0, 1)
+    local cx, cy = lerp(bx + 60, 384, read), lerp(by - 10, 360, read)
+    if trip then
+      local f = clamp((lt - 7.2) / 2.3, 0, 1)
+      cx, cy = lerp(bx + 60, bx + 70, f), by - 10 - sin(f * pi) * 260
+    end
+    local cw = lerp(60, 380, read) * (0.25 + 0.75 * card_a)
+    lg.setColor(1, 0.95, 0.97, card_a)
+    lg.rectangle("fill", cx - cw / 2, cy - cw * 0.35, cw, cw * 0.7, 6, 6, 4)
+    lg.setColor(RED[1], RED[2], RED[3], card_a)
+    heart(cx, cy - cw * 0.18, cw * 0.12)
+    if read > 0.9 and card_a > 0.2 then
+      -- the lines, one at a time
+      if lt > 32 then G:text("ROSES ARE RED", cx - 180, cy - 30, 22, {0.8, 0.2, 0.35}, card_a, "center", 360) end
+      if lt > 34.5 then G:text("PINKY, YOU'RE PINK", cx - 180, cy, 22, {0.8, 0.2, 0.35}, card_a, "center", 360) end
+      if lt > 37 then G:text("WILL YOU BE MY PLAYER 2?", cx - 180, cy + 30, 22, {0.8, 0.2, 0.35}, card_a, "center", 360) end
+      if lt > 37 then G:text("- B.", cx - 180, cy + 70, 18, {0.5, 0.3, 0.4}, card_a, "right", 340) end
+    end
   end
   if trip and lt > 7.3 and lt < 9.5 then G:say("WHOA!", bx, by - 70, 24, 1) end
   if lt > 17 and lt < 21.5 then
@@ -322,7 +357,7 @@ function D.card(lt, len)
   if lt > 42 then
     local a = clamp((lt - 42) / 2, 0, 1)
     blush(bx, by, 44, a)
-    blush(px, 800, 44, a)
+    blush(px, py, 44, a)
     G:plate("SHE SAID YES", 900, 34, 0xff6fa8, L.window(lt, 44, len - 2, 1))
     for i = 1, 6 do
       local k = ((S.t * 0.4 + i / 6) % 1)
@@ -430,26 +465,21 @@ function D.diner(lt, len)
       heart((pxx + mxx) / 2 + f * 80, 760 - f * 160, 10 + k % 3 * 4)
     end
   end
-  -- Blinky skates back in to clear up (72-79), a wink
-  if lt > 72 then
-    local bx = L.path(lt, {{72, W + 100, 0}, {74.5, 450, 0}, {76.5, 450, 0}, {79, -120, 0}})
-    C.fx.ghost(bx, 700, 44, GHOSTS[1], -1, S.t, false, false, 1)
-    if lt > 74.5 and lt < 77 then G:say("TABLE FOR TWO? ANYTIME!", bx, 620, 20, 1) end
-  end
   if spotted then G:say("HEY!", 384, 600, 28, 1) end
   if not painted then
   lg.setColor(0.85, 0.85, 0.9, 1)
   lg.rectangle("fill", 160, 790, 448, 24, 6, 6, 4)
   lg.rectangle("fill", 370, 814, 28, 90)
   end
-  -- Blinky the waiter on roller skates (10-15): in from the right, a wobble, the shake set down
+  -- Blinky the waiter on roller skates (10-15): in from the right, a wobble, the shake set down, skates right off
   if lt > 9 and lt < 18 then
     local bx = L.path(lt, {{9, W + 100, 0}, {12.5, 470, 0}, {13, 450, 0}, {14.5, 450, 0}, {18, W + 120, 0}})
     local wob = (lt > 12 and lt < 13.5) and sin(lt * 30) * 0.3 or 0
+    local bdir = lt > 14.5 and 1 or -1
     lg.push()
     lg.translate(bx, 700)
     lg.rotate(wob)
-    C.fx.ghost(0, 0, 44, GHOSTS[1], -1, S.t, false, false, 1)
+    C.fx.ghost(0, 0, 44, GHOSTS[1], bdir, S.t, false, false, 1)
     lg.setColor(1, 1, 1, 1)
     lg.rectangle("fill", -30, -60, 60, 14, 4, 4, 4)
     lg.setColor(0.3, 0.3, 0.35, 1)
@@ -463,37 +493,64 @@ function D.diner(lt, len)
     lg.pop()
   end
   if lt < 13 then return end
-  -- the milkshake, two straws: sipped down in steps (a sip each 3 s, 16-46), the last together (58)
+  -- the milkshake, two straws: sipped down in steps (a sip each 3 s, 16-46), the last together (58), cleared by Blinky at 75.5
   local sips = floor(clamp((lt - 16) / 3, 0, 10))
   local level = lt < 58 and (1 - sips * 0.08) or (1 - 0.8 - 0.12 * prog(lt, 58, 61))
-  local turn = floor(lt / 3) % 2
-  lg.setColor(0.9, 0.9, 0.95, 0.6)
-  lg.polygon("fill", 344, 680, 424, 680, 410, 790, 358, 790)
-  lg.setColor(1, 0.7, 0.8, 1)
-  local top = 790 - 110 * level
-  lg.polygon("fill", 358 - (790 - top) * 0.13 + 0, top, 410 + (790 - top) * 0.13, top, 410, 790, 358, 790)
-  lg.setColor(1, 1, 1, 1)
-  lg.circle("fill", 384, top - 4, 22, 16)
-  lg.setColor(0.9, 0.1, 0.2, 1)
-  if lt < len - 12 then
-    lg.circle("fill", 384, top - 26, 8, 10)
-  else
-    local f = clamp((lt - (len - 12)) / 1.2, 0, 1)
-    lg.arc("fill", "pie", lerp(384, 250, f), lerp(top - 26, 720, f), 8, pi / 2, 3 * pi / 2, 8)
-    lg.arc("fill", "pie", lerp(384, 518, f), lerp(top - 26, 720, f), 8, -pi / 2, pi / 2, 8)
+  local turn = floor((lt - 16) / 3) % 2
+  if lt < 75.5 then
+    lg.setColor(0.9, 0.9, 0.95, 0.6)
+    lg.polygon("fill", 344, 680, 424, 680, 410, 790, 358, 790)
+    lg.setColor(1, 0.7, 0.8, 1)
+    local top = 790 - 110 * level
+    lg.polygon("fill", 358 - (790 - top) * 0.13, top, 410 + (790 - top) * 0.13, top, 410, 790, 358, 790)
+    lg.setColor(1, 1, 1, 1)
+    lg.circle("fill", 384, top - 4, 22, 16)
+    -- cherry splits at 61..65s (BEFORE they leave at 66s!)
+    lg.setColor(0.9, 0.1, 0.2, 1)
+    if lt < 61 then
+      lg.circle("fill", 384, top - 26, 8, 10)
+    elseif lt < 65.5 then
+      local f = clamp((lt - 61) / 1.5, 0, 1)
+      lg.arc("fill", "pie", lerp(384, 250, f), lerp(top - 26, 720, f), 8, pi / 2, 3 * pi / 2, 8)
+      lg.arc("fill", "pie", lerp(384, 518, f), lerp(top - 26, 720, f), 8, -pi / 2, pi / 2, 8)
+    end
+    if lt > 16 and lt < 65 then
+      for k = 0, 2 do
+        local f = (S.t * 2 + k / 3) % 1
+        lg.setColor(1, 0.85, 0.9, 0.8)
+        if turn == 0 then lg.circle("fill", lerp(372, 300, f), lerp(top, 660, f), 4, 6)
+        else lg.circle("fill", lerp(396, 470, f), lerp(top, 660, f), 4, 6) end
+      end
+    end
+    lg.setLineWidth(5)
+    lg.setColor(1, 0.4, 0.6, 1)
+    lg.line(372, top, 330, 640, 272, 700)
+    lg.setColor(0.4, 0.8, 1, 1)
+    lg.line(396, top, 440, 640, 500, 700)
+    lg.setLineWidth(1)
   end
-  for k = 0, 2 do
-    local f = (S.t * 2 + k / 3) % 1
-    lg.setColor(1, 0.85, 0.9, 0.8)
-    if turn == 0 then lg.circle("fill", lerp(372, 300, f), lerp(top, 660, f), 4, 6)
-    else lg.circle("fill", lerp(396, 470, f), lerp(top, 660, f), 4, 6) end
+  -- Blinky skates back in front of the table to clear up (72-79), picking up the glass on his tray at 75.5
+  if lt > 72 then
+    local bx = L.path(lt, {{72, W + 100, 0}, {74.5, 450, 0}, {76.5, 450, 0}, {79, -120, 0}})
+    lg.push()
+    lg.translate(bx, 700)
+    C.fx.ghost(0, 0, 44, GHOSTS[1], -1, S.t, false, false, 1)
+    lg.setColor(1, 1, 1, 1)
+    lg.rectangle("fill", -30, -60, 60, 14, 4, 4, 4)
+    lg.setColor(0.3, 0.3, 0.35, 1)
+    for k = -1, 1, 2 do lg.circle("fill", k * 20, 52, 8, 10) end
+    if lt >= 75.5 then
+      -- tray & empty glass picked up cleanly
+      lg.setColor(0.75, 0.78, 0.85, 1)
+      lg.rectangle("fill", -56, -54, 48, 6, 3, 3, 4)
+      lg.setColor(0.9, 0.9, 0.95, 0.7)
+      lg.polygon("fill", -48, -104, -18, -104, -24, -54, -42, -54)
+      lg.setColor(1, 0.7, 0.8, 0.8)
+      lg.polygon("fill", -43, -64, -23, -64, -24, -54, -42, -54)
+    end
+    lg.pop()
+    if lt > 74.5 and lt < 77 then G:say("TABLE FOR TWO? ANYTIME!", bx, 620, 20, 1) end
   end
-  lg.setColor(1, 1, 1, 1)
-  lg.setLineWidth(5)
-  lg.setColor(1, 0.4, 0.6, 1)
-  lg.line(372, top, 330, 640, 272, 700)
-  lg.setColor(0.4, 0.8, 1, 1)
-  lg.line(396, top, 440, 640, 500, 700)
   -- the jukebox's notes, hearts over the table
   for i = 1, 5 do
     local k = (S.t * 0.25 + i / 5) % 1
@@ -501,7 +558,7 @@ function D.diner(lt, len)
     heart(384 + sin(i * 3 + S.t) * 80, 660 - k * 260, 10 + (i % 3) * 4)
   end
   if peek > 0.5 and peek < 4 then G:say("AWWW!", 180, 470, 24, 1) end
-  if lt > len - 11 and lt < len - 7 then G:say("HALF FOR YOU.", 548, 650, 22, 1) end
+  if lt > 61.5 and lt < 65 then G:say("HALF FOR YOU.", 548, 650, 22, 1) end
   if lt > 12.5 and lt < 15 then G:say("ONE SHAKE, TWO STRAWS!", 450, 560, 22, 1) end
   if lt > 22 and lt < 25 then G:say("SLUUURP!", turn == 0 and 220 or 548, 650, 22, 1) end
   if lt > 36 and lt < 39 then G:say("OUR SONG!", 548, 650, 24, 1) end
@@ -524,9 +581,9 @@ local function heart_pt(u, cx, cy, sc)
   return cx + x * sc, cy - y * sc
 end
 
--- the dots go round twice: the second time the ghosts chase them round (59 s later)
+-- the dots go round twice: the second time the ghosts chase them round
 -- (each round: eaten from 3 s to 27 s, the meeting at 27; the second round starts at 46)
-local function dots_t(lt) if lt < 46 then return lt, 1 end return lt - 43, 2 end
+local function dots_t(lt) if lt < 46 then return lt, 1 end return lt - 46, 2 end
 function D.dots(lt, len)
   lg.setColor(0, 0, 0, 1)
   lg.rectangle("fill", 0, 0, W, H)
@@ -617,8 +674,9 @@ CAM.meet = function(lt)
   return L.shot(c, {{0, 384, 560, 1.15}, {7, 384, 560, 1.5}, {9, 384, 470, 1.7}, {14, 384, 470, 1.6}, {20, 384, 540, 1.2}}, W, H)
 end
 CAM.candy = function(lt)
-  local c = lt % 8
-  return L.shot(c, {{0, 384, 300, 1.4}, {3, 384, 260, 1.5}, {4, 384, 640, 1.2}, {7, 384, 700, 1.4}, {8, 384, 300, 1.4}}, W, H)
+  local sn = lt % 16
+  return L.shot(sn, {{0, 384, 280, 1.4}, {3.5, 384, 280, 1.4}, {5, 384, 620, 1.2}, {8.5, 384, 620, 1.2},
+                     {9.5, 300, 640, 1.15}, {14, 300, 640, 1.15}, {15.2, 384, 280, 1.4}, {16, 384, 280, 1.4}}, W, H)
 end
 CAM.card = function(lt)
   local bx, by = S.card_bx or 0, S.card_by or 800
@@ -628,7 +686,7 @@ CAM.card = function(lt)
                      {58, 384, 760, 1.1}, {66, 384, 700, 1.1}, {70, 384, 512, 1}}, W, H)
 end
 CAM.diner = function(lt)
-  local turn = floor(lt / 3) % 2
+  local turn = floor((lt - 16) / 3) % 2
   if lt < 9.5 then return L.shot(0, {{0, 384, 512, 1}}, W, H) end
   if lt < 16 then return L.shot(lt, {{9.5, 520, 680, 1.4}, {13, 430, 700, 1.5}, {16, 384, 720, 1.4}}, W, H) end
   if lt > 27.5 and lt < 31.5 then return L.shot(0, {{0, 260, 720, 1.8}}, W, H) end
@@ -637,7 +695,8 @@ CAM.diner = function(lt)
   if lt > 57 then return L.shot(lt, {{57, 384, 700, 1.6}, {64, 384, 700, 1.6}, {67, 384, 760, 1.3}, {71, 260, 780, 1.4}, {74, 430, 700, 1.4}, {80, 384, 560, 1.1}}, W, H) end
   return L.shot(0, {{0, turn == 0 and 300 or 468, 720, 1.55}}, W, H)
 end
-CUES.card = {{32, "ding", 0.5}, {34.5, "ding", 0.5}, {37, "chime"}, {39, "tick", 0.5}, {40, "tick", 0.5}, {41, "tick", 0.5},
+CUES.card = {{7.2, "boing"}, {17.2, "tick", 0.6}, {17.6, "tick", 0.6}, {22, "clunk", 0.6},
+             {32, "ding", 0.5}, {34.5, "ding", 0.5}, {37, "chime"}, {39, "tick", 0.5}, {40, "tick", 0.5}, {41, "tick", 0.5},
              {42, "power"}, {42.1, "cheer", 0.6}, {46, "whoosh", 0.5}, {51, "whoosh", 0.4}, {55, "chime", 0.5}, {57, "boom", 0.4},
              {57.3, "cheer"}}
 CUES.card[#CUES.card + 1] = {42, function()
@@ -658,7 +717,7 @@ CUES.finale = {{1, "chime"}, {6, "pop", 0.5}, {7, "pop", 0.5}, {8, "pop", 0.5}, 
                {19, "whoosh", 0.4}, {24, "ding"}, {26, "boing", 0.4}, {30, "chime"}, {36, "chime", 0.5}}
 CUES.diner = {{28, "boing"}, {28.2, "boo", 0.4}, {9.5, "whoosh"}, {12.5, "boing"}, {13, "ding"}, {35, "clunk"}, {35.3, "chime"}, {46, "pop", 0.4}, {50, "boing"},
               {52, "pop", 0.4}, {58, "pop", 0.6}, {61, "ding"}, {66, "chime"}, {69, "whoosh", 0.4}, {72, "whoosh"}, {74.5, "ding"}}
-for k = 1, 10 do CUES.diner[#CUES.diner + 1] = {16 + k * 3, "pop", 0.3} end
+for k = 0, 9 do CUES.diner[#CUES.diner + 1] = {16 + k * 3, "pop", 0.3} end
 CAM.dots = function(lt)
   lt = dots_t(lt)
   if lt > 3 and lt < 27 then
@@ -679,19 +738,23 @@ function D.finale(lt, len)
   floaters(1)
   lg.setColor(RED[1], RED[2], RED[3], 1)
   heart(384, 300, 110 * (1 + 0.05 * sin(S.t * 6)))
-  -- the two of them: a little dance (round each other), then off together, the hearts trailing
-  local px, mx, py = 300, 468, 760
+  -- the two of them: a little dance (3 full revolutions so 24s ends cleanly with zero teleport), then off together
+  local px, mx, py, my = 300, 468, 760, 760
+  local pdir, mdir = 1, -1
   if lt > 14 and lt < 24 then
-    local a2 = (lt - 14) * 2
+    local a2 = (lt - 14) / 10 * (2 * pi * 3)
     px, mx = 384 - cos(a2) * 84, 384 + cos(a2) * 84
-    py = 760 + sin(a2) * 30
+    py, my = 760 + sin(a2) * 30, 760 - sin(a2) * 30
+    pdir = sin(a2) >= 0 and 1 or -1
+    mdir = -pdir
   end
   if lt > 26 then
     local f = clamp((lt - 26) / 10, 0, 1)
     px, mx = lerp(300, W + 120, f), lerp(468, W + 200, f)
+    pdir, mdir = 1, 1
   end
-  C.fx.chomper(px, py, 40, 1, lt > 26 and S.t or 0, 1)
-  ms(mx, lt > 14 and lt < 24 and 760 - sin((lt - 14) * 2) * 30 or 760, 40, lt > 26 and 1 or -1, lt > 26 and S.t or 0, 1)
+  C.fx.chomper(px, py, 40, pdir, lt > 26 and S.t or 0, 1)
+  ms(mx, my, 40, mdir, lt > 26 and S.t or 0, 1)
   if lt > 26 then
     for k = 1, 6 do
       local f = (S.t * 0.8 + k / 6) % 1
@@ -703,8 +766,7 @@ function D.finale(lt, len)
     local throw = lt > 6 and lt < 12
     C.fx.ghost(120 + (i - 1) * 176, 880 + sin(S.t * 2 + i) * 4 - (throw and abs(sin(S.t * 8 + i)) * 24 or 0), 30, GHOSTS[i], i <= 2 and 1 or -1, S.t + i, false, false, 1)
   end
-  if lt > 6 and lt < 12 then G:confetti(2, {PINK, RED, {1, 1, 1}}) end
-  if lt > 30 and lt < 34 then G:say("PLAYER 2, READY!", 600, 660, 22, 1) end
+  if lt > 30 and lt < 34 then G:say("PLAYER 2, READY!", clamp(mx, 120, W - 120), 690, 22, 1) end
   G:caption("HAPPY", 480, 50, 0xffffff, L.window(lt, 0.5, len, 1))
   G:caption("VALENTINE'S DAY", 560, 64, 0xff6fa8, L.window(lt, 1, len, 1))
 end
@@ -735,16 +797,16 @@ function M.start(seed, at)
     S.floaters[i] = {R:random() * W, R:random() * H, 20 + R:random() * 40,
                      ({PINK, RED, {1, 0.8, 0.9}})[R:random(3)], 8 + R:random() * 14}
   end
-  -- the pile in the jar: rows from the bottom, a little ragged
+  -- the pile in the jar: rows from the bottom, capped cleanly below the lid
   for i = 1, 60 do
     local row, col = floor((i - 1) / 5), (i - 1) % 5
-    S.candy[i] = {x = 220 + col * 82 + (row % 2) * 30 + (R:random() - 0.5) * 16, y = 860 - row * 42 + (R:random() - 0.5) * 10,
+    S.candy[i] = {x = 220 + col * 82 + (row % 2) * 30 + (R:random() - 0.5) * 16, y = max(475, 860 - row * 34 + (R:random() - 0.5) * 8),
                   rot = (R:random() - 0.5) * 1.2, c = CANDY[R:random(#CANDY)], say = SAYINGS[(i * 7) % #SAYINGS + 1]}
   end
-  for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
-  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8}, {"SWEETHEARTS", 80, 0xff6fa8},
-                      {"HAPPY", 50, 0xffffff}, {"VALENTINE'S DAY", 64, 0xff6fa8}, {"SHE SAID YES", 34, 0xff6fa8}}) do
-    G:label(l[1], l[2], l[3])
+  for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff, s[1]) end end
+  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8, 0}, {"SWEETHEARTS", 80, 0xff6fa8, 0},
+                      {"HAPPY", 50, 0xffffff, 380}, {"VALENTINE'S DAY", 64, 0xff6fa8, 380}, {"SHE SAID YES", 34, 0xff6fa8, 140}}) do
+    G:label(l[1], l[2], l[3], l[4])
   end
 end
 
@@ -767,8 +829,6 @@ function M.update(dt)
     if c >= 10 and c - dt < 10 then C.sfx("pop") end
   elseif sc[2] == "candy" then
     if lt % 1 < dt and lt > 1 then C.sfx("pop", 0.3) end
-  elseif sc[2] == "card" then
-    if G:at(SCENES[4][1] + 44) then C.sfx("cheer", 0.6) end
   elseif sc[2] == "dots" then
     lt = dots_t(lt)
     local done = lt - 27
@@ -785,8 +845,9 @@ function M.update(dt)
     if done >= 0 and done - dt < 0 then C.sfx("power") end
     if done > 3 and (lt * 2) % 3 < dt * 2 then
       G:firework(120 + G.R:random() * 528, 160 + G.R:random() * 300, S.t > 290 + 75, {PINK, RED, {1, 1, 1}})
-      C.sfx("crackle", 0.4)
     end
+  elseif sc[2] == "finale" then
+    if lt > 6 and lt < 12 then G:confetti(2, {PINK, RED, {1, 1, 1}}) end
   end
   return S.t >= LEN
 end

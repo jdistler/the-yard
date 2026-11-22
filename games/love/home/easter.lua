@@ -63,6 +63,18 @@ end
 local function bunny(x, y, s, hop, a)
   a = a or 1
   local yy = y - abs(sin(hop)) * 60 * s
+  -- woven backpack basket with peeking pastel eggs
+  lg.setColor(0.72, 0.52, 0.26, a)
+  lg.rectangle("fill", x - 34 * s, yy - 46 * s, 30 * s, 26 * s, 5 * s, 5 * s, 4)
+  lg.setColor(0.54, 0.36, 0.16, a)
+  lg.setLineWidth(max(1, 2 * s))
+  lg.line(x - 34 * s, yy - 33 * s, x - 4 * s, yy - 33 * s)
+  lg.line(x - 19 * s, yy - 46 * s, x - 19 * s, yy - 20 * s)
+  lg.setLineWidth(1)
+  for k = 0, 2 do
+    rgba(PASTEL[k + 1], a)
+    lg.ellipse("fill", x - 27 * s + k * 8 * s, yy - 48 * s, 5 * s, 7 * s, 10)
+  end
   lg.setColor(0.97, 0.97, 0.97, a)
   lg.ellipse("fill", x, yy, 46 * s, 38 * s, 20)
   lg.circle("fill", x + 40 * s, yy - 36 * s, 26 * s, 18)
@@ -153,21 +165,35 @@ function D.hunt(lt, len)
   local per2 = (len - 6) / #S.eggs
   if found >= 5 and lt < 2 + 5 * per2 + 2.5 then G:say("...A ROCK.", px, py - 80, 22, 1) end
   if found >= #S.eggs and lt > 2 + #S.eggs * per2 then G:say("THE GOLDEN EGG!", px, py - 80, 24, 1) end
-  -- the basket in the corner with its count
-  lg.setColor(0.7, 0.5, 0.25, 1)
-  lg.rectangle("fill", 560, 880, 160, 80, 10, 10, 6)
-  lg.setLineWidth(6)
-  lg.arc("line", "open", 640, 880, 70, pi, 2 * pi, 20)
-  for j = 1, min(found, 12) do
-    local e = S.eggs[j]
-    egg(578 + ((j - 1) % 6) * 25, 876 - floor((j - 1) / 6) * 16, 14, e[3], e[4])
-  end
-  G:text(found .. " / " .. #S.eggs, 560, 968, 24, {1, 1, 1}, 1, "center", 160)
-  -- a ghost hides the last one again, now and then
+  -- the HUD basket in the corner drawn in screen space via after_cam so camera tracking never clips it
+  G:after_cam(function()
+    lg.setColor(0.7, 0.5, 0.25, 1)
+    lg.rectangle("fill", 560, 850, 160, 80, 10, 10, 6)
+    lg.setLineWidth(6)
+    lg.arc("line", "open", 640, 850, 70, pi, 2 * pi, 20)
+    lg.setLineWidth(1)
+    for j = 1, min(found, 12) do
+      local e = S.eggs[j]
+      local bx = 578 + ((j - 1) % 6) * 25
+      local by = 846 - floor((j - 1) / 6) * 16
+      if j == 5 then
+        lg.setColor(0.6, 0.58, 0.55, 1)
+        lg.ellipse("fill", bx, by, 12, 9, 12)
+      elseif j == 12 then
+        C.fx.glow(bx, by, 26, 26, 1, 0.85, 0.3, 0.55 + 0.25 * sin(S.t * 5))
+        egg(bx, by, 14, {1, 0.82, 0.25}, {1, 1, 0.8})
+      else
+        egg(bx, by, 14, e[3], e[4])
+      end
+    end
+    G:text(found .. " / " .. #S.eggs, 560, 936, 24, {1, 1, 1}, 1, "center", 160)
+  end)
+  -- Clyde sneaking across with a visible decoy egg to hide
   local g = lt % 15
   if g < 4 then
     local gx = 680 - g * 20
-    C.fx.ghost(gx, 640, 24, GHOSTS[4], -1, S.t, false, false, 0.7)
+    C.fx.ghost(gx, 640, 24, GHOSTS[4], -1, S.t, false, false, 0.85)
+    egg(gx - 22, 646, 12, PASTEL[3], PASTEL[1], 0.9)
   end
 end
 
@@ -207,34 +233,52 @@ function D.dye(lt, len)
   lg.setColor(0.6, 0.6, 0.65, 1)
   lg.setLineWidth(3)
   lg.line(x, y - 120, x, y + 20)
+  lg.setLineWidth(1)
   egg(x, y, 40, c, k > 0.5 and {1, 1, 1} or nil)
-  -- Pinky beside the cup, watching every dip and cheering the colour
+  -- translucent cup front layer so the dipped egg visibly submerges inside the dye
+  rgba(cols[i], 0.36)
+  lg.rectangle("fill", x - 40, 590, 80, 76, 4, 4, 4)
+  lg.setColor(1, 1, 1, 0.28)
+  lg.rectangle("fill", x - 34, 570, 10, 86, 4, 4, 4)
+  -- dripping dye droplets as the egg lifts out
+  if k > 0.72 then
+    rgba(cols[i], 0.9)
+    for d = 0, 2 do
+      local df = ((k - 0.72) * 5 + d * 0.33) % 1
+      lg.circle("fill", x - 10 + d * 10, y + 36 + df * max(10, 600 - (y + 36)), 3.5, 6)
+    end
+  end
+  -- Pinky beside the cup (flips to x - 90 on Cup 5/6 so she isn't clipped off right edge)
   local cheer = k > 0.5 and k < 0.75
-  C.fx.ghost(x + 90, 520 - (cheer and abs(sin(S.t * 12)) * 20 or 0), 30, GHOSTS[2], -1, S.t, false, false, 1)
-  if cheer then G:say(({"PINK!", "BLUE!", "YELLOW!", "GREEN!", "PURPLE!", "ORANGE!"})[i], x + 90, 470, 22, 1) end
+  local pside = i >= 5 and -1 or 1
+  local px = x + pside * 90
+  C.fx.ghost(px, 520 - (cheer and abs(sin(S.t * 12)) * 20 or 0), 30, GHOSTS[2], -pside, S.t, false, false, 1)
+  if cheer then G:say(({"PINK!", "BLUE!", "YELLOW!", "GREEN!", "PURPLE!", "ORANGE!"})[i], px, 470, 22, 1) end
   -- the done ones, drying
   for j = 1, min(floor(lt / per), 12) do
     local cc = cols[(j - 1) % 6 + 1]
     egg(80 + (j - 1) * 56, 860 + (j % 2) * 30, 26, cc, PASTEL[j % 6 + 1])
   end
-  -- Pinky's slip (35-40): an egg dropped in the purple, a spatter up the wall and over her
-  if lt > 35 and lt < 41 then
-    local f = clamp((lt - 35) / 0.6, 0, 1)
-    rgba({0.65, 0.4, 0.95}, 0.85)
+  -- Pinky's purple slip (30.5-36s, during Cup #5 Purple!): a spatter up the wall
+  if lt > 30.5 and lt < 36 then
+    local f = clamp((lt - 30.5) / 0.6, 0, 1)
+    rgba({0.65, 0.4, 0.95}, 0.85 * (1 - lin(lt, 35, 36)))
     for j = 1, 14 do
       local a = -pi / 2 + (j - 7) * 0.18
       lg.circle("fill", 564 + cos(a) * 160 * f, 600 + sin(a) * 220 * f, 8 + (j % 3) * 4, 10)
     end
-    if lt < 38 then G:say("OOPS!", 650, 470, 26, 1) end
+    if lt < 33.5 then G:say("OOPS!", 474, 470, 26, 1) end
   end
-  -- Inky, every half minute, dips himself
+  -- Inky, every half minute, dips himself into Cup #6 Orange (x = 684) and turns orange!
   local g = lt % 30
   if g > 18 and g < 28 then
     local gk = (g - 18) / 10
     local gy = gk < 0.3 and lerp(300, 600, ease(gk / 0.3)) or gk < 0.5 and 600 or lerp(600, 380, ease((gk - 0.5) / 0.5))
-    local gc = gk < 0.4 and GHOSTS[3] or {0.65, 0.4, 0.95}
+    local gc = gk < 0.4 and GHOSTS[3] or cols[6]
     C.fx.ghost(684, gy, 34, gc, -1, S.t, false, false, 1)
-    if gk > 0.6 then G:text("...PURPLE NOW", 470, gy - 90, 26, {0.5, 0.3, 0.8}, 1, "center", 300) end
+    rgba(cols[6], 0.36)
+    lg.rectangle("fill", 684 - 40, 590, 80, 76, 4, 4, 4)
+    if gk > 0.6 then G:text("...CLYDE?!", 470, gy - 90, 26, {0.95, 0.48, 0.12}, 1, "center", 300) end
   end
 end
 
@@ -257,28 +301,32 @@ function D.bunny(lt, len)
   if stop then x0 = lerp(-120, W + 600, 12 / 30) hop = 0 end
   if c >= 17 then x0 = lerp(-120, W + 600, (c - 5) / 30) end
   S.bun_x = x0
+  -- trail eggs on the grass BEHIND the hopping cast
+  for i, e in ipairs(S.trail) do
+    if e[1] < x0 - 60 then egg(e[1], e[2], 18, e[3], e[4]) end
+  end
   bunny(x0, 820, 1.2, hop)
+  local unbunch = (c >= 17 and c < 18.5) and (1 - prog(c, 17, 18.5)) or 0
   for i, col in ipairs(GHOSTS) do
     local gx = x0 - 150 - (i - 1) * 110
     local gy = 820 - abs(sin(hop - i * 0.6)) * 60
-    if stop then
-      -- bump: each into the one ahead, squashed up
-      local f = clamp((c - 12 - i * 0.25) / 0.4, 0, 1)
+    if stop or unbunch > 0 then
+      local f = stop and clamp((c - 12 - i * 0.25) / 0.4, 0, 1) or unbunch
       gx = lerp(gx, x0 - 90 - (i - 1) * 50, f)
-      gy = 820 - (c < 15 and f * 30 * (i % 2) or 0)
+      if stop then gy = 820 - (c < 15 and f * 30 * (i % 2) or 0) end
     end
     C.fx.ghost(gx, gy, 30, col, 1, S.t, false, false, 1)
     ears(gx, gy, 30, 1)
   end
   local px = x0 - 150 - 4 * 110
-  if stop then px = lerp(px, x0 - 300, clamp((c - 13.2) / 0.4, 0, 1)) end
-  C.fx.chomper(px, 830 - abs(sin(hop - 3)) * 60, 30, 1, S.t, 1)
-  ears(px, 830 - abs(sin(hop - 3)) * 60, 30, 1)
-  if stop and c > 13.5 and c < 16 then G:say("BONK! BONK! BONK!", x0 - 200, 700, 22, 1) end
-  -- eggs left behind where the bunny's been
-  for i, e in ipairs(S.trail) do
-    if e[1] < x0 - 60 then egg(e[1], e[2], 18, e[3], e[4]) end
+  if stop or unbunch > 0 then
+    local pf = stop and clamp((c - 13.2) / 0.4, 0, 1) or unbunch
+    px = lerp(px, x0 - 300, pf)
   end
+  local py = 830 - abs(sin(hop - 3)) * 60
+  C.fx.chomper(px, py, 30, 1, S.t, 1)
+  ears(px, py, 30, 1)
+  if stop and c > 13.5 and c < 16 then G:say("BONK! BONK! BONK!", x0 - 200, 700, 22, 1) end
 end
 
 CAM.bunny = function(lt)
@@ -308,7 +356,9 @@ local function pac_pos(lt)
   end
   if lt < CHASE0 then return L.path(lt, {{SNEAK[4] + 4.5, CA_SPOTS[4][1] - 80, CA_SPOTS[4][2]}, {CHASE0, 384 + 250, 820}}) end
   if lt < CHASE1 then return chase_pos(lt, 0) end
-  return 384, 860
+  local cx, cy = chase_pos(CHASE1, 0)
+  local f = prog(lt, CHASE1, CHASE1 + 1.0)
+  return lerp(cx, 384, f), lerp(cy, 860, f)
 end
 -- every crack: {time, target (0 Pac-Man, 1-4 a ghost), colour}
 local function ca_cracks()
@@ -321,8 +371,16 @@ end
 local CA_CRACKS = ca_cracks()
 local function target_pos(lt, who)
   if who == 0 then return pac_pos(lt) end
-  if lt > CHASE0 and lt < CHASE1 then return chase_pos(lt, who) end
-  if lt >= CHASE1 then return 384 + (who - 2.5) * 150, 880 end
+  if lt > CHASE0 and lt < CHASE1 then
+    local cx, cy = chase_pos(lt, who)
+    local fin = prog(lt, CHASE0, CHASE0 + 1.2)
+    return lerp(CA_SPOTS[who][1], cx, fin), lerp(CA_SPOTS[who][2], cy, fin)
+  end
+  if lt >= CHASE1 then
+    local cx, cy = chase_pos(CHASE1, who)
+    local fout = prog(lt, CHASE1, CHASE1 + 1.4)
+    return lerp(cx, 384 + (who - 2.5) * 150, fout), lerp(cy, 880, fout)
+  end
   return CA_SPOTS[who][1], CA_SPOTS[who][2]
 end
 function D.cascarones(lt, len)
@@ -365,15 +423,17 @@ function D.cascarones(lt, len)
     local happy = lt > CHASE1
     local chasing = lt > CHASE0 and lt < CHASE1
     local hop = (chasing or happy) and L.hop(S.t + k * 0.3, 0.4, 14) or 0
-    C.fx.ghost(x, y - 50 - jump - hop, 54, GHOSTS[k], chasing and -1 or (turned and -1 or 1), S.t + k, false, false, 1)
+    local ga = (lt - CHASE0) * 1.1 - k * 0.55
+    local gdir = chasing and (sin(ga) > 0 and -1 or 1) or (turned and -1 or 1)
+    C.fx.ghost(x, y - 50 - jump - hop, 54, GHOSTS[k], gdir, S.t + k, false, false, 1)
     -- armed: an egg held up
-    if chasing then egg(x + 30, y - 120 - hop, 18, CA_COLS[k], {1, 1, 1}) end
+    if chasing then egg(x + gdir * 30, y - 120 - hop, 18, CA_COLS[k], {1, 1, 1}) end
   end
   -- Pac-Man: the carton under his arm, sneaking (slow), the egg up; or buried in confetti, then out
   local px, py = pac_pos(lt)
-  local buried = lt > CHASE1 - 0.5 and lt < 64
+  local buried = lt > CHASE1 + 0.2 and lt < 64
   if buried then
-    local mound = clamp((lt - (CHASE1 - 0.5)) / 1.5, 0, 1)
+    local mound = clamp((lt - (CHASE1 + 0.2)) / 1.5, 0, 1)
     for j = 1, 90 do
       local a = j * 2.4
       local r = (j % 30) * 2.4 * mound
@@ -394,20 +454,37 @@ function D.cascarones(lt, len)
       if lt > t0 - 1 and lt < t0 then egg(px + 40, py - 140, 22, CA_COLS[k], {1, 1, 1}) end
     end
   end
-  -- the cracks: the egg down, CRACK, a burst
+  -- the cracks: normal eggs drop onto heads; finale eggs (70..72) arc UP into an overhead rainbow confetti shower!
   for _, c in ipairs(CA_CRACKS) do
     local k = lt - c[1]
+    local is_finale = c[1] >= 70
     if k > -0.5 and k < 2 then
       local x, y = target_pos(c[1], c[2])
-      if k < 0 then egg(x, y - 130 + k * 40, 24, c[3], {1, 1, 1})
-      else
-        for j = 1, 50 do
-          local an = j * 2.4
-          local r = (20 + k * 110) * (0.4 + (j % 7) / 7)
-          rgba(CA_COLS[j % 6 + 1], clamp(2 - k, 0, 1))
-          lg.rectangle("fill", x + cos(an) * r, y - 90 + sin(an) * r * 0.7 + k * k * 40 * (j % 3), 10, 10)
+      if is_finale then
+        local peak_y = y - 360
+        if k < 0 then
+          local f = (k + 0.5) / 0.5
+          egg(x, lerp(y - 90, peak_y, ease(f)), 24, c[3], {1, 1, 1})
+        else
+          for j = 1, 50 do
+            local an = j * 2.4
+            local r = (24 + k * 140) * (0.4 + (j % 7) / 7)
+            rgba(CA_COLS[j % 6 + 1], clamp(2 - k, 0, 1))
+            lg.rectangle("fill", x + cos(an) * r, peak_y + sin(an) * r * 0.7 + k * k * 80 * (0.5 + (j % 3) * 0.4), 10, 10)
+          end
+          if k < 0.8 then G:text("POP!", x - 80, peak_y - 60, 30, {1, 0.95, 0.9}, 1 - k / 0.8, "center", 160) end
         end
-        if k < 0.8 then G:text("CRACK!", x - 80, y - 200, 30, {1, 0.95, 0.9}, 1 - k / 0.8, "center", 160) end
+      else
+        if k < 0 then egg(x, y - 130 + k * 40, 24, c[3], {1, 1, 1})
+        else
+          for j = 1, 50 do
+            local an = j * 2.4
+            local r = (20 + k * 110) * (0.4 + (j % 7) / 7)
+            rgba(CA_COLS[j % 6 + 1], clamp(2 - k, 0, 1))
+            lg.rectangle("fill", x + cos(an) * r, y - 90 + sin(an) * r * 0.7 + k * k * 40 * (j % 3), 10, 10)
+          end
+          if k < 0.8 then G:text("CRACK!", x - 80, y - 200, 30, {1, 0.95, 0.9}, 1 - k / 0.8, "center", 160) end
+        end
       end
     end
   end
@@ -423,21 +500,25 @@ function D.cascarones(lt, len)
 end
 
 CAM.cascarones = function(lt)
-  if lt < 8 then return L.shot(lt, {{0, 384, 640, 1.1}, {3, 384, 640, 1.4}, {8, 260, 740, 1.4}}, W, H) end
+  -- single continuous keyframe list: zero 0.5s camera snap-back gaps between sneaks
+  local keys = {{0, 384, 640, 1.1}, {3, 384, 640, 1.4}, {7.5, 260, 740, 1.4}}
   for k, t0 in ipairs(SNEAK) do
-    if lt > t0 - 3.5 and lt < t0 + 3 then
-      local x, y = CA_SPOTS[k][1], CA_SPOTS[k][2]
-      return L.shot(lt, {{t0 - 3.5, x - 60, y - 60, 1.4}, {t0 - 0.5, x - 40, y - 80, 1.8}, {t0 + 3, x - 40, y - 60, 1.5}}, W, H)
-    end
+    local x, y = CA_SPOTS[k][1], CA_SPOTS[k][2]
+    keys[#keys + 1] = {t0 - 3.0, x - 60, y - 60, 1.4}
+    keys[#keys + 1] = {t0 - 0.5, x - 40, y - 80, 1.8}
+    keys[#keys + 1] = {t0 + 2.8, x - 40, y - 60, 1.5}
   end
-  if lt < CHASE1 then return L.shot(lt, {{SNEAK[4] + 3, 384, 760, 1.2}, {CHASE0, 384, 780, 1.15}, {CHASE1, 384, 800, 1.2}}, W, H) end
-  return L.shot(lt, {{CHASE1, 384, 820, 1.6}, {64, 384, 820, 1.6}, {67, 384, 700, 1.15}, {80, 384, 640, 1.05}}, W, H)
+  for _, p in ipairs({{SNEAK[4] + 4.5, 384, 760, 1.2}, {CHASE0, 384, 780, 1.15}, {CHASE1, 384, 800, 1.2},
+                      {CHASE1 + 1.2, 384, 820, 1.6}, {64, 384, 820, 1.6}, {67, 384, 680, 1.15}, {80, 384, 620, 1.05}}) do
+    keys[#keys + 1] = p
+  end
+  return L.shot(lt, keys, W, H)
 end
 CUES.secret = {{8, "chime", 0.5}, {32, "ding", 0.5}, {33, "ding", 0.5}, {36, "pop", 0.4}, {40, "chime"}, {44, "tick", 0.5},
                {45, "tick", 0.5}, {46, "crackle"}, {46.2, "pop"}, {48, "whoosh", 0.4}, {53, "power"}, {59, "chime"}}
 for k = 0, 9 do CUES.secret[#CUES.secret + 1] = {9 + k * 2, "tick", 0.3} end
 for k = 0, 3 do CUES.secret[#CUES.secret + 1] = {8 + k * 5, "zap", 0.3} end
-CUES.dye = {{35, "splash"}, {35.2, "boing", 0.5}}
+CUES.dye = {{30.5, "splash"}, {30.7, "boing", 0.5}}
 for n = 0, 7 do
   CUES.dye[#CUES.dye + 1] = {n * 7 + 2.1, "splash", 0.35}
   CUES.dye[#CUES.dye + 1] = {n * 7 + 3.6, "ding", 0.45}
@@ -447,7 +528,10 @@ CUES.dye[#CUES.dye + 1] = {21.2, "boing"}
 CUES.dye[#CUES.dye + 1] = {51, "splash"}
 CUES.dye[#CUES.dye + 1] = {51.2, "boing"}
 CUES.bunny = {}
-for t = 1, 58, 1.25 do CUES.bunny[#CUES.bunny + 1] = {t, "boing", 0.15} end
+for t = 1, 58, 1.25 do
+  local c = t % 30
+  if not (c > 12 and c < 17) then CUES.bunny[#CUES.bunny + 1] = {t, "boing", 0.15} end
+end
 for _, t in ipairs({13, 43}) do CUES.bunny[#CUES.bunny + 1] = {t, "pop", 0.5} CUES.bunny[#CUES.bunny + 1] = {t + 0.3, "pop", 0.5} CUES.bunny[#CUES.bunny + 1] = {t + 0.6, "pop", 0.5} end
 CUES.finale = {{2.2, "pop", 0.4}, {3.4, "pop", 0.4}, {4.6, "pop", 0.4}, {5.8, "pop", 0.4}, {8, "chime"}, {14, "whoosh", 0.4}, {20, "cheer"}}
 CUES.cascarones = {{4.2, "ding"}, {CHASE0, "whoosh"}, {CHASE1, "boing"}, {64, "boing"}, {64.2, "cheer"}, {70, "cheer"}}
@@ -457,7 +541,6 @@ for k, t0 in ipairs(SNEAK) do CUES.cascarones[#CUES.cascarones + 1] = {t0 + 0.2,
 function D.secret(lt, len)
   -- the glitch: stripes and noise, then the hidden room
   if lt > 44.5 and lt < 47 then G:say("IT'S HATCHING!", 384, 440, 24, 1) end
-  if lt > 53 and lt < 56 then G:say("CHEEP! CHEEP!", 384, 440, 26, 1) end
   if lt < 6 then
     local g = lt / 6
     for i = 0, 40 do
@@ -488,10 +571,10 @@ function D.secret(lt, len)
   local k = clamp((lt - 8) / 20, 0, 1)
   local mx = lerp(120, 384, k)
   C.fx.chomper(mx - 60 + sin(S.t * 3) * 6, 560, 26, 1, S.t, k < 1 and 1 or 0)
-  -- the dots on the way, eaten as he goes; the old screen glitching now and then
-  for d = 0, 10 do
+  -- all 10 dots eaten cleanly as Pac-Man arrives
+  for d = 0, 9 do
     local dx = 140 + d * 24
-    if dx > mx - 40 then lg.setColor(1, 0.85, 0.9, 1) lg.rectangle("fill", dx - 5, 555, 10, 10) end
+    if dx > mx - 12 and k < 1 then lg.setColor(1, 0.85, 0.9, 1) lg.rectangle("fill", dx - 5, 555, 10, 10) end
   end
   local gl = (lt - 8) % 5
   if lt > 8 and lt < 28 and gl < 0.35 then
@@ -508,9 +591,12 @@ function D.secret(lt, len)
   G:text("CREATED BY", 0, 640, 30, {0.85, 0.85, 1}, clamp((lt - 32) / 2, 0, 1), "center", W)
   G:text("BLINKY  PINKY  INKY  CLYDE", 0, 690, 30, {0.85, 0.85, 1}, clamp((lt - 33) / 2, 0, 1), "center", W)
   local g = clamp((lt - 36) / 2, 0, 1)
-  for i, col in ipairs(GHOSTS) do C.fx.ghost(150 + (i - 1) * 156, 790, 30, col, 1, S.t + i, false, false, g) end
+  -- standing ghosts only drawn while lt <= 47.5 (after 47.5 they smoothly peel off into the chase — no 8 duplicate ghosts!)
+  if lt <= 47.5 then
+    for i, col in ipairs(GHOSTS) do C.fx.ghost(150 + (i - 1) * 156, 790, 30, col, 1, S.t + i, false, false, g) end
+  end
   -- the golden egg: in (40), wobbles (44), hatches (46): a chick, round the room, the ghosts after it, a
-  -- power pellet (53), the ghosts blue and running, the chick after them; back to the egg's shell (59)
+  -- power pellet (53), the ghosts blue and running in reverse (zero teleport!), the chick after them
   local ga = clamp((lt - 40) / 2, 0, 1)
   local wob = (lt > 44 and lt < 46) and sin(lt * 30) * 0.2 or 0
   if lt < 46 then
@@ -522,31 +608,48 @@ function D.secret(lt, len)
     lg.setColor(1, 0.85, 0.3, 1)
     lg.arc("fill", "pie", 384, 600, 46, 0, pi, 16)
     lg.arc("fill", "pie", 384 + 40, 520 - min(1, (lt - 46) * 2) * 30, 40, pi, 2 * pi, 16)
-    -- the chick, round the room's edge; the ghosts behind (then in front, blue, fleeing)
     local function round(u) local a = u * 2 * pi return 384 + cos(a) * 250, 560 + sin(a) * 250 end
-    local u = (lt - 46.5) * 0.18
-    local cx, cy = round(u)
-    if lt < 46.5 then cx, cy = 384, 560 - (lt - 46) * 80 end
-    local hop = abs(sin(S.t * 10)) * 6
-    lg.setColor(1, 0.95, 0.3, 1)
-    lg.circle("fill", cx, cy - hop, 22, 16)
-    lg.circle("fill", cx + 14, cy - 20 - hop, 13, 12)
-    lg.setColor(1, 0.55, 0.1, 1)
-    lg.polygon("fill", cx + 25, cy - 22 - hop, cx + 36, cy - 18 - hop, cx + 25, cy - 15 - hop)
-    lg.setColor(0, 0, 0, 1)
-    lg.circle("fill", cx + 17, cy - 24 - hop, 3, 6)
     local pellet = lt > 53
+    local u_peak = (53 - 46.5) * 0.18
+    local u = pellet and (u_peak - (lt - 53) * 0.18) or ((lt - 46.5) * 0.18)
+    local cx, cy
+    if lt < 46.5 then
+      cx, cy = 384, 560 - (lt - 46) * 80
+    else
+      local rx, ry = round(u)
+      local fin = prog(lt, 46.5, 47.6)
+      cx, cy = lerp(384, rx, fin), lerp(520, ry, fin)
+    end
+    local move_s = pellet and 1 or -1
+    local cdir = lt < 46.5 and 1 or ((sin(u * 2 * pi) * move_s) >= 0 and 1 or -1)
+    local hop = abs(sin(S.t * 10)) * 6
+    lg.push()
+    lg.translate(cx, cy - hop)
+    lg.scale(cdir, 1)
+    lg.setColor(1, 0.95, 0.3, 1)
+    lg.circle("fill", 0, 0, 22, 16)
+    lg.circle("fill", 14, -20, 13, 12)
+    lg.setColor(1, 0.55, 0.1, 1)
+    lg.polygon("fill", 25, -22, 36, -18, 25, -15)
+    lg.setColor(0, 0, 0, 1)
+    lg.circle("fill", 17, -24, 3, 6)
+    lg.pop()
+    if lt > 53 and lt < 56 then G:say("CHEEP! CHEEP!", cx, cy - 50, 26, 1) end
     if lt > 47.5 then
+      local peel = prog(lt, 47.5, 48.8)
       for i, col in ipairs(GHOSTS) do
-        local gu = pellet and (u + 0.06 + i * 0.05) or (u - 0.08 - i * 0.06)
-        local gx, gy = round(gu)
+        local gu = u - 0.08 - i * 0.06
+        local rx, ry = round(gu)
+        local gx = lerp(150 + (i - 1) * 156, rx, peel)
+        local gy = lerp(790, ry, peel)
+        local gdir = (sin(gu * 2 * pi) * move_s) >= 0 and 1 or -1
         local blue = pellet and lt < 59
-        C.fx.ghost(gx, gy, 30, blue and {0.2, 0.3, 1} or col, 1, S.t + i, blue, false, 1)
+        C.fx.ghost(gx, gy, 30, blue and {0.2, 0.3, 1} or col, gdir, S.t + i, blue, false, 1)
       end
     end
     -- the power pellet in the corner, blinking until the chick gets it
     if lt < 53 then
-      local px, py = round((53 - 46.5) * 0.18)
+      local px, py = round(u_peak)
       if floor(S.t * 4) % 2 == 0 then lg.setColor(1, 0.85, 0.9, 1) lg.circle("fill", px, py, 14, 12) end
     end
   end
@@ -556,31 +659,50 @@ CAM.secret = function(lt)
   return L.shot(lt, {{0, 384, 512, 1}, {8, 160, 560, 1.6}, {28, 384, 500, 1.3}, {32, 384, 512, 1}, {38, 384, 760, 1.4}, {44, 384, 560, 1.5},
                      {52, 384, 512, 1}}, W, H)
 end
-CAM.finale = function(lt) return L.shot(lt, {{0, 384, 512, 1}, {10, 384, 700, 1.25}, {22, 384, 600, 1.05}}, W, H) end
+CAM.finale = function(lt) return L.shot(lt, {{0, 384, 512, 1}, {10, 384, 760, 1.25}, {22, 384, 680, 1.05}}, W, H) end
 function D.finale(lt, len)
   meadow()
-  -- the cast hopping in with their ears on
-  for i = 1, 4 do
-    local t0 = 1 + i * 1.2
-    if lt > t0 then
-      local gx = 200 + (i - 1) * 100
-      local gy = lerp(H + 60, 700, clamp((lt - t0) / 0.6, 0, 1)) - abs(sin(S.t * 5 + i)) * 20
-      C.fx.ghost(gx + 160, gy, 30, GHOSTS[i], -1, S.t + i, false, false, 1)
-      ears(gx + 160, gy, 30, 1)
+  -- checkered finish line across the lawn for the egg-rolling race
+  if lt > 7 then
+    for r = 0, 11 do
+      for c = 0, 1 do
+        if (r + c) % 2 == 0 then lg.setColor(1, 1, 1, 0.9) else lg.setColor(0.08, 0.08, 0.12, 0.9) end
+        lg.rectangle("fill", 666 + c * 14, 774 + r * 16, 14, 16)
+      end
     end
   end
-  -- the egg-rolling race (8-22): five eggs pushed along, one each, Pac-Man's wins
+  bunny(70, 740, 0.9, S.t * 3)
+  -- the egg-rolling race (8-22): all 5 cast members actually lined up behind the 5 eggs pushing them!
+  -- lane 3 = Pac-Man (fastest, wins!); lanes 1, 2, 4, 5 = Blinky, Pinky, Inky, Clyde
+  local speeds = {0.92, 0.88, 1.15, 0.84, 0.96}
+  local pac_win_x, pac_win_y = 640, 860
   for i = 1, 5 do
-    local speed = ({1.0, 0.9, 1.15, 0.85, 0.95})[i]
-    local f = clamp((lt - 8) / 14 * speed, 0, 1)
-    local ex = lerp(60, 700, f)
-    local ey = 860 + (i - 1) * 32
-    lg.push() lg.translate(ex, ey) lg.rotate(f * 30) egg(0, 0, 30, PASTEL[i], PASTEL[(i + 2) % 6 + 1]) lg.pop()
+    local t0 = 1 + i * 1.1
+    local f = clamp((lt - 8) / 14 * speeds[i], 0, 1)
+    local ex = lerp(140, 700, f)
+    local ey = 800 + (i - 1) * 34
+    local push_hop = (lt > 8 and f < 1) and abs(sin(S.t * 9 + i)) * 10 or abs(sin(S.t * 4 + i)) * 8
+    if lt > t0 then
+      local enter = prog(lt, t0, t0 + 0.7)
+      local cx = lerp(-50, ex - 48, enter)
+      local cy = ey - 8 - push_hop
+      if i == 3 then
+        pac_win_x, pac_win_y = cx, cy
+        C.fx.chomper(cx, cy, 30, 1, S.t, 1)
+        ears(cx, cy, 30, 1)
+      else
+        local gi = i < 3 and i or i - 1
+        C.fx.ghost(cx, cy, 28, GHOSTS[gi], 1, S.t + i, false, false, 1)
+        ears(cx, cy, 28, 1)
+      end
+    end
+    lg.push()
+    lg.translate(ex, ey)
+    lg.rotate(f * 30)
+    egg(0, 0, 26, PASTEL[i], PASTEL[(i + 2) % 6 + 1])
+    lg.pop()
   end
-  if lt > 21 and lt < 25 then G:say("WINNER!", 640, 760, 26, 1) end
-  bunny(140, 790, 1, S.t * 3)
-  C.fx.chomper(580, 780, 34, -1, 0, 1)
-  ears(580, 780, 34, 1)
+  if lt > 20.5 and lt < 25 then G:say("WINNER!", pac_win_x, pac_win_y - 54, 26, 1) end
   G:plate("HAPPY EASTER", 330, 80, 0xff6fb5, L.window(lt, 0.5, len, 1))
 end
 
@@ -626,10 +748,10 @@ function M.start(seed, at)
     if n <= 12 then S.carton[n][3] = t - 1.2 end
     t = t + 2.5 + R:random() * 2.5
   end
-  for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
-  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8}, {"THE EGG HUNT", 76, 0xffb6d9},
-                      {"HAPPY EASTER", 80, 0xff6fb5}}) do
-    G:label(l[1], l[2], l[3])
+  for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff, s[1]) end end
+  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8, 0}, {"THE EGG HUNT", 76, 0xffb6d9, 0},
+                      {"HAPPY EASTER", 80, 0xff6fb5, 330}}) do
+    G:label(l[1], l[2], l[3], l[4])
   end
 end
 

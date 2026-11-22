@@ -351,12 +351,16 @@ function D.coast(lt, len)
     G:gradient(0, 560, W, 880, {0.15, 0.3, 0.45}, {0.1, 0.45, 0.55})
     G:gradient(0, 880, W, H, {0.86, 0.76, 0.58}, {0.92, 0.84, 0.66})
   end
-  -- the sun, above the horizon only (a scissor would follow the screen, not the camera: clipped by hand)
-  if sy < 560 then
-    C.fx.glow(560, sy, 260, min(200, 560 - sy + 60), 1, 0.65, 0.35, 0.5)
+  -- the sun, above the horizon only (clean chord clipped at y = 560)
+  if sy < 604 then
+    C.fx.glow(560, min(sy, 560), 260, min(200, max(40, 604 - sy + 60)), 1, 0.65, 0.35, 0.5)
     lg.setColor(1, 0.85, 0.55, 1)
-    if sy < 516 then lg.circle("fill", 560, sy, 44, 40)
-    else lg.arc("fill", "pie", 560, sy, 44, pi + math.asin(clamp((sy - 560) / 44, -1, 1)), 2 * pi - math.asin(clamp((sy - 560) / 44, -1, 1)), 30) end
+    if sy < 516 then
+      lg.circle("fill", 560, sy, 44, 40)
+    else
+      local a = math.asin(clamp((560 - sy) / 44, -1, 1))
+      lg.arc("fill", "closed", 560, sy, 44, pi - a, 2 * pi + a, 30)
+    end
   end
   lg.setBlendMode("add")
   for i = 0, 18 do
@@ -375,23 +379,20 @@ function D.coast(lt, len)
   lg.setLineWidth(2)
   lg.line(bx + 3, 512, bx - 46, 540, bx - 50, 556)
   lg.line(bx + 3, 512, bx + 52, 540, bx + 56, 556)
-  -- the waves coming in; the big one at 48 up over the sandcastle
+  -- the waves coming in; the big one at 48 surges in front of the sandcastle (drawn below)
   local big = lin(lt, 47, 50) * (1 - lin(lt, 51, 55))
   for i = 0, 2 do
-    local y = 820 + i * 22 + big * 130
+    local y = 820 + i * 22 + big * 90
     local pts = {}
     for x = 0, W, 16 do
       pts[#pts + 1] = x
       pts[#pts + 1] = y + sin(x * 0.02 + S.t * (1.6 + i * 0.3) + i) * 5
     end
     lg.setColor(0.85, 0.95, 1, 0.55 - i * 0.12 + big * 0.3)
-    lg.setLineWidth(3 + big * 6)
+    lg.setLineWidth(3 + big * 5)
     lg.line(pts)
   end
-  if big > 0 then
-    lg.setColor(0.3, 0.6, 0.75, 0.5 * big)
-    lg.rectangle("fill", 0, 880, W, big * 110)
-  end
+  lg.setLineWidth(1)
   -- pelicans in a line, low over the water; one diving for a fish
   for i = 0, 4 do
     local px = -200 + ((S.t - 20) * 55) % (W + 500) - i * 70
@@ -430,6 +431,39 @@ function D.coast(lt, len)
       lg.setColor(0.75, 0.04, 0.19, 1)
       lg.polygon("fill", CASTLE[1] - 24, CASTLE[2] - 140, CASTLE[1] + 6, CASTLE[2] - 132, CASTLE[1] - 24, CASTLE[2] - 124)
     end
+  end
+  -- foaming wave surge in front of the sandcastle
+  if big > 0 then
+    local fy = 880 + big * 105
+    lg.setColor(0.25, 0.58, 0.74, 0.55 * big)
+    lg.rectangle("fill", 0, 860, W, fy - 860)
+    local fpts = {}
+    for x = 0, W, 16 do
+      fpts[#fpts + 1] = x
+      fpts[#fpts + 1] = fy + sin(x * 0.03 + S.t * 4) * 6
+    end
+    lg.setColor(0.95, 0.98, 1, 0.85 * big)
+    lg.setLineWidth(8)
+    lg.line(fpts)
+    lg.setLineWidth(1)
+  end
+  -- tiny crab scuttling out of the washed-away sandcastle at 53s
+  if lt > 52.5 and lt < 58 then
+    local f = lin(lt, 52.5, 58)
+    local cx = lerp(CASTLE[1], CASTLE[1] - 190, f)
+    local cy = CASTLE[2] + 6 - abs(sin(S.t * 18)) * 3
+    lg.setColor(0.88, 0.22, 0.14, 1)
+    lg.ellipse("fill", cx, cy, 11, 7, 12)
+    lg.setLineWidth(2)
+    for d = -1, 1, 2 do
+      for k = 0, 2 do lg.line(cx + d * 8, cy + 2, cx + d * (14 + k * 2), cy + 7 + sin(S.t * 22 + k) * 2) end
+      lg.line(cx + d * 8, cy - 3, cx + d * 14, cy - 10)
+      lg.circle("fill", cx + d * 15, cy - 11, 3.5, 8)
+    end
+    lg.setLineWidth(1)
+    lg.setColor(0.05, 0.05, 0.05, 1)
+    lg.circle("fill", cx - 4, cy - 6, 1.5, 6)
+    lg.circle("fill", cx + 4, cy - 6, 1.5, 6)
   end
   -- the van, the cast
   local vx, rolling = coast_van(lt)
@@ -509,33 +543,40 @@ function D.hills(lt, len)
       end
     end
   end
-  -- the armadillo: walking across in front of the lens just as the first one goes off, then posing with them
-  if lt > 21 and lt < 46 then
-    local ax, ay, s = 0, 0, 3.4
-    if lt < 27 then ax, ay = lerp(W + 60, 380, lin(lt, 21, 27)), 945
-    elseif lt < 32 then ax, ay, s = lerp(380, 530, prog(lt, 28, 32)), lerp(945, 900, prog(lt, 28, 32)), lerp(3.4, 1.4, prog(lt, 28, 32))
-    else ax, ay, s = 530, 900, 1.4 end
-    lg.push()
-    lg.translate(ax, ay)
-    lg.scale(lt < 27 and -1 or 1, 1)
-    armadillo(0, 0, s, S.t)
-    lg.pop()
+  -- the armadillo: posing beside them after 28s (drawn in front of cast when photobombing < 28s)
+  local function draw_armadillo()
+    if lt > 21 and lt < 46 then
+      local ax, ay, s = 0, 0, 3.4
+      if lt < 27 then ax, ay = lerp(W + 60, 380, lin(lt, 21, 27)), 945
+      elseif lt < 32 then ax, ay, s = lerp(380, 530, prog(lt, 28, 32)), lerp(945, 900, prog(lt, 28, 32)), lerp(3.4, 1.4, prog(lt, 28, 32))
+      else ax, ay, s = 530, 900, 1.4 end
+      lg.push()
+      lg.translate(ax, ay)
+      lg.scale(lt < 27 and -1 or 1, 1)
+      armadillo(0, 0, s, S.t)
+      lg.pop()
+    end
   end
-  -- the cast: in through the flowers, posing, Pac-Man running back from the timer
+  if lt >= 28 then draw_armadillo() end
+  -- the cast: in through the flowers, posing, Pac-Man running back from the timer (direction-aware)
   for i, who in ipairs({1, 2, 0, 3, 4}) do
     local gx = GROUP[math.min(i, 4)] + (i == 5 and 80 or 0)
     local x = lerp(-80 - i * 60, gx, prog(lt, 4 + i * 0.6, 10 + i * 0.6))
     local y = 900
+    local pdir = 1
     if who == 0 then
-      x = L.path(lt, {{0, -80, 0}, {11, GROUP[3], 0}, {14, TRIPOD[1] - 50, 0}, {20, TRIPOD[1] - 50, 0}, {22, GROUP[3], 0},
-                      {31, GROUP[3], 0}, {32, TRIPOD[1] - 50, 0}, {34, TRIPOD[1] - 50, 0}, {36, GROUP[3], 0}})
+      local px, _, d = L.path(lt, {{0, -80, 0}, {11, GROUP[3], 0}, {14, TRIPOD[1] - 50, 0}, {20, TRIPOD[1] - 50, 0}, {22, GROUP[3], 0},
+                                   {31, GROUP[3], 0}, {32, TRIPOD[1] - 50, 0}, {34, TRIPOD[1] - 50, 0}, {36, GROUP[3], 0}})
+      x = px
+      if d ~= 0 then pdir = d end
     end
-    if lt > 46 then x = lerp(gx, W + 120 + i * 40, prog(lt, 47 + i * 0.4, 54 + i * 0.4)) end
+    if lt > 46 then x = lerp(gx, W + 120 + i * 40, prog(lt, 47 + i * 0.4, 54 + i * 0.4)) pdir = 1 end
     local pose = (lt > SHOTS[1] - 1 and lt < SHOTS[1] + 0.3) or (lt > SHOTS[2] - 1 and lt < SHOTS[2] + 0.3)
     local mood = pose and "happy" or ((lt > 24.5 and lt < 28) and "wide" or nil)
     local wade = (lt < 11 or lt > 46) and abs(sin(S.t * 5 + i)) * 8 or 0
-    guest(who, x, y - 36 - wade, 32, (lt < 46) and 1 or 1, 0, mood, false, (who == 0 and pose) and 0.9 or nil)
+    guest(who, x, y - 36 - wade, 32, who == 0 and pdir or 1, 0, mood, false, (who == 0 and pose) and 0.9 or nil)
   end
+  if lt < 28 then draw_armadillo() end
   -- the polaroids, floating up
   if lt > 25 and lt < 31 then
     polaroid(560, 300, 1, lin(lt, 25, 26), function(x, y, w, h)
@@ -591,7 +632,7 @@ for _, s0 in ipairs(SHOTS) do for k = 1, 4 do CUES.hills[#CUES.hills + 1] = {s0 
 -- ------------------------------------------------------------------ Round Rock: the crossing, the donuts
 local STONES = {{110, 820}, {220, 800}, {384, 735}, {540, 800}, {660, 820}}
 local function crosser(lt, who)
-  -- hop from stone to stone, one after another; Inky (3) slips in at the third
+  -- hop from stone to stone, one after another; Inky (3) slips smoothly in at the third; Pac-Man hops back onto the round rock
   local t0 = 3 + who * 2.2
   local n = clamp((lt - t0) / 0.9, 0, #STONES - 1)
   local i0 = floor(n)
@@ -599,17 +640,37 @@ local function crosser(lt, who)
   local a, b = STONES[i0 + 1], STONES[min(i0 + 2, #STONES)]
   local x = lerp(a[1], b[1], f)
   local y = lerp(a[2], b[2], f) - sin(f * pi) * 50
-  if who == 3 and n >= 2 and lt < t0 + 7 then
-    -- in the creek!
-    local s = lin(lt, t0 + 1.9, t0 + 2.2)
-    x, y = 470, lerp(STONES[3][2], 860, s)
-    if lt > t0 + 4.5 then
-      local g = prog(lt, t0 + 4.5, t0 + 7)
+  local dir = 1
+  if who == 3 and lt >= t0 + 1.8 then
+    -- in the creek, then smoothly back onto stones 4 and 5!
+    if lt < t0 + 2.3 then
+      local s = prog(lt, t0 + 1.8, t0 + 2.3)
+      x, y = lerp(STONES[3][1], 470, s), lerp(STONES[3][2], 860, s) - sin(s * pi) * 20
+    elseif lt < t0 + 4.5 then
+      x, y = 470, 860 + sin(S.t * 6) * 3
+    elseif lt < t0 + 6.5 then
+      local g = prog(lt, t0 + 4.5, t0 + 6.5)
       x, y = lerp(470, STONES[4][1], g), lerp(860, STONES[4][2], g) - sin(g * pi) * 40
+    elseif lt < t0 + 7.4 then
+      local g = lin(lt, t0 + 6.5, t0 + 7.4)
+      x, y = lerp(STONES[4][1], STONES[5][1], g), lerp(STONES[4][2], STONES[5][2], g) - sin(g * pi) * 50
+    else
+      x, y = STONES[5][1], STONES[5][2]
     end
   end
-  if who == 0 and lt > 17 then x, y = STONES[3][1], STONES[3][2] - 46 end
-  return x, y - 36
+  if who == 0 and lt > 15.5 then
+    -- Pac-Man hops smoothly back from stone 5 -> 4 -> top of the round rock (no teleport!)
+    if lt < 16.4 then
+      local g = lin(lt, 15.5, 16.4)
+      x, y, dir = lerp(STONES[5][1], STONES[4][1], g), lerp(STONES[5][2], STONES[4][2], g) - sin(g * pi) * 50, -1
+    elseif lt < 17.4 then
+      local g = lin(lt, 16.4, 17.4)
+      x, y, dir = lerp(STONES[4][1], STONES[3][1], g), lerp(STONES[4][2], STONES[3][2] - 46, g) - sin(g * pi) * 60, -1
+    else
+      x, y = STONES[3][1], STONES[3][2] - 46
+    end
+  end
+  return x, y - 36, dir
 end
 local DONUTS = {}
 for r = 0, 1 do for c = 0, 2 do DONUTS[#DONUTS + 1] = {210 + c * 174, 520 + r * 160} end end
@@ -650,9 +711,9 @@ function D.roundrock(lt, len)
       end
     end
     for who = 0, 4 do
-      local x, y = crosser(lt, who)
+      local x, y, dir = crosser(lt, who)
       local wet = who == 3 and lt > 3 + 3 * 2.2 + 1.9 and lt < 3 + 3 * 2.2 + 9
-      guest(who, x, y, 30, 1, 0, wet and "wide" or ((who == 0 and lt > 17) and "happy" or nil), false)
+      guest(who, x, y, 30, dir, 0, wet and "wide" or ((who == 0 and lt > 17.4) and "happy" or nil), false)
       if wet then
         lg.setColor(0.6, 0.85, 1, 0.8)
         for d = 0, 2 do lg.circle("fill", x - 20 + d * 20, y + 30 + ((S.t * 60 + d * 13) % 30), 3, 6) end
@@ -667,9 +728,9 @@ function D.roundrock(lt, len)
     lg.setColor(0.98, 0.98, 0.96, 1)
     lg.rectangle("fill", 104, 420, 560, 360, 14, 14, 8)
   end
-  -- the donuts: going one at a time
+  -- the donuts: going one at a time (Donut 5 at 39s, Donut 6 at 41s)
   for i, d in ipairs(DONUTS) do
-    local t0 = DONUT_T[i] or 42
+    local t0 = DONUT_T[i] or 41
     if lt < t0 then donut(d[1], d[2], 1, false) end
   end
   -- the steam
@@ -678,21 +739,28 @@ function D.roundrock(lt, len)
     lg.setColor(1, 1, 1, 0.25 * (1 - k))
     lg.ellipse("fill", 210 + i * 110, 430 - k * 120, 16 + k * 10, 26 + k * 20, 16)
   end
-  -- the cast along the counter, a donut each flying to them; Pac-Man and the last one
+  -- the cast along the counter, a donut each flying to them; then Donut 6 arcs into Pac-Man's open mouth (41..42.5s)
   for i, who in ipairs({1, 2, 3, 4, 0}) do
     local x = 110 + (i - 1) * 137
-    local y = 900 - (lt > 26 and lt < 28 and 0 or 0)
-    local t0 = DONUT_T[i] or 42
+    local y = 900
+    local t0 = DONUT_T[i]
     local munch = lt > t0 + 0.8 and lt < t0 + 3
     guest(who, x, y - L.hop(lt + i, 0.5, munch and 6 or 0), 36, 0, -0.6, munch and "happy" or nil, false,
           who == 0 and (lt > 41 and lt < 43 and 0.95 or nil) or nil)
-    local d = DONUTS[i == 5 and 6 or i]
+    local d = DONUTS[i]
     if lt > t0 and lt < t0 + 0.8 then
       local f = (lt - t0) / 0.8
       donut(lerp(d[1], x, f), lerp(d[2], y - 60, f) - sin(f * pi) * 80, 0.45, false)
-    elseif munch then
+    elseif munch and not (who == 0 and lt > 41) then
       donut(x + 30, y - 10, 0.35 * (1 - (lt - t0 - 0.8) / 2.2), true)
     end
+  end
+  -- Donut 6 arcing into Pac-Man's wide-open mouth (41..42.5s)
+  if lt > 41 and lt < 42.5 then
+    local f = (lt - 41) / 1.5
+    local d6 = DONUTS[6]
+    local px = 110 + 4 * 137
+    donut(lerp(d6[1], px, f), lerp(d6[2], 900, f) - sin(f * pi) * 110, lerp(0.7, 0.35, f), false)
   end
   if lt > 42.5 and lt < 45 then G:say("GULP!", 110 + 4 * 137, 820, 26, 1) end
 end
@@ -815,7 +883,7 @@ local function flatbed(x, y, t, playing)
   for k = 0, 2 do
     local px = x - 150 + k * 95
     local bob = playing and L.hop(t + k * 0.2, 0.54, 5) or 0
-    person(px, y - 40 - bob * 0, 1.5, k + 2, t, false)
+    person(px, y - 40 - bob, 1.5, k + 2, t, false)
     if k == 0 then
       lg.setColor(0.75, 0.35, 0.12, 1)
       lg.ellipse("fill", px + 6, y - 82, 16, 12, 14)
@@ -909,9 +977,9 @@ function D.austin(lt, len)
       person(x, y, 1.15 + (y - 880) / 300, k, S.t, lt > 39 + k * 0.45)
     end
   end
-  -- the van
+  -- the van (stays parked and visible throughout)
   local vx, vy, vs, rolling = austin_van(lt)
-  if lt > 52 or lt < 33 then van(vx, vy, vs, 1, rolling, (lt < 9 or lt > 53) and ALL or nil) end
+  van(vx, vy, vs, 1, rolling, (lt < 9 or lt > 53) and ALL or nil)
   -- the cast: the taco line, the tacos, then dancing in front of the band
   if lt > 8.5 and lt < 54 then
     for i, who in ipairs({0, 1, 2, 3, 4}) do
@@ -924,7 +992,8 @@ function D.austin(lt, len)
       local dance = (lt > 38) and L.hop(S.t + i * 0.2, 0.46, 22) or 0
       local hot = who == 4 and lt > 27 and lt < 31
       local cover = lt > 27 and lt < 37 and who ~= 4         -- (the grackles: hands over ears, wide-eyed)
-      guest(who, x, y - 38 - dance, 38, (lt > t0 + 1.6) and -1 or 1, cover and -1 or 0,
+      local lx = hot and 1 or ((lt > t0 + 1.6) and -1 or 1)
+      guest(who, x, y - 38 - dance, 38, lx, cover and -1 or 0,
             hot and "wide" or (cover and "wide" or (lt > 38 and "happy" or nil)), false,
             who == 0 and (lt > t0 + 1.6 and lt < t0 + 4 and 0.9 or nil) or nil)
       if lt > t0 and lt < t0 + 1.6 then
@@ -958,7 +1027,7 @@ local COATS = {{{0.5, 0.3, 0.16}, {0.95, 0.92, 0.85}}, {{0.15, 0.12, 0.1}, {0.9,
                {{0.88, 0.85, 0.78}, {0.5, 0.3, 0.16}}, {{0.55, 0.22, 0.12}}, {{0.82, 0.7, 0.5}, {0.4, 0.25, 0.14}}}
 local DRIVE0 = -1000
 local function herd_x(lt) return DRIVE0 - 300 + (lt + 8) * 42 end
-local CALF = {34, 50}
+local CALF = {34, 48}
 local function calf_pos(lt)
   return L.path(lt, {{CALF[1], 300, 900}, {37, 420, 800}, {39, 470, 790}, {44, 120, 900, "lin"}, {48, -60, 880, "lin"}})
 end
@@ -971,7 +1040,7 @@ function D.stockyards(lt, len)
   local cheer = (lt > 20 and lt < 30)
   for i, who in ipairs({1, 2, 3, 4, 0}) do
     local t0 = 1 + i * 1.4
-    if lt > t0 and not (who == 0 and lt > 36 and lt < 54) and lt < 59.5 then
+    if lt > t0 and not (who == 0 and lt > 36) and lt < 59.5 then
       local x = lerp(285, 120 + i * 120, prog(lt, t0, t0 + 1.4))
       local y = 735 - (cheer and L.hop(S.t + i * 0.2, 0.45, 18) or 0)
       if lt > 57 then
@@ -1036,22 +1105,38 @@ function D.stockyards(lt, len)
       if lt > 39 and S.R:random() < 0.6 then G:puff(px + 20, py + 26, {0.75, 0.6, 0.45}, 10, 60, 1, 8, 0.4) end
     end
   end
-  -- after: Pac-Man dizzy in the street, the stars
-  if lt > 48 and lt < 54 then
+  -- after: Pac-Man dizzy in the street (48..54), then smoothly walks to the van (54..57) and boards (57..59.5)
+  if lt >= 48 and lt < 59.5 then
     local px, py = 120, 900
-    L.pac(px, py, 30, 0, S.t, 0.3)
-    hat(px + 20, py + 10, 21, 1.2)
-    lg.setColor(1, 0.9, 0.3, 1)
-    for k = 0, 2 do
-      local a = S.t * 5 + k * 2.1
-      L.star(px + cos(a) * 34, py - 40 + sin(a) * 10, 7)
+    if lt > 54 then
+      local f = prog(lt, 54, 57)
+      px = lerp(120, 480, f)
+      py = lerp(900, 930, f) - abs(sin(S.t * 8)) * (f < 1 and 8 or 0)
+    end
+    if lt > 57 then
+      local f = prog(lt, 57.5, 59.3)
+      px, py = lerp(480, 520, f), lerp(930, 920, f) - sin(f * pi) * 40
+    end
+    if lt < 54 then
+      L.pac(px, py, 30, 0, S.t, 0.3)
+      hat(px + 20, py + 10, 21, 1.2)
+      lg.setColor(1, 0.9, 0.3, 1)
+      for k = 0, 2 do
+        local a = S.t * 5 + k * 2.1
+        L.star(px + cos(a) * 34, py - 40 + sin(a) * 10, 7)
+      end
+    else
+      guest(0, px, py, 30, 1, 0, "happy", true)
     end
   end
   if lt > 35 and lt < 37.5 then G:say("YEE-HAW!", 600, 640, 24, 1) end
   if lt > 40 and lt < 44 then G:say("WHOA-OA-OA!", calf_pos(lt) + 120, 760, 24, 1) end
   if lt > 44 and lt < 47.5 then G:say("GO, PAC-MAN, GO!", 300, 640, 22, 1) end
   if lt > 49 and lt < 53 then G:say("...I MEANT TO DO THAT.", 160, 820, 20, 1) end
-  if lt > 61 and lt < 64 then G:say("MOO!", 720, 880, 26, 1) end
+  if lt > 61 and lt < 64 then
+    local vx = L.path(lt, {{54, W + 220, 0}, {57, 520, 0}, {61, 520, 0}, {65, -260, 0}})
+    G:say("MOO!", clamp(vx + 200, 70, W - 70), 880, 26, 1)
+  end
 end
 CAM.stockyards = function(lt)
   if lt > 39 and lt < 47 then
@@ -1168,9 +1253,17 @@ end
 local PAST = {21, 44}                                  -- long ago, then today
 local function past_k(lt) return prog(lt, PAST[1], PAST[1] + 1.5) * (1 - prog(lt, PAST[2] - 1.5, PAST[2])) end
 local function cast_x(lt, i)
-  -- along the trail with the finding (6-20), at the far end by 21, back toward the middle after
+  -- along the trail with the finding (6-20); Pac-Man pauses on the footprint (15..19); ghosts scatter to right bank when theropod arrives (30..44)
   local x = lerp(-60 - i * 90, 60 + (lt - 6) * 46 - (i - 1) * 86, prog(lt, 1, 6))
   if lt > 6 then x = 60 + min(lt - 6, 14) * 46 - (i - 1) * 86 end
+  if i == 1 and lt > 14.9 and lt < 21 then
+    if lt < 19 then x = 470
+    else x = lerp(470, 60 + 14 * 46, prog(lt, 19, 21)) end
+  end
+  if i > 1 and lt > 30 and lt < 44 then
+    local sc = prog(lt, 30, 32.2) * (1 - prog(lt, 42, 44))
+    x = lerp(x, 632 + (i - 2) * 34, sc)
+  end
   if lt > 44 then x = lerp(60 + 14 * 46 - (i - 1) * 86, 120 + (i - 1) * 120, prog(lt, 44, 47)) end
   -- (the hills roar back: run!)
   if lt > 61 then x = x + (lt - 61) * (420 + i * 30) end
@@ -1304,12 +1397,7 @@ function D.alamo(lt, len)
       lg.setColor(1, 1, 1, 1)
       L.star(fx + 13, 326, 7)
     else
-      for k = 0, 6 do
-        if k % 2 == 0 then lg.setColor(0.8, 0.11, 0.17, 1) else lg.setColor(0.97, 0.97, 0.95, 1) end
-        lg.polygon("fill", fx + 2, 304 + k * 6.3, fx + 66, 304 + k * 6.3 + w, fx + 66, 310.3 + k * 6.3 + w, fx + 2, 310.3 + k * 6.3)
-      end
-      lg.setColor(0.14, 0.2, 0.52, 1)
-      lg.rectangle("fill", fx + 2, 304, 26, 22)
+      L.flag_us(fx + 2, 304 + w * 0.25, 64, 44)
     end
   end
   -- the doves, up off the roof and away
@@ -1329,13 +1417,13 @@ function D.alamo(lt, len)
       lg.polygon("fill", x + 2, y, x + 14, y - 8 * flap - 2, x - 2, y - 2)
     end
   end
-  -- the cast in a row before it, hats off for a moment, then away to the river
+  -- the cast in a row before it, hats off for a moment (Pac-Man's mouth closed during silence), then away to the river
   for i, who in ipairs({1, 2, 0, 3, 4}) do
     local x = lerp(-80 - i * 50, 160 + (i - 1) * 112, prog(lt, 1 + i * 0.4, 5.5 + i * 0.4))
     if lt > 20 then x = lerp(160 + (i - 1) * 112, W + 120 + i * 50, prog(lt, 20 + (5 - i) * 0.3, 24 + (5 - i) * 0.3)) end
     local y = 862
     local off = lt > 8 and lt < 18
-    guest(who, x, y - 34, 32, lt > 20 and 1 or 0, off and 0 or -0.6, off and "sleep" or nil, not off)
+    guest(who, x, y - 34, 32, lt > 20 and 1 or 0, off and 0 or -0.6, off and "sleep" or nil, not off, who == 0 and (off and 0 or nil) or nil)
     if off then hat(x + 28, y - 10, 20, 0.6) end
   end
   if lt > 17.5 and lt < 20.5 then G:say("1836.", 160, 820, 24, 1) end
@@ -1502,7 +1590,7 @@ end
 local DUCKS = {{150, 660}, {600, 680}, {680, 650}, {90, 700}}
 function D.riverwalk(lt, len)
   if not art("riverwalk") then G:gradient(0, 0, W, H, {0.12, 0.14, 0.32}, {0.15, 0.4, 0.35}) end
-  -- the water moving
+  -- the water moving + river light reflections in a single additive pass
   lg.setColor(0.6, 0.9, 0.8, 0.25)
   lg.setLineWidth(2)
   for i = 0, 26 do
@@ -1510,32 +1598,40 @@ function D.riverwalk(lt, len)
     local x = ((i * 113 + S.t * (14 + i % 5 * 4)) % (W + 120)) - 60
     lg.line(x, y, x + 30 + (i % 3) * 14, y)
   end
+  lg.setLineWidth(1)
+  if lt > LIGHTS_ON[1] then
+    local nlit = 0
+    for k = 1, #LIGHTS_ON do if lt > LIGHTS_ON[k] then nlit = k end end
+    lg.setBlendMode("add")
+    for k = 1, nlit do
+      for j = 1, 7 do
+        local rx = j * 96 + sin(S.t * 2 + j + k) * 8
+        local ry = 650 + k * 28 + (j % 2) * 10
+        local c = BULB_COL[(j + k) % 4 + 1]
+        lg.setColor(c[1], c[2], c[3], 0.16 + 0.08 * sin(S.t * 4 + j * 1.7 + k))
+        lg.ellipse("fill", rx, ry, 24 + sin(S.t * 3 + j) * 5, 4, 10)
+      end
+    end
+    lg.setBlendMode("alpha")
+  end
   -- the papel picado, high; the strings of lights coming on, string by string
   picado(150, 30, S.t)
   picado(250, 40, S.t + 2)
   light_strings(lt)
-  -- the ducks: paddling about, then at Pac-Man's chips (34), one away with the basket (37)
+  -- the ducks: paddling about, then at Pac-Man's chips (34); thief duck (i == 1) drawn in front of cast after 36s!
   local bx = barge_x(lt)
   for i, d in ipairs(DUCKS) do
-    local x, y = d[1] + sin(S.t * 0.4 + i) * 30, d[2]
-    if lt > 30 and lt < 37 then
-      local f = prog(lt, 30 + i * 0.4, 34 + i * 0.4)
-      x, y = lerp(x, bx - 60 + i * 34, f), lerp(y, BARGE_Y - 26, f)
-    end
-    local flying = false
-    if i == 1 and lt > 36 then
-      -- the thief: up onto the barge, the basket, away
-      x, y = L.path(lt, {{36, bx - 26, BARGE_Y - 26}, {36.6, bx - 10, BARGE_Y - 70}, {37.4, bx - 10, BARGE_Y - 70},
-                         {41, -80, 360}})
-      flying = lt > 37.4
-    elseif lt > 37.4 and lt < 45 then
-      x = x - (lt - 37.4) * 50
-    end
-    if y < 900 then
-      duck(x, y, 1.6, (lt > 37 or x > bx) and -1 or 1, S.t + i, flying)
-      if i == 1 and lt > 37 and lt < 41 then
-        lg.setColor(0.8, 0.55, 0.25, 1)
-        lg.rectangle("fill", x - 30, y + 6, 26, 16, 4, 4, 4)
+    if not (i == 1 and lt > 36) then
+      local x, y = d[1] + sin(S.t * 0.4 + i) * 30, d[2]
+      if lt > 30 and lt < 37 then
+        local f = prog(lt, 30 + i * 0.4, 34 + i * 0.4)
+        x, y = lerp(x, bx - 160 + (i - 1) * 34, f), lerp(y, BARGE_Y - 26, f)
+      elseif lt >= 37 and lt < 45 then
+        x = (bx - 160 + (i - 1) * 34) - (lt - 37) * 50
+        y = BARGE_Y - 26
+      end
+      if y < 900 then
+        duck(x, y, 1.6, (lt > 37 or x > bx - 152) and -1 or 1, S.t + i, false)
       end
     end
   end
@@ -1546,7 +1642,7 @@ function D.riverwalk(lt, len)
       if x > -60 and x < W + 60 then duck(x, BARGE_Y + 75 + (k % 2) * 4, k == 0 and 2.2 or 1.25, -1, S.t * 1.6 + k, false, k > 0) end
     end
   end
-  -- the barge, the cast aboard, the guide at the back
+  -- the barge, the cast aboard (with cowboy hats!), the guide at the stern
   lg.push()
   lg.translate(bx, BARGE_Y)
   lg.setColor(0, 0, 0, 0.25)
@@ -1565,7 +1661,7 @@ function D.riverwalk(lt, len)
     local mood = stand and "happy" or ((lt > 24 and lt < 33) and "wide" or ((lt > 15 and lt < 23) and "happy" or nil))
     if who == 0 and lt > 37 and lt < 41 then mood = "wide" end
     local open = who == 0 and (lt > 37 and lt < 41 and 0.9 or (lt > 26 and lt < 36 and nil or 0.25)) or nil
-    guest(who, x, y, 32, 0, (lt > 24 and lt < 33) and -1 or ((lt > 14 and lt < 24) and 1 or 0), mood, false, open)
+    guest(who, x, y, 32, 0, (lt > 24 and lt < 33) and -1 or ((lt > 14 and lt < 24) and 1 or 0), mood, true, open)
     -- Pac-Man's basket of chips
     if who == 0 and lt > 26 and lt < 37 then
       lg.setColor(0.8, 0.55, 0.25, 1)
@@ -1574,8 +1670,18 @@ function D.riverwalk(lt, len)
       for k = 0, 3 do lg.polygon("fill", x + 20 + k * 7, y - 4, x + 26 + k * 7, y - 14, x + 30 + k * 7, y - 4) end
     end
   end
-  -- the guide at the back with the pole
-  local gx = bx + 215
+  -- the thief duck targeting Pac-Man's chip basket (bx - 152), drawn in front of cast after 36s
+  if lt > 36 and lt < 42 then
+    local tx, ty = L.path(lt, {{36, bx - 160, BARGE_Y - 26}, {36.6, bx - 152, BARGE_Y - 46}, {37.4, bx - 152, BARGE_Y - 46},
+                               {41, -80, 360}})
+    duck(tx, ty, 1.6, lt > 37 and -1 or 1, S.t + 1, lt > 37.4)
+    if lt > 37 and lt < 41 then
+      lg.setColor(0.8, 0.55, 0.25, 1)
+      lg.rectangle("fill", tx - 30, ty + 6, 26, 16, 4, 4, 4)
+    end
+  end
+  -- the guide at the stern (bx - 215) with the pole
+  local gx = bx - 215
   lg.setColor(0.2, 0.3, 0.55, 1)
   lg.rectangle("fill", gx - 10, BARGE_Y - 70, 20, 60, 5, 5, 4)
   lg.setColor(0.93, 0.76, 0.62, 1)
@@ -1584,14 +1690,28 @@ function D.riverwalk(lt, len)
   lg.rectangle("fill", gx - 12, BARGE_Y - 96, 24, 7, 3, 3, 4)
   lg.setColor(0.35, 0.25, 0.15, 1)
   lg.setLineWidth(3)
-  lg.line(gx + 12, BARGE_Y - 100, gx + 30, BARGE_Y + 20)
-  -- the cascarones: eggs cracked on heads, confetti
+  lg.line(gx - 12, BARGE_Y - 100, gx - 30, BARGE_Y + 20)
+  lg.setLineWidth(1)
+  -- visible cascarones eggs dropping onto heads right before each confetti pop
+  for k = 0, 4 do
+    local tpop = 50.5 + k * 0.7
+    if lt > tpop - 0.55 and lt < tpop then
+      local f = (lt - (tpop - 0.55)) / 0.55
+      local ex = bx - 170 + k * 78
+      local ey = lerp(BARGE_Y - 190, BARGE_Y - 68, f * f)
+      local c = PICADO[k % #PICADO + 1]
+      lg.setColor(c[1], c[2], c[3], 1)
+      lg.ellipse("fill", ex, ey, 8, 11, 12)
+      lg.setColor(1, 1, 1, 0.6)
+      lg.circle("fill", ex - 2, ey - 3, 2.5, 6)
+    end
+  end
   -- the mariachis on the near bank
   local solo = lt > 44 and lt < 52
   mariachi(560, 1012, 1.0, 2, S.t, false)
   mariachi(640, 1004, 1.05, 1, S.t + 0.3, solo)
   mariachi(718, 1014, 1.0, 3, S.t + 0.6, false)
-  if lt > 1 and lt < 6 then G:say("ALL ABOARD!", 520, 650, 22, 1) end
+  if lt > 7 and lt < 11.5 then G:say("ALL ABOARD!", clamp(bx, 140, W - 140), 650, 22, 1) end
   if lt > 17 and lt < 20.5 then G:say("AWWW!", bx - 92, BARGE_Y - 80, 26, 1) end
   if lt > 21 and lt < 23.5 then G:say("WAIT FOR IT...", bx + 70, BARGE_Y - 80, 22, 1) end
   if lt > 33.5 and lt < 36 then G:say("UH-OH.", bx - 170, BARGE_Y - 80, 24, 1) end
@@ -1661,6 +1781,11 @@ local function pitmaster(x, t, carrying, cutting)
   elseif cutting then
     local c = abs(sin(t * 10)) * 14
     lg.rectangle("fill", x - 70, y - 70 + c, 50, 12, 6, 6, 4)
+    -- slicing knife handle + long silver blade
+    lg.setColor(0.2, 0.12, 0.08, 1)
+    lg.rectangle("fill", x - 80, y - 70 + c, 14, 9, 3, 3, 4)
+    lg.setColor(0.86, 0.88, 0.92, 1)
+    lg.polygon("fill", x - 80, y - 69 + c, x - 146, y - 61 + c, x - 142, y - 55 + c, x - 80, y - 62 + c)
   end
 end
 function D.bbq(lt, len)
@@ -1671,29 +1796,30 @@ function D.bbq(lt, len)
   local px = pitmaster_x(lt)
   local inside = lt > 5.5 and lt < 8
   if not inside then pitmaster(px, S.t, lt > 8 and lt < 11, lt > SLICE_T - 0.5 and lt < SLICE_T + 10 * SLICE_DT) end
-  -- the brisket on the block: whole, then sliced from the end, the slices fanned out
+  -- the brisket on the block: whole, then sliced cleanly from the right end, slices fanned off the loaf
   local sliced = floor(clamp((lt - SLICE_T) / SLICE_DT, 0, 10))
   if lt > 11 then
     local whole = 1 - sliced / 10
+    local cut_x = BLOCK[1] - 110 + 220 * whole
     if whole > 0 then
       lg.setColor(0.12, 0.06, 0.03, 1)
       lg.rectangle("fill", BLOCK[1] - 110, BLOCK[2] - 34, 220 * whole, 36, 10, 10, 6)
       lg.setColor(0.6, 0.22, 0.16, 1)
-      lg.rectangle("fill", BLOCK[1] - 110 + 220 * whole - 6, BLOCK[2] - 30, 6, 28)
+      lg.rectangle("fill", cut_x - 6, BLOCK[2] - 30, 6, 28)
     end
-    -- (the slices on the block, until the trays take them)
+    -- (the slices fanned cleanly to the right of the cut face, until the trays take them)
     local left = sliced - floor(clamp((lt - 25) / 1.0, 0, 5)) * 2
     for k = 1, max(0, left) do
-      local sx = BLOCK[1] - 90 + k * 20
+      local sx = cut_x + 6 + (k - 1) * 18
       lg.setColor(0.12, 0.06, 0.03, 1)
-      lg.rectangle("fill", sx - 2, BLOCK[2] - 26, 18, 30, 4, 4, 4)
+      lg.rectangle("fill", sx - 2, BLOCK[2] - 26, 16, 30, 4, 4, 4)
       lg.setColor(0.68, 0.26, 0.18, 1)
-      lg.rectangle("fill", sx + 1, BLOCK[2] - 23, 12, 24, 3, 3, 4)
+      lg.rectangle("fill", sx + 1, BLOCK[2] - 23, 10, 24, 3, 3, 4)
       lg.setColor(0.78, 0.45, 0.32, 1)
-      lg.rectangle("fill", sx + 4, BLOCK[2] - 20, 6, 18, 2, 2, 4)
+      lg.rectangle("fill", sx + 3, BLOCK[2] - 20, 6, 18, 2, 2, 4)
     end
   end
-  -- the trays: red, along the counter to each in turn
+  -- the trays: red, along the counter to each in turn (with white bread & pickles!)
   for i = 1, 5 do
     local t0 = 25 + (i - 1) * 1.0
     if lt > t0 and lt < 31 + i * 0.3 then
@@ -1703,9 +1829,12 @@ function D.bbq(lt, len)
       lg.setColor(0.92, 0.85, 0.7, 1)
       lg.rectangle("fill", x - 38, 584, 76, 8)
       lg.setColor(0.68, 0.26, 0.18, 1)
-      for k = 0, 2 do lg.rectangle("fill", x - 30 + k * 16, 578, 12, 10, 3, 3, 4) end
+      for k = 0, 2 do lg.rectangle("fill", x - 32 + k * 14, 578, 12, 10, 3, 3, 4) end
       lg.setColor(1, 1, 0.96, 1)
-      lg.rectangle("fill", x + 18, 576, 16, 14, 3, 3, 4)
+      lg.rectangle("fill", x + 14, 576, 16, 14, 3, 3, 4)
+      lg.setColor(0.25, 0.58, 0.2, 1)
+      lg.circle("fill", x + 33, 584, 4, 8)
+      lg.circle("fill", x + 28, 587, 3.5, 8)
     end
   end
   -- the cast: in line, then to the table with their trays, eating; the sauce; the food coma
@@ -1732,7 +1861,7 @@ function D.bbq(lt, len)
     if lt > tt and lt < tt + 0.8 then bob = L.hop(lt - tt, 0.8, 30) end
     if who == 0 and lt > 23.6 and lt < 24.4 then bob = L.hop(lt - 23.6, 0.8, 50) end
     local r = (who == 0 and coma) and 46 or 40
-    guest(who, x, y - r - bob, r, 0, (lt < 25) and -1 or 0.2, mood, false,
+    guest(who, x, y - r - bob, r, 0, (lt < 25) and -1 or 0.2, mood, true,
           who == 0 and (coma and 0.05 or (munch and nil or 0.3)) or nil)
     -- Blinky, sauced
     if who == 1 and lt > 37.3 then
@@ -1740,7 +1869,7 @@ function D.bbq(lt, len)
       for d = 0, 4 do lg.circle("fill", x - 20 + d * 10, y - r - 6 + (d % 2) * 8, 5, 8) end
     end
   end
-  -- the table's top again, in front of them (they sit behind it), their trays on it
+  -- the table's top again, in front of them (they sit behind it), their trays on it (with white bread & pickles!)
   if at_table then
     lg.setColor(0.96, 0.94, 0.9, 1)
     lg.rectangle("fill", 40, 886, 688, 54)
@@ -1756,16 +1885,23 @@ function D.bbq(lt, len)
         lg.setColor(0.85, 0.15, 0.12, 1)
         lg.rectangle("fill", x - 44, 890, 88, 16, 4, 4, 4)
         lg.setColor(0.68, 0.26, 0.18, 1)
-        for k = 0, 2 do if k / 3 >= eaten then lg.rectangle("fill", x - 30 + k * 16, 880, 12, 12, 3, 3, 4) end end
+        for k = 0, 2 do if k / 3 >= eaten then lg.rectangle("fill", x - 34 + k * 14, 880, 12, 12, 3, 3, 4) end end
+        if eaten < 0.85 then
+          lg.setColor(1, 1, 0.96, 1)
+          lg.rectangle("fill", x + 12, 879, 15, 13, 3, 3, 4)
+          lg.setColor(0.25, 0.58, 0.2, 1)
+          lg.circle("fill", x + 32, 887, 4, 8)
+          lg.circle("fill", x + 28, 890, 3.5, 8)
+        end
       end
     end
-    -- the sauce bottle: Pac-Man squeezes, it gets Blinky
+    -- the sauce bottle: Pac-Man squeezes RIGHT (+1.2), it gets Blinky
     if lt > 35.5 and lt < 40 then
       local bx0 = SEAT_X[1] + 46
       lg.setColor(0.6, 0.1, 0.06, 1)
       lg.push()
       lg.translate(bx0, 860)
-      lg.rotate(lt > 37 and -1.2 or -0.3)
+      lg.rotate(lt > 37 and 1.2 or 0.3)
       lg.rectangle("fill", -9, -30, 18, 34, 4, 4, 4)
       lg.setColor(0.9, 0.85, 0.2, 1)
       lg.rectangle("fill", -4, -40, 8, 10)
@@ -1774,6 +1910,7 @@ function D.bbq(lt, len)
         lg.setColor(0.6, 0.1, 0.06, 1)
         lg.setLineWidth(6)
         lg.line(bx0 + 30, 830, SEAT_X[2], 840)
+        lg.setLineWidth(1)
       end
     end
   end
@@ -1842,7 +1979,7 @@ end
 local CARS = {260, 330, 400, 470, 540}               -- Cadillac Ranch: the fins in a row, nose down
 local CAR_Y = 806
 local CAR_PAINT = {{1, 0.86, 0.15}, {1, 0.18, 0.2}, {1, 0.55, 0.85}, {0.25, 0.95, 1}, {1, 0.65, 0.2}}   -- (by who: 0..4)
-local CAR_WHO = {1, 2, 0, 3, 4}
+local CAR_WHO = {1, 0, 3, 2, 4}                      -- Pinky (2) next to Clyde (4) so her stray spray hits him!
 local STROKE = 2.6
 local function painted(lt, i) return floor(clamp((lt - 11 - (i - 1) * 0.5) / STROKE, 0, 5)) end
 local function caddy(x, y, s, stripes, col)
@@ -1970,16 +2107,17 @@ function D.panhandle(lt, len)
     end
     if G.R:random() < 0.4 then G:puff(tx + 40, by - 120, {0.8, 0.78, 0.78}, 40, 60, 1.6, 12, 0.45) end
   end
-  -- tumbleweeds
+  -- tumbleweeds blowing right-to-left matching the storm wind
   if lt > 44 and lt < 60 then
     for k = 0, 2 do
       local f = lin(lt, 44 + k * 3.5, 50 + k * 3.5)
       if f > 0 and f < 1 then
-        local x = lerp(-60, W + 60, f)
+        local x = lerp(W + 60, -60, f)
         local y = 960 - abs(sin(f * 12)) * 50
         lg.setColor(0.6, 0.45, 0.28, 1)
         lg.setLineWidth(3)
-        for j = 1, 6 do lg.circle("line", x + cos(j + lt * 6) * 14, y + sin(j * 1.3 + lt * 6) * 14, 20, 10) end
+        for j = 1, 6 do lg.circle("line", x + cos(j - lt * 6) * 14, y + sin(j * 1.3 - lt * 6) * 14, 20, 10) end
+        lg.setLineWidth(1)
       end
     end
   end
@@ -2089,9 +2227,10 @@ local function bat_ribbon(lt)
   local b = S.batb
   b:clear()
   if lt > 6 then
-    local n = min(1300, floor((lt - 6) * 55))
+    -- continuously wrap/recycle age % 10 so the river of bats never empties out during 38..50s!
+    local n = min(650, floor((lt - 6) * 65))
     for i = 1, n do
-      local age = ((lt - 6) - i / 55)
+      local age = ((lt - 6) - i / 65) % 10
       local sway = sin(age * 1.1 - S.t * 0.7) * (24 + age * 14)
       local x = 150 + (i % 9) * 11 + age * 46 + sway
       local y = 700 - age * 88 + sin(age * 2 + i) * 7 - (i % 5) * 4
@@ -2144,9 +2283,9 @@ function D.bats(lt, len)
   else
     G:gradient(0, 0, W, 600, {0.3, 0.2, 0.45}, {1, 0.55, 0.35})
   end
-  -- the moon coming up over downtown
+  -- the moon coming up above the downtown skyline
   if lt > 30 then
-    local my = lerp(560, 300, prog(lt, 30, 46))
+    local my = lerp(380, 260, prog(lt, 30, 46))
     lg.setBlendMode("add")
     C.fx.glow(620, my, 140, 140, 1, 0.95, 0.8, 0.35)
     lg.setBlendMode("alpha")
@@ -2156,17 +2295,17 @@ function D.bats(lt, len)
     lg.circle("fill", 604, my - 12, 10, 12)
     lg.circle("fill", 636, my + 14, 7, 12)
   end
-  -- the phones on the bridge, flashing as the bats come out
+  -- the phones on the bridge, flashing as the bats come out (batched in one additive pass)
   if lt > 7 and lt < 34 then
+    lg.setBlendMode("add")
     for i = 0, 40 do
       local ph = (S.t * 1.7 + i * 0.37) % 1
       if ph < 0.08 then
         local x = 12 + (i * 97) % 744
-        lg.setBlendMode("add")
         C.fx.glow(x, 624, 14, 14, 1, 1, 1, 0.9)
-        lg.setBlendMode("alpha")
       end
     end
+    lg.setBlendMode("alpha")
   end
   -- the kayaks gliding across the lake
   for k, kc in ipairs({{0.95, 0.35, 0.2}, {0.2, 0.7, 0.4}, {1, 0.8, 0.2}}) do
@@ -2175,20 +2314,21 @@ function D.bats(lt, len)
   end
   lg.setColor(0.08, 0.06, 0.1, 1)
   bat_ribbon(lt)
-  -- the cast on the bank, looking up; a bat on Inky
+  -- the cast on the bank, looking up; a bat swoops onto Inky's head and swoops off
   for i, who in ipairs({1, 2, 0, 3, 4}) do
     local x = lerp(-80 - i * 40, 150 + (i - 1) * 120, prog(lt, 0.5 + i * 0.3, 4 + i * 0.3))
     local look = lt > 6 and -1 or 0
     local wow = lt > 6 and lt < 12
     local jump = (lt > 6.2 and lt < 8) and L.hop(lt - 6.2, 1.8, 30) or 0
     guest(who, x, 960 - 40 - jump, 40, 0, look, (wow or (who == 3 and lt > 20 and lt < 26)) and "wide" or (lt > 36 and "happy" or nil), true)
-    if who == 3 and lt > 19.5 and lt < 27 then
+    if who == 3 and lt > 19.2 and lt < 27.2 then
       lg.setColor(0.08, 0.06, 0.1, 1)
-      local hy = 960 - 40 - 58
+      local hy0 = 960 - 40 - 58
+      local bx, hy = L.path(lt, {{19.2, x - 180, 620}, {20.0, x, hy0}, {26.0, x, hy0}, {27.2, x + 220, 560}})
       local flap = sin(S.t * 20) * 8
-      lg.ellipse("fill", x, hy, 10, 7, 10)
-      lg.polygon("fill", x, hy, x - 28, hy - 8 - flap, x - 14, hy + 5)
-      lg.polygon("fill", x, hy, x + 28, hy - 8 - flap, x + 14, hy + 5)
+      lg.ellipse("fill", bx, hy, 10, 7, 10)
+      lg.polygon("fill", bx, hy, bx - 28, hy - 8 - flap, bx - 14, hy + 5)
+      lg.polygon("fill", bx, hy, bx + 28, hy - 8 - flap, bx + 14, hy + 5)
     end
   end
   if lt > 1 and lt < 5 then G:say("ANY MINUTE NOW...", 384, 840, 22, 1) end
@@ -2410,10 +2550,12 @@ function D.bigbend(lt, len)
       guest(who, x, y - CAMP_R - jump, CAMP_R, x < FIRE[1] and 1 or -1, look, mood, not (who == 0 and lt > 30.2 and lt < 40),
             who == 0 and (asleep and 0.05 or nil) or nil)
     end
-    -- Pac-Man's hat, blown off by the BOO, and back on at 40
+    -- Pac-Man's hat, blown off by the BOO, and smoothly returned at 39..40
     if who == 0 and lt > 30.2 and lt < 40 then
-      local hx, hy = L.path(lt, {{30.2, x, y - 80}, {31.2, x + 60, y - 260}, {33, x + 140, y - 10}})
-      hat(hx, hy, CAMP_R * 0.7, (lt - 30.2) * 3)
+      local hx, hy = L.path(lt, {{30.2, x, y - 80}, {31.2, x + 60, y - 260}, {33, x + 140, y - 10},
+                                 {39, x + 140, y - 10}, {40, x - 2, y - CAMP_R - CAMP_R * 0.82}})
+      local ht = lt < 33 and ((lt - 30.2) * 3) or lerp(8.4, 0.1, prog(lt, 39, 40))
+      hat(hx, hy, CAMP_R * 0.7, ht)
     end
     -- the marshmallow sticks
     if lt > 13 and lt < 28 and who ~= 1 then
@@ -2460,11 +2602,13 @@ function D.bigbend(lt, len)
       lg.setBlendMode("alpha")
     end
   end
-  -- asleep: the Z's
+  -- asleep: the Z's above Pac-Man & Clyde (not the campfire!)
   if lt > 61 then
     for k = 0, 2 do
       local ph = ((S.t * 0.5 + k / 3) % 1)
-      G:text("z", FIRE[1] + 40 + ph * 30, FIRE[2] - 20 - ph * 90, ph < 0.5 and 22 or 30, {1, 1, 1}, 1 - ph, "left", 40)
+      G:text("z", SEATS[0][1] + 16 + ph * 26, SEATS[0][2] - 84 - ph * 80, ph < 0.5 and 20 or 28, {1, 1, 1}, 1 - ph, "left", 40)
+      local ph2 = ((S.t * 0.5 + k / 3 + 0.18) % 1)
+      G:text("z", SEATS[4][1] + 16 + ph2 * 26, SEATS[4][2] - 84 - ph2 * 80, ph2 < 0.5 and 20 or 28, {1, 1, 1}, 1 - ph2, "left", 40)
     end
   end
   if lt > 6.4 and lt < 8.6 then G:say("HELP!", TENT[1], TENT[2] - 50, 24, 1) end
@@ -2486,8 +2630,8 @@ CAM.bigbend = function(lt)
                      {57, 384, 520, 1.05}, {60, 384, 860, 1.35}, {65, 384, 760, 1.15}}, W, H)
 end
 CUES.bigbend = {{4, "boing"}, {6.3, "clunk"}, {8.6, "boing"}, {10.8, "crackle", 0.5}, {11, "boom", 0.4}, {19, "whoosh"},
-                {30, "boo"}, {30.2, "boing"}, {33, "chime"}, {38, "whoosh", 0.4}, {44.5, "ding"}, {47.3, "whoosh", 0.4},
-                {40.5, "pop"}, {44.5, "chime", 0.6}, {48, "chime", 0.6}, {52.5, "boing", 0.5}, {57, "whoosh"}, {57.4, "chime"}, {60.5, "screech", 0.4}}
+                {30, "boo"}, {30.2, "boing"}, {33, "chime"}, {38, "whoosh", 0.4}, {40.5, "pop"}, {44.5, "chime", 0.6},
+                {47.3, "whoosh", 0.4}, {48, "chime", 0.6}, {52.5, "boing", 0.5}, {57, "whoosh"}, {57.4, "chime"}, {60.5, "screech", 0.4}}
 CUES.bigbend[#CUES.bigbend + 1] = {11, function()
   for i = 1, 26 do G:spark(FIRE[1] + (G.R:random() - 0.5) * 40, FIRE[2] - 20, (G.R:random() - 0.5) * 220, -150 - G.R:random() * 220, 1, {1, 0.7, 0.3}, 5, 120, true) end
 end}
@@ -2520,6 +2664,15 @@ local SNAPS = {
     sauropod(x + w * 0.45, y + h * 0.62, 0.13, 0)
     dino_print(x + 50, y + h * 0.82, "t", 1) dino_print(x + 120, y + h * 0.88, "s", 1)
   end,
+  function(x, y, w, h)                                                  -- the Alamo (12th polaroid!)
+    lg.setColor(0.85, 0.8, 0.68, 1)
+    lg.rectangle("fill", x + 28, y + h * 0.52, w - 56, h * 0.48)
+    lg.arc("fill", "pie", x + w / 2, y + h * 0.52, 34, pi, 2 * pi, 18)
+    lg.setColor(0.32, 0.24, 0.18, 1)
+    lg.rectangle("fill", x + w / 2 - 12, y + h * 0.72, 24, h * 0.28, 10, 10, 4)
+    lg.setColor(1, 1, 1, 1)
+    for k = 0, 2 do lg.ellipse("fill", x + 46 + k * 42, y + 34 + (k % 2) * 14, 7, 4, 8) end
+  end,
   function(x, y, w, h)                                                  -- the River Walk: the picado, a duck
     lg.setColor(0.15, 0.42, 0.36, 1) lg.rectangle("fill", x, y + h * 0.55, w, h * 0.45)
     for i = 0, 7 do local c = PICADO[i % #PICADO + 1] lg.setColor(c[1], c[2], c[3], 1) lg.rectangle("fill", x + i * 22, y + 10, 18, 22) end
@@ -2549,7 +2702,7 @@ local SNAPS = {
     lg.setColor(0.85, 0.75, 0.55, 1) lg.setLineWidth(10) lg.ellipse("line", 0, 0, 60, 60, 30) lg.pop()
   end,
 }
-local SNAP_DT, SNAP_T0, SNAP_AWAY = 1.15, 2, 16
+local SNAP_DT, SNAP_T0, SNAP_AWAY = 1.05, 2, 16
 local function snap_pose(i)
   -- where each lands on the pile: scattered round the middle, tilted
   local a = i * 2.39996
@@ -2563,7 +2716,7 @@ function D.finale(lt, len)
   local a = L.window(lt, SNAP_AWAY + 1, len, 1.5)
   G:caption("TEXAS", 640, 110, 0xffb347, a)
   G:caption("THE LONE STAR STATE", 790, 34, 0xffffff, a)
-  -- the cast, hats on, waving little flags
+  -- the cast, hats on, waving little Texas flags (with white star!)
   for i, who in ipairs({1, 2, 0, 3, 4}) do
     local t0 = SNAP_AWAY + 1 + i * 0.5
     if lt > t0 then
@@ -2573,12 +2726,15 @@ function D.finale(lt, len)
       lg.setColor(0.6, 0.6, 0.6, 1)
       lg.setLineWidth(2)
       lg.line(x + 34, y, x + 38, y - 64)
+      lg.setLineWidth(1)
       lg.setColor(0, 0.16, 0.41, 1)
-      lg.rectangle("fill", x + 38, y - 64, 10, 20)
+      lg.rectangle("fill", x + 38, y - 64, 12, 20)
+      lg.setColor(1, 1, 1, 1)
+      L.star(x + 44, y - 54, 4.2)
       lg.setColor(0.97, 0.97, 0.95, 1)
-      lg.rectangle("fill", x + 48, y - 64 + sin(S.t * 6 + i), 20, 10)
+      lg.rectangle("fill", x + 50, y - 64 + sin(S.t * 6 + i), 20, 10)
       lg.setColor(0.75, 0.04, 0.19, 1)
-      lg.rectangle("fill", x + 48, y - 54 + sin(S.t * 6 + i), 20, 10)
+      lg.rectangle("fill", x + 50, y - 54 + sin(S.t * 6 + i), 20, 10)
     end
   end
   G:caption("FRIENDSHIP", 850, 26, 0x9fd8ff, L.window(lt, SNAP_AWAY + 4, len, 1.5))
@@ -2703,13 +2859,22 @@ function T.start(seed, at)
   S.batimg:setFilter("nearest", "nearest")
   S.batq = {lg.newQuad(0, 0, 8, 4, 16, 4), lg.newQuad(8, 0, 8, 4, 16, 4)}
   S.batb = G:track(lg.newSpriteBatch(S.batimg, 1400, "stream"))
-  -- the labels ahead
-  for _, s in ipairs(SCENES) do if s[4] then G:label(s[4], 56, 0xffffff) end end
-  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8}, {"A DAY ACROSS", 34, 0xffffff},
-                      {"TEXAS", 96, 0xffb347}, {"TEXAS", 110, 0xffb347}, {"THE LONE STAR STATE", 34, 0xffffff},
-                      {"FRIENDSHIP", 26, 0x9fd8ff}, {"REMEMBER", 44, 0xffffff},
-                      {"LIVE MUSIC CAPITAL OF THE WORLD", 30, 0xffd23f}, {"LOCKHART  ·  TAYLOR  ·  LULING", 30, 0xffd23f}}) do
-    G:label(l[1], l[2], l[3])
+  -- the labels ahead (pre-labelled with `when` so memory stays lean)
+  local at = {}
+  for _, s in ipairs(SCENES) do
+    at[s[2]] = s[1]
+    if s[4] then G:label(s[4], 56, 0xffffff, s[1]) end
+  end
+  for _, l in ipairs({{"PRESENTS", 26, 0x6ef0c8, 0}, {"A DAY ACROSS", 34, 0xffffff, 0},
+                      {"TEXAS", 96, 0xffb347, 0}, {"LIVE MUSIC CAPITAL OF THE WORLD", 30, 0xffd23f, at.austin + 30},
+                      {"113 MILLION YEARS AGO...", 32, 0xd8f080, at.dinovalley + 15},
+                      {"...AND TODAY", 32, 0xffffff, at.dinovalley + 38},
+                      {"REMEMBER", 44, 0xffffff, at.alamo},
+                      {"LOCKHART  ·  TAYLOR  ·  LULING", 30, 0xffd23f, at.bbq + 10},
+                      {"WHAT A DAY", 40, 0xffd23f, at.finale},
+                      {"TEXAS", 110, 0xffb347, at.finale + 10}, {"THE LONE STAR STATE", 34, 0xffffff, at.finale + 10},
+                      {"FRIENDSHIP", 26, 0x9fd8ff, at.finale + 14}}) do
+    G:label(l[1], l[2], l[3], l[4])
   end
 end
 
@@ -2754,7 +2919,7 @@ function T.update(dt)
     G:puff(540 + G.R:random() * 160, 260 + G.R:random() * 80, {0.8, 0.78, 0.76}, 50, -10, 2.4, 14, 0.35)
   end
   if sc[2] == "bigbend" and lt > 11 and G.R:random() < dt * 6 then
-    G:spark(384 + (G.R:random() - 0.5) * 40, 890, (G.R:random() - 0.5) * 40, -80 - G.R:random() * 80, 1.4, {1, 0.7, 0.3}, 5, -10, true)
+    G:spark(384 + (G.R:random() - 0.5) * 40, 965, (G.R:random() - 0.5) * 40, -80 - G.R:random() * 80, 1.4, {1, 0.7, 0.3}, 5, -10, true)
   end
   return S.t >= LEN
 end

@@ -124,8 +124,8 @@ function F.draw_chase(t, y, alpha)
   if phase == 1 then
     local k = p / 0.5
     local x = -60 + (W + 400) * k
-    -- The pellet waits at the right edge.
-    if math.floor(t * 4) % 2 == 0 then
+    -- The pellet waits at the right edge until Pac-Man eats it.
+    if x < W - 30 and math.floor(t * 4) % 2 == 0 then
       lg.setColor(1, 0.85, 0.7, alpha)
       lg.circle("fill", W - 30, y, 8, 12)
     end

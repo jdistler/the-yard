@@ -84,17 +84,25 @@ scenes.swarm = function(st, s, k)
       lg.draw(SP.alien[frame + 1], x, y, 0, 3.4, 3.4, 5.5, 4)
     end
   end
-  -- The ship follows the diver and fires.
+  -- The ship follows the diver (dt-based) and fires from its locked X at shot time.
+  local dt = clamp(s - (st.last_s or s), 0, 0.1)
+  st.last_s = s
   st.shipx = st.shipx or W / 2
   local want = dx or W / 2 + math.sin(s * 0.4) * 200
-  st.shipx = st.shipx + (want - st.shipx) * 0.02
+  st.shipx = st.shipx + (want - st.shipx) * (1 - math.exp(-dt * 1.4))
   lg.setColor(0.9, 0.95, 1, k)
   lg.draw(SP.ship, st.shipx, HZ - 26, 0, 3.2, 3.2, 4.5, 4.5)
+  local shot_id = math.floor(s * 0.6)
   local shot = (s * 0.6) % 1
   if dx and shot < 0.5 then
+    if st.shot_id ~= shot_id then
+      st.shot_id = shot_id
+      st.shot_x = st.shipx
+    end
+    local sx = st.shot_x or st.shipx
     local by = HZ - 50 - shot * 2 * (HZ - 50 - (dy or 300))
     lg.setColor(1, 1, 0.6, k)
-    lg.rectangle("fill", st.shipx - 1.5, by, 3, 14)
+    lg.rectangle("fill", sx - 1.5, by, 3, 14)
   end
 end
 
@@ -102,7 +110,9 @@ end
 local SHAPES = {
   ghost = {{0, .5}, {.1, .2}, {.3, .05}, {.5, 0}, {.7, .05}, {.9, .2}, {1, .5}, {1, 1}, {.83, .85}, {.67, 1}, {.5, .85},
            {.33, 1}, {.17, .85}, {0, 1}, {0, .5}},
-  cherry = {{.25, .7}, {.4, .3}, {.6, .05}, {.8, .35}, {.75, .75}, nil, {.6, .05}, {.45, .2}},
+  cherry = {{.28, .66}, {.42, .30}, {.60, .05}, {.78, .35}, {.74, .70}, nil, {.60, .05}, {.44, .18}, nil,
+            {.28, .66}, {.16, .70}, {.12, .82}, {.20, .94}, {.34, .94}, {.42, .82}, {.38, .70}, {.28, .66}, nil,
+            {.74, .70}, {.62, .74}, {.58, .86}, {.66, .98}, {.80, .98}, {.88, .86}, {.84, .74}, {.74, .70}},
   ship = {{.5, 0}, {.6, .35}, {1, .7}, {.65, .65}, {.55, 1}, {.45, 1}, {.35, .65}, {0, .7}, {.4, .35}, {.5, 0}},
   key = {{.2, .1}, {.4, 0}, {.5, .2}, {.4, .4}, {.2, .3}, {.2, .1}, nil, {.45, .35}, {.95, .9}, nil, {.8, .75}, {.7, .85},
          nil, {.9, .85}, {.8, .95}},
@@ -164,6 +174,14 @@ scenes.stars = function(st, s, k)
       lg.circle("fill", ox + p[1] * size, oy + p[2] * size, 2.6, 8)
     end
   end
+  -- Subtle constellation title fade-in during hold.
+  if t > appear + draw_l - 1 then
+    local ta = clamp((t - (appear + draw_l - 1)) / 2, 0, 1) * fade
+    lg.setFont(C.font(18))
+    lg.setColor(0.7, 0.85, 1, 0.55 * ta)
+    lg.printf(string.upper(name), ox - 20, oy + size + 16, size + 40, "center")
+  end
+  lg.setLineWidth(1)
 end
 
 -- 4. Fireflies: they wander, gather into a word, hold it, and scatter.
@@ -270,24 +288,30 @@ local function fireflies(st, s, k, n, words)
 end
 scenes.fireflies = function(st, s, k) fireflies(st, s, k, 110, true) end
 
--- 5. An aurora: ribbons of light rippling across the sky.
-local ribbon = nil
+-- 5. An aurora: ribbons of light rippling across the sky (pre-allocated vertices: zero per-frame GC).
+local ribbon, aurora_verts = nil, nil
+local AURORA_COLS = {{0.3, 1, 0.6}, {0.4, 0.8, 1}, {0.8, 0.4, 1}}
 scenes.aurora = function(st, s, k)
-  ribbon = ribbon or lg.newMesh(2 * 49, "strip", "stream")
-  local cols = {{0.3, 1, 0.6}, {0.4, 0.8, 1}, {0.8, 0.4, 1}}
+  if not ribbon then
+    ribbon = lg.newMesh(2 * 49, "strip", "stream")
+    aurora_verts = {}
+    for i = 1, 2 * 49 do aurora_verts[i] = {0, 0, 0, 0, 1, 1, 1, 0} end
+  end
   lg.setBlendMode("add")
   for r = 1, 3 do
-    local v = {}
     local base = 180 + r * 55
-    local c = cols[r]
+    local c = AURORA_COLS[r]
+    local c1, c2, c3 = c[1], c[2], c[3]
     for i = 0, 48 do
       local x = i / 48 * W
       local y = base + math.sin(x * 0.008 + s * 0.25 * r + r) * 45 + math.sin(x * 0.021 - s * 0.4) * 18
       local a = (0.18 + 0.12 * math.sin(x * 0.01 + s * 0.6 + r)) * k
-      v[#v + 1] = {x, y - 110, 0, 0, c[1], c[2], c[3], 0}
-      v[#v + 1] = {x, y, 0, 0, c[1], c[2], c[3], a}
+      local v1 = aurora_verts[i * 2 + 1]
+      v1[1], v1[2], v1[5], v1[6], v1[7], v1[8] = x, y - 110, c1, c2, c3, 0
+      local v2 = aurora_verts[i * 2 + 2]
+      v2[1], v2[2], v2[5], v2[6], v2[7], v2[8] = x, y, c1, c2, c3, a
     end
-    ribbon:setVertices(v)
+    ribbon:setVertices(aurora_verts)
     lg.setColor(1, 1, 1, 1)
     lg.draw(ribbon)
   end
@@ -307,17 +331,20 @@ scenes.meteors = function(st, s, k)
   if bt < 5 then
     local f = bt / 4
     local x0 = 80 + (math.floor(s / 20) * 233) % (W - 300)
-    local x, y = x0 + f * 260, 60 + f * (HZ - 70)
+    local bdx, bdy = 260, HZ - 70
+    local x, y = x0 + f * bdx, 60 + f * bdy
     if f < 1 then
+      local blen = math.sqrt(bdx * bdx + bdy * bdy)
+      local ux, uy = bdx / blen, bdy / blen
       lg.setLineWidth(4)
       for j = 1, 6 do
         lg.setColor(1, 0.7 - j * 0.08, 0.4, (0.6 - j * 0.09) * k)
-        lg.line(x - j * 18, y - j * 30, x - (j - 1) * 18, y - (j - 1) * 30)
+        lg.line(x - j * 34 * ux, y - j * 34 * uy, x - (j - 1) * 34 * ux, y - (j - 1) * 34 * uy)
       end
       C.fx.glow(x, y, 26, 26, 1, 0.8, 0.5, 0.7 * k)
     else
       local g = (bt - 4)
-      C.fx.glow(x0 + 260, HZ - 6, 60 * g + 20, 24, 1, 0.6, 0.3, 0.5 * (1 - g) * k)
+      C.fx.glow(x0 + bdx, HZ - 6, 60 * g + 20, 24, 1, 0.6, 0.3, 0.5 * (1 - g) * k)
     end
   end
   lg.setLineWidth(2)
@@ -346,7 +373,7 @@ scenes.city = function(st, s, k)
       x = x + w + st.r(2, 10)
     end
   end
-  local rise = ease(s / 10) * k
+  local rise = ease(s / 10)
   for _, b in ipairs(st.b) do
     local top = HZ - b.h * rise
     lg.setColor(0.04, 0.02, 0.09, 0.95 * k)
@@ -355,6 +382,17 @@ scenes.city = function(st, s, k)
     lg.setColor(edge[1], edge[2], edge[3], 0.7 * k)
     lg.setLineWidth(2)
     lg.line(b.x, HZ, b.x, top, b.x + b.w, top, b.x + b.w, HZ)
+    -- Rooftop aviation beacons on tall towers.
+    if b.h > 165 and rise > 0.95 then
+      local rx = b.x + b.w * 0.5
+      lg.setColor(0.5, 0.5, 0.6, 0.7 * k)
+      lg.setLineWidth(1.5)
+      lg.line(rx, top, rx, top - 16)
+      local pulse = 0.35 + 0.65 * math.max(0, math.sin(s * 3.2 + b.seed))
+      lg.setColor(1, 0.18, 0.22, pulse * k)
+      lg.circle("fill", rx, top - 17, 2.8, 8)
+      if pulse > 0.75 then C.fx.glow(rx, top - 17, 14, 14, 1, 0.2, 0.2, 0.45 * pulse * k) end
+    end
     -- Windows: each lit or dark by a slow hash of its place and the time.
     if rise > 0.95 then
       for wy = top + 14, HZ - 14, 18 do
@@ -400,32 +438,38 @@ scenes.city = function(st, s, k)
   lg.setColor(1, 0.4, 0.88, k)
   lg.rectangle("line", bx - 300, by - 14, 190, 34)
   lg.setFont(C.font(22))
-  lg.print("STARLIGHT", bx - 290, by - 10)
+  lg.printf("STARLIGHT", bx - 300, by - 9, 190, "center")
 end
 
 -- 8. A UFO: it hums across, stops over a wandering ghost, beams it up, and goes.
+local UFO_GHOSTS = {{1, 0.18, 0.2}, {1, 0.55, 0.85}, {0.25, 0.95, 1}, {1, 0.65, 0.2}}
 scenes.ufo = function(st, s, k)
   local per = 30
+  local cyc = math.floor(s / per)
   local t = s % per
-  local gx = W * 0.55 + math.sin(math.floor(s / per) * 2.1) * 180
+  local gx = W * 0.55 + math.sin(cyc * 2.1) * 180
   local ux, uy
   if t < 10 then ux, uy = -120 + (gx + 120) * ease(t / 10), 300
   elseif t < 22 then ux, uy = gx, 300 + math.sin(t * 2) * 3
   else ux, uy = gx + (W + 160 - gx) * ease((t - 22) / 8), 300 - (t - 22) * 10 end
   -- The ghost: wanders on the horizon, then floats up in the beam.
   local lift = t < 13 and 0 or t < 21 and ease((t - 13) / 8) or 1
-  -- (last time's ghost given back: dropped down a beam far off as the saucer leaves)
-  if t > 24 and t < 29 and s > per then
+  local col_now = UFO_GHOSTS[cyc % #UFO_GHOSTS + 1]
+  local col_prev = UFO_GHOSTS[(cyc - 1) % #UFO_GHOSTS + 1]
+  -- (last cycle's ghost given back: dropped down a beam far off as the saucer leaves)
+  if t > 24 and t < 29 and s >= per then
     local f = (t - 24) / 5
     local bx2 = ux - 40
     lg.setColor(0.6, 1, 0.8, 0.15 * k)
     lg.polygon("fill", bx2 - 12, uy + 10, bx2 + 12, uy + 10, bx2 + 40, HZ, bx2 - 40, HZ)
-    C.fx.ghost(bx2, uy + 30 + f * (HZ - uy - 52), 14, {0.25, 0.95, 1}, 1, s, false, false, k)
+    C.fx.ghost(bx2, uy + 30 + f * (HZ - uy - 52), 14, col_prev, 1, s, false, false, k)
   end
   if lift < 1 then
     local gy = HZ - 22 - lift * (HZ - 22 - uy - 20)
-    local wob = t < 12 and math.sin(t * 2) * 30 or 0
-    C.fx.ghost(gx + wob, gy, 18, {1, 0.55, 0.85}, 1, s, false, false, k)
+    local damp = t < 10 and 1 or (1 - ease((t - 10) / 2.5))
+    local wob = math.sin(t * 2) * 30 * damp
+    local scared = t >= 11.5
+    C.fx.ghost(gx + wob, gy, 18, col_now, math.cos(t * 2) >= 0 and 1 or -1, s, scared, false, k)
   end
   if t >= 11 and t < 21 then
     local b = math.min(1, (t - 11) / 1.5) * (t > 20 and (21 - t) or 1) * k
@@ -454,7 +498,8 @@ scenes.digger = function(st, s, k)
     while x < W + 40 do
       local dir = st.r() < 0.6 and "r" or "v"
       if dir == "r" then x = x + st.r(60, 140) else y = clamp(y + (st.r() < 0.5 and -1 or 1) * st.r(40, 90), HZ + 40, H - 40) end
-      p[#p + 1] = {x, y}
+      local prev = p[#p]
+      if x ~= prev[1] or y ~= prev[2] then p[#p + 1] = {x, y} end
     end
     st.path = p
     local len = 0
@@ -469,11 +514,13 @@ scenes.digger = function(st, s, k)
     local a, b = st.path[i - 1], st.path[i]
     local seg = math.abs(b[1] - a[1]) + math.abs(b[2] - a[2])
     if left <= 0 then break end
-    local f = math.min(1, left / seg)
-    hx, hy = a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f
-    if b[1] ~= a[1] then hdir = b[1] > a[1] and 1 or -1 end
-    pts[#pts + 1], pts[#pts + 2] = hx, hy
-    left = left - seg
+    if seg > 0 then
+      local f = math.min(1, left / seg)
+      hx, hy = a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f
+      if b[1] ~= a[1] then hdir = b[1] > a[1] and 1 or -1 end
+      pts[#pts + 1], pts[#pts + 2] = hx, hy
+      left = left - seg
+    end
   end
   if #pts >= 4 then
     lg.setLineJoin("bevel")
@@ -483,6 +530,8 @@ scenes.digger = function(st, s, k)
     lg.setLineWidth(22)
     lg.setColor(0.02, 0.0, 0.04, k)
     lg.line(pts)
+    lg.setLineJoin("miter")
+    lg.setLineWidth(1)
   end
   -- Treasures buried along the way (cherries, gems): it digs to each, it sparkles, it's gone.
   if not st.gems then
@@ -525,7 +574,7 @@ end
 
 -- 10. The sign dreams: thought bubbles rise from it with what it dreams of.
 local DREAMS = {"cherry", "ghost", "star", "heart", "key"}
-local function icon(name, x, y, a)
+local function icon(name, x, y, a, s)
   if name == "cherry" then
     lg.setColor(0.3, 0.8, 0.3, a)
     lg.setLineWidth(2)
@@ -534,16 +583,20 @@ local function icon(name, x, y, a)
     lg.circle("fill", x - 7, y + 5, 7, 12)
     lg.circle("fill", x + 8, y + 7, 7, 12)
   elseif name == "ghost" then
-    C.fx.ghost(x, y, 11, {0.3, 0.9, 1}, 1, love.timer.getTime(), false, false, a)
+    C.fx.ghost(x, y, 11, {0.3, 0.9, 1}, 1, s, false, false, a)
   elseif name == "star" then
     lg.setColor(1, 0.9, 0.3, a)
-    local p = {}
-    for i = 0, 9 do
-      local r = i % 2 == 0 and 12 or 5
-      local ang = -math.pi / 2 + i * math.pi / 5
-      p[#p + 1], p[#p + 2] = x + math.cos(ang) * r, y + math.sin(ang) * r
+    local ox, oy, ix, iy = {}, {}, {}, {}
+    for i = 0, 4 do
+      local ang = -math.pi / 2 + i * 2 * math.pi / 5
+      ox[i], oy[i] = x + math.cos(ang) * 12, y + math.sin(ang) * 12
+      ix[i], iy[i] = x + math.cos(ang + math.pi / 5) * 5, y + math.sin(ang + math.pi / 5) * 5
     end
-    lg.polygon("fill", p)
+    lg.polygon("fill", ix[0], iy[0], ix[1], iy[1], ix[2], iy[2], ix[3], iy[3], ix[4], iy[4])
+    for i = 0, 4 do
+      local j = (i + 4) % 5
+      lg.polygon("fill", ox[i], oy[i], ix[i], iy[i], ix[j], iy[j])
+    end
   elseif name == "heart" then
     lg.setColor(1, 0.35, 0.6, a)
     lg.circle("fill", x - 5, y - 3, 6, 12)
@@ -554,6 +607,7 @@ local function icon(name, x, y, a)
     lg.setLineWidth(3)
     lg.circle("line", x - 6, y, 5, 10)
     lg.line(x - 1, y, x + 12, y, x + 12, y + 5)
+    lg.setLineWidth(1)
   end
 end
 scenes.dream = function(st, s, k)
@@ -573,12 +627,181 @@ scenes.dream = function(st, s, k)
       lg.circle("line", x, y, 30, 24)
       lg.circle("line", x - 30, y - 30, 7, 12)
       lg.circle("line", x - 42, y - 48, 4, 10)
-      icon(name, x, y, a)
+      icon(name, x, y, a, s)
     end
   end
+  lg.setLineWidth(1)
 end
 
-local ORDER = {"chase", "swarm", "stars", "fireflies", "aurora", "meteors", "city", "ufo", "digger", "dream"}
+-- 11. The Drive-In: retro outdoor movie screen on the horizon, silhouetted cars dimming headlights,
+--     flickering projector beam with moths, and tiny neon arcade silent-film loops.
+local DRIVEIN_REELS = {"THE GREAT CHASE", "INVASION FROM MARS", "STARLIGHT ROMANCE"}
+scenes.drivein = function(st, s, k)
+  local sw, sh = 370, 206
+  local sx, sy = (W - sw) / 2, HZ - sh - 78
+  -- Support trusses and wooden/steel screen tower.
+  lg.setColor(0.08, 0.06, 0.14, 0.95 * k)
+  lg.rectangle("fill", sx - 16, sy - 26, sw + 32, sh + 42, 6, 6)
+  lg.rectangle("fill", sx + 26, sy + sh + 16, 18, HZ - (sy + sh + 16))
+  lg.rectangle("fill", sx + sw - 44, sy + sh + 16, 18, HZ - (sy + sh + 16))
+  lg.setColor(0.16, 0.12, 0.26, 0.85 * k)
+  lg.setLineWidth(2)
+  lg.line(sx + 44, sy + sh + 18, sx + sw - 44, HZ - 6)
+  lg.line(sx + sw - 44, sy + sh + 18, sx + 44, HZ - 6)
+  -- Marquee neon trim & chasing bulbs along the top of the screen tower.
+  lg.setColor(1, 0.35, 0.78, 0.8 * k)
+  lg.rectangle("line", sx - 16, sy - 26, sw + 32, sh + 42, 6, 6)
+  for i = 0, 14 do
+    local bx = sx - 4 + i * ((sw + 8) / 14)
+    local lit = (math.floor(s * 5) + i) % 3 == 0
+    lg.setColor(1, lit and 0.92 or 0.5, lit and 0.55 or 0.3, (lit and 0.95 or 0.35) * k)
+    lg.circle("fill", bx, sy - 14, lit and 2.8 or 2.0, 8)
+  end
+  -- Projector flicker and ambient screen glow.
+  local flk = 0.92 + 0.08 * math.sin(s * 37) * math.cos(s * 19)
+  C.fx.glow(W / 2, sy + sh / 2, 260, 160, 0.6, 0.8, 1, 0.16 * flk * k)
+  -- Movie screen backdrop + silent-film reels clipped to the screen.
+  lg.setColor(0.05, 0.07, 0.14, 0.96 * k)
+  lg.rectangle("fill", sx, sy, sw, sh)
+  local scx1, scy1 = lg.transformPoint(sx, sy)
+  local scx2, scy2 = lg.transformPoint(sx + sw, sy + sh)
+  lg.setScissor(math.floor(scx1), math.floor(scy1), math.max(0, math.floor(scx2 - scx1)), math.max(0, math.floor(scy2 - scy1)))
+  local per = 20
+  local reel = math.floor(s / per) % 3 + 1
+  local rt = s % per
+  if rt < 3.2 then
+    -- Classic silent-film intertitle card.
+    local ta = math.sin(clamp(rt / 3.2, 0, 1) * math.pi) * flk * k
+    lg.setColor(0.06, 0.05, 0.1, 0.95 * k)
+    lg.rectangle("fill", sx, sy, sw, sh)
+    lg.setColor(0.95, 0.9, 0.75, 0.6 * ta)
+    lg.setLineWidth(2)
+    lg.rectangle("line", sx + 14, sy + 14, sw - 28, sh - 28, 4, 4)
+    lg.setFont(C.font(16))
+    lg.setColor(0.95, 0.9, 0.75, 0.75 * ta)
+    lg.printf("REEL " .. reel, sx, sy + 58, sw, "center")
+    lg.setFont(C.font(22))
+    lg.setColor(1, 0.95, 0.82, ta)
+    lg.printf(DRIVEIN_REELS[reel], sx + 20, sy + 94, sw - 40, "center")
+  elseif reel == 1 then
+    -- Reel 1: Neon maze corridor chase.
+    local mt = rt - 3.2
+    lg.setColor(0.18, 0.42, 1, 0.85 * flk * k)
+    lg.setLineWidth(3)
+    lg.line(sx + 10, sy + 72, sx + sw - 10, sy + 72)
+    lg.line(sx + 10, sy + 142, sx + sw - 10, sy + 142)
+    local p = (mt % 8) / 8
+    local px = p < 0.5 and (sx - 20 + (sw + 60) * (p * 2)) or (sx + sw + 40 - (sw + 80) * ((p - 0.5) * 2))
+    local cy = sy + 107
+    for d = 0, 11 do
+      local dx = sx + 28 + d * 28
+      if (p < 0.5 and dx > px) or (p >= 0.5 and dx < px) then
+        lg.setColor(1, 0.9, 0.6, 0.85 * flk * k)
+        lg.circle("fill", dx, cy, d == 11 and 5 or 2.5, 8)
+      end
+    end
+    C.fx.chomper(px, cy, 13, p < 0.5 and 1 or -1, s, flk * k)
+    for gi = 1, 3 do
+      local gx = p < 0.5 and (px - 36 - gi * 32) or (px - 36 - (4 - gi) * 32)
+      C.fx.ghost(gx, cy, 12, UFO_GHOSTS[gi], p < 0.5 and 1 or -1, s + gi, p >= 0.5, false, flk * k)
+    end
+  elseif reel == 2 then
+    -- Reel 2: Invasion from Mars — saucer over tiny skyline, hero ship zapping.
+    local mt = rt - 3.2
+    lg.setColor(0.12, 0.14, 0.28, 0.9 * k)
+    for bi = 0, 7 do
+      local bh = 28 + (bi * 17) % 34
+      lg.rectangle("fill", sx + 12 + bi * 44, sy + sh - bh, 36, bh)
+    end
+    local ux = sx + sw / 2 + math.sin(mt * 1.1) * 110
+    local uy = sy + 58 + math.sin(mt * 2.2) * 14
+    lg.setColor(0.55, 1, 0.8, 0.18 * flk * k)
+    lg.polygon("fill", ux - 12, uy + 8, ux + 12, uy + 8, ux + 32, sy + sh - 20, ux - 32, sy + sh - 20)
+    lg.setColor(0.75, 0.85, 1, flk * k)
+    lg.ellipse("fill", ux, uy, 28, 9, 20)
+    lg.setColor(0.4, 0.95, 1, 0.9 * flk * k)
+    lg.arc("fill", "pie", ux, uy - 2, 12, math.pi, 2 * math.pi, 14)
+    local shipx = sx + sw / 2 + math.sin(mt * 0.85) * 90
+    lg.setColor(1, 0.95, 0.7, flk * k)
+    lg.draw(SP.ship, shipx, sy + sh - 20, 0, 2.2, 2.2, 4.5, 4.5)
+    local shot = (mt * 1.4) % 1
+    if shot < 0.6 then
+      lg.setColor(1, 0.4, 0.8, flk * k)
+      lg.rectangle("fill", shipx - 1.5, sy + sh - 32 - shot * 190, 3, 12)
+    end
+  else
+    -- Reel 3: Starlight Romance — two ghosts meeting under a tiny moon with a rising heart.
+    local mt = rt - 3.2
+    local meet = ease(clamp(mt / 5, 0, 1))
+    lg.setColor(0.95, 0.92, 0.75, 0.9 * flk * k)
+    lg.circle("fill", sx + sw - 56, sy + 44, 18, 20)
+    lg.setColor(0.05, 0.07, 0.14, 1)
+    lg.circle("fill", sx + sw - 48, sy + 39, 15, 20)
+    local g1x = sx + 52 + meet * 108
+    local g2x = sx + sw - 52 - meet * 108
+    local gy = sy + sh - 46
+    C.fx.ghost(g1x, gy, 15, {0.25, 0.95, 1}, 1, s, false, false, flk * k)
+    C.fx.ghost(g2x, gy, 15, {1, 0.55, 0.85}, -1, s + 1, false, false, flk * k)
+    if meet > 0.7 then
+      local hf = (mt * 0.45) % 1
+      local hx, hy = sx + sw / 2, gy - 26 - hf * 74
+      local ha = math.sin(hf * math.pi) * flk * k
+      icon("heart", hx, hy, ha, s)
+    end
+  end
+  -- Subtle film-grain scanline & dust scratch.
+  local scratch_x = sx + ((math.floor(s * 12) * 73) % sw)
+  lg.setColor(1, 1, 1, 0.08 * flk * k)
+  lg.rectangle("fill", scratch_x, sy, 1, sh)
+  lg.setScissor()
+  -- Projector booth silhouette on the lower left + flickering beam cone with fluttering moths.
+  local bx, by = 56, HZ + 24
+  lg.setColor(0.06, 0.04, 0.12, 0.95 * k)
+  lg.rectangle("fill", bx - 22, by - 24, 44, 34, 3, 3)
+  lg.setColor(1, 0.95, 0.8, 0.9 * flk * k)
+  lg.circle("fill", bx + 18, by - 14, 3.5, 8)
+  lg.setBlendMode("add")
+  lg.setColor(0.75, 0.85, 1, 0.075 * flk * k)
+  lg.polygon("fill", bx + 18, by - 14, sx, sy, sx + sw, sy + sh)
+  lg.setColor(0.85, 0.9, 1, 0.045 * flk * k)
+  lg.polygon("fill", bx + 18, by - 14, sx, sy + sh, sx + sw, sy)
+  lg.setBlendMode("alpha")
+  -- Tiny moths fluttering inside the projector beam.
+  for m = 1, 6 do
+    local mf = 0.18 + ((m * 0.13 + math.sin(s * 0.4 + m) * 0.06) % 0.65)
+    local mx = (bx + 18) + (sx + sw * 0.45 - (bx + 18)) * mf + math.sin(s * (3.5 + m * 0.6) + m * 2) * 18
+    local my = (by - 14) + (sy + sh * 0.5 - (by - 14)) * mf + math.cos(s * (4.2 + m * 0.5) + m) * 12
+    local wing = math.abs(math.sin(s * 18 + m * 3)) * 3.5
+    lg.setColor(1, 0.95, 0.8, 0.7 * flk * k)
+    lg.line(mx - wing, my - 1.5, mx, my, mx + wing, my - 1.5)
+  end
+  -- Silhouetted vintage cars parked facing the screen, dimming headlights as the movie starts.
+  local head_a = clamp(1 - s / 4.5, 0.08, 1) * k
+  for ci, cx in ipairs({148, 290, 478, 620}) do
+    local cy = HZ - 4
+    -- Speaker post beside each car.
+    lg.setColor(0.18, 0.16, 0.26, 0.9 * k)
+    lg.rectangle("fill", cx - 44, cy - 26, 3, 28)
+    lg.rectangle("fill", cx - 47, cy - 30, 9, 6, 2, 2)
+    -- Dimming headlight glow toward screen.
+    if head_a > 0.02 then
+      C.fx.glow(cx, cy - 20, 44, 18, 1, 0.92, 0.7, 0.22 * head_a)
+    end
+    -- Vintage car silhouette (rear view, wide fins).
+    lg.setColor(0.05, 0.03, 0.1, 0.98 * k)
+    lg.rectangle("fill", cx - 34, cy - 18, 68, 18, 5, 5)
+    lg.polygon("fill", cx - 24, cy - 18, cx - 16, cy - 31, cx + 16, cy - 31, cx + 24, cy - 18)
+    lg.setColor(0.18, 0.22, 0.36, 0.5 * flk * k)
+    lg.polygon("fill", cx - 19, cy - 19, cx - 13, cy - 28, cx + 13, cy - 28, cx + 19, cy - 19)
+    -- Warm red tail lights.
+    lg.setColor(1, 0.18, 0.22, 0.75 * k)
+    lg.rectangle("fill", cx - 31, cy - 14, 7, 4, 1, 1)
+    lg.rectangle("fill", cx + 24, cy - 14, 7, 4, 1, 1)
+  end
+  lg.setLineWidth(1)
+end
+
+local ORDER = {"chase", "swarm", "stars", "fireflies", "aurora", "meteors", "city", "ufo", "digger", "dream", "drivein"}
 
 -- ------------------------------------------------------------------ the night's timeline
 
@@ -650,10 +873,34 @@ function N.draw(nt)
   if u > 0 and u < 1 then
     local mx, my = 60 + u * (W - 120), 560 - math.sin(u * math.pi) * 400
     C.fx.glow(mx, my, 90, 90, 0.8, 0.85, 1, 0.18)
-    lg.setColor(0.95, 0.93, 0.8, 0.9)
-    lg.circle("fill", mx, my, 34, 40)
-    lg.setColor(0.07, 0.03, 0.14, 1)
-    lg.circle("fill", mx + 14, my - 8, 30, 40)
+    if not lg.getCanvas() then
+      lg.stencil(function() lg.circle("fill", mx + 14, my - 8, 30, 40) end, "replace", 1)
+      lg.setStencilTest("equal", 0)
+      lg.setColor(0.95, 0.93, 0.8, 0.9)
+      lg.circle("fill", mx, my, 34, 40)
+      lg.setStencilTest()
+    else
+      -- Canvas-safe geometric crescent (zero opaque disc, no stencil buffer required).
+      local R, r, dx, dy = 34, 30, 14, -8
+      local d = math.sqrt(dx * dx + dy * dy)
+      local base = math.atan2(dy, dx)
+      local a1 = math.acos(clamp((R * R + d * d - r * r) / (2 * R * d), -1, 1))
+      local a2 = math.acos(clamp((r * r + d * d - R * R) / (2 * r * d), -1, 1))
+      local segs = 24
+      lg.setColor(0.95, 0.93, 0.8, 0.9)
+      for i = 0, segs - 1 do
+        local f0, f1 = i / segs, (i + 1) / segs
+        local o0 = base + a1 + (2 * math.pi - 2 * a1) * f0
+        local o1 = base + a1 + (2 * math.pi - 2 * a1) * f1
+        local n0 = base + math.pi - a2 + (2 * a2) * f0
+        local n1 = base + math.pi - a2 + (2 * a2) * f1
+        lg.polygon("fill",
+          mx + math.cos(o0) * R, my + math.sin(o0) * R,
+          mx + math.cos(o1) * R, my + math.sin(o1) * R,
+          mx + dx + math.cos(n1) * r, my + dy + math.sin(n1) * r,
+          mx + dx + math.cos(n0) * r, my + dy + math.sin(n0) * r)
+      end
+    end
   end
   -- The scene.
   local name, e = N.scene_at(nt)
@@ -699,7 +946,8 @@ N.DAWN = DAWN
 -- The night's segments for the SHOWS section: {start (seconds into the night), title, scene for set_only}
 N.SEGMENTS = {{0, "DUSK"}}
 local TITLES = {chase = "THE CHASE", swarm = "THE SWARM", stars = "STARFIELD", fireflies = "FIREFLIES", aurora = "AURORA",
-                meteors = "METEOR SHOWER", city = "NEON CITY", ufo = "CLOSE ENCOUNTER", digger = "THE DIGGER", dream = "SWEET DREAMS"}
+                meteors = "METEOR SHOWER", city = "NEON CITY", ufo = "CLOSE ENCOUNTER", digger = "THE DIGGER", dream = "SWEET DREAMS",
+                drivein = "THE DRIVE-IN"}
 for _, name in ipairs(ORDER) do N.SEGMENTS[#N.SEGMENTS + 1] = {0, TITLES[name], name} end
 N.SEGMENTS[#N.SEGMENTS + 1] = {DAWN, "DAWN"}
 return N

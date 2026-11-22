@@ -380,6 +380,7 @@ end
 -- Starlight's wordmark, script neon (the shows' "STARLIGHT PRESENTS"); y: where the old caption's top was.
 function G:brand(y, alpha)
   if alpha <= 0 or not self.C.brand_draw then return end
+  if self.cam then return self:after_cam(function() self:brand(y, alpha) end) end
   self.C.brand_draw(y - 58, 62, alpha)
 end
 
@@ -400,7 +401,8 @@ end
 
 -- Plain text with a soft shadow (smaller writing: place names, credits).
 function G:text(s, x, y, px, c, a, align, w)
-  if (a or 1) > 0 then mark_top(y, x, w) end
+  a = a or 1
+  if a > 0 then mark_top(y, x, w) end
   local f = self.C.font(px)
   lg.setFont(f)
   x, y = floor(x + 0.5), floor(y + 0.5)                   -- (whole pixels: crisp)
@@ -412,6 +414,7 @@ end
 
 -- The crawl at the bottom: a label box and the text moving left.
 function G:ticker(label, colour, text)
+  if self.cam then return self:after_cam(function() self:ticker(label, colour, text) end) end
   local C, W, H = self.C, self.W, self.H
   local y = H - 62
   text = text .. "     "
@@ -421,11 +424,14 @@ function G:ticker(label, colour, text)
   lg.setFont(f)
   local lw = f:getWidth(label) + 28
   self.tick_x = (self.tick_x or 0) - 110 * (self.dt or 0.016)
-  local tw = f:getWidth(text)
+  local tw = max(1, f:getWidth(text))
   if self.tick_x < -tw then self.tick_x = self.tick_x + tw end
   lg.setColor(1, 1, 1, 0.95)
-  lg.print(text, lw + 10 + self.tick_x, y + 13)
-  lg.print(text, lw + 10 + self.tick_x + tw, y + 13)
+  local tx = lw + 10 + self.tick_x
+  while tx < W do
+    lg.print(text, tx, y + 13)
+    tx = tx + tw
+  end
   lg.setColor(colour[1], colour[2], colour[3], 1)
   lg.rectangle("fill", 0, y, lw, 50)
   lg.setColor(1, 1, 1, 1)
@@ -541,6 +547,7 @@ function L.steer(x, y, s, step, coat, horn)
   lg.line(50, -8, 62, -16, 82, -20, 96, -30, 100, -36)
   lg.setColor(0.25, 0.2, 0.15, 1)
   lg.line(-40, -2, -48, 14)
+  lg.setLineWidth(1)
   lg.pop()
 end
 
@@ -551,6 +558,7 @@ function L.live_oak(x, y, s, sway)
   lg.setLineWidth(5 * s)
   lg.line(x, y - 34 * s, x - 34 * s, y - 56 * s)
   lg.line(x, y - 34 * s, x + 38 * s, y - 52 * s)
+  lg.setLineWidth(1)
   for i, c in ipairs({{-46, -62, 30}, {-14, -74, 34}, {24, -70, 32}, {52, -58, 26}, {0, -56, 30}, {-30, -50, 22}, {34, -48, 22}}) do
     local g = 0.28 + (i % 3) * 0.04
     lg.setColor(0.12, g, 0.12, 1)
@@ -624,6 +632,7 @@ end
 local NOCAM = os.getenv("HOME_NOCAM") == "1"     -- (tools/show_review.py: the world without the camera's moves)
 function G:look(x, y, z, shake)
   if NOCAM then x, y, z, shake = self.W / 2, self.H / 2, 1, 0 end
+  if shake and shake > 0 then z = max(z, 1 + shake / 500) end
   lg.push()
   lg.translate(self.W / 2, self.H / 2)
   if shake and shake > 0 then lg.translate((self.R:random() - 0.5) * shake, (self.R:random() - 0.5) * shake) end
@@ -711,6 +720,7 @@ function L.ghost(x, y, r, c, t, lx, ly, mood, al)
     local pts = {}
     for i = 0, 6 do pts[#pts + 1] = x - r * 0.6 + i * r * 0.2 pts[#pts + 1] = y + r * 0.3 + (i % 2 == 0 and 0 or -r * 0.12) end
     lg.line(pts)
+    lg.setLineWidth(1)
     return
   end
   for sx = -1, 1, 2 do
@@ -731,6 +741,7 @@ function L.ghost(x, y, r, c, t, lx, ly, mood, al)
       lg.circle("fill", ex + lx * r * 0.12, ey + 0.03 * r + ly * r * 0.15, pr, 10)
     end
   end
+  lg.setLineWidth(1)
 end
 
 -- Pac-Man: mouth chomping with t (open: a fixed opening instead, 0 shut to 1 wide), facing dir (radians;
@@ -742,8 +753,13 @@ function L.pac(x, y, r, dir, t, open, al)
   lg.setColor(1, 0.86, 0.15, al)
   lg.arc("fill", "pie", x, y, r, dir + o, dir + 2 * pi - o, 28)
   lg.setColor(0.1, 0.05, 0.1, al)
-  local f = cos(dir) >= 0 and 1 or -1
-  lg.circle("fill", x + r * 0.12 * f, y - r * 0.5, r * 0.11, 8)
+  local cd, sd = cos(dir), sin(dir)
+  if abs(cd) < 0.35 then
+    lg.circle("fill", x - r * 0.45 * (sd < 0 and 1 or -1), y + r * 0.12 * (sd < 0 and -1 or 1), r * 0.11, 8)
+  else
+    local f = cd >= 0 and 1 or -1
+    lg.circle("fill", x + r * 0.12 * f, y - r * 0.5, r * 0.11, 8)
+  end
 end
 
 -- Where something on a path is at time t: keys {t, x, y[, "lin"]}, eased between keys (or straight, "lin"),
@@ -783,16 +799,108 @@ function G:say(text, x, y, px, a, ink)
   local f = self.C.font(px)
   local w, h = f:getWidth(text) + px * 1.1, px * 1.7
   local bx = L.clamp(x - w / 2, 8, self.W - w - 8)
-  local by = y - h - px * 0.7
+  local by = max(12, y - h - px * 0.7)
+  local tx = L.clamp(x, bx + h * 0.55, bx + w - h * 0.55)
   lg.setColor(0, 0, 0, 0.35 * a)
   lg.rectangle("fill", bx + 3, by + 4, w, h, h / 2, h / 2, 12)
   lg.setColor(1, 1, 1, a)
   lg.rectangle("fill", bx, by, w, h, h / 2, h / 2, 12)
-  lg.polygon("fill", x - px * 0.35, by + h - 1, x + px * 0.35, by + h - 1, x, y)
+  lg.polygon("fill", tx - px * 0.32, by + h - 1, tx + px * 0.32, by + h - 1, L.clamp(x, bx + 4, bx + w - 4), max(by + h + 4, y))
   lg.setFont(f)
   ink = ink or {0.08, 0.08, 0.14}
   lg.setColor(ink[1], ink[2], ink[3], a)
   lg.printf(text, floor(bx + 0.5), floor(by + px * 0.32 + 0.5), w, "center")
+end
+
+-- ------------------------------------------------------------------ reusable high-detail props & helpers
+-- Wayfarer sunglasses for ghosts (dual lenses covering full sclera, bridge, bright frame, temples, white glint)
+-- or Pac-Man (direction-aware side lens + temple arm + frame + glint).
+function L.shades(x, y, r, is_pac, lx, frame)
+  local fc = frame or {0.95, 0.96, 1.0}
+  if is_pac then
+    local f = (lx or 1) >= 0 and 1 or -1
+    local lw, lh = r * 0.54, r * 0.38
+    local cx = x + f * r * 0.24
+    local cy = y - r * 0.44
+    -- temple arm reaching back across the head
+    lg.setColor(fc[1], fc[2], fc[3], 1)
+    lg.setLineWidth(max(2.5, r * 0.09))
+    lg.line(cx - f * lw * 0.45, cy - lh * 0.18, x - f * r * 0.58, cy - lh * 0.06)
+    -- bright frame rim + dark tinted lens
+    lg.rectangle("fill", cx - lw / 2 - 2, cy - lh / 2 - 2, lw + 4, lh + 4, 6, 6, 6)
+    lg.setColor(0.06, 0.08, 0.14, 1)
+    lg.rectangle("fill", cx - lw / 2, cy - lh / 2, lw, lh, 5, 5, 6)
+    -- crisp diagonal white specular sheen
+    lg.setColor(1, 1, 1, 0.48)
+    lg.polygon("fill", cx - lw * 0.28, cy + lh * 0.34, cx - lw * 0.05, cy - lh * 0.34,
+               cx + lw * 0.16, cy - lh * 0.34, cx - lw * 0.07, cy + lh * 0.34)
+    lg.setLineWidth(1)
+    return
+  end
+  local ey = y - r * 0.16
+  local lw, lh = r * 0.62, r * 0.58
+  -- side temple arms + nose bridge
+  lg.setColor(fc[1], fc[2], fc[3], 1)
+  lg.setLineWidth(max(2.5, r * 0.09))
+  lg.line(x - r * 0.94, ey - lh * 0.2, x + r * 0.94, ey - lh * 0.2)
+  lg.arc("line", "open", x, ey - lh * 0.08, r * 0.14, pi, 2 * pi, 8)
+  for sx = -1, 1, 2 do
+    local ex = x + sx * r * 0.38
+    -- outer frame rim
+    lg.setColor(fc[1], fc[2], fc[3], 1)
+    lg.rectangle("fill", ex - lw / 2 - 2, ey - lh / 2 - 2, lw + 4, lh + 4, 7, 7, 6)
+    -- dark glossy lens
+    lg.setColor(0.06, 0.08, 0.14, 1)
+    lg.rectangle("fill", ex - lw / 2, ey - lh / 2, lw, lh, 5, 5, 6)
+    -- diagonal specular glare stripe
+    lg.setColor(1, 1, 1, 0.45)
+    lg.polygon("fill", ex - lw * 0.3, ey + lh * 0.32, ex - lw * 0.04, ey - lh * 0.32,
+               ex + lw * 0.18, ey - lh * 0.32, ex - lw * 0.08, ey + lh * 0.32)
+  end
+  lg.setLineWidth(1)
+end
+
+-- Crisp US flag with stripes, star-studded canton, and optional Apollo lunar top crossbar (opts.crossbar).
+function L.flag_us(x, y, w, h, opts)
+  local n = 13
+  local sh = h / n
+  for i = 0, n - 1 do
+    if i % 2 == 0 then lg.setColor(0.82, 0.14, 0.18, 1) else lg.setColor(0.97, 0.96, 0.94, 1) end
+    lg.rectangle("fill", x, y + i * sh, w, sh + 0.5)
+  end
+  local cw, ch = w * 0.42, sh * 7
+  lg.setColor(0.10, 0.18, 0.46, 1)
+  lg.rectangle("fill", x, y, cw, ch)
+  lg.setColor(1, 1, 1, 0.95)
+  for r = 0, 2 do
+    for c = 0, 2 do
+      lg.circle("fill", x + cw * (0.2 + c * 0.3), y + ch * (0.22 + r * 0.28), max(1.1, min(w, h) * 0.028), 6)
+    end
+  end
+  if opts and opts.crossbar then
+    lg.setColor(0.84, 0.86, 0.9, 1)
+    lg.setLineWidth(2)
+    lg.line(x - 2, y - 1, x + w + 2, y - 1)
+    lg.setLineWidth(1)
+  end
+end
+
+-- Soft ground contact shadow.
+function L.shadow(x, y, rx, ry, a)
+  lg.setColor(0, 0, 0, a or 0.24)
+  lg.ellipse("fill", x, y, rx, ry or rx * 0.28, 16)
+end
+
+-- Stencil-masked crescent moon (no opaque cutout disc artifact).
+function L.crescent(x, y, r, dx, dy, col, a)
+  a = a or 1
+  if a <= 0 then return end
+  local c = col or {1, 0.96, 0.85}
+  lg.stencil(function() lg.circle("fill", x + dx, y + dy, r * 0.88, 28) end, "replace", 1)
+  lg.setStencilTest("equal", 0)
+  lg.setColor(c[1], c[2], c[3], a)
+  lg.circle("fill", x, y, r, 32)
+  lg.setStencilTest()
 end
 
 return L
