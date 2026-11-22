@@ -8,7 +8,9 @@ local RATE = 22050                       -- half the C synth's rate: a quarter o
 local cache, cache_n = {}, 0
 local sources = {}
 local master, peak = 0.32, 1
-local function gain(v) return math.min(peak, math.min(1, v * master)) end
+-- 2.5x makeup gain matches Home's OpenAL loudness so the cabinet volume slider has full range,
+-- while capping below 0.85 so multi-voice chiptunes + SFX never clip.
+local function gain(v) return math.min(math.min(0.85, peak * 2.5), math.min(1, v * master * 2.5)) end
 local song, step_left, song_step, mus_vol, mus_target, tempo = nil, 0, 0, 1, 1, 1
 local nsteps = {}
 
@@ -132,7 +134,7 @@ function A.update(dt)
     if keep then sources[j] = s j = j + 1 end
   end
   -- The sequencer.
-  mus_vol = mus_vol + (mus_target - mus_vol) * math.min(1, dt * 2.2)
+  mus_vol = mus_vol + (mus_target - mus_vol) * math.min(1, dt * 8.0)
   if song then
     step_left = step_left - dt * tempo
     while step_left <= 0 do

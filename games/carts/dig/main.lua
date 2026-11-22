@@ -28,18 +28,118 @@ local S = {
 }
 pics.S = S
 
--- Iconic bouncy Dig-Dug-inspired walking chiptune (original homage groove, gated by movement!).
-local dig_bed = {bpm = 138, steps = 4,
-  {"G4 . B4 . D5 . B4 . G4 . D5 . B4 . . . A4 . C5 . E5 . C5 . D5 . B4 . G4 . . . " ..
-   "G4 . B4 . D5 . E5 . F#5 . E5 . D5 . . . E5 . D5 . C5 . B4 . A4 . B4 . G4 . . . ",
-   wave = "square", vol = 0.14, release = 0.04, attack = 0.003, duty = 0.25, pan = -0.2},
-  {"G2 . D3 . G2 . D3 . C3 . G2 . D3 . G2 . A2 . E3 . D3 . A2 . G2 . D3 . G2 . . . " ..
-   "G2 . D3 . B2 . G2 . C3 . G2 . D3 . A2 . C3 . G2 . D3 . F#2 . G2 . D3 . G2 . . . ",
-   wave = "tri", vol = 0.26, release = 0.05, attack = 0.003},
-  {"K . H . S . H . K . H . S . H H ", wave = "noise", vol = 0.10, release = 0.035, pan = 0.2}}
-local clear_bed = {bpm = 136, steps = 2,
-  {"G4 . B4 . D5 . G5 - E5 . D5 . B4 . D5 - ", wave = "tri", vol = 0.20, release = 0.22, attack = 0.008, pan = -0.2},
-  {"G2 - D3 - E2 - B2 - C3 - G2 - D3 - G2 - ", wave = "sine", vol = 0.22, release = 0.24, attack = 0.01}}
+-- Revamped 128-step, 5-track arcade chiptunes!
+-- Cave 1, 3, 5+: Bouncy G-major Dig-Dug-inspired underground adventure (A + B + turnaround).
+local dig_bed = {bpm = 142, steps = 4,
+  -- Track 1: Lead (punchy 25% pulse wave)
+  {"G4 . B4 D5 . B4 G4 . D5 . B4 . G4 . . . " ..
+   "A4 . C5 E5 . C5 A4 . D5 . B4 . G4 . . . " ..
+   "G4 . B4 D5 . E5 F#5 . G5 . E5 D5 . B4 . . " ..
+   "C5 . B4 A4 . G4 F#4 . G4 . D5 . G4 . . . " ..
+   "E5 . G5 E5 . D5 C5 . D5 . F#5 D5 . C5 B4 . " ..
+   "C5 . E5 C5 . B4 A4 . B4 . D5 . E5 . . . " ..
+   "C5 . D5 E5 . F#5 G5 . A5 . G5 F#5 . E5 D5 . " ..
+   "E5 . D5 C5 . B4 A4 . D5 . F#5 . G5 . . . ",
+   wave = "square", vol = 0.20, release = 0.045, attack = 0.003, duty = 0.25, pan = -0.2},
+  -- Track 2: Counter-harmony & off-beat stabs (crisp 12.5% pulse)
+  {". . . . G4 . . . B4 . . . D5 B4 G4 . " ..
+   ". . . . A4 . . . F#4 . . . B4 G4 D4 . " ..
+   ". . . . B4 . . . E5 . . . B4 . G4 . " ..
+   "E4 . G4 F#4 . D4 . . B4 . G4 . D4 B4 G4 . " ..
+   "G4 . C5 . G4 . E4 . F#4 . A4 . F#4 . D4 . " ..
+   "E4 . G4 . E4 . C4 . G4 . B4 . G4 . E4 . " ..
+   "E4 . G4 C5 . A4 B4 . C5 . B4 A4 . G4 F#4 . " ..
+   "G4 . F#4 E4 . D4 C4 . F#4 . A4 . B4 . . . ",
+   wave = "square", vol = 0.12, release = 0.04, attack = 0.003, duty = 0.125, pan = 0.25},
+  -- Track 3: Bouncy octave-walking triangle bass
+  {"G2 . G3 . D3 . G2 . G2 . G3 . B2 . D3 . " ..
+   "A2 . A3 . E3 . C3 . D3 . A2 . G2 . D3 . " ..
+   "G2 . G3 . D3 . B2 . C3 . C4 . G3 . E3 . " ..
+   "A2 . E3 . D3 . F#2 . G2 . D3 . G2 . B2 . " ..
+   "C3 . C4 . G3 . E3 . B2 . B3 . F#3 . D3 . " ..
+   "A2 . A3 . E3 . C3 . E2 . E3 . B2 . G2 . " ..
+   "C3 . G2 . C3 . E3 . D3 . A2 . D3 . F#3 . " ..
+   "C3 . G2 . A2 . E3 . D3 . F#2 . G2 . D3 . ",
+   wave = "tri", vol = 0.30, release = 0.055, attack = 0.003},
+  -- Track 4: Underground crystal shimmer on B-section
+  {". . . . . . . . . . . . . . . . " ..
+   ". . . . . . . . . . . . . . . . " ..
+   ". . . . . . . . . . . . . . . . " ..
+   ". . . . . . . . . . . . D6 B5 G5 . " ..
+   "G5 . C6 . E6 . C6 . F#5 . B5 . D6 . B5 . " ..
+   "E5 . A5 . C6 . A5 . G5 . B5 . E6 . B5 . " ..
+   "G5 . C6 . E6 . C6 . A5 . D6 . F#6 . D6 . " ..
+   "G5 . C6 . A5 . E6 . F#5 . A5 . G5 . . . ",
+   wave = "sine", vol = 0.10, release = 0.09, attack = 0.005, pan = 0.15},
+  -- Track 5: Tight arcade percussion with bar-4 & bar-8 fills
+  {"K . H . S . H . K . H K S . H . " ..
+   "K . H . S . H . K . H . S . H H " ..
+   "K . H . S . H . K . H K S . H . " ..
+   "K . H . S . H . K S S H C . . . " ..
+   "K . H . S . H . K . H K S . H . " ..
+   "K . H . S . H . K . H . S . H H " ..
+   "K . H . S . H . K . H K S . H . " ..
+   "K . S . K S S S K . S . C . . . ",
+   wave = "noise", vol = 0.14, release = 0.035, pan = 0.15}}
+
+-- Cave 2, 4, 6+: Mysterious & funky Deep Cavern Groove (146 BPM in D Minor / F Major!).
+local deep_bed = {bpm = 146, steps = 4,
+  {"D5 . F5 A5 . G5 F5 . E5 . G5 F5 . D5 . . " ..
+   "C5 . E5 G5 . F5 E5 . D5 . F5 . A4 . . . " ..
+   "D5 . F5 A5 . Bb5 A5 . G5 . E5 C5 . E5 . . " ..
+   "F5 . G5 A5 . G5 E5 . D5 . A4 . D5 . . . " ..
+   "F5 . A5 C6 . Bb5 A5 . G5 . Bb5 A5 . G5 F5 . " ..
+   "E5 . G5 Bb5 . A5 G5 . F5 . A5 . D5 . . . " ..
+   "Bb4 . D5 F5 . G5 A5 . G5 . E5 C5 . E5 G5 . " ..
+   "A5 . G5 F5 . E5 C#5 . D5 . A4 . D5 . . . ",
+   wave = "square", vol = 0.20, release = 0.045, attack = 0.003, duty = 0.25, pan = -0.2},
+  {". . . . D5 . . . C5 . . . A4 F4 D4 . " ..
+   ". . . . C5 . . . A4 . . . F4 D4 A4 . " ..
+   ". . . . F5 . . . E5 . . . G4 . C5 . " ..
+   "D5 . E5 F5 . E5 C#5 . A4 . F4 . D4 A4 F4 . " ..
+   "A4 . C5 . F5 . C5 . Bb4 . D5 . G5 . D5 . " ..
+   "G4 . Bb4 . E5 . C5 . A4 . D5 . F5 . A4 . " ..
+   "D4 . F4 Bb4 . D5 F5 . E5 . C5 G4 . C5 E5 . " ..
+   "F5 . E5 D5 . C#5 A4 . F4 . A4 . D5 . . . ",
+   wave = "square", vol = 0.12, release = 0.04, attack = 0.003, duty = 0.125, pan = 0.25},
+  {"D2 . D3 . A2 . F2 . C2 . C3 . G2 . E2 . " ..
+   "Bb2 . F2 . C3 . G2 . D2 . A2 . D2 . F2 . " ..
+   "D2 . D3 . A2 . F2 . C2 . C3 . G2 . E2 . " ..
+   "Bb2 . F2 . A2 . E2 . D2 . A2 . D2 . F2 . " ..
+   "F2 . F3 . C3 . A2 . G2 . G3 . D3 . Bb2 . " ..
+   "C3 . G2 . E2 . C2 . D2 . A2 . D3 . A2 . " ..
+   "Bb2 . F2 . Bb2 . D3 . C3 . G2 . C3 . E3 . " ..
+   "A2 . E2 . A2 . C#3 . D2 . A2 . D2 . . . ",
+   wave = "tri", vol = 0.30, release = 0.055, attack = 0.003},
+  {". . . . . . . . . . . . . . . . " ..
+   ". . . . . . . . . . . . . . . . " ..
+   ". . . . . . . . . . . . . . . . " ..
+   ". . . . . . . . . . . . A5 F5 D5 . " ..
+   "A5 . C6 . F6 . C6 . Bb5 . D6 . G6 . D6 . " ..
+   "G5 . Bb5 . E6 . C6 . A5 . D6 . F6 . D6 . " ..
+   "F5 . Bb5 . D6 . Bb5 . G5 . C6 . E6 . C6 . " ..
+   "A5 . E6 . G6 . E6 . F6 . D6 . A5 . . . ",
+   wave = "sine", vol = 0.10, release = 0.09, attack = 0.005, pan = 0.15},
+  {"K . H . S . H . K . H K S . H . " ..
+   "K . H . S . H . K . H . S . H H " ..
+   "K . H . S . H . K . H K S . H . " ..
+   "K . H . S . H . K S S H C . . . " ..
+   "K . H . S . H . K . H K S . H . " ..
+   "K . H . S . H . K . H . S . H H " ..
+   "K . H . S . H . K . H K S . H . " ..
+   "K . S . K S S S K . S . C . . . ",
+   wave = "noise", vol = 0.14, release = 0.035, pan = 0.15}}
+
+-- Harmonized 4-track Cave Clear Victory Fanfare!
+local clear_bed = {bpm = 144, steps = 4,
+  {"G4 . B4 . D5 . G5 - - . F#5 . G5 . A5 . B5 - - - G5 . D5 . B4 . D5 . G5 - - . ",
+   wave = "square", vol = 0.19, release = 0.14, attack = 0.004, duty = 0.25, pan = -0.2},
+  {"D4 . G4 . B4 . D5 - - . C5 . B4 . C5 . D5 - - - B4 . G4 . D4 . G4 . B4 - - . ",
+   wave = "tri", vol = 0.22, release = 0.16, attack = 0.006, pan = 0.2},
+  {"G2 - D3 - G2 - B2 - C3 - G2 - D3 - A2 - G2 - D3 - E2 - B2 - C3 - D3 - G2 - - . ",
+   wave = "sine", vol = 0.26, release = 0.20, attack = 0.01},
+  {"K . . . S . . . K . K . C . . . K . . . S . . . K . S S C . . . ",
+   wave = "noise", vol = 0.12, release = 0.04}}
 
 local function react_to(s) S.react, S.react_left = s, REACT_FRAMES end
 
@@ -138,7 +238,7 @@ local function setup_level(lvl)
   end
 
   log("dig level " .. lvl)
-  music.play(dig_bed)
+  music.play(lvl % 2 == 1 and dig_bed or deep_bed)
   music.tempo(1)
   music.volume(1)
   react_to("Cave " .. lvl .. "! Dig and puff the critters!")
@@ -267,11 +367,8 @@ local function step_player(mx, my)
   S.moving = false
   if mx == 0 and my == 0 then
     S.still_t = S.still_t + 1
-    -- Classic Dig Dug magic: walking tune quiets when Diggy stops!
-    if S.still_t == 8 then music.volume(0.08) end
     return
   end
-  if S.still_t >= 8 then music.volume(1) end
   S.still_t = 0
   if mx ~= 0 and my ~= 0 then my = 0 end
   S.face_x, S.face_y = mx, my
@@ -519,8 +616,8 @@ end
 -- ------------------------------------------------------------------ the cart
 
 function init()
-  sfx.master(0.32)
-  sfx.limit(8000)
+  sfx.master(0.42)
+  sfx.limit(12000)
   S.best = clamp(save.get("best", 0), 0, 100000)
   S.hi = clamp(save.get("hi", 0), 0, 999999)
   S.gems = clamp(save.get("gems", 0), 0, 100000)
