@@ -1,14 +1,25 @@
-# Chest: the key, the sword, and Zam
+# Chest: the key, the sword, Zam, and Pika
 
-A cart: `games/carts/chest/` (main.lua has the rules, pictures.lua the drawing). The Yard lists it under Tea, blurb "the key, the chest, Zam," band 5+. `games/test.py` (run by `stress.sh`) plays the checks at the bottom.
+A cart: `games/carts/chest/` (main.lua has the rules, pictures.lua the drawing). The Yard lists it under Tea, blurb "Zam, Pika, and the chest," band 5+. `games/test.py` (run by `stress.sh`) plays the checks at the bottom.
 
-Where it runs: the first build is on the cabinet, flashed to tile 10 on 2026-10-23. Version 2 (2026-10-24) aims the sword. This note is version 3 (2026-11-05): the bubble wand and the path's purple fairies, asked for by the player himself. It is installed with `games/cart push`.
+Where it runs: the first build is on the cabinet, flashed to tile 10 on 2026-10-23. Version 2 (2026-10-24) aims the sword. Version 3 (2026-11-05) adds the bubble wand and the path's purple fairies. This note is **version 4**: Zam's halfway surge and fairy pacing, **Pika** leaping out of the chest after Zam bows for Duel 2, and a real kid-friendly **Victory Celebration** sequence before playing again.
 
-Audience is a five-year-old who can already steer in Mario Kart, in a short turn, with a grown-up beside him reading the line and ready to hold the button. He said: you are a person walking to a treasure chest, first you need the key, the key unlocks it, a gold boss pops out and gives you a sword because he is the boss, you shoot lasers at him, a laser that hits you puts a bubble around you, good fairies bubble him, some fairies bubble you and that means start over, some good fairies bubble you and then it pops and you collect it and it goes around him, and bad fairies bubble you and that is how you get hurt.
+Audience is a five-year-old who can already steer in Mario Kart, in a short turn, with a grown-up beside him reading the line and ready to hold the button. He said: you are a person walking to a treasure chest, first you need the key, the key unlocks it, a gold boss pops out and gives you a sword because he is the boss, you shoot lasers at him, a laser that hits you puts a bubble around you, good fairies bubble him, some fairies bubble you and that means start over, some good fairies bubble you and then it pops and you collect it and it goes around him, and bad fairies bubble you and that is how you get hurt. And after defeating Alakazam, he wants to defeat Pikachu!
 
-He loves Alakazam. Zam is drawn after him: a tall gold psychic with long pointed ears, a fox's face, a long drooping mustache, brown armor on his shoulders, chest, elbows, and knees, and a spoon in each hand. Zam's name, the rest of the game, and every line are ours. Alakazam and Pokémon belong to Nintendo, Creatures, and Game Freak. This drawing is a fan tribute for one family's cabinet. It is not licensed by them, and it is not covered by this repository's MIT license.
+He loves Alakazam and Pikachu. Zam is drawn after Alakazam (tall gold psychic, long pointed ears, fox face, long drooping mustache, brown armor, a spoon in each hand) and Pika is drawn after Pikachu (sunny yellow, black-tipped ears, rosy electric cheeks, zig-zag lightning-bolt tail). Zam's and Pika's names, the rest of the game, and every line are ours. Alakazam, Pikachu, and Pokémon belong to Nintendo, Creatures, and Game Freak. These drawings are fan tributes for one family's cabinet. They are not licensed by them, and they are not covered by this repository's MIT license.
 
 This is the walk-up band in [CONTROLS.md](../../../CONTROLS.md). The stick walks. The lower button shoots. He can win with the stick alone. The button is how the win becomes his.
+
+## What changed in version 4, and why
+
+1. **Zam's duel breathes even with rescued fairies.** Zam's marks start at 12 (12, 15, 18, 21 with gem level). At half marks he powers up ("Zam is powering up!") and gently drifts left and right as he fights. Rescued gold fairies still fly out to wrap him and break his shield, now spaced at 1.5 s then every 5.5 s, and a gold-wrap big pop deals +2 marks—rewarding without ending the duel in four seconds. Any remaining rescued gold fairies stay with Ned for Pika!
+2. **Duel 2: Pika leaps out of the chest!** When Zam's marks fill, Zam bows and bends his spoons ("Zam bows! What's in the chest?"), golden sparks crackle inside the chest, and Pika jumps out with a new upbeat electric battle tune. Ned's hearts refill. Pika hops between spots and brings three distinct electric moves:
+   * **Thunder Spark:** cheeks glow ("Pika's cheeks are glowing!"), then a purple-electric spark orb zips toward Ned (two at once when charged or on gem level 2+).
+   * **Lightning Strike:** a glowing purple target ring appears under Ned ("Lightning! Step out of the ring!"), then a bolt flashes down from the sky!
+   * **Quick Dash:** at half health or gem level 1+, Pika zips across the top in a yellow streak ("Pika zipped away!"), leaving twinkling stars.
+   * Three hurts against Pika softly restart Pika's duel right there—Ned keeps his sword and doesn't have to re-fight Zam.
+3. **A real kid-friendly Victory Celebration.** Beating Pika launches a joyful victory fanfare: Zam bows on the left, Pika bounces with happy arc eyes on the right, Ned raises his golden sword high overhead, his gold fairies dance in a ring, confetti showers down, and a new treasure (including a golden lightning bolt!) arcs onto the pile. A warm **"YOU DID IT!"** banner shows his treasure count; for two seconds pressing shoots celebratory sparkles, then **"PRESS TO PLAY AGAIN!"** starts the next round (or it loops on its own after ~5.5 seconds).
+4. **Audio balance.** Raised master to 0.32 and ceiling to 8000 (paired with `games/love/yard/audio.lua` treating `sfx.limit` as a ceiling instead of a linear divider), so music and SFX are warm, clear, and responsive to the cabinet's volume slider.
 
 ## What changed in version 3, and why
 

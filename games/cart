@@ -418,7 +418,11 @@ def love_pack(out=None):
 
 # Partycade Home's card pictures for our games: a frame of each (./cart shots); the classics' logos are cut
 # from the stock menu on the cabinet only (tools/home_art.py).
-HOME_SHOTS = {"keep": "keep-900.png", "lamp": "lamp-300.png", "tea": "tea-900.png", "chest": "chest-300.png"}
+HOME_SHOTS = {
+    "keep": "keep-900.png", "lamp": "lamp-300.png", "tea": "tea-900.png", "chest": "chest-300.png",
+    "dig": "dig-300.png", "kart": "kart-300.png", "safari": "safari-300.png", "tower": "tower-300.png",
+    "garden": "garden-300.png", "bake": "bake-300.png", "band": "band-300.png", "rocket": "rocket-300.png",
+}
 
 
 def home_pack(out=None):

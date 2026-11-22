@@ -42,6 +42,7 @@ local function sprite(rows)
     end
   end
   local img = lg.newImage(d)
+  d:release()
   img:setFilter("nearest", "nearest")
   return img
 end
@@ -235,6 +236,7 @@ local function fireflies(st, s, k, n, words)
       return 1, 1, 1, v * v
     end)
     local img = lg.newImage(d)
+    d:release()
     img:setFilter("linear", "linear")
     batch = lg.newSpriteBatch(img, 256, "stream")
   end

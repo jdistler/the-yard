@@ -8,6 +8,7 @@ local RATE = 22050                       -- half the C synth's rate: a quarter o
 local cache, cache_n = {}, 0
 local sources = {}
 local master, peak = 0.32, 1
+local function gain(v) return math.min(peak, math.min(1, v * master)) end
 local song, step_left, song_step, mus_vol, mus_target, tempo = nil, 0, 0, 1, 1, 1
 local nsteps = {}
 
@@ -105,7 +106,7 @@ local function play_sd(sd, vol, delay)
     return
   end
   local src = love.audio.newSource(sd, "static")
-  src:setVolume(math.min(1, vol * master * peak))
+  src:setVolume(gain(vol))
   src:play()
   sources[#sources + 1] = {src = src}
 end
@@ -122,7 +123,7 @@ function A.update(dt)
       if s.wait <= 0 then
         s.wait = nil
         s.src = love.audio.newSource(s.sd, "static")
-        s.src:setVolume(math.min(1, s.vol * master * peak))
+        s.src:setVolume(gain(s.vol))
         s.src:play()
       end
     elseif s.src and not s.src:isPlaying() then
@@ -194,7 +195,7 @@ function A.song_tick()
         if v ~= -1 then
           local sd = note_sound(tr, v, song_step % len)
           local src = love.audio.newSource(sd, "static")
-          src:setVolume(math.min(1, tr.vol * mus_vol * master * peak))
+          src:setVolume(gain(tr.vol * mus_vol))
           src:play()
           tr.voice = src
         end
@@ -235,7 +236,8 @@ function sfx.play(o)
     o.duty or 0.5, o.vib_hz or 0, o.vib_depth or 0), o.vol or 0.3)
 end
 function sfx.master(v) master = v end
-function sfx.limit(p) peak = math.max(0.05, math.min(1, p / 9000)) end
+-- Ceiling clamp (matching engine/sfx.c's sfx_limit), not a linear divider: quiet music stays audible.
+function sfx.limit(p) peak = math.max(100, math.min(32000, p)) / 32767 end
 
 function music.play(s)
   if s == nil then music.stop() return end

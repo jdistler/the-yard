@@ -145,7 +145,7 @@ def quick():
     check(rc == 0 and best(d, "yard.sav") is not None, "yard self-test saves the row")
     rc, _ = run("yard", d, args=("keep",), env={"KEEP_SELFTEST": "1"})
     check(rc == 0, "yard runs a cart by name (yard keep)")
-    for cart in ("yard", "keep", "lamp", "tea", "chest"):
+    for cart in ("yard", "keep", "lamp", "tea", "chest", "dig", "kart", "safari", "tower", "garden", "bake", "band", "rocket"):
         r = subprocess.run([os.path.join(BIN, "yard"), "--check", cart], cwd=d, capture_output=True, text=True,
                            env={**os.environ, "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy",
                                 "CAB_SCRIPT": "/dev/null", "YARD_CHECK_FRAMES": "120"}, timeout=120)
@@ -208,8 +208,28 @@ def play():
     check("photos 1" in sav and "tea photo 1" in err, "tea: the cheer hangs a photo on the wall and saves it")
 
     rc, err = run("chest", d, script=shots("Chest", [20, 300, 1500], 1600), env={"CAB_AUTOPLAY": "1"})
-    check(rc == 0 and (best(d, "chest.sav", "gems") or 0) >= 1, f"chest: Zam bows and a gem is saved ({read(d, 'chest.sav')!r})")
+    check(rc == 0 and (best(d, "chest.sav", "gems") or 0) >= 1, f"chest: Zam and Pika bow and a gem is saved ({read(d, 'chest.sav')!r})")
     check("chest key" in err and "chest sword" in err, "chest: key, chest, sword in that order")
+    check("chest zambow" in err and "chest pikapop" in err and "chest pika " in err and "chest victory" in err,
+          "chest: after Zam bows, Pika jumps out and beating him triggers the victory celebration")
+
+    rc, err = run("dig", d, script=shots("Dig", [20, 300, 1200], 1400), env={"CAB_AUTOPLAY": "1"})
+    check(rc == 0 and (best(d, "dig.sav") or 0) >= 1, f"dig: a cave is cleared and saved ({read(d, 'dig.sav')!r})")
+    check("dig pop" in err and "dig clear 1" in err and (best(d, "dig.sav", "gems") or 0) >= 1,
+          "dig: pops critters, collects gems, and clears cave 1")
+
+    for cid, title, key, log_want in (
+        ("kart", "Star Kart", "best", "kart finish 1"),
+        ("safari", "Safari", "caught", "safari catch"),
+        ("tower", "Tower", "best", "tower rescue 1"),
+        ("garden", "Garden", "blooms", "garden parade"),
+        ("bake", "Bake", "treats", "bake serve 1"),
+        ("band", "Band", "songs", "band encore 1"),
+        ("rocket", "Starship", "best", "rocket land 1"),
+    ):
+        rc, err = run(cid, d, script=shots(title, [20, 300, 900], 1200), env={"CAB_AUTOPLAY": "1"})
+        check(rc == 0 and (best(d, f"{cid}.sav", key) or 0) >= 1 and log_want in err,
+              f"{cid}: bot plays, logs '{log_want}', and saves {key} ({read(d, f'{cid}.sav')!r})")
 
     # Orb: dive, then hold right into the first gate (it closes the right side).
     rc, err = run("orb", d, script=script("Orb", "10 down LOW", "11 up LOW", "20 down RIGHT",
@@ -239,8 +259,8 @@ def stress():
     os.makedirs(out)
 
     # 1P+2P held for a second quits every game, and nothing else needs to happen first.
-    for game, title in (("keep", "Keep"), ("lamp", "Lamp"), ("tea", "Tea"), ("chest", "Chest"), ("orb", "Orb"),
-                        ("yard", "The Yard")):
+    for game, title in (("keep", "Keep"), ("lamp", "Lamp"), ("tea", "Tea"), ("chest", "Chest"), ("dig", "Dig"),
+                        ("orb", "Orb"), ("yard", "The Yard")):
         d = tmpdir()
         marker = os.path.join(d, "late.bmp")
         rc, err = run(game, d, script=script(title, "5 down 1P", "5 down 2P", f"200 shot {marker}"), frames=400)
@@ -387,12 +407,24 @@ def stress():
     check(rc == 0 and "orb dive" in err, "orb: the built-in pilot dives the well")
     shutil.rmtree(d, ignore_errors=True)
 
-    # The Yard: wrap upward to Chest, open it, quit; a missing game leaves a note and the menu stays.
+    # Dig: held button waits for release; TL and TR pump; broken save opens fresh.
+    d = tmpdir()
+    rc, err = run("dig", d, script=script("Dig", "0 down LOW", "80 up LOW", "90 down TL", "91 up TL",
+                                         "110 down TR", "111 up TR", "130 quit"))
+    pumps = err.count("dig pump")
+    check(pumps == 2, f"dig: a held button waits for a new press; TL and TR pump ({pumps} pumps)")
+    with open(os.path.join(d, "dig.sav"), "w") as f:
+        f.write("best -9\ngems nope\n")
+    rc, err = run("dig", d, script=script("Dig", "5 quit"))
+    check("dig best 0" in err, "dig: a broken save opens fresh")
+    shutil.rmtree(d, ignore_errors=True)
+
+    # The Yard: wrap upward to Starship (the last row), open it, quit; a missing game leaves a note and the menu stays.
     d = tmpdir()
     s = "\n".join(["title=The Yard", "10 down UP", "11 up UP", "30 down LOW", "31 up LOW", "200 quit",
-                   "title=Chest", "10 down 1P", "10 down 2P"]) + "\n"
+                   "title=Starship", "10 down 1P", "10 down 2P"]) + "\n"
     rc, err = run("yard", d, script=s, frames=600)
-    check(best(d, "yard.sav") == 4 and "yard open chest" in err, "yard: up from the top row wraps to Chest")
+    check(best(d, "yard.sav") == 12 and "yard open rocket" in err, "yard: up from the top row wraps to Starship")
     # A cart that falls over, and a native game whose program is missing: the menu stays.
     lone = os.path.join(d, "bin")
     os.makedirs(lone)
@@ -407,8 +439,8 @@ def stress():
                   frames=900)
     check(rc == 0 and "keep error" in err and "keep stumbled" in err, "yard: a cart that errors shows its gentle screen and the menu comes back")
     e = tmpdir()
-    rc, err = run("yard", e, script=script("The Yard", "10 down UP", "11 up UP", "12 down UP", "13 up UP", "14 down UP",
-                                           "15 up UP", "40 down LOW", "41 up LOW", f"80 shot {out}/yard-missing.bmp", "100 quit"),
+    rc, err = run("yard", e, script=script("The Yard", "10 down DOWN", "11 up DOWN", "12 down DOWN", "13 up DOWN",
+                                           "40 down LOW", "41 up LOW", f"80 shot {out}/yard-missing.bmp", "100 quit"),
                   binary=os.path.join(lone, "yard"), env={"YARD_CARTS": shelf}, frames=600)
     check(rc == 0 and "could not open orb" in err, "yard: a missing game leaves a note and the menu stays")
     with open(os.path.join(d, "keep.sav"), "w") as f:
@@ -467,7 +499,7 @@ def system():
     env = {**os.environ, "YARD_PAK": pak, "YARD_CARTS": empty}
     r = subprocess.run([yard, "--list"], cwd=empty, capture_output=True, text=True, env=env)
     listed = [l.split()[0] for l in r.stdout.splitlines() if "pak:" in l]
-    check(set(listed) >= {"yard", "keep", "lamp", "orb", "tea", "chest"}, f"pack: the runtime reads every cart from it ({listed})")
+    check(set(listed) >= {"yard", "keep", "lamp", "orb", "tea", "chest", "dig", "kart", "safari", "tower", "garden", "bake", "band", "rocket"}, f"pack: the runtime reads every cart from it ({listed})")
     data = bytearray(open(pak, "rb").read())
     data[data.find(b"keep catch")] ^= 1
     bad = os.path.join(shelf, "bad.pak")
@@ -544,21 +576,21 @@ def system():
     r = subprocess.run([sys.executable, os.path.join(HERE, "tools", "bin2c.py"), "--check"], capture_output=True, text=True)
     check(r.returncode == 0, "the embedded font and library are fresh (tools/bin2c.py --check)")
 
-    # The menu scrolls: with the deploy's three test rows it has eight, and the stick reaches the last one.
+    # The menu scrolls: with the deploy's three test rows it has sixteen, and the stick reaches the last one.
     mshelf = tmpdir()
-    for c in ("yard", "keep", "lamp", "orb", "tea", "chest"):
+    for c in ("yard", "keep", "lamp", "orb", "tea", "chest", "dig", "kart", "safari", "tower", "garden", "bake", "band", "rocket"):
         shutil.copytree(os.path.join(HERE, "carts", c), os.path.join(mshelf, c))
     for c in (("love", "label", "loveprobe"), ("love", "label", "loveyard"), ("sysprobe", "label", "sysprobe")):
         shutil.copytree(os.path.join(HERE, *c), os.path.join(mshelf, c[-1]))
-    presses = "".join(f"{f} down DOWN\n{f + 1} up DOWN\n" for f in range(40, 40 + 12 * 7, 12))
+    presses = "".join(f"{f} down DOWN\n{f + 1} up DOWN\n" for f in range(20, 20 + 10 * 15, 10))
     shot = os.path.join(mshelf, "menu.bmp")
-    sc = f"title=The Yard\n{presses}170 shot {shot}\n180 down LOW\n181 up LOW\n"
+    sc = f"title=The Yard\n{presses}190 shot {shot}\n200 down LOW\n201 up LOW\n"
     open(os.path.join(mshelf, "m.cab"), "w").write(sc)
     r = subprocess.run([yard, "--check", "yard"], cwd=mshelf, capture_output=True, text=True, timeout=300,
                        env={**os.environ, "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy", "CAB_SCALE": "1",
                             "CAB_SCRIPT": os.path.join(mshelf, "m.cab"), "YARD_CARTS": mshelf, "YARD_CHECK_FRAMES": "240",
                             "CAB_MAX_FRAMES": "241"})
-    check("yard open sysprobe" in r.stdout + r.stderr, "the menu scrolls to its eighth row and opens it")
+    check("yard open sysprobe" in r.stdout + r.stderr, "the menu scrolls to its last row and opens it")
     check(busy(shot) > 8, "the scrolled menu draws a picture")
     shutil.rmtree(mshelf, ignore_errors=True)
     # The log a play test on the cabinet leaves behind (/data/Games/yard.log there; YARD_LOG here).
@@ -858,7 +890,11 @@ def yardnet_checks(rootfs=None):
 # ---------------------------------------------------------------------------- love
 
 LOVE_RUN = os.path.join(HERE, "out", "love-x86", "run.sh")
-LOVE_CARTS = {"chest": "Chest", "keep": "Keep", "lamp": "Lamp", "tea": "Tea"}
+LOVE_CARTS = {
+    "chest": "Chest", "dig": "Dig", "keep": "Keep", "lamp": "Lamp", "tea": "Tea",
+    "kart": "Star Kart", "safari": "Safari", "tower": "Tower",
+    "garden": "Garden", "bake": "Bake", "band": "Band", "rocket": "Starship",
+}
 
 
 def cart_lines(text, cid):

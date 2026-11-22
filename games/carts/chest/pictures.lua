@@ -5,6 +5,7 @@ local C = {
   CREAM = 0xfff6ea, INK = 0x3a2a44, CAPE = 0x3a6ea5, SKIN = 0xf4c7a1, GOLD = 0xf2c14e, WOOD = 0xc4844a,
   BROWN = 0x8a5a32, SPOON = 0xbabec8, BLUE = 0x6eb5ff, PURPLE = 0x7a5af5, ROSE = 0xe86b9a, WHITE = 0xfffcf8,
   HELM = 0xc8d0e0, FUR = 0xf2c14e, FUR_DARK = 0xd89a2a, CYAN = 0x7fe8ff, AQUA = 0x9fe6ff,
+  PIKA = 0xffd838, PIKA_DARK = 0xe6b21a, CHEEK = 0xe84855,
 }
 P.C = C
 local INK, GOLD = C.INK, C.GOLD
@@ -67,6 +68,11 @@ local function draw_chest_box(open)
     gfx.rrect(152, 138, 80, 24, 7, 0x6a3a18)
     gfx.rect(146, 132, 92, 4, GOLD)
     gfx.rect(152, 160, 80, 6, 0x5a3010)
+    -- Electric shimmer inside the chest right before Pika leaps out!
+    if S.phase == "zambow" and S.bow_t > 34 then
+      local a = floor(80 + 120 * abs(sin(fr() * 0.45)))
+      gfx.glow(ZX, 156, 38, alpha(C.PIKA, a))
+    end
   end
 end
 
@@ -116,8 +122,12 @@ function P.treasure(kind, x, y, s)
     gfx.line(x - 5 * s, y + 7 * s, x + 2 * s, y - 1 * s, 3.5 * s, INK)
     gfx.line(x - 5 * s, y + 7 * s, x + 2 * s, y - 1 * s, 2 * s, GOLD)
     gfx.ellipse_o(x + 4 * s, y - 4 * s, 4 * s, 5 * s, GOLD, INK, 1.2)
+  elseif kind == 8 then -- a golden lightning bolt, like Pika's
+    toon(function()
+      toon.poly({x + 2 * s, y - 8 * s, x - 5 * s, y + 1 * s, x, y + 1 * s, x - 2 * s, y + 8 * s, x + 6 * s, y - 1 * s, x + 1 * s, y - 1 * s}, C.PIKA)
+    end, 1.4, INK)
   else -- a gem
-    local c = GEMC[kind]
+    local c = GEMC[kind] or 0xe86b9a
     toon(function() toon.poly({x - 7 * s, y - 2 * s, x - 4 * s, y - 7 * s, x + 4 * s, y - 7 * s, x + 7 * s, y - 2 * s, x, y + 8 * s}, c) end, 1.5, INK)
     gfx.tri(x - 4 * s, y - 7 * s, x, y - 2 * s, x - 7 * s, y - 2 * s, shade(c, 1.25))
     gfx.line(x - 7 * s, y - 2 * s, x + 7 * s, y - 2 * s, 1, shade(c, 0.7))
@@ -143,7 +153,7 @@ local function draw_pile()
   for i = 0, n - 1 do
     if S.prize_t > 0 and i == n - 1 then break end
     local x, y = P.pile_slot(i)
-    P.treasure(i % 8, x, y + (i == n - 1 and hopy or 0), 1)
+    P.treasure(i % 9, x, y + (i == n - 1 and hopy or 0), 1)
   end
   if S.gems > PILE_SHOWN then
     gfx.glow(50, 8, 20, alpha(0xffe080, 150 + floor(sin(fr() * 0.1) * 60)))
@@ -152,10 +162,20 @@ local function draw_pile()
   if S.gems > 0 then gfx.text(tostring(S.gems), 96, 44, 16, C.CREAM, "left", INK) end
 end
 
+local function draw_marks_row(cx, y)
+  local S = P.S
+  local step = S.marks_win > 15 and 10 or 12
+  for i = 0, S.marks_win - 1 do
+    local x = cx - (S.marks_win - 1) * (step * 0.5) + i * step
+    gfx.circle(x, y, 4.3, INK)
+    gfx.circle(x, y, 3, i < S.marks and GOLD or 0x5a4a6a)
+    if i < S.marks then gfx.glow(x, y, 8, alpha(0xffe080, 100)) end
+  end
+end
+
 -- Zam: tall and gold, with long pointed ears, a long mustache, brown armor, and a spoon in
--- each hand. He hovers. Drawn as a tribute to the psychic he is based on (Alakazam, by
--- Nintendo, Creatures and Game Freak; see the README).
-local function draw_zam(cx, cy, flash, bow)
+-- each hand. He hovers. Drawn as a tribute to Alakazam (Nintendo, Creatures and Game Freak).
+local function draw_zam(cx, cy, flash, bow, show_marks)
   local S = P.S
   local FUR, BROWN = C.FUR, C.BROWN
   local b = bow and 12 or 0
@@ -163,10 +183,9 @@ local function draw_zam(cx, cy, flash, bow)
   local sway = sin(fr() * 0.05) * 2
   local tap = flash and sin(fr() * 0.8) * 4 or 0
   local sq = 1
-  local fl = S.flinch_t > 0 and sin(S.flinch_t * 1.4) * 4 or 0
+  local fl = (S.boss == "zam" and S.flinch_t > 0) and sin(S.flinch_t * 1.4) * 4 or 0
   local bend = clamp(S.bend_t / 40, 0, 1)
-  if S.tele_t > 0 then
-    -- Teleport: he narrows to a line and back.
+  if S.boss == "zam" and S.tele_t > 0 then
     local half = idiv(S.TELE_FRAMES, 2)
     local k = S.tele_t > half and (S.TELE_FRAMES - S.tele_t) / half or S.tele_t / half
     sq = 1 - clamp(k, 0, 1)
@@ -177,13 +196,11 @@ local function draw_zam(cx, cy, flash, bow)
   end
   cy = cy + bob
   cx = cx + fl
-  -- His shadow on the grass, and the psychic glow around him.
-  gfx.ellipse(cx, 212, 40 * sq, 6, alpha(0x2a5a2a, 90))
-  gfx.glow(cx, cy + 10, 66 * sq, alpha(0xc8a0ff, 80))
+  gfx.ellipse(cx, cy + 94, 38 * sq, 6, alpha(0x2a5a2a, 90))
+  gfx.glow(cx, cy + 10, (S.surge and S.boss == "zam" and 76 or 64) * sq, alpha(0xc8a0ff, S.surge and 115 or 80))
   local function X(v) return cx + (v - cx) * sq end
   local hy = cy - 24 + b
   toon(function()
-    -- Thin legs dangling, knees a little bent, brown at the knee.
     toon.line(X(cx - 10), cy + 40, X(cx - 14), cy + 56, 7, FUR)
     toon.line(X(cx - 14), cy + 56, X(cx - 9), cy + 72, 6, FUR)
     toon.line(X(cx + 10), cy + 40, X(cx + 14), cy + 56, 7, FUR)
@@ -192,19 +209,16 @@ local function draw_zam(cx, cy, flash, bow)
     toon.ellipse(X(cx + 14), cy + 56, 5 * sq + 1, 4, BROWN)
     toon.ellipse(X(cx - 7), cy + 74, 6 * sq + 1, 3, FUR)
     toon.ellipse(X(cx + 7), cy + 74, 6 * sq + 1, 3, FUR)
-    -- Thin arms out to the spoons.
     toon.line(X(cx - 22), cy + 6 + b, X(cx - 36 + sway), cy + 14 + b, 6, FUR)
     toon.line(X(cx - 36 + sway), cy + 14 + b, X(cx - 44 + sway), cy - 10 + tap + b, 6, FUR)
     toon.line(X(cx + 22), cy + 6 + b, X(cx + 36 + sway), cy + 14 + b, 6, FUR)
     toon.line(X(cx + 36 + sway), cy + 14 + b, X(cx + 44 + sway), cy - 10 - tap + b, 6, FUR)
     toon.ellipse(X(cx - 36 + sway), cy + 14 + b, 5 * sq + 1, 4, BROWN)
     toon.ellipse(X(cx + 36 + sway), cy + 14 + b, 5 * sq + 1, 4, BROWN)
-    -- A slim body with a brown chest plate and big brown shoulders.
     toon.rrect(X(cx - 15), cy + b * 0.5, 30 * sq, 44, 12, FUR)
     toon.rrect(X(cx - 13), cy + 6 + b * 0.5, 26 * sq, 22, 7, BROWN)
     toon.ellipse(X(cx - 20), cy + 4 + b, 11 * sq + 1, 8, BROWN)
     toon.ellipse(X(cx + 20), cy + 4 + b, 11 * sq + 1, 8, BROWN)
-    -- Long ears, swept up and out. The head: wide at the brow, a fox's snout.
     toon.tri(X(cx - 15), hy - 8, X(cx - 34), hy - 58, X(cx - 3), hy - 18, FUR)
     toon.tri(X(cx + 15), hy - 8, X(cx + 34), hy - 58, X(cx + 3), hy - 18, FUR)
     toon.ellipse(cx + sway * 0.3, hy - 2, 23 * sq + 1, 20, FUR)
@@ -215,9 +229,8 @@ local function draw_zam(cx, cy, flash, bow)
   gfx.tri(X(cx - 13), hy - 12, X(cx - 28), hy - 48, X(cx - 6), hy - 18, C.FUR_DARK)
   gfx.tri(X(cx + 13), hy - 12, X(cx + 28), hy - 48, X(cx + 6), hy - 18, C.FUR_DARK)
   if sq > 0.5 then
-    -- Narrow eyes, mostly closed: he is concentrating.
-    if bow or S.dizzy_t > 0 then
-      if S.dizzy_t > 0 then
+    if bow or (S.boss == "zam" and S.dizzy_t > 0) then
+      if S.boss == "zam" and S.dizzy_t > 0 then
         for k = 0, 2 do
           local a = fr() * 0.15 + k * 2.09
           gfx.star(hx + cos(a) * 22, hy - 26 + sin(a) * 6, 4, a, GOLD)
@@ -233,7 +246,6 @@ local function draw_zam(cx, cy, flash, bow)
       gfx.circle(hx + 9 + look, hy - 4, 1.6, 0xfff6d0)
     end
     gfx.ellipse(hx, hy + 5, 3.5, 2.5, INK)
-    -- The mustache: two long strands from under the nose, hanging past his chest.
     toon(function()
       toon.line(hx - 3, hy + 9, hx - 14, hy + 16, 5, BROWN)
       toon.line(hx - 14, hy + 16, hx - 22 + m1, hy + 40, 4, BROWN)
@@ -243,7 +255,6 @@ local function draw_zam(cx, cy, flash, bow)
       toon.line(hx + 22 + m2, hy + 40, hx + 24 + m2 * 1.5, hy + 62, 3, BROWN)
     end, 2, INK)
   end
-  -- Spoons: bent at the end of a win, the trick he is proud of.
   local steel = flash and C.WHITE or C.SPOON
   for side = 0, 1 do
     local x = side == 1 and X(cx + 44 + sway) or X(cx - 44 + sway)
@@ -255,21 +266,110 @@ local function draw_zam(cx, cy, flash, bow)
     gfx.line(x, y - 14, tip_x, tip_y + 8, 3, steel)
     gfx.ellipse_o(tip_x, tip_y, 8, 10, steel, INK, 2)
     gfx.ellipse(tip_x - 2, tip_y - 3, 2.5, 4.5, alpha(0xffffff, flash and 255 or 170))
-    if flash or S.telegraph > 0 then gfx.glow(tip_x, tip_y, 24, S.telegraph > 0 and alpha(0xb070ff, 200) or alpha(0xffffff, 200)) end
-  end
-  if S.flinch_t > 0 then gfx.glow(cx, cy, 60, alpha(0xffffff, S.flinch_t * 10)) end
-  -- Marks so far: little lights over his head.
-  if S.phase == "fight" or S.phase == "winbow" then
-    for i = 0, S.marks_win - 1 do
-      local x, y = cx - (S.marks_win - 1) * 6 + i * 12, 212
-      gfx.circle(x, y, 4.5, INK)
-      gfx.circle(x, y, 3.2, i < S.marks and GOLD or 0x5a4a6a)
-      if i < S.marks then gfx.glow(x, y, 8, alpha(0xffe080, 100)) end
+    if flash or (S.boss == "zam" and S.telegraph > 0) then
+      gfx.glow(tip_x, tip_y, 24, (S.boss == "zam" and S.telegraph > 0) and alpha(0xb070ff, 200) or alpha(0xffffff, 200))
     end
   end
+  if S.boss == "zam" and S.flinch_t > 0 then gfx.glow(cx, cy, 60, alpha(0xffffff, S.flinch_t * 10)) end
+  if show_marks then draw_marks_row(cx, 212) end
 end
 
--- Reflect: a wall of light panels in front of him.
+-- Pika: bright sunny yellow, long black-tipped ears, rosy electric cheeks, and a zig-zag
+-- lightning-bolt tail! Drawn as a fan tribute to Pikachu (Nintendo, Creatures and Game Freak).
+local function draw_pika(cx, cy, bow, show_marks)
+  local S = P.S
+  local PIKA = C.PIKA
+  local charging = (S.boss == "pika") and (S.telegraph > 0 or (S.strike and S.strike.t > 0))
+  local bounce = bow and -abs(sin(fr() * 0.16)) * 10 or sin(fr() * 0.1) * 3
+  local wag = sin(fr() * (charging and 0.45 or 0.12)) * 5
+  local fl = (S.boss == "pika" and S.flinch_t > 0) and sin(S.flinch_t * 1.4) * 4 or 0
+  cx = cx + fl
+  cy = cy + bounce
+  -- Ground shadow + electric aura.
+  gfx.ellipse(cx, S.PY + 42, 30, 6, alpha(0x2a5a2a, 95))
+  if charging or (S.boss == "pika" and S.surge) or S.dash_t > 0 then
+    gfx.glow(cx, cy, charging and 68 or 54, alpha(PIKA, charging and 155 or 95))
+  end
+  -- Zig-zag lightning tail behind body on the right.
+  toon(function()
+    toon.poly({
+      cx + 16, cy + 18,
+      cx + 28, cy + 8 + wag * 0.4,
+      cx + 22, cy + 2 + wag * 0.5,
+      cx + 40, cy - 10 + wag * 0.8,
+      cx + 34, cy - 16 + wag * 0.9,
+      cx + 52, cy - 28 + wag,
+      cx + 42, cy - 8 + wag * 0.7,
+      cx + 30, cy + 2 + wag * 0.5,
+      cx + 34, cy + 10 + wag * 0.4,
+      cx + 18, cy + 24,
+    }, PIKA)
+  end, 2.2, INK)
+  -- Brown tail base.
+  gfx.line(cx + 17, cy + 21, cx + 25, cy + 13 + wag * 0.3, 5, C.BROWN)
+  -- Main body, head, ears, paws, feet.
+  local hy = cy - 18
+  local ear_w = sin(fr() * 0.09) * 2
+  toon(function()
+    -- Feet.
+    toon.ellipse(cx - 12, cy + 32, 9, 5, PIKA)
+    toon.ellipse(cx + 12, cy + 32, 9, 5, PIKA)
+    -- Plump pear body.
+    toon.ellipse(cx, cy + 12, 22, 23, PIKA)
+    -- Cute little paws.
+    toon.ellipse(cx - 18, cy + 6 + (bow and -6 or 0), 7, 5, PIKA)
+    toon.ellipse(cx + 18, cy + 6 + (bow and -6 or 0), 7, 5, PIKA)
+    -- Long pointed ears.
+    toon.tri(cx - 18, hy - 8, cx - 34 + ear_w, hy - 42, cx - 5, hy - 16, PIKA)
+    toon.tri(cx + 18, hy - 8, cx + 34 - ear_w, hy - 42, cx + 5, hy - 16, PIKA)
+    -- Round head.
+    toon.ellipse(cx, hy, 22, 19, PIKA)
+  end, 2.5, INK)
+  -- Dark ear tips.
+  gfx.tri(cx - 25 + ear_w * 0.5, hy - 25, cx - 34 + ear_w, hy - 42, cx - 16 + ear_w * 0.3, hy - 26, INK)
+  gfx.tri(cx + 25 - ear_w * 0.5, hy - 25, cx + 34 - ear_w, hy - 42, cx + 16 - ear_w * 0.3, hy - 26, INK)
+  -- Soft belly highlight.
+  gfx.ellipse(cx, cy + 16, 12, 12, alpha(0xfff4b0, 120))
+  -- Face: eyes, rosy electric cheeks, nose, smile.
+  if bow or (S.boss == "pika" and S.dizzy_t > 0) then
+    if S.boss == "pika" and S.dizzy_t > 0 then
+      for k = 0, 2 do
+        local a = fr() * 0.16 + k * 2.09
+        gfx.star(cx + cos(a) * 22, hy - 24 + sin(a) * 6, 4, a, GOLD)
+      end
+    end
+    -- Happy arc eyes (^ ^).
+    gfx.line(cx - 12, hy - 2, cx - 8, hy - 6, 2.5, INK)
+    gfx.line(cx - 8, hy - 6, cx - 4, hy - 2, 2.5, INK)
+    gfx.line(cx + 4, hy - 2, cx + 8, hy - 6, 2.5, INK)
+    gfx.line(cx + 8, hy - 6, cx + 12, hy - 2, 2.5, INK)
+  else
+    local look = clamp((S.nx - cx) * 0.015, -2, 2)
+    gfx.circle(cx - 9 + look, hy - 3, 4.2, INK)
+    gfx.circle(cx + 9 + look, hy - 3, 4.2, INK)
+    gfx.circle(cx - 10 + look, hy - 4.5, 1.6, C.WHITE)
+    gfx.circle(cx + 8 + look, hy - 4.5, 1.6, C.WHITE)
+  end
+  -- Rosy red electric cheeks!
+  gfx.circle_o(cx - 15, hy + 5, 5.2, C.CHEEK, INK, 1.4)
+  gfx.circle_o(cx + 15, hy + 5, 5.2, C.CHEEK, INK, 1.4)
+  if charging then
+    local g = 150 + floor(sin(fr() * 0.6) * 80)
+    gfx.glow(cx - 15, hy + 5, 18, alpha(PIKA, g))
+    gfx.glow(cx + 15, hy + 5, 18, alpha(PIKA, g))
+    if fr() % 4 == 0 then
+      particles.spawn(cx + (fr() % 8 == 0 and -16 or 16), hy + 5, rnd(-1.8, 1.8), rnd(-1.5, 1.5), 14, 2.5, PIKA, "star")
+    end
+  end
+  -- Tiny nose & "w" smile.
+  gfx.tri(cx - 2, hy + 2, cx + 2, hy + 2, cx, hy + 4.5, INK)
+  gfx.line(cx - 4, hy + 7, cx, hy + 9, 1.6, INK)
+  gfx.line(cx, hy + 9, cx + 4, hy + 7, 1.6, INK)
+  if S.boss == "pika" and S.flinch_t > 0 then gfx.glow(cx, cy, 56, alpha(0xffffff, S.flinch_t * 10)) end
+  if show_marks then draw_marks_row(cx, 212) end
+end
+
+-- Reflect: a wall of light panels in front of Zam.
 local function draw_shield(cx, cy)
   local S = P.S
   local k = clamp((S.SHIELD_FRAMES - S.shield_t) / 12, 0, 1) * clamp(S.shield_t / 12, 0, 1)
@@ -282,15 +382,45 @@ local function draw_shield(cx, cy)
   gfx.glow(cx, cy + 62, 70 * k, alpha(0x7fe8ff, 70))
 end
 
+-- Pika's Lightning Strike: warning ring on the grass, then a bright bolt from the sky!
+local function draw_strike()
+  local st = P.S.strike
+  if not st then return end
+  if st.t > 0 then
+    local k = 1 - st.t / 68
+    local pulse = 0.6 + 0.4 * sin(fr() * 0.5)
+    gfx.circle(st.x, st.y, 32, alpha(C.PURPLE, floor(30 + k * 65)))
+    gfx.ring(st.x, st.y, 34, 3, alpha(C.PURPLE, floor(130 + 110 * pulse)))
+    gfx.ring(st.x, st.y, 34 * (1 - k * 0.85), 2, alpha(C.PIKA, floor(140 + k * 100)))
+    gfx.star(st.x, st.y, 6 + k * 5, fr() * 0.15, C.PIKA)
+  elseif st.flash > 0 then
+    local k = st.flash / 16
+    local x, y = st.x, st.y
+    -- Zig-zag bolt from top of screen down to the ring!
+    local pts = {
+      {x - 6, 0}, {x + 12, y * 0.28}, {x - 10, y * 0.52}, {x + 10, y * 0.78}, {x, y},
+    }
+    for i = 1, #pts - 1 do
+      gfx.line(pts[i][1], pts[i][2], pts[i + 1][1], pts[i + 1][2], 14 * k + 3, alpha(C.PURPLE, floor(170 * k)))
+      gfx.line(pts[i][1], pts[i][2], pts[i + 1][1], pts[i + 1][2], 7 * k + 2, alpha(C.PIKA, floor(240 * k)))
+      gfx.line(pts[i][1], pts[i][2], pts[i + 1][1], pts[i + 1][2], 3 * k + 1, alpha(C.WHITE, floor(255 * k)))
+    end
+    gfx.glow(x, y, 48 * k + 10, alpha(C.PIKA, floor(220 * k)))
+  end
+end
+
 local function draw_ned()
   local S = P.S
+  local victory = S.phase == "winbow"
   local sword = S.has_sword and S.phase ~= "path" and S.phase ~= "pop"
   local step = S.moving and sin(S.walk_t * 0.35) or 0
-  local x, y = S.nx, S.ny
+  local hop_y = victory and -abs(sin(fr() * 0.14)) * 10 or 0
+  local x, y = S.nx, S.ny + hop_y
   local fx, fy = S.face_x, (S.face_x == 0 and S.face_y == 0) and -1 or S.face_y
+  if victory then fx, fy = 0, 1 end
   if S.hurt_cool > 0 and S.stuck == 0 and idiv(S.hurt_cool, 4) % 2 == 1 then return end
-  if sword and not S.moving then fx, fy = 0, -1 end
-  gfx.ellipse(x, y + 34, 16, 5, alpha(0x2a5a2a, 110))
+  if sword and not S.moving and not victory then fx, fy = 0, -1 end
+  gfx.ellipse(S.nx, S.ny + 34, 16, 5, alpha(0x2a5a2a, 110))
   toon(function()
     toon.poly({x - 13, y + 2, x + 13, y + 2, x + 17 - fx * 6, y + 30 + abs(step) * 2, x - 17 - fx * 6, y + 30 + abs(step) * 2}, C.CAPE)
     toon.rrect(x - 9 + step * 2, y + 20, 7, 14, 3, 0x5a4a6a)
@@ -306,16 +436,28 @@ local function draw_ned()
     gfx.ellipse(x, y - 6, 12, 7, 0xb07a50)
   else
     local ex = fx * 4
-    if fr() % 160 < 6 then
+    if victory then
+      -- Big joyful eyes and open grin!
+      gfx.line(x - 7, y - 7, x - 4, y - 10, 2, INK)
+      gfx.line(x - 4, y - 10, x - 1, y - 7, 2, INK)
+      gfx.line(x + 1, y - 7, x + 4, y - 10, 2, INK)
+      gfx.line(x + 4, y - 10, x + 7, y - 7, 2, INK)
+      gfx.ellipse(x - 8, y - 3, 3.5, 2, alpha(0xff8fa0, 160))
+      gfx.ellipse(x + 8, y - 3, 3.5, 2, alpha(0xff8fa0, 160))
+      gfx.ellipse(x, y - 1, 4, 3, INK)
+    elseif fr() % 160 < 6 then
       gfx.line(x - 6 + ex, y - 8, x - 2 + ex, y - 8, 2, INK)
       gfx.line(x + 2 + ex, y - 8, x + 6 + ex, y - 8, 2, INK)
+      gfx.ellipse(x - 8 + ex, y - 3, 3, 2, alpha(0xff8fa0, 120))
+      gfx.ellipse(x + 8 + ex, y - 3, 3, 2, alpha(0xff8fa0, 120))
+      gfx.line(x - 3 + ex, y - 2, x + 3 + ex, y - 2, 1.5, INK)
     else
       gfx.circle(x - 4 + ex, y - 8, 2.2, INK)
       gfx.circle(x + 4 + ex, y - 8, 2.2, INK)
+      gfx.ellipse(x - 8 + ex, y - 3, 3, 2, alpha(0xff8fa0, 120))
+      gfx.ellipse(x + 8 + ex, y - 3, 3, 2, alpha(0xff8fa0, 120))
+      gfx.line(x - 3 + ex, y - 2, x + 3 + ex, y - 2, 1.5, INK)
     end
-    gfx.ellipse(x - 8 + ex, y - 3, 3, 2, alpha(0xff8fa0, 120))
-    gfx.ellipse(x + 8 + ex, y - 3, 3, 2, alpha(0xff8fa0, 120))
-    gfx.line(x - 3 + ex, y - 2, x + 3 + ex, y - 2, 1.5, INK)
   end
   if not sword and (S.phase == "path" or S.phase == "pop") then
     -- The bubble wand, in his other hand.
@@ -329,9 +471,21 @@ local function draw_ned()
     gfx.rrect_o(x + 12, y - 2, 5, 14, 2, GOLD, INK, 1.5)
     gfx.circle_o(x + 14.5, y - 4, 4.5, GOLD, INK, 1.5)
   end
-  if sword or (S.phase == "pop" and S.pop_t > 30) then
-    -- The sword points at Zam by itself.
-    local dx, dy = S.zx - x, S.zy - (y - 4)
+  if victory then
+    -- Held high overhead in triumph!
+    local sx, sy = x + 16, y - 16
+    local tx, ty = sx + 4, sy - 34
+    gfx.line(sx, sy, tx, ty, 9, INK)
+    gfx.line(sx, sy, tx, ty, 5, GOLD)
+    gfx.line(sx - 7, sy - 2, sx + 7, sy - 2, 6, INK)
+    gfx.line(sx - 6, sy - 2, sx + 6, sy - 2, 3.5, C.BROWN)
+    gfx.glow(tx, ty, 16, alpha(0xffe080, 170))
+    gfx.star(tx, ty, 6, fr() * 0.1, GOLD)
+  elseif sword or (S.phase == "pop" and S.pop_t > 30) then
+    -- The sword points at the active boss by itself.
+    local bx = S.boss == "pika" and S.px or S.zx
+    local by = S.boss == "pika" and S.py or S.zy
+    local dx, dy = bx - x, by - (y - 4)
     local d = sqrt(dx * dx + dy * dy)
     local ux, uy = d > 1 and dx / d or 0, d > 1 and dy / d or -1
     local sx, sy = x + ux * 16 + 10, y - 4 + uy * 10
@@ -342,7 +496,7 @@ local function draw_ned()
     gfx.line(sx - uy * 6, sy + ux * 6, sx + uy * 6, sy - ux * 6, 3.5, C.BROWN)
     gfx.glow(tx, ty, 10, alpha(0xffe080, 120))
   end
-  if S.phase ~= "pop" then
+  if S.phase ~= "pop" and S.phase ~= "pikapop" and S.phase ~= "zambow" and not victory then
     for i = 0, 2 do
       local px, py = x - 16 + i * 16, y - 46
       gfx.circle(px, py, 6, INK)
@@ -352,39 +506,85 @@ local function draw_ned()
   end
 end
 
+-- Kid-friendly accomplished victory banner!
+local function draw_victory_banner()
+  local S = P.S
+  local k = ease.out_back(clamp(S.bow_t / 32, 0, 1))
+  local by = lerp(-70, 224, k)
+  local bw, bh = 316, 86
+  local bx = (W - bw) / 2
+  -- Soft glow + cream medal card.
+  gfx.glow(W / 2, by + bh / 2, 130 * k, alpha(0xffe080, 95))
+  gfx.rrect_o(bx, by, bw, bh, 14, C.CREAM, INK, 3)
+  gfx.rrect(bx + 5, by + 5, bw - 10, bh - 10, 10, 0xfff0d0)
+  -- Turning corner stars.
+  gfx.star(bx + 18, by + 20, 8, fr() * 0.08, GOLD)
+  gfx.star(bx + bw - 18, by + 20, 8, -fr() * 0.08, GOLD)
+  gfx.text("YOU DID IT!", W / 2, by + 10, 30, GOLD, "center", INK)
+  local sub = S.gems == 1 and "1 TREASURE WON!" or (S.gems .. " TREASURES WON!")
+  gfx.text(sub, W / 2, by + 48, 16, C.PURPLE, "center", C.CREAM)
+  -- Prompt after 2 seconds so he can soak in the win, then tap to play again.
+  if S.bow_t >= S.WIN_MIN_FRAMES and blink(46, 30) then
+    gfx.rrect_o(W / 2 - 114, 426, 228, 30, 12, C.GOLD, INK, 2)
+    gfx.text("PRESS TO PLAY AGAIN!", W / 2, 432, 15, INK, "center")
+  end
+end
+
 function P.draw()
   local S = P.S
-  local ZX, ZY = S.ZX, S.ZY
+  local ZX, ZY, PY = S.ZX, S.ZY, S.PY
   local flash = S.spoon_flash > 0
   backdrop("ground", paint_ground)
   draw_pile()
   local on_path = S.phase == "path" or S.phase == "pathback"
   draw_chest_box(not on_path)
   if not S.has_key then draw_key(S.key_x, S.key_y) end
+
+  -- Boss rendering by phase.
   if S.phase == "pop" then
     local k = ease.out_back(clamp(S.pop_t / 40, 0, 1))
-    draw_zam(ZX, 150 - 32 * k, flash, false)
+    draw_zam(ZX, 150 - 32 * k, flash, false, false)
     if S.pop_t > 4 and S.pop_t < 34 then
       local t = (S.pop_t - 4) / 30
       local sx, sy = lerp(ZX + 40, S.nx, t), lerp(ZY - 40, S.ny - 10, t) - sin(t * math.pi) * 80
       gfx.glow(sx, sy, 16, alpha(0xffe080, 200))
       gfx.star(sx, sy, 8, fr() * 0.4, GOLD)
     end
-  elseif not on_path then
-    draw_zam(S.zx, S.zy, flash, S.phase == "winbow" or S.phase == "restart")
+  elseif S.phase == "fight" or (S.phase == "restart" and S.boss == "zam") then
+    draw_zam(S.zx, S.zy, flash, S.phase == "restart", S.phase == "fight")
+  elseif S.phase == "zambow" then
+    draw_zam(S.zx, S.zy, flash, true, false)
+  elseif S.phase == "pikapop" then
+    local k = ease.out_back(clamp(S.pop_t / 38, 0, 1))
+    -- Zam drifts gently off to the left as Pika springs out!
+    local zx = lerp(S.zx, 68, clamp(S.pop_t / 35, 0, 1))
+    draw_zam(zx, S.zy - 8, false, true, false)
+    local py = lerp(172, PY, k) - sin(clamp(S.pop_t / 38, 0, 1) * math.pi) * 34
+    draw_pika(ZX, py, false, false)
+  elseif S.phase == "pika" or (S.phase == "restart" and S.boss == "pika") then
+    draw_pika(S.px, S.py, S.phase == "restart", S.phase == "pika")
+  elseif S.phase == "winbow" then
+    -- Both bosses bow and cheer together!
+    draw_zam(S.zx, S.zy, false, true, false)
+    draw_pika(S.px, S.py, true, false)
   end
+
   if S.shield_t > 0 and S.phase == "fight" then draw_shield(S.zx, S.zy) end
-  if S.wrap > 0 then soap(S.zx, S.zy, 76 + sin(fr() * 0.15) * 3, GOLD) end
+  if S.wrap > 0 then
+    local bx = S.boss == "pika" and S.px or S.zx
+    local by = S.boss == "pika" and S.py or S.zy
+    soap(bx, by, (S.boss == "pika" and 56 or 76) + sin(fr() * 0.15) * 3, GOLD)
+  end
+  if S.strike then draw_strike() end
   if S.star then
     gfx.glow(S.star.x, S.star.y, 22, alpha(0xffe080, 160))
     gfx.star(S.star.x, S.star.y, 11, fr() * 0.05, INK)
     gfx.star(S.star.x, S.star.y, 9, fr() * 0.05, GOLD)
   end
-  if S.telegraph > 0 then
-    -- Where the bubble will go: a faint purple ring under him.
+  if S.telegraph > 0 and S.phase == "fight" then
     gfx.ring(S.nx, S.ny + 20, 30 + (30 - S.telegraph), 2, alpha(0x7a5af5, 60 + S.telegraph * 4))
   end
-  -- His gold friends, following a little behind him.
+  -- His gold friends, following a little behind him (or dancing in a circle on victory).
   for k = 1, min(S.friends, 5) do
     local p = S.trail[k]
     local fx, fy = p and p[1] or S.nx, p and p[2] or S.ny
@@ -428,7 +628,15 @@ function P.draw()
   if S.fairy then
     draw_fairy(S.fairy_x, S.fairy_y, S.fairy == "gold" and GOLD or S.fairy == "blue" and C.BLUE or C.PURPLE, S.fairy == "blue")
   end
-  for _, b in ipairs(S.bubbles) do soap(b.x, b.y, 13, C.PURPLE) end
+  for _, b in ipairs(S.bubbles) do
+    if b.spark then
+      gfx.glow(b.x, b.y, 20, alpha(C.PURPLE, 160))
+      soap(b.x, b.y, 12, C.PURPLE)
+      gfx.star(b.x, b.y, 7, fr() * 0.25, C.PIKA)
+    else
+      soap(b.x, b.y, 13, C.PURPLE)
+    end
+  end
   local beam = S.beam
   if beam and beam.t > 0 then
     local k = beam.t / 10
@@ -438,11 +646,11 @@ function P.draw()
     gfx.glow(beam.x1, beam.y1, 18 * k + 4, beam.blocked and alpha(0x7fe8ff, 200) or alpha(0xffe080, 200))
     beam.t = beam.t - 1
   end
+  if S.phase == "winbow" then draw_victory_banner() end
   if S.prize_t > 0 then
-    -- The treasure arcs from Zam to the pile.
     local t = clamp(S.prize_t / 60, 0, 1)
     local px, py = P.pile_slot(min(S.gems - 1, PILE_SHOWN - 1))
-    local x, y = lerp(S.zx, px, t), lerp(S.zy, py, t) - sin(t * math.pi) * 70
+    local x, y = lerp(ZX, px, t), lerp(160, py, t) - sin(t * math.pi) * 70
     gfx.glow(x, y, 20, alpha(0xffe080, 200))
     P.treasure(S.prize_kind, x, y, 1 + (1 - t) * 1.5)
   end

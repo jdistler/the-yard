@@ -135,7 +135,15 @@ local OURS = {
   {id = "lamp", title = "LAMP", tint = 0xffc94a, blurb = "Wake the sleeping stars.", stat = {"best", "%d NIGHTS", "1 NIGHT"}},
   {id = "orb", title = "ORB", tint = 0xa98bff, blurb = "Dive down the glowing well.", native = "orb", stat = {"best", "BEST %d"}},
   {id = "tea", title = "TEA", tint = 0xff9ccf, blurb = "Tea with the cats.", stat = {"visits", "%d VISITS", "1 VISIT"}},
-  {id = "chest", title = "CHEST", tint = 0x7fd6a0, blurb = "The key, the chest, Zam.", stat = {"gems", "%d GEMS", "1 GEM"}},
+  {id = "chest", title = "CHEST", tint = 0x7fd6a0, blurb = "Zam, Pika, and the chest.", stat = {"gems", "%d GEMS", "1 GEM"}},
+  {id = "dig", title = "DIG", tint = 0xffa84c, blurb = "Dig tunnels, pop foes, find gems.", stat = {"hi", "BEST %d"}},
+  {id = "kart", title = "STAR KART", tint = 0xff5a6e, blurb = "Race rivals, grab item boxes.", stat = {"best", "BEST %d"}},
+  {id = "safari", title = "SAFARI", tint = 0x58d68d, blurb = "Befriend meadow monsters.", stat = {"caught", "%d/8 FRIENDS", "1/8 FRIENDS"}},
+  {id = "tower", title = "TOWER", tint = 0xe86b9a, blurb = "Climb ladders, hop barrels.", stat = {"best", "BEST %d"}},
+  {id = "garden", title = "GARDEN", tint = 0xffa0d4, blurb = "Grow magic flowers.", stat = {"blooms", "%d BLOOMS", "1 BLOOM"}},
+  {id = "bake", title = "BAKE", tint = 0xffb878, blurb = "Bake treats for the cats.", stat = {"treats", "%d TREATS", "1 TREAT"}},
+  {id = "band", title = "BAND", tint = 0xb998f0, blurb = "Play music with friends.", stat = {"songs", "%d ENCORES", "1 ENCORE"}},
+  {id = "rocket", title = "STARSHIP", tint = 0x7fe8ff, blurb = "Co-op space rescue.", stat = {"best", "BEST %d"}},
 }
 local SECTIONS = {
   {name = "FAVORITES", tint = 0xff7ab8},
@@ -421,8 +429,18 @@ local label_jobs = {}
 local function neon_img(s, px, c, glow)
   px = math.floor(px + 0.5)                -- (whole pixels: one picture per text and size, not one a frame)
   local key = s .. "|" .. px .. "|" .. c .. "|" .. (glow or 1) .. (ST.face == "script" and "|s" or "")
+  ST.neon_seq = (ST.neon_seq or 0) + 1
   local e = neon_cache[key]
-  if e then return e end
+  if e then e.used = ST.neon_seq return e end
+  local n, old_k, old_t = 0, nil, math.huge
+  for k, v in pairs(neon_cache) do
+    n = n + 1
+    if (v.used or 0) < old_t then old_k, old_t = k, v.used or 0 end
+  end
+  if n >= 32 and old_k then
+    neon_cache[old_k].img:release()
+    neon_cache[old_k] = nil
+  end
   local f = ST.face == "script" and ST.script_font(px) or font(px)
   local pad = 10
   local cw, ch = f:getWidth(s) + pad * 2, f:getHeight() + pad * 2
@@ -435,7 +453,7 @@ local function neon_img(s, px, c, glow)
   neon(s, pad, pad, px, c, glow, "left", cw)
   lg.pop()
   cv:setFilter("linear", "linear")
-  e = {img = cv, w = cw, h = ch, pad = pad}
+  e = {img = cv, w = cw, h = ch, pad = pad, used = ST.neon_seq}
   neon_cache[key] = e
   return e
 end
@@ -728,7 +746,11 @@ local function load_art()
         local b = read_file(art_path(it))
         if b then
           local ok, data = pcall(love.image.newImageData, love.filesystem.newFileData(b, "c.png"))
-          if ok then it.art = art_image(data) end
+          if ok then
+            if it.art then it.art:release() end
+            it.art = art_image(data)
+            pcall(function() data:release() end)
+          end
         end
       else
         love.thread.getChannel("home_work"):push({"art", k, art_path(it)})
@@ -742,11 +764,14 @@ local function load_art()
         else
           local b = read_file(it.game.art)
           local ok, data = pcall(function() return love.image.newImageData(love.filesystem.newFileData(b, "a.png")) end)
-          if ok then it.shot = art_image(data) end
+          if ok then
+            it.shot = art_image(data)
+            pcall(function() data:release() end)
+          end
         end
       end
-    elseif it.id and love.filesystem.getInfo("art/" .. it.id .. ".png") then
-      -- Our games: a frame of the game itself (cart shots), packed into home.love.
+    elseif it.id and not it.shot and (math.abs(k - sel) <= 2 or not worker) and love.filesystem.getInfo("art/" .. it.id .. ".png") then
+      -- Our games: a frame of the game itself (cart shots), packed into home.love (loaded near sel).
       it.shot = lg.newImage("art/" .. it.id .. ".png")
       it.shot:setFilter("linear", "linear")
     end
@@ -1456,10 +1481,23 @@ local function picture_launch(it)
     local s = math.min(620 / iw, 300 / ih)
     lg.setColor(1, 1, 1, 1)
     lg.draw(it.art, W / 2, 430, 0, s, s, iw / 2, ih / 2)
+  elseif it.shot then
+    neon_draw(it.title, 0, 214, 54, it.tint, 1.2, "center", W, 1, 1.2)
+    local iw, ih = it.shot:getDimensions()
+    local s = math.min(270 / iw, 290 / ih)
+    local dw, dh = iw * s, ih * s
+    local dx, dy = math.floor((W - dw) / 2), math.floor(445 - dh / 2)
+    lg.setColor(0.05, 0.02, 0.12, 0.92)
+    rrect("fill", dx - 10, dy - 10, dw + 20, dh + 20, 18)
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(it.shot, dx, dy, 0, s, s)
+    lg.setColor(r, g, b, 0.95)
+    lg.setLineWidth(3)
+    rrect("line", dx - 10, dy - 10, dw + 20, dh + 20, 18)
   else
     neon_draw(it.title, 0, 380, 64, it.tint, 1.2, "center", W, 1, #it.title > 9 and 1.1 or 1.5)
   end
-  neon_draw("GET READY!", 0, 620, 44, 0xffd23f, 1, "center", W)
+  neon_draw("GET READY!", 0, 628, 44, 0xffd23f, 1, "center", W)
   local leave = LEAVE[it.kind]
   if leave then
     lg.setColor(0.04, 0.0, 0.10, 0.85)
@@ -1474,19 +1512,44 @@ local function picture_launch(it)
   end
 end
 
--- "Welcome back": Home's own sky with the sign and the tabs, as the menu will look in a moment.
+-- "Welcome back": clean, section-neutral card over the sky & marquee (never looks like a frozen empty menu).
 local function picture_back()
   backdrop()
-  draw_tabs(items[sel].section)
+  local r, g, b = rgb(ST.ACCENT)
+  fx.glow(W / 2, 490, 380, 180, r, g, b, 0.25)
+  lg.setColor(0.05, 0.02, 0.12, 0.88)
+  rrect("fill", 124, 424, W - 248, 132, 24)
+  lg.setColor(r, g, b, 0.9)
+  lg.setLineWidth(2.5)
+  rrect("line", 124, 424, W - 248, 132, 24)
+  neon_draw("WELCOME BACK", 0, 444, 40, ST.C, 1.0, "center", W)
+  lg.setFont(font(24))
+  lg.setColor(0.92, 0.90, 1, 0.9)
+  lg.printf("Returning to Starlight...", 124, 504, W - 248, "center")
 end
 
--- Power-on: the sign, warming up.
+-- Power-on: a bold, lit Starlight hero splash while Linux & LÖVE start up.
 local function picture_boot()
-  draw_background(0.35)
-  draw_unlit_sign()
+  draw_background(0.22)
+  ST.draw_bulbs(1, 1)
+  ST.draw(0, 24, 96, 1)
+  local r, g, b = rgb(ST.C)
+  local ar, ag, ab = rgb(ST.ACCENT)
+  fx.glow(W / 2, 445, 440, 240, r, g, b, 0.28)
+  fx.glow(W / 2, 575, 340, 120, ar, ag, ab, 0.22)
+  neon_draw("PARTYCADE", 0, 355, 64, ST.C, 1.2, "center", W, 1, 1.25)
+  neon_draw("ARCADE", 0, 444, 38, ST.ACCENT, 1.0, "center", W)
+  lg.setColor(ar, ag, ab, 0.6)
+  lg.setLineWidth(2)
+  lg.line(180, 514, W - 180, 514)
+  lg.setColor(0.05, 0.02, 0.12, 0.88)
+  rrect("fill", 194, 550, W - 388, 66, 20)
+  lg.setColor(ar, ag, ab, 0.9)
+  lg.setLineWidth(2)
+  rrect("line", 194, 550, W - 388, 66, 20)
   lg.setFont(font(26))
-  lg.setColor(1, 0.86, 0.6, 0.7)
-  lg.printf("warming up the lights...", 0, 470, W, "center")
+  lg.setColor(1, 0.95, 0.84, 0.95)
+  lg.printf("STARTING UP...", 194, 568, W - 388, "center")
 end
 
 local function file_exists(p) local f = p and io.open(p, "rb") if f then f:close() return true end return false end
@@ -1610,13 +1673,13 @@ local function free_menu_pictures()
   menu_freed = true
   for _, it in ipairs(items) do
     if it.art then it.art:release() it.art = nil end
-    if (it.kind == "arcade" or it.kind == "game") and it.shot then it.shot:release() it.shot = nil end
+    if it.shot then it.shot:release() it.shot = nil end
     it.asked = nil
   end
   for k, e in pairs(neon_cache) do e.img:release() neon_cache[k] = nil end
   if ST.world then ST.world:release() ST.world = nil ST.world_name = nil end
   for i = #label_jobs, 1, -1 do label_jobs[i] = nil end
-  labels_for, labels_sel = {}, nil
+  labels_for, labels_sel, ST.near_sel = {}, nil, nil
   collectgarbage()
 end
 local demo                              -- started from a show's tiles: its id (back to them at the end)
@@ -1644,6 +1707,15 @@ function ST.near_shots(all)
         it.shot:release()
         it.shot, it.asked = nil, nil
       end
+    elseif it.id and love.filesystem.getInfo("art/" .. it.id .. ".png") then
+      local d = math.abs(k - sel)
+      if d <= 3 and not it.shot then
+        it.shot = lg.newImage("art/" .. it.id .. ".png")
+        it.shot:setFilter("linear", "linear")
+      elseif d > 5 and it.shot and not all then
+        it.shot:release()
+        it.shot = nil
+      end
     end
   end
 end
@@ -1653,6 +1725,8 @@ local function restore_menu_pictures()
   if not menu_freed then return end
   menu_freed = false
   for k, e in pairs(neon_cache) do e.img:release() neon_cache[k] = nil end
+  -- Reclaim show/night textures before allocating menu art so Mali doesn't peak over 118 MB on wakeup.
+  collectgarbage()
   load_art()
   ST.world_load(ST.world_want)
   ST.img(96)
@@ -2292,18 +2366,31 @@ function love.update(dt)
   local merr = music.check()
   if merr then log("music: " .. merr) end
   if worker then
-    local msg = love.thread.getChannel("home_done"):pop()
-    while msg do
+    -- At most 2 GPU texture uploads per frame so waking from idle never spikes Mali memory or hitches.
+    local n_up = 0
+    while n_up < 2 do
+      local msg = love.thread.getChannel("home_done"):pop()
+      if not msg then break end
+      n_up = n_up + 1
       if msg[1] == "art" and type(msg[2]) == "string" and msg[2]:sub(1, 6) == "shelf:" then
         if msg[3] then shelf.art_ready(msg[2], msg[3]) else shelf.art_failed(msg[2]) end
       elseif msg[1] == "art" and type(msg[2]) == "string" then
         if msg[3] then shows.thumb_ready(msg[2], msg[3]) end
-      elseif msg[1] == "art" and msg[3] and not menu_freed then
-        local it = items[msg[2]]
-        if it.kind == "arcade" or it.kind == "game" then it.shot = art_image(msg[3]) else it.art = art_image(msg[3]) end
-        pcall(function() msg[3]:release() end)   -- (the decoded copy: the picture has it now)
+      elseif msg[1] == "art" and msg[3] then
+        if not menu_freed then
+          local it = items[msg[2]]
+          if it then
+            if it.kind == "arcade" or it.kind == "game" then
+              if it.shot then it.shot:release() end
+              it.shot = art_image(msg[3])
+            else
+              if it.art then it.art:release() end
+              it.art = art_image(msg[3])
+            end
+          end
+        end
+        pcall(function() msg[3]:release() end)   -- (always release decoded ImageData, even if menu_freed)
       end
-      msg = love.thread.getChannel("home_done"):pop()
     end
     local err = worker:getError()
     if err then log("worker: " .. err) worker = nil end

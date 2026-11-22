@@ -28,9 +28,10 @@ find_host() {
   for h in ${CAB_HOST:-} $(cat "$CACHE" 2>/dev/null) 192.168.1.225; do
     ssh -n $OPTS -o ConnectTimeout=4 root@$h true 2>/dev/null && { echo $h; return 0; }
   done
-  net=$(ip -4 route | awk '/ src / && !/docker|br-|tailscale/ {print $1; exit}')
-  for h in $(nmap -p22 --open -n -T4 "$net" -oG - 2>/dev/null | awk '/22\/open/{print $2}'); do
-    ssh -n $OPTS -o ConnectTimeout=4 root@$h true 2>/dev/null && { echo $h; return 0; }
+  for net in $(ip -4 route | awk '/ src / && $1 ~ /\// && !/docker|br-|tailscale/ {print $1}'); do
+    for h in $(nmap -p22 --open -n -T4 "$net" -oG - 2>/dev/null | awk '/22\/open/{print $2}'); do
+      ssh -n $OPTS -o ConnectTimeout=4 root@$h true 2>/dev/null && { echo $h; return 0; }
+    done
   done
   return 1
 }

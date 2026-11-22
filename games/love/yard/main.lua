@@ -389,26 +389,35 @@ local function add_cart(cart)
   end
 end
 
-local function scan()
+local function scan(only)
   local dir = os.getenv("YARD_CARTS")
   if dir and dir ~= "" then
-    local p = io.popen('ls -1 "' .. dir .. '" 2>/dev/null')
-    if p then
-      for name in p:lines() do
-        if read_file(dir .. "/" .. name .. "/info.lua") then add_cart({id = name, dir = dir .. "/" .. name}) end
+    if only then
+      if read_file(dir .. "/" .. only .. "/info.lua") then add_cart({id = only, dir = dir .. "/" .. only}) end
+    else
+      local p = io.popen('ls -1 "' .. dir .. '" 2>/dev/null')
+      if p then
+        for name in p:lines() do
+          if read_file(dir .. "/" .. name .. "/info.lua") then add_cart({id = name, dir = dir .. "/" .. name}) end
+        end
+        p:close()
       end
-      p:close()
     end
   end
+  if only and by_id[only] then return end
   local pak = os.getenv("YARD_PAK") or "/data/Games/yard.pak"
   if open_pak(pak) then
-    local ids = {}
-    for name in pairs(pak_files) do
-      local id = name:match("^([^/]+)/info%.lua$")
-      if id then ids[#ids + 1] = id end
+    if only then
+      if pak_files[only .. "/info.lua"] then add_cart({id = only, pak = true}) end
+    else
+      local ids = {}
+      for name in pairs(pak_files) do
+        local id = name:match("^([^/]+)/info%.lua$")
+        if id then ids[#ids + 1] = id end
+      end
+      table.sort(ids)
+      for _, id in ipairs(ids) do add_cart({id = id, pak = true}) end
     end
-    table.sort(ids)
-    for _, id in ipairs(ids) do add_cart({id = id, pak = true}) end
   end
   table.sort(carts, function(a, b) if a.order ~= b.order then return a.order < b.order end return a.id < b.id end)
 end
@@ -667,7 +676,8 @@ end
 -- The panel shows the 1024x768 framebuffer turned 90 degrees clockwise: the top of the game goes on the left.
 local turn
 function present(cart, quitting)
-  local sx, sy = gfx.finish_frame(quitting)
+  local vl, va = input.volume_overlay()
+  local sx, sy = gfx.finish_frame(quitting, vl, va)
   local shot = input.take_shot()
   local canvas = gfx.screen()
   if not canvas then
@@ -779,7 +789,7 @@ function love.run()
     gfx.direct = gfx.direct_test or ((opt("YARD_DIRECT") or (input.scripted() and "0" or "1")) == "1" and not headless)
     gfx.load_font(0, love.filesystem.newFileData("fonts/Fredoka-SemiBold.ttf"))
     load_lib()
-    scan()
+    scan(want ~= "yard" and want or nil)
     if want then
       local c = by_id[want]
       if not c then log("yard: no cart named " .. want) return 127 end

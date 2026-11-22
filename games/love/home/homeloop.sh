@@ -150,7 +150,8 @@ while :; do
   SEEN=/tmp/home-seen
   if ! grep -qx "$WHAT $2" "$SEEN" 2>/dev/null; then
     echo "$WHAT $2" >> "$SEEN"
-    case "$WHAT" in classic|cart|native|yard|shelf) sleep 1.5 ;; esac   # (tv: its "tuning in" stays up while it connects)
+    # Only stock classics and native Orb blank /dev/fb0 quickly; yard.love and shelf keep it up until frame 1.
+    case "$WHAT" in classic|native) sleep 1.5 ;; esac
   fi
   case "$WHAT" in
     classic) classic "$2" "$3" "$4" ;;

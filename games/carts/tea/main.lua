@@ -41,11 +41,11 @@ pics.st = st
 -- ------------------------------------------------------------------ sound
 
 local sky_bed = {bpm = 96, steps = 2,
-  {"C5 . E5 . G5 . E5 . A5 . G5 . E5 . D5 . ", wave = "sine", vol = 0.09, release = 0.35, attack = 0.02, pan = -0.2},
-  {"C3 - - - - - - - F3 - - - G3 - - - ", wave = "sine", vol = 0.08, release = 0.5, attack = 0.05, pan = 0.2}}
+  {"C5 . E5 . G5 . E5 . A5 . G5 . E5 . D5 . ", wave = "sine", vol = 0.14, release = 0.35, attack = 0.02, pan = -0.2},
+  {"C3 - - - - - - - F3 - - - G3 - - - ", wave = "sine", vol = 0.12, release = 0.5, attack = 0.05, pan = 0.2}}
 local party_bed = {bpm = 90, steps = 2,
-  {"C5 . E5 . G5 . E5 . F5 . A5 . G5 . E5 . ", wave = "tri", vol = 0.05, release = 0.3, attack = 0.01, pan = -0.2},
-  {"C3 - - - - - - - F3 - - - G3 - - - ", wave = "sine", vol = 0.09, release = 0.4, attack = 0.05, pan = 0.2}}
+  {"C5 . E5 . G5 . E5 . F5 . A5 . G5 . E5 . ", wave = "tri", vol = 0.10, release = 0.3, attack = 0.01, pan = -0.2},
+  {"C3 - - - - - - - F3 - - - G3 - - - ", wave = "sine", vol = 0.14, release = 0.4, attack = 0.05, pan = 0.2}}
 -- The party song, one note per press after the cheer. Major, pentatonic, ours.
 local SONG = {72, 76, 79, 76, 81, 79, 76, 72, 74, 76, 79, 84, 81, 79, 76, 79}
 
@@ -372,8 +372,8 @@ end
 -- ------------------------------------------------------------------ the cart
 
 function init()
-  sfx.master(0.22)
-  sfx.limit(3000)
+  sfx.master(0.30)
+  sfx.limit(8000)
   load_save()
   for i = 1, 12 do st.clouds[i] = {a = rnd(0, tau), z = rnd(), squish = 0} end
   music.play(sky_bed)

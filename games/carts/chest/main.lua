@@ -1,19 +1,23 @@
--- Chest: walk to the key past Zam's purple fairies, open the chest, take the sword, duel Zam.
+-- Chest: walk to the key past Zam's purple fairies, open the chest, take the sword, duel Zam,
+-- then duel Pika when he leaps out of the chest, and celebrate with a grand victory!
 -- Walk-up band (CONTROLS.md). The stick walks. Any button shoots.
 -- On the path the button blows a bubble from his wand, and the game aims it: at a purple
 -- bubble about to reach him, else at the nearest purple fairy, else the way he faces. A
--- bubbled fairy turns gold, follows him, and in the fight flies at Zam to wrap him.
--- In the fight the sword points at Zam by itself (or at a purple fairy close to him), so the
--- stick is for dodging, for stars, and for stepping out of purple rings.
--- Zam learns a new trick as the pile grows: a teleport, a shield, three bubbles at once.
+-- bubbled fairy turns gold, follows him, and in the duels flies at the boss to wrap him.
+-- In the duels the sword points at the boss by itself (or at a purple fairy close to him), so
+-- the stick is for dodging bubbles, lightning rings, and stepping onto stars.
 -- A grown-up reads the cream band. chest.sav is "gems N". The spec is DESIGN.md beside this.
 
 local pics = import("pictures")
 
 local SPEED, POP_FRAMES, WRAP_FRAMES, REACT_FRAMES = 2, 60, 120, 120
-local WIN_FRAMES, RESTART_FRAMES, SHOT_GAP, HOLD_GAP = 160, 60, 12, 30
-local MARKS_WIN, ZX, ZY, FIGHT_TOP, TELE_FRAMES, SHIELD_FRAMES = 9, 192, 118, 300, 40, 90
-local SPOTS = {128, 192, 256}
+local ZAMBOW_FRAMES, PIKAPOP_FRAMES = 70, 55
+local WIN_MIN_FRAMES, WIN_AUTO_FRAMES, RESTART_FRAMES = 120, 320, 60
+local SHOT_GAP, HOLD_GAP = 12, 30
+local MARKS_WIN, PIKA_MARKS_WIN = 12, 10
+local ZX, ZY, PY, FIGHT_TOP, TELE_FRAMES, SHIELD_FRAMES = 192, 118, 146, 300, 40, 90
+local SPOTS = {120, 192, 264}
+local PIKA_SPOTS = {104, 192, 280}
 local KEY_SPOTS = {{128, 348}, {300, 356}, {72, 268}, {318, 270}, {84, 420}}
 -- The path's purple fairies: where they hover (one always guards the key), how fast their
 -- bubbles drift (slower than he walks), and his wand's bubbles.
@@ -27,31 +31,51 @@ local function trunc(v) return v >= 0 and floor(v) or ceil(v) end
 
 -- Everything the game knows. pictures.lua reads it to draw.
 local S = {
-  phase = "path", gems = 0, marks = 0, pips = 0, level = 0, marks_win = MARKS_WIN,
+  phase = "path", boss = "zam", gems = 0, marks = 0, pips = 0, level = 0, marks_win = MARKS_WIN,
   nx = 200, ny = 420, face_x = 0, face_y = -1, has_key = false, has_sword = false, key_x = 128, key_y = 348,
   pop_t = 0, bow_t = 0, fight_t = 0, hop = 0, react_left = 0, react = "", shot_cool = 0, saw_release = false,
   telegraph = 0, spray = false, fairy = nil, fairy_x = 0, fairy_y = 0, wrap = 0, wrap_alive = false,
   ring = nil, star = nil, splash = nil, hurt_cool = 0, shot_once = false, spoon_flash = 0, goodbye = false,
   zx = ZX, zy = ZY, spot = 2, tele_t = 0, tele_to = 2, shield_t = 0, flinch_t = 0, dizzy_t = 0, bend_t = 0,
+  surge = false,
+  -- Pika state (Duel 2)
+  px = ZX, py = PY, pspot = 2, phop_t = 0, phop_from = ZX, phop_to = ZX,
+  dash_t = 0, dash_from = ZX, dash_to = ZX, strike = nil,
   bubbles = {}, beam = nil, walk_t = 0, pile_hop = 0, moving = false, prize_t = 0, prize_kind = 0, deco = {},
-  TELE_FRAMES = TELE_FRAMES, SHIELD_FRAMES = SHIELD_FRAMES, ZX = ZX, ZY = ZY, PUFF_FRAMES = PUFF_FRAMES, SAVE_FRAMES = SAVE_FRAMES,
+  TELE_FRAMES = TELE_FRAMES, SHIELD_FRAMES = SHIELD_FRAMES, ZX = ZX, ZY = ZY, PY = PY,
+  PUFF_FRAMES = PUFF_FRAMES, SAVE_FRAMES = SAVE_FRAMES, WIN_MIN_FRAMES = WIN_MIN_FRAMES,
   -- the path: purple fairies, his wand's bubbles, what the next one will go for, gold friends following him
   foes = {}, shots = {}, aim = nil, friends = 0, friend_next = 0, trail = {}, path_t = 0, puff_gap = 0,
   stuck = 0, back_line = "", saved_any = false, START_X = START_X, START_Y = START_Y,
 }
 pics.S = S
 
+-- Music beds: balanced for both C and GPU runtimes (master 0.32, ceiling 8000).
 local path_bed = {bpm = 96, steps = 2,
-  {"C5 . E5 . G5 . E5 . D5 . F5 . A5 . G5 . ", wave = "tri", vol = 0.08, release = 0.2, attack = 0.01, pan = -0.2},
-  {"C3 - - - G2 - - - D3 - - - G2 - - - ", wave = "sine", vol = 0.16, release = 0.3, attack = 0.02},
-  {"H . . . H . . . H . . . H . H . ", wave = "noise", vol = 0.03, release = 0.04, pan = 0.3}}
+  {"C5 . E5 . G5 . E5 . D5 . F5 . A5 . G5 . ", wave = "tri", vol = 0.16, release = 0.2, attack = 0.01, pan = -0.2},
+  {"C3 - - - G2 - - - D3 - - - G2 - - - ", wave = "sine", vol = 0.24, release = 0.3, attack = 0.02},
+  {"H . . . H . . . H . . . H . H . ", wave = "noise", vol = 0.06, release = 0.04, pan = 0.3}}
 local fight_bed = {bpm = 132, steps = 4,
-  {"G4 . . G4 A4 . C5 . G4 . . E4 D4 . E4 . G4 . . G4 A4 . C5 . D5 . C5 . A4 . . . ", wave = "square", vol = 0.045, release = 0.06, attack = 0.005, duty = 0.25, pan = -0.2},
-  {"C3 . C3 . G2 . G2 . A2 . A2 . F2 . G2 . ", wave = "tri", vol = 0.2, release = 0.06, attack = 0.004},
-  {"K . H . S . H . K . H K S . H . ", wave = "noise", vol = 0.06, release = 0.05, pan = 0.2}}
+  {"G4 . . G4 A4 . C5 . G4 . . E4 D4 . E4 . G4 . . G4 A4 . C5 . D5 . C5 . A4 . . . ", wave = "square", vol = 0.11, release = 0.06, attack = 0.005, duty = 0.25, pan = -0.2},
+  {"C3 . C3 . G2 . G2 . A2 . A2 . F2 . G2 . ", wave = "tri", vol = 0.26, release = 0.06, attack = 0.004},
+  {"K . H . S . H . K . H K S . H . ", wave = "noise", vol = 0.10, release = 0.05, pan = 0.2}}
+local pika_bed = {bpm = 148, steps = 4,
+  {"E5 . G5 . A5 . G5 . E5 . D5 . E5 . . . G5 . A5 . C6 . A5 . G5 . E5 . D5 . . . ", wave = "square", vol = 0.11, release = 0.05, attack = 0.004, duty = 0.3, pan = -0.2},
+  {"A2 . A2 . E3 . E3 . F2 . F2 . G2 . G2 . ", wave = "tri", vol = 0.26, release = 0.06, attack = 0.004},
+  {"K . H H S . H . K K H . S . H H ", wave = "noise", vol = 0.11, release = 0.04, pan = 0.2}}
+local win_bed = {bpm = 128, steps = 2,
+  {"C5 . E5 . G5 . C6 - A5 . G5 . E5 . G5 - ", wave = "tri", vol = 0.20, release = 0.22, attack = 0.008, pan = -0.2},
+  {"E4 . G4 . C5 . E5 - F4 . E4 . C4 . D4 - ", wave = "sine", vol = 0.14, release = 0.25, attack = 0.01, pan = 0.2},
+  {"C3 - G2 - A2 - E2 - F2 - C3 - G2 - G2 - ", wave = "sine", vol = 0.22, release = 0.25, attack = 0.01}}
 
 local function tone(hz, dur, vol) sfx.tone("tri", hz, dur, vol) end
 local function notes(m, step, vol) sfx.arp("tri", m, step, vol) end
+
+-- Active boss coordinates (Zam in Duel 1, Pika in Duel 2).
+local function boss_xy()
+  if S.boss == "pika" then return S.px, S.py end
+  return S.zx, S.zy
+end
 
 -- ------------------------------------------------------------------ the rules
 
@@ -60,15 +84,29 @@ local function near_chest() return S.ny < 268 and S.nx > 156 and S.nx < 236 end
 local function near_key() return (S.nx - S.key_x) ^ 2 + (S.ny - S.key_y) ^ 2 < 36 * 36 end
 -- Zam can be hit when he is all there: not mid-teleport.
 local function zam_solid() return S.tele_t == 0 or S.tele_t > TELE_FRAMES - 4 end
+-- Pika can be hit when he is not mid-dash.
+local function pika_solid() return S.dash_t == 0 end
 
 local function clear_fight()
-  S.marks, S.pips, S.fight_t, S.telegraph, S.spray = 0, 0, 0, 0, false
-  S.bubbles, S.fairy, S.wrap, S.wrap_alive, S.ring, S.star = {}, nil, 0, false, nil, nil
-  S.shot_once, S.hurt_cool, S.tele_t, S.shield_t, S.spot, S.zx = false, 0, 0, 0, 2, ZX
-  S.shots, S.foes, S.stuck, S.friend_next = {}, {}, 0, 40
+  S.boss = "zam"
+  S.marks, S.pips, S.fight_t, S.telegraph, S.spray, S.surge = 0, 0, 0, 0, false, false
+  S.bubbles, S.fairy, S.wrap, S.wrap_alive, S.ring, S.star, S.strike = {}, nil, 0, false, nil, nil, nil
+  S.shot_once, S.hurt_cool, S.tele_t, S.shield_t, S.spot, S.zx, S.zy = false, 0, 0, 0, 2, ZX, ZY
+  S.shots, S.foes, S.stuck, S.friend_next = {}, {}, 0, 60
   -- He learns a trick for each of the first three gems, and takes three more zaps each time.
   S.level = min(S.gems, 3)
   S.marks_win = MARKS_WIN + 3 * S.level
+end
+
+local function clear_pika()
+  S.boss = "pika"
+  S.marks, S.pips, S.fight_t, S.telegraph, S.spray, S.surge = 0, 0, 0, 0, false, false
+  S.bubbles, S.fairy, S.wrap, S.wrap_alive, S.ring, S.star, S.strike = {}, nil, 0, false, nil, nil, nil
+  S.shot_once, S.hurt_cool, S.tele_t, S.shield_t = false, 0, 0, 0
+  S.pspot, S.px, S.py, S.phop_t, S.dash_t = 2, ZX, PY, 0, 0
+  S.shots, S.stuck, S.friend_next = {}, 0, 100
+  S.level = min(S.gems, 3)
+  S.marks_win = PIKA_MARKS_WIN + 2 * S.level
 end
 
 local function take_key()
@@ -82,7 +120,7 @@ end
 
 local function begin_pop()
   if S.phase ~= "path" or not S.has_key then return end
-  S.phase, S.pop_t = "pop", 0
+  S.phase, S.boss, S.pop_t = "pop", "zam", 0
   log("chest pop " .. game.frame)
   -- A fairy still turning gold comes along too.
   for _, f in ipairs(S.foes) do
@@ -99,42 +137,83 @@ local function begin_pop()
   S.react_left = 80
 end
 
+local function begin_zambow()
+  S.phase, S.bow_t, S.bend_t = "zambow", 0, 0
+  S.bubbles, S.tele_t, S.shield_t, S.ring, S.star, S.fairy, S.wrap, S.wrap_alive = {}, 0, 0, nil, nil, nil, 0, false
+  log("chest zambow " .. game.frame)
+  notes({72, 76, 79, 84}, 0.09, 0.36)
+  particles.burst(S.zx, S.zy, 26, 3.2, 36, 3, C.GOLD, "star")
+  react_to("Zam bows! What's in the chest?")
+end
+
+local function begin_pikapop()
+  S.phase, S.boss, S.pop_t, S.pips = "pikapop", "pika", 0, 0
+  S.px, S.py = ZX, 166
+  log("chest pikapop " .. game.frame)
+  sfx.slide("square", 440, 1320, 0.25, 0.25)
+  notes({76, 79, 84, 88}, 0.07, 0.34)
+  gfx.shake(5)
+  particles.burst(ZX, 164, 34, 4, 42, 3.5, C.PIKA, "star")
+  music.play(pika_bed)
+  react_to("Pika jumped out! Watch the sparks!")
+  S.react_left = 90
+end
+
 local function begin_win()
-  S.phase, S.bow_t = "winbow", 0
-  S.prize_kind, S.prize_t = S.gems % 8, 1
+  S.phase, S.bow_t, S.bend_t = "winbow", 0, 0
+  S.prize_kind, S.prize_t = S.gems % 9, 1
   if S.gems < 100000 then S.gems = S.gems + 1 end
   save.set("gems", S.gems)
   save.write()
   log("chest win " .. game.frame)
+  log("chest victory " .. game.frame)
   log("chest gems " .. S.gems)
-  notes({72, 76, 79, 84, 88}, 0.1, 0.38)
-  for i = 1, 30 do
-    particles.spawn(S.zx + rnd(-40, 40), S.zy, rnd(-3, 3), rnd(-5, -1), 70, rnd(3, 5), i % 3 ~= 0 and C.ROSE or C.GOLD,
-      i % 2 == 0 and "star" or "square", 0.15, 0.99, 0.1)
+  notes({72, 76, 79, 84, 88, 96}, 0.09, 0.38)
+  for i = 1, 44 do
+    local col = i % 4 == 0 and C.PIKA or i % 4 == 1 and C.ROSE or i % 4 == 2 and C.CYAN or C.GOLD
+    particles.spawn(ZX + rnd(-120, 120), 180 + rnd(-40, 40), rnd(-3.5, 3.5), rnd(-5.5, -1), 90, rnd(3, 5.5), col,
+      i % 3 == 0 and "heart" or i % 2 == 0 and "star" or "square", 0.12, 0.99, 0.12)
   end
-  S.bubbles, S.tele_t, S.shield_t, S.ring, S.star, S.fairy = {}, 0, 0, nil, nil, nil
-  music.play(path_bed)
-  react_to("Treasure for the pile.")
+  S.bubbles, S.tele_t, S.shield_t, S.ring, S.star, S.fairy, S.strike = {}, 0, 0, nil, nil, nil, nil
+  S.wrap, S.wrap_alive, S.dash_t = 0, false, 0
+  S.zx, S.zy = 104, 134
+  S.px, S.py = 280, 158
+  music.play(win_bed)
+  react_to("You beat Zam and Pika!")
 end
 
 local function add_marks(n, big)
   S.marks = S.marks + n
   S.spoon_flash, S.flinch_t = 16, 14
+  local bx, by = boss_xy()
   if big then
     log("chest big")
     notes({79, 84}, 0.07, 0.4)
     gfx.shake(5)
     S.dizzy_t = 70
-    particles.burst(S.zx, S.zy, 34, 4, 40, 3, C.GOLD, "star")
-    particles.text(S.zx, S.zy - 80, C.GOLD, "+3")
-    react_to("The big bubble popped.")
+    particles.burst(bx, by, 34, 4, 40, 3, C.GOLD, "star")
+    particles.text(bx, by - 72, C.GOLD, "+" .. n)
+    react_to("The big bubble popped!")
   else
     log("chest mark " .. S.marks)
     sfx.slide("square", 900, 600, 0.08, 0.18)
-    particles.burst(S.zx, S.zy - 10, 10, 2, 24, 2, C.CREAM, "star")
-    react_to("The sword zapped him.")
+    particles.burst(bx, by - 10, 10, 2, 24, 2, C.CREAM, "star")
+    react_to(S.boss == "pika" and "The sword zapped Pika!" or "The sword zapped him.")
   end
-  if S.marks >= S.marks_win and S.phase == "fight" then begin_win() end
+  -- Halfway surge: bosses get extra lively at half marks.
+  if not S.surge and S.marks >= idiv(S.marks_win, 2) and S.marks < S.marks_win then
+    S.surge = true
+    sfx.arp("sine", {72, 76, 79, 84}, 0.05, 0.25)
+    particles.burst(bx, by, 22, 3, 30, 3, S.boss == "pika" and C.PIKA or C.PURPLE, "star")
+    react_to(S.boss == "pika" and "Pika is super charged!" or "Zam is powering up!")
+  end
+  if S.marks >= S.marks_win then
+    if S.phase == "fight" then
+      begin_zambow()
+    elseif S.phase == "pika" then
+      begin_win()
+    end
+  end
 end
 
 -- Three purple hurts on the path: a soft start-over. The key floats back to its spot, he
@@ -153,13 +232,14 @@ end
 
 local function hurt()
   local on_path = S.phase == "path"
-  if (S.phase ~= "fight" and not on_path) or S.hurt_cool > 0 then return end
+  local in_duel = S.phase == "fight" or S.phase == "pika"
+  if (not in_duel and not on_path) or S.hurt_cool > 0 then return end
   S.pips = S.pips + 1
   if on_path then
     -- A purple bubble wraps him for half a second, then pops; he blinks a while after.
     S.hurt_cool, S.stuck = 90, STUCK_FRAMES
   else
-    S.hurt_cool = 40
+    S.hurt_cool = 44
     S.ny = min(S.ny + 16, 450)
   end
   log(fmt("chest hurt %d %d", S.pips, game.frame))
@@ -174,7 +254,7 @@ local function hurt()
     notes({79, 76}, 0.14, 0.3)
     react_to("Pop. The sword stayed.")
   else
-    react_to("That bubble got him.")
+    react_to(S.boss == "pika" and "Zap! That spark got him." or "That bubble got him.")
   end
 end
 
@@ -278,7 +358,7 @@ local function step_shots()
   sweep(S.shots, function(s) return not s.gone end)
 end
 
--- Purple bubbles (Zam's in the fight, the fairies' on the path) drift until they touch him.
+-- Purple bubbles & electric orbs drift until they touch him.
 local function step_bubbles(reach)
   for _, b in ipairs(S.bubbles) do
     if not b.gone then
@@ -297,7 +377,7 @@ end
 -- A new walk to the key: purple fairies (one more for each gem, up to three), one guarding the key.
 local function setup_path()
   S.foes, S.shots, S.bubbles, S.friends, S.pips, S.path_t, S.puff_gap = {}, {}, {}, 0, 0, 0, 0
-  S.saved_any, S.stuck, S.trail = false, 0, {}
+  S.saved_any, S.stuck, S.trail, S.boss = false, 0, {}, "zam"
   local n = min(1 + S.gems, 3)
   local spots = {{S.key_x, S.key_y - 76}}
   for _, p in ipairs(FOE_SPOTS) do
@@ -360,43 +440,51 @@ local function step_foes()
   sweep(S.foes, function(f) return f.state ~= "gold" end)
 end
 
--- With the sword: a laser that flies at Zam. A shield stops it, an empty spot lets it pass.
+-- With the sword: a laser that flies at the active boss. A shield stops it, a teleport/dash lets it pass.
 local function laser()
   local sx, sy = S.nx, S.ny - 12
+  local bx, by = boss_xy()
   log("chest bolt")
   snd.zap()
-  S.beam = {x0 = sx, y0 = sy, x1 = S.zx, y1 = S.zy, t = 10, blocked = false}
+  S.beam = {x0 = sx, y0 = sy, x1 = bx, y1 = by, t = 10, blocked = false}
   S.shot_once = true
-  if S.phase ~= "fight" then return end
+  if S.phase ~= "fight" and S.phase ~= "pika" then return end
   -- A purple fairy close to him comes first: the laser bubbles her and she turns gold.
   if S.fairy == "purple" and (S.fairy_x - sx) ^ 2 + (S.fairy_y - sy) ^ 2 < 140 * 140 then
     S.beam.x1, S.beam.y1 = S.fairy_x, S.fairy_y
     S.fairy, S.friends = nil, S.friends + 1
-    S.friend_next = max(S.friend_next, S.fight_t + 60)
+    S.friend_next = max(S.friend_next, S.fight_t + 80)
     log("chest rescue " .. game.frame)
     notes({76, 79, 84}, 0.07, 0.3)
     particles.burst(S.fairy_x, S.fairy_y, 16, 2.5, 30, 2.5, C.GOLD, "star")
     react_to("She's a gold fairy now!")
     return
   end
-  if not zam_solid() then
-    -- He is not there: the laser flies on to the top of the meadow.
-    S.beam.x1, S.beam.y1 = trunc(sx + (S.zx - sx) * 1.6), 8
-    S.splash = {S.beam.x1, S.beam.y1}
-    return
-  end
-  if S.shield_t > 0 and S.wrap == 0 then
-    local k = (sy - (S.zy + 62)) / (sy - S.zy)
-    S.beam.x1, S.beam.y1, S.beam.blocked = trunc(sx + (S.zx - sx) * k), S.zy + 62, true
-    S.splash = {S.beam.x1, S.beam.y1}
-    sfx.note("sine", 100, 0.15, 0.2)
-    react_to("His shield is up. Wait.")
-    log("chest blocked")
-    return
+  if S.phase == "fight" then
+    if not zam_solid() then
+      S.beam.x1, S.beam.y1 = trunc(sx + (bx - sx) * 1.6), 8
+      S.splash = {S.beam.x1, S.beam.y1}
+      return
+    end
+    if S.shield_t > 0 and S.wrap == 0 then
+      local k = (sy - (by + 62)) / (sy - by)
+      S.beam.x1, S.beam.y1, S.beam.blocked = trunc(sx + (bx - sx) * k), by + 62, true
+      S.splash = {S.beam.x1, S.beam.y1}
+      sfx.note("sine", 100, 0.15, 0.2)
+      react_to("His shield is up. Wait.")
+      log("chest blocked")
+      return
+    end
+  elseif S.phase == "pika" then
+    if not pika_solid() then
+      S.beam.x1, S.beam.y1 = trunc(sx + (bx - sx) * 1.4), 12
+      S.splash = {S.beam.x1, S.beam.y1}
+      return
+    end
   end
   if S.wrap > 0 then
     S.wrap, S.wrap_alive = 0, false
-    add_marks(3, true)
+    add_marks(2, true)
   else
     add_marks(1, false)
   end
@@ -417,6 +505,16 @@ local function spawn_bubbles()
   sfx.slide("sine", 500, 300, 0.2, 0.2)
 end
 
+local function spawn_sparks()
+  local n = S.spray and 2 or 1
+  for k = 0, n - 1 do
+    local bx, by = S.px + (k - (n - 1) / 2) * 26, S.py + 4
+    local a = atan2(S.ny - by, S.nx - bx) + (k - (n - 1) / 2) * 0.32
+    S.bubbles[#S.bubbles + 1] = {x = bx, y = by, vx = cos(a) * 2.4, vy = sin(a) * 2.4, spark = true}
+  end
+  sfx.slide("square", 900, 420, 0.16, 0.18)
+end
+
 local function begin_teleport()
   local to
   repeat to = rndi(1, 3) until to ~= S.spot
@@ -428,7 +526,7 @@ end
 
 local function wrap_him(x, y, kind, line)
   S.wrap, S.wrap_alive = WRAP_FRAMES, true
-  S.bubbles, S.telegraph, S.shield_t = {}, 0, 0
+  S.bubbles, S.telegraph, S.shield_t, S.dash_t = {}, 0, 0, 0
   log("chest wrap " .. game.frame)
   sfx.note("sine", 88, 0.4, 0.3)
   particles.burst(x, y, 16, 2.5, 30, 2.5, C.GOLD, kind)
@@ -437,73 +535,30 @@ end
 
 local function step_to_int(v, d, max_step) return v + (d > max_step and max_step or d < -max_step and -max_step or d) end
 
-local function fight_step()
-  S.fight_t = S.fight_t + 1
-  if S.wrap > 0 then
-    S.wrap = S.wrap - 1
-    if S.wrap == 0 and S.wrap_alive then
-      S.wrap_alive = false
-      add_marks(1, false)
-    end
-  end
-  if S.hurt_cool > 0 then S.hurt_cool = S.hurt_cool - 1 end
-  if S.spoon_flash > 0 then S.spoon_flash = S.spoon_flash - 1 end
-  if S.phase ~= "fight" then return end
-  -- His rhythm, from the second fight on, every five seconds: the spoons glow and the
-  -- bubbles come (he is open), then his shield goes up (zaps bounce off), then he
-  -- teleports. On the first fight there is only a bubble every two and a half seconds.
-  local len = S.level == 0 and 150 or 300
-  local c = S.fight_t % len
-  if S.tele_t > 0 then
-    S.tele_t = S.tele_t - 1
-    if S.tele_t == idiv(TELE_FRAMES, 2) then
-      S.spot = S.tele_to
-      S.zx = SPOTS[S.spot]
-      particles.burst(S.zx, S.zy, 16, 2, 26, 2.5, 0xc8a8ff, "star")
-    end
-  elseif S.level >= 1 and c == (S.level >= 2 and 250 or 180) and S.wrap == 0 then
-    begin_teleport()
-  end
-  if S.shield_t > 0 then
-    S.shield_t = S.shield_t - 1
-    if S.wrap > 0 then S.shield_t = 0 end
-  elseif S.level >= 2 and c == 150 and S.wrap == 0 and S.tele_t == 0 then
-    S.shield_t = SHIELD_FRAMES
-    sfx.note("sine", 88, 0.3, 0.25)
-    sfx.note("sine", 95, 0.3, 0.12)
-    react_to("His shield is up. Wait.")
-    log("chest shield")
-  end
-  if S.telegraph > 0 then
-    S.telegraph = S.telegraph - 1
-    if S.telegraph == 0 then spawn_bubbles() end
-  elseif S.wrap == 0 and not S.fairy and S.tele_t == 0 and c == 40 then
-    S.telegraph = 30
-    S.spray = S.level >= 3 and idiv(S.fight_t, len) % 2 == 1
-    tone(S.spray and 587 or 659, 0.12, 0.2)
-    if S.spray then react_to("Three bubbles! Step away.") end
-  end
-  step_bubbles(28)
+-- Shared fairy, ring, and star logic for both Zam and Pika duels.
+local function step_duel_fairies()
+  local bx, by = boss_xy()
+  local solid = S.boss == "pika" and pika_solid() or zam_solid()
+  local bname = S.boss == "pika" and "Pika" or "Zam"
   if not S.fairy and S.wrap == 0 and not S.ring and not S.star then
     local t = S.fight_t
     if S.friends > 0 and t >= S.friend_next then
-      -- One of his own gold fairies leaves his side and flies at Zam.
       local f = table.remove(S.trail, S.friends) or {S.nx, S.ny - 20}
       S.fairy, S.fairy_x, S.fairy_y = "gold", floor(f[1]), floor(f[2])
-      S.friends, S.friend_next = S.friends - 1, t + 240
+      S.friends, S.friend_next = S.friends - 1, t + 330
       log("chest friend " .. game.frame)
-      react_to("His gold fairy flies to Zam!")
-    elseif t == 70 or t == 460 then S.fairy, S.fairy_x, S.fairy_y = "gold", 40, 180
-    elseif t == 250 then S.fairy, S.fairy_x, S.fairy_y = "blue", 340, 240
-    elseif (S.shot_once and t == 190) or t == 520 then S.fairy, S.fairy_x, S.fairy_y = "purple", 48, 300 end
+      react_to("His gold fairy flies to " .. bname .. "!")
+    elseif t == 70 or t == 480 then S.fairy, S.fairy_x, S.fairy_y = "gold", 40, 180
+    elseif t == 270 then S.fairy, S.fairy_x, S.fairy_y = "blue", 340, 240
+    elseif (S.shot_once and t == 200) or t == 540 then S.fairy, S.fairy_x, S.fairy_y = "purple", 48, 300 end
     if S.fairy then sfx.note("sine", S.fairy == "purple" and 67 or 88, 0.2, 0.18) end
   end
   if S.fairy == "gold" then
-    local dx, dy = trunc(S.zx) - S.fairy_x, trunc(S.zy) + 12 - S.fairy_y
+    local dx, dy = trunc(bx) - S.fairy_x, trunc(by) + 10 - S.fairy_y
     S.fairy_x, S.fairy_y = step_to_int(S.fairy_x, dx, 4), step_to_int(S.fairy_y, dy, 4)
-    if abs(dx) < 12 and abs(dy) < 12 and zam_solid() then
+    if abs(dx) < 14 and abs(dy) < 14 and solid then
       S.fairy = nil
-      wrap_him(S.zx, S.zy, "glow", "Gold fairy has him.")
+      wrap_him(bx, by, "glow", "Gold fairy has " .. (S.boss == "pika" and "Pika!" or "him."))
     end
   elseif S.fairy then
     local dx, dy = S.nx - S.fairy_x, S.ny - S.fairy_y
@@ -538,13 +593,161 @@ local function fight_step()
   local star = S.star
   if star then
     if (S.nx - star.x) ^ 2 + (S.ny - star.y) ^ 2 < 22 * 22 then
-      S.star, S.tele_t = nil, 0
-      wrap_him(star.x, star.y, "star", "The star wrapped him.")
+      S.star, S.tele_t, S.dash_t = nil, 0, 0
+      wrap_him(star.x, star.y, "star", "The star wrapped " .. (S.boss == "pika" and "Pika!" or "him."))
     else
       star.life = star.life - 1
       if star.life <= 0 then S.star = nil end
     end
   end
+end
+
+local function fight_step()
+  S.fight_t = S.fight_t + 1
+  if S.wrap > 0 then
+    S.wrap = S.wrap - 1
+    if S.wrap == 0 and S.wrap_alive then
+      S.wrap_alive = false
+      add_marks(1, false)
+    end
+  end
+  if S.hurt_cool > 0 then S.hurt_cool = S.hurt_cool - 1 end
+  if S.spoon_flash > 0 then S.spoon_flash = S.spoon_flash - 1 end
+  if S.phase ~= "fight" then return end
+  -- At half marks, Zam gently drifts left and right around his spot when not teleporting.
+  if S.surge and S.tele_t == 0 and S.wrap == 0 then
+    S.zx = clamp(SPOTS[S.spot] + sin(S.fight_t * 0.03) * 34, 84, W - 84)
+  elseif S.tele_t == 0 then
+    S.zx = approach(S.zx, SPOTS[S.spot], 0.15)
+  end
+  local len = S.level == 0 and (S.surge and 120 or 150) or 300
+  local c = S.fight_t % len
+  if S.tele_t > 0 then
+    S.tele_t = S.tele_t - 1
+    if S.tele_t == idiv(TELE_FRAMES, 2) then
+      S.spot = S.tele_to
+      S.zx = SPOTS[S.spot]
+      particles.burst(S.zx, S.zy, 16, 2, 26, 2.5, 0xc8a8ff, "star")
+    end
+  elseif S.level >= 1 and c == (S.level >= 2 and 250 or 180) and S.wrap == 0 then
+    begin_teleport()
+  end
+  if S.shield_t > 0 then
+    S.shield_t = S.shield_t - 1
+    if S.wrap > 0 then S.shield_t = 0 end
+  elseif S.level >= 2 and c == 150 and S.wrap == 0 and S.tele_t == 0 then
+    S.shield_t = SHIELD_FRAMES
+    sfx.note("sine", 88, 0.3, 0.25)
+    sfx.note("sine", 95, 0.3, 0.12)
+    react_to("His shield is up. Wait.")
+    log("chest shield")
+  end
+  if S.telegraph > 0 then
+    S.telegraph = S.telegraph - 1
+    if S.telegraph == 0 then spawn_bubbles() end
+  elseif S.wrap == 0 and not S.fairy and S.tele_t == 0 and c == 40 then
+    S.telegraph = 30
+    S.spray = S.level >= 3 and idiv(S.fight_t, len) % 2 == 1
+    tone(S.spray and 587 or 659, 0.12, 0.2)
+    if S.spray then react_to("Three bubbles! Step away.") end
+  end
+  step_bubbles(28)
+  step_duel_fairies()
+end
+
+local function pika_step()
+  S.fight_t = S.fight_t + 1
+  if S.wrap > 0 then
+    S.wrap = S.wrap - 1
+    if S.wrap == 0 and S.wrap_alive then
+      S.wrap_alive = false
+      add_marks(1, false)
+    end
+  end
+  if S.hurt_cool > 0 then S.hurt_cool = S.hurt_cool - 1 end
+  if S.spoon_flash > 0 then S.spoon_flash = S.spoon_flash - 1 end
+  if S.phase ~= "pika" then return end
+
+  -- Bouncy hop between spots.
+  if S.phop_t > 0 then
+    S.phop_t = S.phop_t - 1
+    local k = 1 - S.phop_t / 24
+    S.px = lerp(S.phop_from, S.phop_to, k)
+    S.py = PY - sin(k * math.pi) * 26
+    if S.phop_t == 0 then
+      S.px, S.py = S.phop_to, PY
+      particles.burst(S.px, S.py + 24, 6, 1.5, 16, 2, C.PIKA, "dot")
+    end
+  end
+  -- Quick electric dash across the top (invincible during the streak).
+  if S.dash_t > 0 then
+    S.dash_t = S.dash_t - 1
+    local k = 1 - S.dash_t / 30
+    S.px = lerp(S.dash_from, S.dash_to, ease.in_out(k))
+    S.py = PY - sin(k * math.pi) * 14
+    if S.dash_t % 3 == 0 then particles.spawn(S.px, S.py, 0, 0, 18, 3, C.PIKA, "star") end
+    if S.dash_t == 0 then
+      S.px, S.py = S.dash_to, PY
+      particles.burst(S.px, S.py, 12, 2.2, 22, 2.5, C.PIKA, "star")
+    end
+  end
+
+  local len = S.surge and 200 or 240
+  local c = S.fight_t % len
+  -- Move 1: Thunder Spark (aimed purple-electric orb).
+  if S.telegraph > 0 then
+    S.telegraph = S.telegraph - 1
+    if S.telegraph == 0 then spawn_sparks() end
+  elseif S.wrap == 0 and S.dash_t == 0 and c == 36 then
+    S.telegraph = 32
+    S.spray = S.level >= 2 or S.surge
+    sfx.slide("square", 620, 980, 0.14, 0.14)
+    react_to("Pika's cheeks are glowing!")
+  end
+
+  -- Move 2: Lightning Strike (ground target ring -> bolt from the sky!).
+  if S.strike then
+    local st = S.strike
+    if st.t > 0 then
+      st.t = st.t - 1
+      if st.t % 12 == 0 then sfx.tone("sine", 440 + (68 - st.t) * 8, 0.06, 0.1) end
+      if st.t == 0 then
+        st.flash = 16
+        sfx.noise(0.18, 0.25, 3200)
+        sfx.slide("square", 1100, 180, 0.2, 0.22)
+        gfx.shake(4)
+        particles.burst(st.x, st.y, 20, 3, 28, 3, C.PIKA, "star")
+        if (S.nx - st.x) ^ 2 + (S.ny - st.y) ^ 2 < 34 * 34 then hurt() end
+      end
+    elseif st.flash > 0 then
+      st.flash = st.flash - 1
+      if st.flash == 0 then S.strike = nil end
+    end
+  elseif S.wrap == 0 and S.dash_t == 0 and c == 120 then
+    S.strike = {x = S.nx, y = S.ny, t = 68, flash = 0}
+    log("chest strike " .. game.frame)
+    sfx.slide("sine", 500, 1000, 0.2, 0.15)
+    react_to("Lightning! Step out of the ring!")
+  end
+
+  -- Move 3: Hop or Quick Dash to a new spot.
+  if S.wrap == 0 and S.phop_t == 0 and S.dash_t == 0 and S.telegraph == 0 and c == 175 then
+    local to
+    repeat to = rndi(1, 3) until to ~= S.pspot
+    S.pspot = to
+    if S.surge or S.level >= 1 then
+      S.dash_t, S.dash_from, S.dash_to = 30, S.px, PIKA_SPOTS[to]
+      log("chest dash " .. game.frame)
+      sfx.slide("square", 600, 1500, 0.2, 0.18)
+      react_to("Pika zipped away!")
+    else
+      S.phop_t, S.phop_from, S.phop_to = 24, S.px, PIKA_SPOTS[to]
+      sfx.slide("sine", 520, 880, 0.12, 0.16)
+    end
+  end
+
+  step_bubbles(26)
+  step_duel_fairies()
 end
 
 local function leaving() return input.down("1p") and input.down("2p") end
@@ -553,9 +756,24 @@ local function rest_line()
   if leaving() then return "The gems will stay." end
   local p = S.phase
   if p == "pop" then return "Pop! He threw the sword." end
-  if p == "winbow" then return "Treasure for the pile." end
+  if p == "zambow" then return "Zam bows! What's in the chest?" end
+  if p == "pikapop" then return "Pika jumped out! Watch the sparks!" end
+  if p == "winbow" then
+    if S.bow_t >= WIN_MIN_FRAMES then return "You did it! Press to play again!" end
+    return "You beat Zam and Pika!"
+  end
   if p == "restart" then return "Pop. The sword stayed." end
   if p == "pathback" then return S.back_line end
+  if p == "pika" then
+    if S.dash_t > 0 then return "Pika zipped away!" end
+    if S.strike and S.strike.t > 0 then return "Lightning! Step out of the ring!" end
+    if S.telegraph > 0 then return "Pika's cheeks are glowing!" end
+    if S.wrap > 0 then return "Gold fairy has Pika!" end
+    if S.ring and S.ring.safe then return "A blue bubble. Catch it." end
+    if S.star then return "Walk over the star." end
+    if S.ring then return "Purple. Step out of it." end
+    return "Pika! Watch out for sparks."
+  end
   if p == "fight" then
     if S.tele_t > 0 then return "Zam jumped! Find him." end
     if S.telegraph > 0 then return S.spray and "Three bubbles! Step away." or "A bubble is coming." end
@@ -588,13 +806,20 @@ function bot()
   local tx, ty = S.nx, S.ny
   if S.phase == "path" then
     tx, ty = S.has_key and ZX or S.key_x, S.has_key and 240 or S.key_y
-  elseif S.phase == "fight" then
-    tx, ty = trunc(S.zx) + (sin(game.frame * 0.012) > 0 and -40 or 40), 400
+  elseif S.phase == "fight" or S.phase == "pika" then
+    local bx = S.boss == "pika" and S.px or S.zx
+    tx, ty = trunc(bx) + (sin(game.frame * 0.014) > 0 and -44 or 44), 400
     if S.star then tx, ty = S.star.x, S.star.y end
+    if S.strike and S.strike.t > 0 then
+      tx, ty = S.strike.x + (S.strike.x < ZX and 80 or -80), S.strike.y
+    end
     if S.ring and not S.ring.safe then tx, ty = S.ring.x + (S.ring.x < ZX and 80 or -80), S.ring.y end
     for _, b in ipairs(S.bubbles) do
-      if abs(b.x - S.nx) < 50 and b.y < S.ny then tx = S.nx + (b.x < S.nx and 70 or -70) end
+      if abs(b.x - S.nx) < 52 and b.y < S.ny then tx = S.nx + (b.x < S.nx and 72 or -72) end
     end
+  elseif S.phase == "winbow" then
+    if S.bow_t >= WIN_MIN_FRAMES + 10 and game.frame % 4 == 0 then input.bot("low") end
+    return
   else
     return
   end
@@ -604,8 +829,9 @@ function bot()
     if ty < S.ny - 2 then input.bot("up") end
     if ty > S.ny + 2 then input.bot("down") end
   end
-  -- With the sword, shoot whenever the shield is down.
+  -- With the sword, shoot whenever the boss is open.
   if S.phase == "fight" and S.shield_t == 0 and game.frame % 2 == 1 then input.bot("low") end
+  if S.phase == "pika" and S.dash_t == 0 and game.frame % 2 == 1 then input.bot("low") end
   -- On the path, blow bubbles whenever there is something to aim at.
   if S.phase == "path" and S.aim and game.frame % 2 == 1 then input.bot("low") end
 end
@@ -613,8 +839,8 @@ end
 -- ------------------------------------------------------------------ the cart
 
 function init()
-  sfx.master(0.17)
-  sfx.limit(3000)
+  sfx.master(0.32)
+  sfx.limit(8000)
   S.gems = clamp(save.get("gems", 0), 0, 100000)
   log("chest gems " .. S.gems)
   for i = 1, 40 do
@@ -626,18 +852,32 @@ function init()
   music.play(path_bed)
 end
 
+local function start_next_round()
+  S.phase, S.has_key, S.has_sword, S.bend_t = "path", false, false, 0
+  clear_fight()
+  local k = KEY_SPOTS[rndi(2, 5)]
+  S.key_x, S.key_y = k[1], k[2]
+  setup_path()
+  music.play(path_bed)
+  S.react, S.react_left = "The key is back. Go on.", REACT_FRAMES
+end
+
 function update()
   local pressed, held = input.action(), input.action_down()
   local mx, my = input.dir()
   S.splash = nil
   if not held then S.saw_release = true end
   S.moving = false
-  if S.phase == "pop" then
-    -- He hops back to the fighting line while Zam unfolds.
+  if S.phase == "pop" or S.phase == "pikapop" then
+    -- He hops back to the fighting line while the boss unfolds.
     S.nx = S.nx + trunc((ZX - S.nx) * 0.08)
     if S.ny < 400 then S.ny = S.ny + 3 end
-  elseif S.phase ~= "winbow" and S.phase ~= "restart" and S.phase ~= "pathback" and S.stuck == 0 then
-    local top = S.phase == "fight" and FIGHT_TOP or 230
+  elseif S.phase == "winbow" then
+    -- Ned trots proudly to center stage for the victory celebration!
+    S.nx = approach(S.nx, ZX, 0.08)
+    S.ny = approach(S.ny, 376, 0.08)
+  elseif S.phase ~= "zambow" and S.phase ~= "restart" and S.phase ~= "pathback" and S.stuck == 0 then
+    local top = (S.phase == "fight" or S.phase == "pika") and FIGHT_TOP or 230
     S.nx = clamp(S.nx + mx * SPEED, 24, W - 24)
     S.ny = clamp(S.ny + my * SPEED, top, 450)
     if mx ~= 0 or my ~= 0 then
@@ -648,16 +888,22 @@ function update()
       if S.walk_t % 16 == 0 then particles.spawn(S.nx, S.ny + 32, rnd(-0.5, 0.5), -0.3, 18, 2.5, alpha(0xe8f0d0, 160), "dot") end
     end
   end
-  -- His gold friends drift after him, one each side, a little behind.
+  -- His gold friends drift after him, one each side, a little behind (or dance in a ring on victory).
   for k = 1, min(S.friends, 5) do
     local f = S.trail[k]
     if not f then
       f = {S.nx, S.ny - 30}
       S.trail[k] = f
     end
-    local side = k % 2 == 1 and 30 or -30
-    f[1] = approach(f[1], S.nx + side, 0.06 / k + 0.02)
-    f[2] = approach(f[2], S.ny - 18 + k * 6, 0.06 / k + 0.02)
+    if S.phase == "winbow" then
+      local a = game.frame * 0.07 + k * (tau / max(1, min(S.friends, 5)))
+      f[1] = approach(f[1], S.nx + cos(a) * 52, 0.12)
+      f[2] = approach(f[2], S.ny - 10 + sin(a) * 28, 0.12)
+    else
+      local side = k % 2 == 1 and 30 or -30
+      f[1] = approach(f[1], S.nx + side, 0.06 / k + 0.02)
+      f[2] = approach(f[2], S.ny - 18 + k * 6, 0.06 / k + 0.02)
+    end
   end
   if S.stuck > 0 then S.stuck = S.stuck - 1 end
   if S.phase == "path" then
@@ -679,7 +925,8 @@ function update()
   end
   if S.shot_cool > 0 then S.shot_cool = S.shot_cool - 1 end
   -- A press fires at once (no faster than five a second); a held button repeats twice a second.
-  if S.saw_release and S.phase ~= "winbow" and S.phase ~= "restart" and S.phase ~= "pathback" and S.stuck == 0
+  local can_fire = S.phase == "path" or S.phase == "pop" or S.phase == "fight" or S.phase == "pika" or S.phase == "pikapop"
+  if S.saw_release and can_fire and S.stuck == 0
       and ((pressed and S.shot_cool <= HOLD_GAP - SHOT_GAP) or (held and not pressed and S.shot_cool == 0)) then
     fire()
     S.shot_cool = HOLD_GAP
@@ -694,23 +941,49 @@ function update()
     end
   elseif S.phase == "fight" then
     fight_step()
+  elseif S.phase == "zambow" then
+    S.bow_t = S.bow_t + 1
+    if S.bow_t > 12 and S.bend_t < 40 then S.bend_t = S.bend_t + 1 end
+    if S.bow_t > 40 and S.bow_t % 6 == 0 then
+      particles.burst(ZX + rnd(-26, 26), 156, 4, 2.2, 20, 2.5, C.PIKA, "star")
+    end
+    if S.bow_t >= ZAMBOW_FRAMES then begin_pikapop() end
+  elseif S.phase == "pikapop" then
+    S.pop_t = S.pop_t + 1
+    if S.pop_t >= PIKAPOP_FRAMES then
+      S.phase, S.has_sword = "pika", true
+      clear_pika()
+      log("chest pika " .. game.frame)
+    end
+  elseif S.phase == "pika" then
+    pika_step()
   elseif S.phase == "winbow" then
     S.bow_t = S.bow_t + 1
-    if S.bow_t > 20 and S.bend_t < 40 then S.bend_t = S.bend_t + 1 end
+    if S.bow_t > 16 and S.bend_t < 40 then S.bend_t = S.bend_t + 1 end
+    if S.bow_t % 12 == 0 then
+      local col = S.bow_t % 36 == 0 and C.PIKA or S.bow_t % 24 == 0 and C.ROSE or C.CYAN
+      particles.spawn(rnd(40, W - 40), 70, rnd(-1.5, 1.5), rnd(0.5, 2), 80, rnd(3, 4.5), col,
+        S.bow_t % 24 == 0 and "star" or "square", 0.05, 0.99, 0.1)
+    end
     if S.prize_t > 0 then
       S.prize_t = S.prize_t + 1
       if S.prize_t > 60 then
         S.prize_t, S.pile_hop = 0, 30
-        sfx.note("sine", 91, 0.2, 0.2)
+        sfx.note("sine", 91, 0.2, 0.25)
+        particles.burst(50, 50, 16, 2.5, 28, 3, C.GOLD, "star")
       end
     end
-    if S.bow_t >= WIN_FRAMES then
-      S.phase, S.has_key, S.has_sword, S.bend_t = "path", false, false, 0
-      clear_fight()
-      local k = KEY_SPOTS[rndi(2, 5)]
-      S.key_x, S.key_y = k[1], k[2]
-      setup_path()
-      S.react, S.react_left = "The key is back. Go on.", REACT_FRAMES
+    -- Celebratory sparkles on button press during the first 2 seconds; press after that plays again!
+    if pressed and S.saw_release then
+      if S.bow_t < WIN_MIN_FRAMES then
+        sfx.arp("tri", {79, 84, 88}, 0.05, 0.25)
+        particles.burst(S.nx, S.ny - 44, 18, 3.5, 34, 3, C.GOLD, "star")
+      else
+        snd.ok()
+        start_next_round()
+      end
+    elseif S.bow_t >= WIN_AUTO_FRAMES then
+      start_next_round()
     end
   elseif S.phase == "pathback" then
     S.bow_t = S.bow_t + 1
@@ -725,8 +998,14 @@ function update()
   elseif S.phase == "restart" then
     S.bow_t = S.bow_t + 1
     if S.bow_t >= RESTART_FRAMES then
-      S.phase, S.has_sword = "fight", true
-      clear_fight()
+      S.has_sword = true
+      if S.boss == "pika" then
+        S.phase = "pika"
+        clear_pika()
+      else
+        S.phase = "fight"
+        clear_fight()
+      end
     end
   end
   for _, k in ipairs({"hop", "pile_hop", "react_left", "flinch_t", "dizzy_t"}) do

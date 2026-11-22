@@ -149,8 +149,8 @@ end
 
 function G.screen() return screen ~= DIRECT and screen or nil end
 
--- Shake, flash, and the quit meter are laid over the finished frame, as gfx_present did.
-function G.finish_frame(quitting)
+-- Shake, flash, the volume meter, and the quit meter are laid over the finished frame, as gfx_present did.
+function G.finish_frame(quitting, vol_level, vol_alpha)
   set_target(screen, K)
   blend("alpha")
   offx, offy = 0, 0
@@ -168,6 +168,32 @@ function G.finish_frame(quitting)
     lg.setColor(r, g, b, a * flash_left / flash_len)
     lg.rectangle("fill", 0, 0, W, H)
     flash_left = flash_left - 1
+  end
+  if vol_level and vol_alpha and vol_alpha > 0 then
+    local bw = W >= 300 and 220 or 180
+    local bh = W >= 300 and 40 or 32
+    local bx, by = (W - bw) / 2, W >= 300 and 16 or 12
+    lg.setColor(10 / 255, 8 / 255, 22 / 255, 215 / 255 * vol_alpha)
+    lg.rectangle("fill", bx - 2, by - 2, bw + 4, bh + 4, 8, 8)
+    lg.setColor(44 / 255, 36 / 255, 72 / 255, 235 / 255 * vol_alpha)
+    lg.rectangle("fill", bx, by, bw, bh, 6, 6)
+    local label = vol_level == 0 and "MUTED" or ("VOLUME " .. vol_level)
+    local tc = math.max(1, math.floor(vol_alpha * 255)) * 16777216 + 0xfff6ea
+    G.api.text(label, W / 2, by + 3, W >= 300 and 13 or 11, tc, "center")
+    local pad = 10
+    local gap = 2
+    local bar_w = (bw - pad * 2 - gap * 14) / 15
+    local bar_h = W >= 300 and 12 or 9
+    local bar_y = by + bh - bar_h - 6
+    for i = 1, 15 do
+      local on = i <= vol_level
+      if on then
+        lg.setColor(110 / 255, 240 / 255, 200 / 255, vol_alpha)
+      else
+        lg.setColor(70 / 255, 62 / 255, 98 / 255, 160 / 255 * vol_alpha)
+      end
+      lg.rectangle("fill", bx + pad + (i - 1) * (bar_w + gap), bar_y, bar_w, bar_h, 2, 2)
+    end
   end
   if quitting and quitting > 0 then
     local bw, bh = W * 3 / 4, W >= 300 and 44 or 34

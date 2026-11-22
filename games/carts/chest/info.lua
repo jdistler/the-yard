@@ -1,6 +1,6 @@
 return {
   title = "Chest",
-  blurb = "the key, the chest, Zam",
+  blurb = "Zam, Pika, and the chest",
   band = "5+",
   tint = 0x7fd6a0,
   size = "large",

@@ -18,6 +18,18 @@ local script, script_frame, script_title = nil, 0, nil
 local scripts_by_title = {}
 local quit_frames, quit_since, quit_progress = 0, nil, 0
 local shot_request
+-- Volume buttons (20 down, 21 up; '-' and '=' on PC): the kernel changes the mixer and writes
+-- /data/spk_volume (0..15). We read it and show a meter, matching Home, without touching game input.
+local VOLUME_FILE = os.getenv("YARD_VOLUME") or "/data/spk_volume"
+local vol_level, vol_until, vol_reread, vol_prev = nil, 0, nil, false
+local function read_volume()
+  local f = io.open(VOLUME_FILE, "r")
+  if not f then return end
+  local s = f:read("*a")
+  f:close()
+  local n = s and tonumber(s:match("%d+"))
+  if n then vol_level = math.max(0, math.min(15, n)) end
+end
 
 local function load_deck_file(path)
   local f = path and io.open(path)
@@ -82,9 +94,13 @@ function I.poll()
   for _, n in ipairs(NAMES) do prev[n] = held[n] human[n] = false end
   for key, name in pairs(KEYS) do if love.keyboard.isDown(key) then human[name] = true end end
   if love.keyboard.isDown("escape") then quit = true end
+  local vol_now = love.keyboard.isDown("-") or love.keyboard.isDown("=")
   for _, j in ipairs(love.joystick.getJoysticks()) do
     for b, name in pairs(JOY) do
       if b <= j:getButtonCount() and j:isDown(b) then human[name] = true end
+    end
+    if (20 <= j:getButtonCount() and j:isDown(20)) or (21 <= j:getButtonCount() and j:isDown(21)) then
+      vol_now = true
     end
     if j:getAxisCount() >= 2 then
       local ax, ay = j:getAxis(1), j:getAxis(2)
@@ -134,11 +150,29 @@ function I.poll()
   else
     quit_frames, quit_since = 0, nil
   end
+  if not loaded then
+    local now = love.timer.getTime()
+    if vol_now and not vol_prev then
+      read_volume()
+      vol_until = now + 1.8
+      vol_reread = now + 0.2
+    elseif vol_reread and now >= vol_reread then
+      vol_reread = nil
+      read_volume()
+    end
+  end
+  vol_prev = vol_now
   return not quit
 end
 
 function I.take_shot() local s = shot_request shot_request = nil return s end
 function I.quit_progress() return math.min(1, quit_progress) end
+function I.volume_overlay()
+  if not vol_level or vol_until <= 0 then return nil, 0 end
+  local left = vol_until - love.timer.getTime()
+  if left <= 0 then vol_until = 0 return nil, 0 end
+  return vol_level, math.min(1, left * 3)
+end
 
 -- ------------------------------------------------------------------ the cart API
 

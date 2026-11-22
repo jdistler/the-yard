@@ -456,10 +456,18 @@ end
 
 function S.thumb_ready(key, data)
   local g, i = key:match("^thumb:(%d+):(%d+)$")
-  if not g or tonumber(g) ~= gen or not cur then return end
-  local img = lg.newImage(data)
-  img:setFilter("linear", "linear")
-  thumbs[tonumber(i)] = img
+  if not g or tonumber(g) ~= gen or not cur then
+    pcall(function() data:release() end)
+    return
+  end
+  local idx = tonumber(i)
+  local ok, img = pcall(lg.newImage, data)
+  pcall(function() data:release() end)
+  if ok then
+    img:setFilter("linear", "linear")
+    if thumbs[idx] then thumbs[idx]:release() end
+    thumbs[idx] = img
+  end
 end
 
 function S.close()
