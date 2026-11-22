@@ -378,9 +378,12 @@ function T.load(c)
   playlists = {}
   local conf = read_file(DIR .. "/account.conf") or ""
   for line in conf:gmatch("[^\n]+") do
-    local name = line:match("^([%w_]+)\t")
+    local name, server = line:match("^([%w_]+)\t([^\t]+)")
     if name and #playlists < 4 then
-      playlists[#playlists + 1] = {name = name, tint = TINTS[#playlists + 1], status = "ok"}
+      -- The Pink TV gate answers /__gate/now and /__gate/line; a plain provider panel is never asked them
+      -- (that would send its login to an endpoint it doesn't have, every 30 s).
+      local gate = server:match(":8800/?$") or server:match(":8843/?$") or server:match("pinktv%.duckdns%.org")
+      playlists[#playlists + 1] = {name = name, tint = TINTS[#playlists + 1], status = "ok", gate = gate and true or false}
     end
   end
   for _, pl in ipairs(playlists) do
@@ -432,7 +435,7 @@ function T.enter(rc, idx)
            or "That channel's picture can't play on the cabinet."
     note_t = 5
     -- No picture may just mean a TV has the household's line: ask the gate, and say who (linedone).
-    if ch and rc == 30 and worker then
+    if ch and rc == 30 and worker and (function() for _, pl in ipairs(playlists) do if pl.name == ch.pl then return pl.gate end end end)() then
       love.thread.getChannel("tv_work"):push({"line", ch.pl, BIN, DIR, TMP, tostring(ch.sid)})
     end
   end
@@ -641,7 +644,9 @@ function T.update(dt)
   t = t + dt
   if worker and t - now_asked > NOW_EVERY then
     now_asked = t
-    for _, pl in ipairs(playlists) do love.thread.getChannel("tv_work"):push({"now", pl.name, BIN, DIR, TMP}) end
+    for _, pl in ipairs(playlists) do
+      if pl.gate then love.thread.getChannel("tv_work"):push({"now", pl.name, BIN, DIR, TMP}) end
+    end
   end
   idle = idle + dt
   repeat_held(dt)

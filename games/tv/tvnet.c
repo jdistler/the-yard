@@ -384,7 +384,7 @@ static void on_stream(Fields *f, void *ctx)
     (void)ctx;
     if (f->val[3].p) id_add(f->val[3].p);
     const char *ids = f->val[5].p, *pos = f->val[6].p;
-    if (!ids || f->val[5].n < 2 || ids[0] != '[') { row_add(f->val[0].p ? f->val[0].p : "", (long)rows_n, f); return; }
+    if (!ids || f->val[5].n < 2 || ids[0] != '[' || !strchr(ids, '"')) { row_add(f->val[0].p ? f->val[0].p : "", (long)rows_n, f); return; }
     /* every quoted id in the array; its position from gate_pos {"id":n,...} */
     for (const char *q = strchr(ids, '"'); q; q = strchr(q, '"')) {
         const char *e = strchr(q + 1, '"');
@@ -789,7 +789,7 @@ static int write_watching(Buf *b, const char *out)
     snprintf(tmp, sizeof tmp, "%s.new", out);
     FILE *o = fopen(tmp, "w");
     if (!o) return -1;
-    const char *w = strstr(b->p, "\"watching\"");
+    const char *w = b->p ? strstr(b->p, "\"watching\"") : NULL;
     int n = 0;
     if (w && (w = strchr(w, '['))) {
         Fields f = {{"label", "streamId", "name", "shareable"}, {{0}}, 4};
@@ -808,6 +808,7 @@ static int now_cmd(int argc, char **argv)
 {
     if (argc < 5) return 2;
     char *server, *user, *pass;
+    unlink(argv[4]);   /* a failed ask leaves no stale answer behind */
     if (conf_find(argv[2], argv[3], &server, &user, &pass) < 0) { say("error now no playlist %s", argv[3]); return 1; }
     char url[1024], err[256];
     Buf b = {0};
@@ -825,16 +826,32 @@ static int line_cmd(int argc, char **argv)
 {
     if (argc < 6) return 2;
     char *server, *user, *pass;
+    {
+        char wl0[1024];
+        snprintf(wl0, sizeof wl0, "%s.watching", argv[5]);
+        unlink(argv[5]); unlink(wl0);   /* a failed ask leaves no stale verdict behind */
+    }
     if (conf_find(argv[2], argv[3], &server, &user, &pass) < 0) { say("error line no playlist %s", argv[3]); return 1; }
     char url[1024], err[256];
     Buf b = {0};
     snprintf(url, sizeof url, "%s/__gate/line?stream=%s&username=%s&password=%s", server, argv[4], user, pass);
     if (fetch_once(url, &b, 64 << 10, err, sizeof err) < 0) { say("error line %s", err); return 1; }
+    if (!b.p) { say("error line empty answer"); return 1; }
     const char *verdict = strstr(b.p, "\"busy\":true") ? "busy" : strstr(b.p, "\"shared\":true") ? "shared" : "ok";
     /* who: the first name in "with" (shared) or "holders" (busy) */
+    /* who: busy -> the first holder's own label in "watching" (a TV's household name, the same label the
+       watching rows carry); shared -> the first name in "with" */
     char who[128] = "";
-    const char *k = strstr(b.p, verdict[0] == 'b' ? "\"holders\"" : "\"with\"");
-    if (k && (k = strchr(k, '[')) && (k = strchr(k, '"'))) {
+    const char *k = NULL;
+    if (verdict[0] == 'b') {
+        const char *wl0 = strstr(b.p, "\"watching\"");
+        k = wl0 ? strstr(wl0, "\"label\"") : NULL;
+        if (k) k = strchr(k + 7, '"');                 /* the value's opening quote */
+    } else {
+        k = strstr(b.p, "\"with\"");
+        if (k && (k = strchr(k, '['))) k = strchr(k, '"');
+    }
+    if (k) {
         const char *e = strchr(k + 1, '"');
         if (e && e - k - 1 < (long)sizeof who) { memcpy(who, k + 1, e - k - 1); who[e - k - 1] = 0; }
     }
