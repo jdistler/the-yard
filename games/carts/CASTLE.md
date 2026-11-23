@@ -86,9 +86,8 @@ Make it:
   it wants next (a water drop, the sun, a little song note). A press gives it. Doing nothing: the fairy
   sprinkles slowly by herself, so watching still grows.
 * **Her colours.** The stick stays for moving between beds (left/right along a row, up/down between rows). The
-  fairy's seed pouch shows the next seed's colour; each planting takes the next colour in a gentle cycle, and
-  TL/TR (any button still plants) can skip to the next colour first if she wants. The flower is that colour.
-  Choice without a menu, and never required.
+  fairy's seed pouch shows the next seed's colour, and each planting takes the next colour in a gentle cycle.
+  Which bed gets which colour is her choice, made by where she goes. Every button still plants.
 * **Visitors.** Butterflies match flower colours and land on them; a ladybug, a snail, a bee that buzzes on the
   beat. A rare one on some visits (a hedgehog, a rainbow after the sprinkle rain). Nib wanders in and sniffs
   flowers.
