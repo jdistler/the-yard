@@ -31,8 +31,8 @@ local function react_to(s) S.react, S.react_left = s, 110 end
 
 local function play_note()
   local st = STARS[S.sel]
-  S.step = S.step + 1
-  local idx = (S.step - 1) % #MELODY + 1
+  S.step = S.step % #MELODY + 1
+  local idx = S.step
   local midi = MELODY[idx] + st.oct
   S.hops[S.sel] = 28
   log("band note " .. st.name)
@@ -40,7 +40,7 @@ local function play_note()
   sfx.note("sine", midi + 7, 0.2, 0.1)
   particles.burst(st.x, 310, 14, 2.6, 34, 3.5, st.accent, "star")
   particles.spawn(st.x, 220, rnd(-1.2, 1.2), -2.5, 48, 4, st.accent, "heart", 0.05)
-  if S.step % #MELODY == 0 then
+  if S.step == #MELODY then
     S.songs = min(S.songs + 1, 100000)
     S.encore_t = 130
     save.set("songs", S.songs)
@@ -61,6 +61,12 @@ end
 function bot()
   if game.frame % 18 == 0 then input.bot("low") end
   if game.frame % 42 == 0 then input.bot("right") end
+end
+
+-- Leaving (1P+2P): the encore count is saved at every encore; write once more to be safe.
+function quit()
+  save.set("songs", S.songs)
+  save.write()
 end
 
 function init()

@@ -1,7 +1,9 @@
--- Tower: a kid-friendly Donkey Kong / Mario platform rescue (5+)!
--- Walk-up band (CONTROLS.md). Stick walks & climbs magnet-snap ladders; LOW/TL/TR jumps (and swings the Star Hammer!).
--- 3 colorful towers, 3 hearts with soft floor restart, Star Hammer barrel-smashing, and a big Rescue Dance!
--- tower.sav keeps "best N" (high score) and "rescues N".
+-- Tower: a kid-friendly ladder-and-barrels rescue (5+). Walk-up band (CONTROLS.md).
+-- The stick walks, and up/down climbs a ladder you stand at (4-way, magnet-snap). LOW, TL and TR all do
+-- the one verb: jump. A Star Swatter on the way smashes barrels for a few seconds, no button needed.
+-- Three towers make one run: a run scores from 0, three hearts per tower, a new floor mends a heart,
+-- and losing the hearts restarts the same tower. After tower 3 the run ends and the next player starts at
+-- tower 1 on a score of 0. tower.sav keeps "best N" (best run) and "rescues N"; quit() saves too.
 
 local C = {
   CREAM = 0xfff6ea, INK = 0x3a2a44, GOLD = 0xffd84a, RED = 0xe84855,
@@ -33,13 +35,21 @@ local win_bed = {bpm = 132, steps = 2,
   {"C5 . E5 . G5 . C6 - A5 . G5 . E5 . C6 - ", wave = "tri", vol = 0.20, release = 0.22, attack = 0.008},
   {"C3 - G2 - A2 - E2 - F2 - C3 - G2 - C3 - ", wave = "sine", vol = 0.22, release = 0.24, attack = 0.01}}
 
+local NTOWERS = #TOWER_THEMES
+
 local S = {
   phase = "play", level = 1, best = 0, rescues = 0, score = 0, hurts = 0, hurt_cool = 0,
   px = 68, py = FLOORS[1], vy = 0, floor_i = 1, on_ground = true, climbing = false,
-  face = 1, walk_t = 0, hammer_t = 0,
-  barrels = {}, hammer = nil, barrel_cool = 90,
+  face = 1, walk_t = 0, swat_t = 0,
+  barrels = {}, swatter = nil, barrel_cool = 90,
   win_t = 0, restart_t = 0, saw_release = false, react = "", react_left = 0, goodbye = false,
 }
+
+local function save_all()
+  save.set("best", floor(S.best))
+  save.set("rescues", floor(S.rescues))
+  save.write()
+end
 
 local function react_to(s) S.react, S.react_left = s, 110 end
 local function add_score(n)
@@ -50,8 +60,9 @@ end
 local function setup_tower(lvl)
   S.phase, S.level, S.hurts, S.hurt_cool = "play", lvl, 0, 0
   S.px, S.py, S.vy, S.floor_i, S.on_ground, S.climbing, S.face = 68, FLOORS[1], 0, 1, true, false, 1
-  S.hammer_t, S.barrels, S.barrel_cool = 0, {}, 75
-  S.hammer = {x = 188, y = FLOORS[2] - 26, gone = false}
+  S.swat_t, S.barrels, S.barrel_cool = 0, {}, 170
+  S.saw_release = false
+  S.swatter = {x = 188, y = FLOORS[2] - 26, gone = false}
   S.win_t, S.restart_t = 0, 0
   log("tower level " .. lvl)
   music.play(climb_bed)
@@ -78,6 +89,7 @@ local function hurt_hero()
   particles.burst(S.px, S.py - 12, 14, 2.5, 26, 3, C.PURPLE, "ring")
   if S.hurts >= 3 then
     S.phase, S.restart_t = "restart", 0
+    save_all()
     react_to("Whoa! Let's climb this tower again!")
   else
     react_to("Hop over the barrels!")
@@ -118,12 +130,15 @@ function init()
   setup_tower(1)
 end
 
+-- Leaving (1P+2P): keep the best score and the rescues.
+function quit() save_all() end
+
 function update()
   local pressed, held = input.action(), input.action_down()
   local mx, my = input.dir()
   if not held then S.saw_release = true end
   if S.hurt_cool > 0 then S.hurt_cool = S.hurt_cool - 1 end
-  if S.hammer_t > 0 then S.hammer_t = S.hammer_t - 1 end
+  if S.swat_t > 0 then S.swat_t = S.swat_t - 1 end
   if S.react_left > 0 then S.react_left = S.react_left - 1 end
 
   if S.phase == "play" then
@@ -138,6 +153,10 @@ function update()
       if S.py <= FLOORS[lad.top] + 2 and my < 0 then
         S.py, S.floor_i, S.climbing, S.on_ground = FLOORS[lad.top], lad.top, false, true
         add_score(50)
+        if S.hurts > 0 then
+          S.hurts = S.hurts - 1
+          particles.burst(S.px, S.py - 20, 8, 1.8, 24, 3, C.ROSE, "heart")
+        end
       elseif S.py >= FLOORS[lad.bot] - 2 and my > 0 then
         S.py, S.floor_i, S.climbing, S.on_ground = FLOORS[lad.bot], lad.bot, false, true
       end
@@ -167,21 +186,21 @@ function update()
       end
     end
 
-    -- Star Hammer pickup!
-    if S.hammer and not S.hammer.gone and dist(S.px, S.py - 16, S.hammer.x, S.hammer.y) < 28 then
-      S.hammer.gone = true
-      S.hammer_t = 360
+    -- Star Swatter pickup!
+    if S.swatter and not S.swatter.gone and dist(S.px, S.py - 16, S.swatter.x, S.swatter.y) < 28 then
+      S.swatter.gone = true
+      S.swat_t = 360
       add_score(150)
       sfx.arp("tri", {72, 76, 79, 84, 88}, 0.05, 0.3)
-      particles.burst(S.hammer.x, S.hammer.y, 20, 3, 28, 3, C.GOLD, "star")
-      react_to("STAR HAMMER! Smash the barrels!")
+      particles.burst(S.swatter.x, S.swatter.y, 20, 3, 28, 3, C.GOLD, "star")
+      react_to("STAR SWATTER! Smash the barrels!")
     end
 
     -- Spawn rolling barrels from the goofy giant ape at top-left!
     S.barrel_cool = S.barrel_cool - 1
     if S.barrel_cool <= 0 then
-      S.barrel_cool = max(72, 132 - S.level * 14)
-      S.barrels[#S.barrels + 1] = {x = 124, y = FLOORS[4], fl = 4, dir = 1, spd = min(1.8 + S.level * 0.18, 2.8), jumped = false}
+      S.barrel_cool = max(100, 190 - S.level * 28)
+      S.barrels[#S.barrels + 1] = {x = 124, y = FLOORS[4], fl = 4, dir = 1, spd = 1.5 + S.level * 0.25, jumped = false}
       sfx.tone("tri", 240, 0.09, 0.16)
     end
 
@@ -200,9 +219,9 @@ function update()
         sfx.note("sine", 88, 0.1, 0.2)
         particles.text(S.px, S.py - 32, C.GOLD, "+100")
       end
-      -- Hit check (Star Hammer smashes barrels into stars!).
-      if dist(b.x, b.y - 10, S.px, S.py - 12) < (S.hammer_t > 0 and 30 or 19) then
-        if S.hammer_t > 0 then
+      -- Hit check (Star Swatter smashes barrels into stars!).
+      if dist(b.x, b.y - 10, S.px, S.py - 12) < (S.swat_t > 0 and 30 or 19) then
+        if S.swat_t > 0 then
           b.gone = true
           add_score(200)
           sfx.arp("tri", {79, 88}, 0.05, 0.3)
@@ -222,9 +241,7 @@ function update()
       S.phase, S.win_t = "win", 0
       S.rescues = S.rescues + 1
       add_score(500)
-      save.set("best", S.best)
-      save.set("rescues", S.rescues)
-      save.write()
+      save_all()
       log("tower rescue " .. S.level)
       music.play(win_bed)
       sfx.arp("tri", {72, 76, 79, 84, 88, 96}, 0.08, 0.36)
@@ -232,13 +249,18 @@ function update()
         particles.spawn(W / 2 + rnd(-110, 110), 160, rnd(-3, 3), rnd(-5, -1), 85, rnd(3, 5),
           i % 3 == 0 and C.GOLD or i % 3 == 1 and C.ROSE or C.CYAN, "heart", 0.1, 0.99, 0.1)
       end
-      react_to("YOU RESCUED YOUR FRIEND! Yay!")
+      react_to(S.level >= NTOWERS and "ALL THREE TOWERS! What a hero!" or "YOU RESCUED YOUR FRIEND! Yay!")
     end
   elseif S.phase == "win" then
     S.win_t = S.win_t + 1
     if (pressed and S.saw_release and S.win_t > 70) or S.win_t > 240 then
       snd.ok()
-      setup_tower(S.level + 1)
+      if S.level >= NTOWERS then
+        S.score = 0                 -- the run is over: the next player starts fresh at tower 1
+        setup_tower(1)
+      else
+        setup_tower(S.level + 1)
+      end
     end
   elseif S.phase == "restart" then
     S.restart_t = S.restart_t + 1
@@ -251,10 +273,8 @@ function update()
   end
 end
 
-function draw()
-  local th = TOWER_THEMES[(S.level - 1) % #TOWER_THEMES + 1]
+local function paint_tower(th)
   gfx.vgrad(0, 0, W, H - 32, th.bg1, th.bg2)
-
   -- Girders / platforms.
   for _, y in ipairs(FLOORS) do
     gfx.rrect_o(12, y, W - 24, 14, 4, th.beam, C.INK, 2)
@@ -267,8 +287,13 @@ function draw()
     gfx.line(l.x + 10, y1, l.x + 10, y2, 3.5, th.lad)
     for y = y1 + 10, y2 - 6, 14 do gfx.line(l.x - 10, y, l.x + 10, y, 2.5, th.lad) end
   end
+end
 
-  -- Goofy Crown Ape at top-left (waves when rescued!) + trapped fairy friend!
+function draw()
+  local th = TOWER_THEMES[(S.level - 1) % #TOWER_THEMES + 1]
+  backdrop("tower_bg" .. ((S.level - 1) % NTOWERS + 1), function() paint_tower(th) end)
+
+  -- Big Grumble at top-left (waves when rescued!) + trapped fairy friend!
   local ay = FLOORS[4] - 26 + sin(game.frame * 0.1) * 3
   toon(function()
     toon.ellipse(76, ay, 24, 22, C.BROWN)
@@ -284,12 +309,12 @@ function draw()
   gfx.circle(125, fy - 2, 1.8, C.INK)
   gfx.circle(131, fy - 2, 1.8, C.INK)
 
-  -- Star Hammer pickup.
-  if S.hammer and not S.hammer.gone then
-    local hy = S.hammer.y + sin(game.frame * 0.12) * 3
-    gfx.glow(S.hammer.x, hy, 22, alpha(C.GOLD, 140))
-    gfx.line(S.hammer.x, hy + 10, S.hammer.x, hy - 6, 4, C.WOOD)
-    gfx.rrect_o(S.hammer.x - 11, hy - 14, 22, 12, 4, C.GOLD, C.INK, 2)
+  -- Star Swatter pickup.
+  if S.swatter and not S.swatter.gone then
+    local hy = S.swatter.y + sin(game.frame * 0.12) * 3
+    gfx.glow(S.swatter.x, hy, 22, alpha(C.GOLD, 140))
+    gfx.line(S.swatter.x, hy + 10, S.swatter.x, hy - 6, 4, C.WOOD)
+    gfx.rrect_o(S.swatter.x - 11, hy - 14, 22, 12, 4, C.GOLD, C.INK, 2)
   end
 
   -- Rolling barrels.
@@ -308,7 +333,7 @@ function draw()
     end, 2.2, C.INK)
     gfx.circle(x - 3 + S.face * 2, y - 8, 1.8, C.INK)
     gfx.circle(x + 3 + S.face * 2, y - 8, 1.8, C.INK)
-    if S.hammer_t > 0 then
+    if S.swat_t > 0 then
       local sw = sin(game.frame * 0.5) * 12
       gfx.rrect_o(x + S.face * 16 - 9, y - 12 + sw, 18, 10, 3, C.GOLD, C.INK, 2)
     end
@@ -327,12 +352,13 @@ function draw()
 
   if S.phase == "win" then
     gfx.rrect_o(44, 204, W - 88, 96, 14, C.CREAM, C.INK, 3)
-    gfx.text("TOWER CLEAR!", W / 2, 218, 28, C.GOLD, "center", C.INK)
-    gfx.text("SCORE: " .. S.score .. "   RESCUES: " .. S.rescues, W / 2, 258, 14, C.PURPLE, "center")
+    gfx.text(S.level >= NTOWERS and "ALL CLEAR!" or "TOWER CLEAR!", W / 2, 218, 28, C.GOLD, "center", C.INK)
+    gfx.text("SCORE: " .. S.score .. "   BEST: " .. S.best, W / 2, 258, 14, C.PURPLE, "center")
+    if S.level >= NTOWERS then gfx.text("Next hero starts a new run!", W / 2, 278, 12, C.INK, "center") end
   end
 
   particles.draw()
-  local line = S.react_left > 0 and S.react or (S.hammer_t > 0 and "SMASH the barrels!" or "Climb the ladders and hop the barrels!")
+  local line = S.react_left > 0 and S.react or (S.swat_t > 0 and "SMASH the barrels!" or "Climb the ladders and hop the barrels!")
   if input.down("1p") and input.down("2p") then line = "Your best score will stay!" end
   ui.band(line)
 end

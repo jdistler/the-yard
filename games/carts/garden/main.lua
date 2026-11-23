@@ -1,6 +1,8 @@
 -- Garden: Unicorn's Fairy Garden & Butterfly Sanctuary (4+ little band!).
 -- Every stick direction moves the glowing fairy ring; every right-hand button grows magic flowers!
 -- Zero fail states, zero punishment, gentle pentatonic harp music, persistent blooms in garden.sav.
+-- Stick: left/right along a row of beds, up/down to the other row. A full garden plays its song for the
+-- butterflies; after the parade the garden is bare again, so the next player starts from a fresh seed.
 
 local C = {
   CREAM = 0xfff6ea, INK = 0x3a2a44, SKY1 = 0x90d0ff, SKY2 = 0xffe6f4,
@@ -26,7 +28,7 @@ local garden_bed = {bpm = 88, steps = 2,
 
 local S = {
   sel = 1, blooms = 0, parades = 0,
-  beds = {}, butterflies = {}, rain_t = 0, rain_bed = 1,
+  beds = {}, butterflies = {}, rain_t = 0, rain_bed = 1, reset_t = 0,
   parade_t = 0, song_i = 0, move_cool = 0, act_cool = 0, saw_release = false,
   react = "", react_left = 0, goodbye = false,
 }
@@ -64,6 +66,7 @@ local function tend_bed()
       save.set("parades", S.parades)
       save.write()
       particles.burst(W / 2, 190, 32, 3.5, 48, 4, C.GOLD, "star")
+      S.reset_t = 170
       react_to("The butterflies love your song!")
     else
       react_to("Twinkle, twinkle, magic flowers!")
@@ -119,16 +122,16 @@ local function tend_bed()
   end
 end
 
+-- One button is the whole game: a press on a finished bed hops the ring to one that still needs a hand.
 function bot()
-  if not all_bloomed() then
-    if S.beds[S.sel].stage >= 3 then
-      if game.frame % 16 == 0 then input.bot("right") end
-    elseif game.frame % 20 == 0 then
-      input.bot("low")
-    end
-  elseif game.frame % 18 == 0 then
-    input.bot("low")
-  end
+  if game.frame % 20 == 0 then input.bot("low") end
+end
+
+-- Leaving (1P+2P): the counts are saved already; write once more to be safe.
+function quit()
+  save.set("blooms", S.blooms)
+  save.set("parades", S.parades)
+  save.write()
 end
 
 function init()
@@ -151,11 +154,26 @@ function update()
   if S.rain_t > 0 then S.rain_t = S.rain_t - 1 end
   if S.parade_t > 0 then S.parade_t = S.parade_t - 1 end
   if S.react_left > 0 then S.react_left = S.react_left - 1 end
+  if S.reset_t > 0 then
+    S.reset_t = S.reset_t - 1
+    if S.reset_t == 0 then
+      for i = 1, #BEDS do S.beds[i].stage = 0 end
+      S.butterflies, S.song_i, S.sel = {}, 0, 1
+      log("garden fresh")
+      react_to("A fresh garden! Plant a magic seed!")
+    end
+  end
+  -- Fountain sparkles.
+  if game.frame % 10 == 0 then
+    particles.spawn(W / 2 + rnd(-10, 10), 146, rnd(-0.6, 0.6), -1.6, 26, 2.5, C.BLUE, "dot", 0.08)
+  end
 
   -- Every stick direction does something useful!
   if (mx ~= 0 or my ~= 0) and S.move_cool == 0 then
-    local step = (mx < 0 or my < 0) and -1 or 1
-    S.sel = (S.sel - 1 + step) % #BEDS + 1
+    -- Left/right walk along a row of three beds, up/down hop between the two rows.
+    local col, row = (S.sel - 1) % 3, idiv(S.sel - 1, 3)
+    if mx ~= 0 then col = (col + mx) % 3 else row = (row + 1) % 2 end
+    S.sel = row * 3 + col + 1
     S.move_cool = 18
     sfx.slide("sine", 520, 680, 0.08, 0.16)
   end
@@ -198,11 +216,6 @@ end
 
 function draw()
   backdrop("garden_bg", paint_garden_bg)
-  -- Fountain water sparkles.
-  if game.frame % 10 == 0 then
-    particles.spawn(W / 2 + rnd(-10, 10), 146, rnd(-0.6, 0.6), -1.6, 26, 2.5, C.BLUE, "dot", 0.08)
-  end
-
   -- 6 Flowerbeds!
   for i, pos in ipairs(BEDS) do
     local x, y = pos[1], pos[2]

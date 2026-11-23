@@ -1,7 +1,10 @@
--- Starship: Split-Hands Co-Op Space Rescue (ALL ages — great for 5yo + 4yo together, or solo!).
--- Pilot (Stick) flies the rainbow starship; Co-Pilot (LOW/TL/TR) fires the Star-Bubble Beam
--- to catch lost space-kitties & stars and pop goofy purple asteroids across 3 cosmic worlds!
--- Zero harsh game over; rocket.sav keeps "best N" (high score) and "voyages N".
+-- Starship: split-hands space rescue (ALL ages). The cabinet has ONE stick and ONE cluster, so "co-op"
+-- here means two people sharing the one deck, the split-hands shape from CONTROLS.md: the Pilot holds the
+-- stick and flies, the Co-Pilot holds LOW (TL and TR do the same) and fires the Star-Bubble Beam. Alone, a
+-- player does both, and the stick alone still finishes every world (the ship scoops stars by touch; a
+-- rock only bumps it). The beam pops rocks and reaches stars the ship cannot.
+-- A voyage is three worlds with one score; after world 3 the next voyage starts at world 1 on 0 points.
+-- Zero harsh game over; rocket.sav keeps "best N" (best voyage) and "voyages N"; quit() saves too.
 
 local C = {
   CREAM = 0xfff6ea, INK = 0x3a2a44, GOLD = 0xffd84a, ROSE = 0xf47eb2,
@@ -27,7 +30,7 @@ local land_bed = {bpm = 124, steps = 2,
 local S = {
   phase = "fly", world = 1, best = 0, voyages = 0, score = 0, saved = 0,
   px = 192, py = 384, vx = 0, wobble = 0,
-  dist = 0, goal = 960,
+  dist = 0, goal = 1500,
   stars = {}, rocks = {}, beams = {}, bg_stars = {},
   cool = 0, land_t = 0, saw_release = false,
   react = "", react_left = 0, goodbye = false,
@@ -40,12 +43,14 @@ local function add_score(n)
 end
 
 local function setup_world(w)
-  S.phase, S.world, S.dist, S.goal = "fly", w, 0, 900 + (w - 1) * 180
+  S.phase, S.world, S.dist, S.goal = "fly", w, 0, 1500 + (w - 1) * 300
   S.stars, S.rocks, S.beams = {}, {}, {}
   S.land_t = 0
+  S.saw_release = false
+  if w == 1 then S.score, S.saved = 0, 0 end
   log("rocket world " .. w)
   music.play(space_bed)
-  react_to(WORLDS[w].name .. "! Pilot steers, Co-Pilot fires!")
+  react_to(WORLDS[w].name .. "! Stick flies, button fires. Team up or fly solo!")
 end
 
 local function fire_beam()
@@ -66,6 +71,13 @@ function bot()
   end
   if tx < S.px - 10 then input.bot("left") elseif tx > S.px + 10 then input.bot("right") end
   if game.frame % 16 == 0 then input.bot("low") end
+end
+
+-- Leaving (1P+2P): keep the best voyage score.
+function quit()
+  save.set("best", floor(S.best))
+  save.set("voyages", floor(S.voyages))
+  save.write()
 end
 
 function init()
@@ -98,10 +110,10 @@ function update()
 
     -- Spawn floating lost stars & space-kitties + goofy purple asteroids!
     if game.frame % 48 == 0 then
-      S.stars[#S.stars + 1] = {x = rnd(40, W - 40), y = 20, vy = 1.6, kitty = (game.frame % 144 == 0)}
+      S.stars[#S.stars + 1] = {x = rnd(40, W - 40), y = 58, vy = 1.6, kitty = (game.frame % 144 == 0)}
     end
     if game.frame % 70 == 0 then
-      S.rocks[#S.rocks + 1] = {x = rnd(44, W - 44), y = 20, vy = 1.85, r = 16}
+      S.rocks[#S.rocks + 1] = {x = rnd(44, W - 44), y = 58, vy = 1.85, r = 16}
     end
 
     if S.saw_release and ((pressed and S.cool <= 8) or (held and S.cool == 0)) then
@@ -169,8 +181,8 @@ function update()
       S.phase, S.land_t = "land", 0
       add_score(400)
       if S.world == #WORLDS then S.voyages = S.voyages + 1 end
-      save.set("best", S.best)
-      save.set("voyages", S.voyages)
+      save.set("best", floor(S.best))
+      save.set("voyages", floor(S.voyages))
       save.write()
       log("rocket land " .. S.world)
       music.play(land_bed)
@@ -199,7 +211,7 @@ end
 
 function draw()
   local WD = WORLDS[S.world]
-  gfx.vgrad(0, 0, W, H - 32, WD.bg1, WD.bg2)
+  backdrop("rocket_bg" .. S.world, function() gfx.vgrad(0, 0, W, H - 32, WD.bg1, WD.bg2) end)
   for _, bs in ipairs(S.bg_stars) do
     gfx.circle(bs[1], bs[2], bs[3], alpha(C.WHITE, 180))
   end
@@ -262,8 +274,9 @@ function draw()
 
   if S.phase == "land" then
     gfx.rrect_o(40, 134, W - 80, 96, 14, C.CREAM, C.INK, 3)
-    gfx.text("MISSION COMPLETE!", W / 2, 148, 24, C.GOLD, "center", C.INK)
+    gfx.text(S.world == #WORLDS and "VOYAGE COMPLETE!" or "MISSION COMPLETE!", W / 2, 148, 24, C.GOLD, "center", C.INK)
     gfx.text("SCORE: " .. S.score .. "   SAVED: " .. S.saved, W / 2, 188, 14, C.PURPLE, "center")
+    gfx.text(S.world == #WORLDS and "Next crew starts a new voyage!" or "Press to fly on!", W / 2, 210, 12, C.INK, "center")
   end
 
   particles.draw()

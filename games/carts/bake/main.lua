@@ -2,6 +2,8 @@
 -- Pip, Moth, Pearl, and Nib visit the castle bakery!
 -- Every stick direction picks a cute frosting color or kitty; every right-hand button mixes,
 -- bakes, frosts, sprinkles, and serves the dream treat! Zero fail states; treats saved in bake.sav.
+-- Left/up and right/down step through the four flavors. One press = one step (a held button does not
+-- run the recipe), so the cupcake is never skipped. A served cupcake leaves a clean bowl for the next cook.
 
 local C = {
   CREAM = 0xfff6ea, INK = 0x3a2a44, WALL = 0xffe8f0, WOOD = 0xd89c68,
@@ -25,7 +27,7 @@ local bake_bed = {bpm = 96, steps = 2,
   {"C3 - - - G2 - - - F2 - - - G2 - - - ", wave = "sine", vol = 0.15, release = 0.35, attack = 0.03, pan = 0.2}}
 
 local S = {
-  treats = 0, cat_i = 1, frost_i = 1, step = 0, -- 0:mix, 1:bake, 2:frost, 3:sprinkle & serve!
+  treats = 0, cat_i = 1, frost_i = 1, step = 0, -- 0:mix, 1:bake, 2:frost, 3:sprinkle, 4:serve!
   happy_t = 0, spin_t = 0, puff_t = 0,
   move_cool = 0, act_cool = 0, saw_release = false,
   react = "", react_left = 0, goodbye = false,
@@ -53,6 +55,12 @@ local function do_bake_step()
     sfx.arp("sine", {76, 81, 84}, 0.06, 0.25)
     particles.burst(W / 2, 316, 18, 2.5, 28, 3.5, FROST[S.frost_i].col, "heart")
     react_to(FROST[S.frost_i].name .. " frosting! Press for sprinkles!")
+  elseif S.step == 3 then
+    S.step, S.puff_t = 4, 24
+    log("bake sprinkle")
+    sfx.arp("tri", {84, 88, 91}, 0.05, 0.24)
+    particles.burst(W / 2, 308, 18, 2.6, 30, 3, C.GOLD, "star")
+    react_to("Sprinkles and a cherry! Press to serve!")
   else
     -- Serve to the kitty!
     S.treats = min(S.treats + 1, 100000)
@@ -70,6 +78,12 @@ end
 function bot()
   if game.frame % 26 == 0 then input.bot("low") end
   if game.frame % 90 == 0 then input.bot("right") end
+end
+
+-- Leaving (1P+2P): the treat count is saved at every serve; write once more to be safe.
+function quit()
+  save.set("treats", S.treats)
+  save.write()
 end
 
 function init()
@@ -93,12 +107,13 @@ function update()
   if S.react_left > 0 then S.react_left = S.react_left - 1 end
 
   if (mx ~= 0 or my ~= 0) and S.move_cool == 0 then
-    S.frost_i = S.frost_i % #FROST + 1
+    local d = (mx < 0 or my < 0) and -1 or 1
+    S.frost_i = (S.frost_i - 1 + d) % #FROST + 1
     S.move_cool = 18
     sfx.note("sine", 74 + S.frost_i * 2, 0.12, 0.2)
     react_to(FROST[S.frost_i].name .. " flavor!")
   end
-  if S.saw_release and ((pressed and S.act_cool <= 10) or (held and S.act_cool == 0)) then
+  if S.saw_release and pressed and S.act_cool <= 10 then
     do_bake_step()
     S.act_cool = 28
   end
@@ -165,9 +180,9 @@ function draw()
     local sc = S.puff_t > 0 and (1 + sin(S.puff_t * 0.2) * 0.14) or 1
     toon(function()
       toon.poly({bx - 36 * sc, by + 36, bx - 44 * sc, by - 6, bx + 44 * sc, by - 6, bx + 36 * sc, by + 36}, 0xf2c088)
-      toon.ellipse(bx, by - 14, 48 * sc, 28 * sc, S.step >= 2 and fcol or 0xe8b26a)
+      toon.ellipse(bx, by - 14, 48 * sc, 28 * sc, S.step >= 3 and fcol or S.step == 2 and 0xd89a52 or 0xf4e0a8)
     end, 2.5, C.INK)
-    if S.step >= 3 then
+    if S.step >= 4 then
       -- Colorful sprinkles + cherry on top!
       gfx.circle_o(bx, by - 46, 11, C.RED, C.INK, 2)
       gfx.circle(bx - 3, by - 49, 3, alpha(C.WHITE, 210))
@@ -189,7 +204,7 @@ function draw()
   gfx.text("TREATS: " .. S.treats, 74, 52, 13, C.INK, "center")
 
   particles.draw()
-  local prompts = {"Press to mix the batter!", "Press to bake it warm!", "Press to swirl on frosting!", "Press to add a cherry & serve!"}
+  local prompts = {"Press to mix the batter!", "Press to bake it warm!", "Press to swirl on frosting!", "Press for sprinkles!", "Press to serve the kitty!"}
   local line = S.react_left > 0 and S.react or prompts[S.step + 1]
   if input.down("1p") and input.down("2p") then line = "Your treats will stay!" end
   ui.band(line)
