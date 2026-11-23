@@ -2,13 +2,24 @@
 
 A cart: `games/carts/chest/` (main.lua has the rules, pictures.lua the drawing). The Yard lists it under Tea, blurb "Zam, Pika, and the chest," band 5+. `games/test.py` (run by `stress.sh`) plays the checks at the bottom.
 
-Where it runs: the first build is on the cabinet, flashed to tile 10 on 2026-10-23. Version 2 (2026-10-24) aims the sword. Version 3 (2026-11-05) adds the bubble wand and the path's purple fairies. This note is **version 4**: Zam's halfway surge and fairy pacing, **Pika** leaping out of the chest after Zam bows for Duel 2, and a real kid-friendly **Victory Celebration** sequence before playing again.
+Where it runs: the first build is on the cabinet, flashed to tile 10 on 2026-10-23. Version 2 (2026-10-24) aims the sword. Version 3 (2026-11-05) adds the bubble wand and the path's purple fairies. This note is **version 5** (see below; music and the treasure room); **version 4**: Zam's halfway surge and fairy pacing, **Pika** leaping out of the chest after Zam bows for Duel 2, and a real kid-friendly **Victory Celebration** sequence before playing again.
 
 Audience is a five-year-old who can already steer in Mario Kart, in a short turn, with a grown-up beside him reading the line and ready to hold the button. He said: you are a person walking to a treasure chest, first you need the key, the key unlocks it, a gold boss pops out and gives you a sword because he is the boss, you shoot lasers at him, a laser that hits you puts a bubble around you, good fairies bubble him, some fairies bubble you and that means start over, some good fairies bubble you and then it pops and you collect it and it goes around him, and bad fairies bubble you and that is how you get hurt. And after defeating Alakazam, he wants to defeat Pikachu!
 
 He loves Alakazam and Pikachu. Zam is drawn after Alakazam (tall gold psychic, long pointed ears, fox face, long drooping mustache, brown armor, a spoon in each hand) and Pika is drawn after Pikachu (sunny yellow, black-tipped ears, rosy electric cheeks, zig-zag lightning-bolt tail). Zam's and Pika's names, the rest of the game, and every line are ours. Alakazam, Pikachu, and Pokémon belong to Nintendo, Creatures, and Game Freak. These drawings are fan tributes for one family's cabinet. They are not licensed by them, and they are not covered by this repository's MIT license.
 
 This is the walk-up band in [CONTROLS.md](../../../CONTROLS.md). The stick walks. The lower button shoots. He can win with the stick alone. The button is how the win becomes his.
+
+## What changed in version 5 (music that plays the game, and a treasure room)
+
+Additive: the controls, aiming, pacing, duel lengths, marks, tricks, and the `gems` key are as in version 4, and every chest test passes unchanged. The one pacing change: Zam's very first duel on a save with no gems takes 10 zaps instead of 12.
+
+1. **Real songs** (`songs.lua`; eight bars, 128 steps each, six tracks, good with any subset on). The path is a C-major walking tune whose **band grows with each gold fairy that follows him**: bells for the first, a counter line for the second, sparkles for the third, and a fourth and fifth make the first two louder. The hat joins when he has the key; the lead dips while a bubble is on its way and while he is wrapped. Zam's duel is A minor, Pika's is G major. Each duel has three sections swapped in with `music.play{keep = true}` (same step, same layers): verse, **surge** at half marks ("powering up"), **climax** for the last three marks (a driving riff, the hook an octave down underneath, busier drums). The choir track is his gold fairies still to fly (or the one wrapping the boss), so the band thins as they leave; a shield thins the drums and lead for the wait. The bow is a hush (pad and choir) before Pika's song, and the win is a fanfare with a bell for each fairy left dancing.
+2. **Each zap is a note.** A hit is the next chord tone of a rising ladder under the current chord (`music.cue`); a pause of 1.5 s or a hurt starts the run over, and a big pop is a chord. A run of seven completes the ladder with a bright chord, a burst of stars, and notes above Ned (`chest tune N`). The run shows as a small rising stair at the top right. Wand bubbles on the path are soft plucks of the same ladder, pops and rescues are notes. Stingers on the beat or bar: key, chest, bow, Pika, win. Game logic never reads `music.step()`; it is used for the pitch of a cue and for drawing (gold fairies and the marks' lights bounce on the beat).
+3. **The treasure room.** At the start of every visit a shelf of nine alcoves slides in over the top of the meadow (non-blocking: he is already walking, and it leaves when he steps off the path or after a few seconds): one for each kind of treasure, a silhouette `?` until won, a bell chime up the scale for each treasure he owns, a sparkle on the newest, and `x2`, `x3` when a kind has been won again. Below: a lantern for each fairy he has turned gold (up to eight, `+N` beyond), a stair of notes for his longest run, and a rosette for each duel won without one hurt (up to five); each is a faint dot until he has one. A save with nothing yet shows the story in three pictures instead (key, chest, treasure) and the line "Get the key. Open the chest. Win treasure!".
+4. **Reactions.** Notes float over Ned during a run; a hurt sends little stars around his head; on the path he grins when a tune completes.
+5. **Saves** (written at each win and in `quit()` only if something changed; all clamped on load): `gems` (as before), `rescued` (fairies turned gold, ever), `clean` (rounds won with no hurt on the path or in either duel), `run` (longest run of zaps). New log lines: `chest clean N`, `chest tune N`.
+6. New sparks use `particles.spawn` with fixed angles, so the seeded `rnd` sequence the bot relies on is untouched.
 
 ## What changed in version 4, and why
 
@@ -136,7 +147,7 @@ Hurt three times: Zam bows, the pips empty, the lights reset, and after a second
 
 ## The pile
 
-`chest.sav` is one line, `gems N`, written when a win adds one. Below 0 or nonsense opens as 0; above 100000 stays at 100000. A lost fight writes nothing. Quitting writes nothing new.
+`chest.sav` is `gems N` (plus `rescued`, `clean`, `run` since version 5, see above), written when a win adds one. Below 0 or nonsense opens as 0; above 100000 stays at 100000. A lost fight writes nothing. Quitting writes nothing new.
 
 The pile draws up to fifteen treasures in a mound (five, four, three, two, one), each win's item in order: pink gem, blue gem, gold coin, green gem, purple gem, ring, crown, golden spoon. Past fifteen a star sparkles over it and the number beside it keeps counting. `N` also sets Zam's tricks (0 to 3).
 

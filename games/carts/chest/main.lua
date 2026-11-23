@@ -9,6 +9,7 @@
 -- A grown-up reads the cream band. chest.sav is "gems N". The spec is DESIGN.md beside this.
 
 local pics = import("pictures")
+local songs = import("songs")
 
 local SPEED, POP_FRAMES, WRAP_FRAMES, REACT_FRAMES = 2, 60, 120, 120
 local ZAMBOW_FRAMES, PIKAPOP_FRAMES = 70, 55
@@ -47,26 +48,48 @@ local S = {
   -- the path: purple fairies, his wand's bubbles, what the next one will go for, gold friends following him
   foes = {}, shots = {}, aim = nil, friends = 0, friend_next = 0, trail = {}, path_t = 0, puff_gap = 0,
   stuck = 0, back_line = "", saved_any = false, START_X = START_X, START_Y = START_Y,
+  -- the song and how the world answers it (sound and drawing only), and what he has won across visits
+  song = "path", sect = 1, run = 0, run_left = 0, best_run = 0, run_line = false, wn = 0, cheer = 0, oops = 0,
+  rescued = 0, clean = 0, hurts_round = 0, dirty = false, fresh = false, room_t = 0, room_out = 0,
 }
 pics.S = S
 
--- Music beds: balanced for both C and GPU runtimes (master 0.32, ceiling 8000).
-local path_bed = {bpm = 96, steps = 2,
-  {"C5 . E5 . G5 . E5 . D5 . F5 . A5 . G5 . ", wave = "tri", vol = 0.16, release = 0.2, attack = 0.01, pan = -0.2},
-  {"C3 - - - G2 - - - D3 - - - G2 - - - ", wave = "sine", vol = 0.24, release = 0.3, attack = 0.02},
-  {"H . . . H . . . H . . . H . H . ", wave = "noise", vol = 0.06, release = 0.04, pan = 0.3}}
-local fight_bed = {bpm = 132, steps = 4,
-  {"G4 . . G4 A4 . C5 . G4 . . E4 D4 . E4 . G4 . . G4 A4 . C5 . D5 . C5 . A4 . . . ", wave = "square", vol = 0.11, release = 0.06, attack = 0.005, duty = 0.25, pan = -0.2},
-  {"C3 . C3 . G2 . G2 . A2 . A2 . F2 . G2 . ", wave = "tri", vol = 0.26, release = 0.06, attack = 0.004},
-  {"K . H . S . H . K . H K S . H . ", wave = "noise", vol = 0.10, release = 0.05, pan = 0.2}}
-local pika_bed = {bpm = 148, steps = 4,
-  {"E5 . G5 . A5 . G5 . E5 . D5 . E5 . . . G5 . A5 . C6 . A5 . G5 . E5 . D5 . . . ", wave = "square", vol = 0.11, release = 0.05, attack = 0.004, duty = 0.3, pan = -0.2},
-  {"A2 . A2 . E3 . E3 . F2 . F2 . G2 . G2 . ", wave = "tri", vol = 0.26, release = 0.06, attack = 0.004},
-  {"K . H H S . H . K K H . S . H H ", wave = "noise", vol = 0.11, release = 0.04, pan = 0.2}}
-local win_bed = {bpm = 128, steps = 2,
-  {"C5 . E5 . G5 . C6 - A5 . G5 . E5 . G5 - ", wave = "tri", vol = 0.20, release = 0.22, attack = 0.008, pan = -0.2},
-  {"E4 . G4 . C5 . E5 - F4 . E4 . C4 . D4 - ", wave = "sine", vol = 0.14, release = 0.25, attack = 0.01, pan = 0.2},
-  {"C3 - G2 - A2 - E2 - F2 - C3 - G2 - G2 - ", wave = "sine", vol = 0.22, release = 0.25, attack = 0.01}}
+-- ------------------------------------------------------------------ the music (songs.lua has the arrangements)
+-- The song plays the game: the path's band gains a voice for each gold fairy that follows him, the duels turn
+-- through three sections (verse, surge at half marks, climax for the last few) with music.play{keep = true},
+-- each sword hit is a note of a rising run (music.cue), and the big moments are chords on the bar. Nothing
+-- here reads back: game rules never ask music.step(); it only picks the pitch of a cue.
+local LV = {1, 1, 1, 1, 1, 1}
+local function set_level(i, v)
+  if LV[i] ~= v then
+    LV[i] = v
+    music.track(i, v)
+  end
+end
+local function play(name, song, keep)
+  S.song = name
+  music.play(song)
+  if not keep then for i = 1, 6 do LV[i] = 1 end end
+end
+local function path_song() play("path", songs.path()) end
+local function duel_song(sect, keep)
+  S.sect = sect
+  play(S.boss, songs.duel(S.boss, sect, keep), keep)
+end
+-- A note from the chord under the step it will land on, climbing a ladder (n = 0, 1, 2 ...).
+local function ladder_note(n, up) return songs.ladder(S.song, music.step() + 1, n) + (up or 0) end
+local function cue_note(n, up, vol, wave, dur, at)
+  music.cue{wave = wave or "tri", note = ladder_note(n, up), dur = dur or 0.22, vol = vol or 0.22, release = 0.18, at = at}
+end
+-- A bright chord (root, third, fifth, octave) on the beat or the bar: a stinger.
+local function cue_chord(vol, at, up)
+  local root, t3 = songs.chord(S.song, music.step() + 1)
+  root = root + (up or 0)
+  music.cue{wave = "square", duty = 0.25, note = root, dur = 0.45, vol = vol, release = 0.4, at = at}
+  music.cue{wave = "tri", note = root + t3, dur = 0.45, vol = vol * 0.9, release = 0.4, at = at}
+  music.cue{wave = "tri", note = root + 7, dur = 0.45, vol = vol, release = 0.4, at = at}
+  music.cue{wave = "sine", note = root + 12, dur = 0.55, vol = vol * 0.9, release = 0.5, at = at}
+end
 
 local function tone(hz, dur, vol) sfx.tone("tri", hz, dur, vol) end
 local function notes(m, step, vol) sfx.arp("tri", m, step, vol) end
@@ -95,7 +118,9 @@ local function clear_fight()
   S.shots, S.foes, S.stuck, S.friend_next = {}, {}, 0, 60
   -- He learns a trick for each of the first three gems, and takes three more zaps each time.
   S.level = min(S.gems, 3)
-  S.marks_win = MARKS_WIN + 3 * S.level
+  -- The very first duel on a fresh save is two zaps shorter.
+  S.marks_win = MARKS_WIN + 3 * S.level - (S.gems == 0 and 2 or 0)
+  S.run, S.run_left, S.run_line = 0, 0, false
 end
 
 local function clear_pika()
@@ -107,6 +132,7 @@ local function clear_pika()
   S.shots, S.stuck, S.friend_next = {}, 0, 100
   S.level = min(S.gems, 3)
   S.marks_win = PIKA_MARKS_WIN + 2 * S.level
+  S.run, S.run_left, S.run_line = 0, 0, false
 end
 
 local function take_key()
@@ -115,7 +141,26 @@ local function take_key()
   sfx.note("tri", 84, 0.3, 0.35)
   sfx.note("sine", 96, 0.2, 0.15)
   particles.burst(S.key_x, S.key_y - 20, 18, 2.5, 34, 2.5, C.GOLD, "star")
+  cue_chord(0.2, "beat", 0)
   react_to("The key is his.")
+end
+
+-- The pile and the room's counters: gems, fairies turned gold, duels won without a hurt, the longest run of zaps.
+local function save_all()
+  save.set("gems", S.gems)
+  save.set("rescued", S.rescued)
+  save.set("clean", S.clean)
+  save.set("run", S.best_run)
+  save.write()
+  S.dirty = false
+end
+
+-- Sparks that never ask the random generator (so the bot's sequence stays as it was).
+local function sparks(x, y, n, speed, life, size, col, kind)
+  for i = 0, n - 1 do
+    local a = i * 6.2832 / n + (x + y) * 0.013
+    particles.spawn(x, y, cos(a) * speed, sin(a) * speed, life, size, col, kind or "star")
+  end
 end
 
 local function begin_pop()
@@ -132,7 +177,8 @@ local function begin_pop()
   notes({72, 76, 79, 84}, 0.08, 0.35)
   gfx.shake(4)
   particles.burst(ZX, 170, 30, 3.5, 40, 3, C.GOLD, "star")
-  music.play(fight_bed)
+  duel_song(1, false)
+  cue_chord(0.22, "beat", 0)
   react_to("Pop! He threw the sword.")
   S.react_left = 80
 end
@@ -143,6 +189,8 @@ local function begin_zambow()
   log("chest zambow " .. game.frame)
   notes({72, 76, 79, 84}, 0.09, 0.36)
   particles.burst(S.zx, S.zy, 26, 3.2, 36, 3, C.GOLD, "star")
+  S.cheer = 80
+  cue_chord(0.24, "beat", 0)
   react_to("Zam bows! What's in the chest?")
 end
 
@@ -154,7 +202,8 @@ local function begin_pikapop()
   notes({76, 79, 84, 88}, 0.07, 0.34)
   gfx.shake(5)
   particles.burst(ZX, 164, 34, 4, 42, 3.5, C.PIKA, "star")
-  music.play(pika_bed)
+  duel_song(1, false)
+  cue_chord(0.22, "beat", 0)
   react_to("Pika jumped out! Watch the sparks!")
   S.react_left = 90
 end
@@ -163,8 +212,11 @@ local function begin_win()
   S.phase, S.bow_t, S.bend_t = "winbow", 0, 0
   S.prize_kind, S.prize_t = S.gems % 9, 1
   if S.gems < 100000 then S.gems = S.gems + 1 end
-  save.set("gems", S.gems)
-  save.write()
+  if S.hurts_round == 0 then
+    S.clean = min(S.clean + 1, 100000)
+    log("chest clean " .. S.clean)
+  end
+  save_all()
   log("chest win " .. game.frame)
   log("chest victory " .. game.frame)
   log("chest gems " .. S.gems)
@@ -178,16 +230,34 @@ local function begin_win()
   S.wrap, S.wrap_alive, S.dash_t = 0, false, 0
   S.zx, S.zy = 104, 134
   S.px, S.py = 280, 158
-  music.play(win_bed)
+  play("win", songs.win())
+  cue_chord(0.26, "bar", 0)
+  S.cheer = 400
   react_to("You beat Zam and Pika!")
 end
 
-local function add_marks(n, big)
+local function add_marks(n, big, shot)
   S.marks = S.marks + n
   S.spoon_flash, S.flinch_t = 16, 14
   local bx, by = boss_xy()
+  if shot then
+    -- Each hit is the next note of a run (a pause of a second and a half starts it over); a hurt ends it.
+    S.run, S.run_left = S.run + 1, 90
+    if S.run > S.best_run then S.best_run, S.dirty = S.run, true end
+    if not big then cue_note(S.run - 1, 0, 0.2, "tri", 0.2, "step") end
+    if S.run % 7 == 0 then
+      log("chest tune " .. S.run)
+      S.cheer = 70
+      sparks(S.nx, S.ny - 40, 10, 2.2, 28, 2.5, C.GOLD, "star")
+      cue_chord(0.2, "step", 12)
+    elseif S.run == 4 and not S.run_line then
+      S.run_line = true
+      S.react, S.react_left = "Zap, zap, zap! Every zap is a note.", REACT_FRAMES
+    end
+  end
   if big then
     log("chest big")
+    cue_chord(0.24, "step", 0)
     notes({79, 84}, 0.07, 0.4)
     gfx.shake(5)
     S.dizzy_t = 70
@@ -235,6 +305,7 @@ local function hurt()
   local in_duel = S.phase == "fight" or S.phase == "pika"
   if (not in_duel and not on_path) or S.hurt_cool > 0 then return end
   S.pips = S.pips + 1
+  S.hurts_round, S.run, S.run_left, S.oops = S.hurts_round + 1, 0, 0, 40
   if on_path then
     -- A purple bubble wraps him for half a second, then pops; he blinks a while after.
     S.hurt_cool, S.stuck = 90, STUCK_FRAMES
@@ -262,6 +333,7 @@ end
 local function save_fairy(f)
   f.state, f.save_t, f.tele = "saving", SAVE_FRAMES, 0
   S.saved_any = true
+  S.rescued, S.dirty = min(S.rescued + 1, 100000), true
   log("chest rescue " .. game.frame)
   sfx.slide("sine", 600, 1200, 0.15, 0.2)
   particles.burst(f.x, f.y, 12, 2, 24, 2.5, C.AQUA, "dot")
@@ -291,6 +363,8 @@ end
 local function wand()
   log("chest bolt")
   sfx.slide("sine", 700, 1150, 0.1, 0.2)
+  S.wn = S.wn + 1
+  cue_note(S.wn % 7, 0, 0.1, "sine", 0.16, "step")
   local x, y = S.nx + (S.face_x ~= 0 and S.face_x * 14 or -14), S.ny - 14
   local tgt = pick_aim()
   local vx, vy
@@ -310,6 +384,7 @@ end
 
 local function pop_at(x, y, c)
   sfx.tone("sine", 1250, 0.05, 0.16)
+  cue_note(4, 12, 0.12, "sine", 0.18, "step")
   particles.burst(x, y, 10, 2, 18, 2, c, "dot")
 end
 
@@ -431,6 +506,8 @@ local function step_foes()
         f.state = "gold"
         S.friends = S.friends + 1
         log("chest friends " .. S.friends)
+        cue_note(S.friends + 2, 0, 0.2, "sine", 0.4, "step")
+        cue_note(S.friends + 4, 0, 0.14, "sine", 0.4, "step")
         notes({76, 79, 84}, 0.07, 0.3)
         particles.burst(f.x, f.y, 16, 2.5, 30, 2.5, C.GOLD, "star")
         react_to("She's a gold fairy now!")
@@ -453,6 +530,7 @@ local function laser()
   if S.fairy == "purple" and (S.fairy_x - sx) ^ 2 + (S.fairy_y - sy) ^ 2 < 140 * 140 then
     S.beam.x1, S.beam.y1 = S.fairy_x, S.fairy_y
     S.fairy, S.friends = nil, S.friends + 1
+    S.rescued, S.dirty = min(S.rescued + 1, 100000), true
     S.friend_next = max(S.friend_next, S.fight_t + 80)
     log("chest rescue " .. game.frame)
     notes({76, 79, 84}, 0.07, 0.3)
@@ -484,9 +562,9 @@ local function laser()
   end
   if S.wrap > 0 then
     S.wrap, S.wrap_alive = 0, false
-    add_marks(2, true)
+    add_marks(2, true, true)
   else
-    add_marks(1, false)
+    add_marks(1, false, true)
   end
 end
 
@@ -750,6 +828,37 @@ local function pika_step()
   step_duel_fairies()
 end
 
+-- The layers follow what is happening (music.track only on a change). The path: the band gains a voice for each
+-- gold fairy that follows him. The duels: sections by marks (verse, surge at half, climax for the last few), the
+-- choir is his gold fairies still to fly (or the one wrapping the boss). The bow is a hush before the next song.
+local function mix()
+  local ph, f = S.phase, S.friends
+  if ph == "path" or ph == "pathback" or ph == "pop" then
+    set_level(1, S.stuck > 0 and 0.25 or #S.bubbles > 0 and 0.7 or S.has_key and 1.15 or 0.9)
+    set_level(3, S.has_key and 1 or 0)
+    set_level(4, f >= 1 and (f >= 4 and 1.35 or 1) or 0)
+    set_level(5, f >= 2 and (f >= 5 and 1.35 or 1) or 0)
+    set_level(6, f >= 3 and 1 or 0)
+  elseif ph == "winbow" then
+    set_level(5, f >= 1 and 1.1 or 0.5)
+    set_level(6, f >= 2 and 1.1 or 0.5)
+  elseif ph == "zambow" then
+    set_level(1, 0.6) set_level(2, 0.9) set_level(3, 0) set_level(4, 0) set_level(5, 1.3) set_level(6, 1.2)
+  elseif ph == "fight" or ph == "pika" or ph == "restart" or ph == "pikapop" then
+    if ph == "fight" or ph == "pika" then
+      local want = S.marks >= S.marks_win - 3 and 3 or S.surge and 2 or 1
+      if want ~= S.sect then duel_song(want, true) end
+    end
+    local shield = ph == "fight" and S.shield_t > 0
+    set_level(1, ph == "restart" and 0.3 or S.hurt_cool > 0 and 0.4 or shield and 0.5 or S.wrap > 0 and 1.15 or 0.95)
+    set_level(2, 1)
+    set_level(3, ph == "restart" and 0.4 or shield and 0.5 or 1)
+    set_level(4, S.sect >= 2 and 1 or 0)
+    set_level(5, 0.9)
+    set_level(6, S.wrap > 0 and 1.25 or min(1.1, f * 0.45))
+  end
+end
+
 local function leaving() return input.down("1p") and input.down("2p") end
 
 local function rest_line()
@@ -842,6 +951,10 @@ function init()
   sfx.master(0.32)
   sfx.limit(8000)
   S.gems = clamp(save.get("gems", 0), 0, 100000)
+  S.rescued = clamp(save.get("rescued", 0), 0, 100000)
+  S.clean = clamp(save.get("clean", 0), 0, 100000)
+  S.best_run = clamp(save.get("run", 0), 0, 999)
+  S.fresh = S.gems == 0 and S.rescued == 0 and S.clean == 0
   log("chest gems " .. S.gems)
   for i = 1, 40 do
     local x
@@ -849,7 +962,10 @@ function init()
     S.deco[i] = {x, rnd(80, H - 32 - 8), rndi(0, 4)}
   end
   setup_path()
-  music.play(path_bed)
+  path_song()
+  -- The treasure room is shown first (pictures.lua draws it over the meadow while he starts to walk).
+  S.react = S.fresh and "Get the key. Open the chest. Win treasure!" or "Ned's treasure room. Now, the key!"
+  S.react_left = 200
 end
 
 local function start_next_round()
@@ -857,8 +973,9 @@ local function start_next_round()
   clear_fight()
   local k = KEY_SPOTS[rndi(2, 5)]
   S.key_x, S.key_y = k[1], k[2]
+  S.hurts_round = 0
   setup_path()
-  music.play(path_bed)
+  path_song()
   S.react, S.react_left = "The key is back. Go on.", REACT_FRAMES
 end
 
@@ -1008,13 +1125,34 @@ function update()
       end
     end
   end
-  for _, k in ipairs({"hop", "pile_hop", "react_left", "flinch_t", "dizzy_t"}) do
+  if S.run_left > 0 then
+    S.run_left = S.run_left - 1
+    if S.run_left == 0 then S.run = 0 end
+  end
+  -- The room: he looks in on his treasure for a few seconds while he starts to walk. The chimes are only sound.
+  S.room_t = S.room_t + 1
+  if S.room_out == 0 and (S.phase ~= "path" or S.room_t > (S.fresh and 420 or 300)
+      or S.room_t > 110 and (mx ~= 0 or my ~= 0 or pressed)) then
+    S.room_out = S.room_t
+  end
+  local own = min(S.gems, 9)
+  if S.room_t >= 30 and S.room_t < 30 + 7 * own and (S.room_t - 30) % 7 == 0 then
+    local i = idiv(S.room_t - 30, 7)
+    music.cue{wave = "sine", note = ({72, 74, 76, 79, 81, 84, 86, 88, 91})[i + 1], dur = 0.25, vol = 0.12, release = 0.22}
+    sparks(40 + i * 38 + 19, 52, 5, 1.2, 20, 2, C.GOLD, "star")
+  end
+  mix()
+  for _, k in ipairs({"hop", "pile_hop", "react_left", "flinch_t", "dizzy_t", "cheer", "oops"}) do
     if S[k] > 0 then S[k] = S[k] - 1 end
   end
   if leaving() and not S.goodbye then
     snd.bye()
     S.goodbye = true
   end
+end
+
+function quit()
+  if S.dirty then save_all() end
 end
 
 function draw()

@@ -12,6 +12,8 @@ local INK, GOLD = C.INK, C.GOLD
 local BAND, PILE_SHOWN = 32, 15
 
 local function fr() return game.frame end
+-- 1 on the beat, fading to 0 across it (drawing only; 0 when no song plays).
+local function beat(k) return 1 - ((music.step() + (k or 0)) % 4) / 4 end
 
 local function paint_ground()
   local S = P.S
@@ -169,7 +171,7 @@ local function draw_marks_row(cx, y)
     local x = cx - (S.marks_win - 1) * (step * 0.5) + i * step
     gfx.circle(x, y, 4.3, INK)
     gfx.circle(x, y, 3, i < S.marks and GOLD or 0x5a4a6a)
-    if i < S.marks then gfx.glow(x, y, 8, alpha(0xffe080, 100)) end
+    if i < S.marks then gfx.glow(x, y, 8 + beat(i) * 3, alpha(0xffe080, 80 + floor(beat(i) * 50))) end
   end
 end
 
@@ -436,7 +438,7 @@ local function draw_ned()
     gfx.ellipse(x, y - 6, 12, 7, 0xb07a50)
   else
     local ex = fx * 4
-    if victory then
+    if victory or S.cheer > 0 then
       -- Big joyful eyes and open grin!
       gfx.line(x - 7, y - 7, x - 4, y - 10, 2, INK)
       gfx.line(x - 4, y - 10, x - 1, y - 7, 2, INK)
@@ -530,6 +532,110 @@ local function draw_victory_banner()
   end
 end
 
+-- ------------------------------------------------------------------ the treasure room
+-- A little gold fairy with no particles (the room draws it many times).
+local function mini_fairy(x, y, s, c)
+  local wing = abs(sin(fr() * 0.4 + x)) * 2 * s
+  gfx.ellipse(x - 6 * s, y - 2 * s, 4 * s, 2.5 * s + wing, alpha(0xffffff, 230))
+  gfx.ellipse(x + 6 * s, y - 2 * s, 4 * s, 2.5 * s + wing, alpha(0xffffff, 230))
+  gfx.circle_o(x, y, 5 * s, c, INK, 1.5)
+  gfx.circle(x - 1.6 * s, y - 0.6 * s, 0.9 * s, INK)
+  gfx.circle(x + 1.6 * s, y - 0.6 * s, 0.9 * s, INK)
+end
+
+-- A music note: a head and a stem.
+local function note_glyph(x, y, col, s)
+  gfx.line(x + 4 * s, y, x + 4 * s, y - 14 * s, 2.2 * s + 1, INK)
+  gfx.ellipse(x, y, 5 * s + 1.5, 3.5 * s + 1.5, INK)
+  gfx.line(x + 4 * s, y, x + 4 * s, y - 14 * s, 2.2 * s, col)
+  gfx.ellipse(x, y, 5 * s, 3.5 * s, col)
+end
+
+local PLATE, WOOD_D = 0xf3e2bc, 0x6e4426
+local function draw_room()
+  local S = P.S
+  local t = S.room_t
+  local k
+  if S.room_out > 0 then k = 1 - clamp((t - S.room_out) / 18, 0, 1) else k = ease.out_back(clamp(t / 22, 0, 1)) end
+  if k <= 0.01 then return end
+  local y0 = 6 - (1 - k) * 132
+  local fresh = S.fresh
+  gfx.rrect_o(8, y0, 368, 118, 12, WOOD_D, INK, 3)
+  gfx.rrect(14, y0 + 6, 356, 106, 9, PLATE)
+  gfx.text(fresh and "ZAM'S TREASURE" or "NED'S TREASURE ROOM", W / 2, y0 + 8, 14, WOOD_D, "center")
+  local latest = (S.gems - 1) % 9
+  for i = 0, 8 do
+    local cx, cy = 38 + i * 38.5, y0 + 46
+    local own = S.gems > i
+    gfx.rrect_o(cx - 17, cy - 17, 34, 34, 6, own and 0x7a4c2a or 0x9a7a58, INK, 2)
+    gfx.rrect(cx - 14, cy - 14, 28, 28, 4, own and 0x5a3820 or 0x7e6444)
+    if own then
+      if i == latest then
+        gfx.glow(cx, cy, 24, alpha(0xffe080, 110 + floor(beat() * 60)))
+        gfx.star(cx + cos(fr() * 0.05) * 15, cy - 14 + sin(fr() * 0.05) * 3, 4, fr() * 0.1, GOLD)
+      end
+      P.treasure(i, cx, cy + sin(fr() * 0.06 + i) * 1.5, 1.5)
+      local n = idiv(S.gems - 1 - i, 9) + 1
+      if n > 1 then gfx.text("x" .. min(n, 99), cx + 15, cy + 8, 12, C.CREAM, "right", INK) end
+    else
+      gfx.text("?", cx, cy - 11, 22, alpha(0xf3e2bc, 90 + floor(sin(fr() * 0.07 + i) * 30)), "center")
+    end
+  end
+  local ry = y0 + 84
+  if fresh then
+    -- The story, in three pictures: the key, the chest, the treasure.
+    gfx.ring(60, ry - 2, 8, 3, INK) gfx.ring(60, ry - 2, 8, 1.8, GOLD)
+    gfx.rrect_o(57, ry + 3, 6, 15, 2, GOLD, INK, 1.5)
+    gfx.line(100, ry + 8, 140, ry + 8, 3, WOOD_D) gfx.tri(140, ry + 1, 150, ry + 8, 140, ry + 15, WOOD_D)
+    gfx.rrect_o(170, ry + 4, 44, 18, 4, C.WOOD, INK, 2)
+    gfx.rrect_o(167, ry - 6, 50, 12, 6, 0xd0904e, INK, 2)
+    gfx.rect(188, ry + 6, 8, 8, GOLD)
+    gfx.line(234, ry + 8, 274, ry + 8, 3, WOOD_D) gfx.tri(274, ry + 1, 284, ry + 8, 274, ry + 15, WOOD_D)
+    P.treasure(0, 316, ry + 6 + sin(fr() * 0.1) * 2, 1.7)
+    gfx.star(338, ry - 4, 5, fr() * 0.1, GOLD)
+  else
+    -- Fairies he has turned gold (a lantern each, up to eight), his best run of zaps as a stair of notes, and
+    -- a rosette for each duel won without a hurt (up to five). Each is a faint frame until he has one.
+    local fr_n, run_n, clean_n = min(S.rescued, 8), min(S.best_run, 7), min(S.clean, 5)
+    for i = 0, 7 do
+      local x, y = 28 + i * 17, ry + 4 + sin(fr() * 0.06 + i) * 2
+      if i < fr_n then mini_fairy(x, y, 1.15, GOLD) else gfx.circle(x, y, 4, alpha(0x9a7a58, 110)) end
+    end
+    if S.rescued > 8 then gfx.text("+" .. min(S.rescued - 8, 999), 166, ry + 12, 11, WOOD_D, "left") end
+    for i = 0, 6 do
+      local x, h = 202 + i * 11, 6 + i * 3
+      local lit = i < run_n
+      gfx.rect(x - 4, ry + 24 - h, 9, h, lit and INK or alpha(0x9a7a58, 110))
+      if lit then gfx.rect(x - 3, ry + 25 - h, 7, h - 2, hsv(i / 8, 0.55, 1)) end
+    end
+    for i = 0, 4 do
+      local x = 296 + i * 15
+      if i < clean_n then
+        gfx.tri(x - 5, ry + 14, x - 1, ry + 14, x - 6, ry + 24, C.ROSE)
+        gfx.tri(x + 5, ry + 14, x + 1, ry + 14, x + 6, ry + 24, C.BLUE)
+        gfx.circle_o(x, ry + 8, 6, C.PIKA, INK, 1.5)
+        gfx.star(x, ry + 8, 3, 0, C.WHITE)
+      else
+        gfx.circle(x, ry + 8, 4, alpha(0x9a7a58, 110))
+      end
+    end
+  end
+end
+
+-- His run of zaps as a little rising stair at the top right: a note lit for each, round the seven.
+local function draw_run()
+  local S = P.S
+  if S.run < 1 or (S.phase ~= "fight" and S.phase ~= "pika") then return end
+  if S.run_left < 24 and fr() % 8 < 4 then return end
+  local n = (S.run - 1) % 7 + 1
+  for i = 0, 6 do
+    local x, h = 296 + i * 11, 6 + i * 3
+    gfx.rect(x - 4, 44 - h, 9, h, i < n and INK or alpha(0x2a1a34, 110))
+    if i < n then gfx.rect(x - 3, 45 - h, 7, h - 2, hsv(i / 8, 0.55, 1)) end
+  end
+  if S.run >= 7 then gfx.glow(296 + (n - 1) * 11, 44 - (6 + (n - 1) * 3), 14, alpha(0xffe080, 160)) end
+end
+
 function P.draw()
   local S = P.S
   local ZX, ZY, PY = S.ZX, S.ZY, S.PY
@@ -588,9 +694,20 @@ function P.draw()
   for k = 1, min(S.friends, 5) do
     local p = S.trail[k]
     local fx, fy = p and p[1] or S.nx, p and p[2] or S.ny
-    draw_fairy(fx + sin(fr() * 0.05 + k) * 4, fy + sin(fr() * 0.07 + k * 2) * 4, GOLD, false, nil, 1.2)
+    draw_fairy(fx + sin(fr() * 0.05 + k) * 4, fy + sin(fr() * 0.07 + k * 2) * 4 - beat(k * 2) * 3, GOLD, false, nil, 1.2 + beat(k * 2) * 0.16)
   end
   draw_ned()
+  if S.cheer > 0 and S.phase ~= "winbow" then
+    local a = min(S.cheer, 30) / 30
+    note_glyph(S.nx - 18, S.ny - 62 - sin(fr() * 0.15) * 4 - (1 - a) * 10, hsv((fr() * 0.01) % 1, 0.5, 1), 0.8)
+    note_glyph(S.nx + 12, S.ny - 70 - sin(fr() * 0.15 + 2) * 4 - (1 - a) * 10, GOLD, 0.8)
+  end
+  if S.oops > 0 then
+    for i = 0, 2 do
+      local a = fr() * 0.2 + i * 2.1
+      gfx.star(S.nx + cos(a) * 18, S.ny - 56 + sin(a) * 5, 4, a, C.PIKA)
+    end
+  end
   if S.stuck > 0 then soap(S.nx, S.ny, 34 + sin(fr() * 0.3) * 2, C.PURPLE) end
   -- The purple fairies on the path; one being rescued spins in his bubble and turns gold.
   for _, f in ipairs(S.foes) do
@@ -646,6 +763,7 @@ function P.draw()
     gfx.glow(beam.x1, beam.y1, 18 * k + 4, beam.blocked and alpha(0x7fe8ff, 200) or alpha(0xffe080, 200))
     beam.t = beam.t - 1
   end
+  draw_run()
   if S.phase == "winbow" then draw_victory_banner() end
   if S.prize_t > 0 then
     local t = clamp(S.prize_t / 60, 0, 1)
@@ -654,6 +772,7 @@ function P.draw()
     gfx.glow(x, y, 20, alpha(0xffe080, 200))
     P.treasure(S.prize_kind, x, y, 1 + (1 - t) * 1.5)
   end
+  if S.room_t < 400 then draw_room() end
 end
 
 return P
