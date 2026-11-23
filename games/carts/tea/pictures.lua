@@ -299,9 +299,10 @@ function P.cat(who, cx, cy, s, happy)
   end
   -- Gifts she gave last time, worn from the first frame.
   if st.gift[who] == "flower" then
+    local fcol = P.flower_col()
     for k = 0, 4 do
       local a = k * 1.2566
-      gfx.circle(cx - r * 0.5 + cos(a) * 5 * s, cy - r * 0.8 + sin(a) * 5 * s, 4 * s, C.ROOF)
+      gfx.circle(cx - r * 0.5 + cos(a) * 5 * s, cy - r * 0.8 + sin(a) * 5 * s, 4 * s, fcol)
     end
     gfx.circle(cx - r * 0.5, cy - r * 0.8, 3 * s, C.GOLD)
   end
@@ -313,7 +314,7 @@ function P.cat(who, cx, cy, s, happy)
   local kind, d = st.care_kind[who], st.delight[who]
   if d > 0 and (kind == "cup" or kind == "cake") then
     if d > 24 then
-      P.icon(kind, cx + 4 * s, cy + r * 0.55, 0.5 * s)
+      P.ask_icon(kind, cx + 4 * s, cy + r * 0.55, 0.5 * s)
     elseif kind == "cup" then
       gfx.ellipse(cx, cy + r * 0.42, r * 0.4, 3 * s, C.WHITE)
     else
@@ -330,6 +331,206 @@ local function hearts_row(who, cx, y)
     gfx.heart(x, y, 12.5 * pop, INK)
     gfx.heart(x, y, 10 * pop, i <= st.hearts[who] and C.ROOF or C.CREAM)
     if i <= st.hearts[who] then gfx.circle(x - 4.5 * pop, y - 4.5 * pop, 2.2 * pop, alpha(0xffffff, 190)) end
+  end
+end
+
+-- ------------------------------------------------------------------ the castle's other carts, on the table
+
+-- Garden's six flower colours and their words, Bake's treat words and colours: the same as in those carts, so
+-- main.lua can read what she made there and this file can draw it the same way.
+P.COLS = {0xf47eb2, 0xffc83a, 0x6ab8ff, 0xb998f0, 0x68d8b8, 0xff8a6a}
+P.CNAME = {"rose", "gold", "sky", "lilac", "mint", "coral"}
+P.KIND = {"cupcake", "cookie", "layer", "castle"}
+P.FLAV = {"berry", "honey", "cocoa", "cloud"}
+P.FLAVC = {0xc9507a, 0xf6cf74, 0x9a6444, 0xfff1d6}
+P.FROST = {"pink", "lemon", "sky", "lilac", "mint"}
+P.FROSTC = {0xff8fbc, 0xffe36a, 0x7ec8ff, 0xb998f0, 0x6fe0b8}
+P.TOP = {"cherry", "star", "heart", "strawberry"}
+local TOPY = {76, 22, 68, 118}        -- where Bake's topping sits on each kind, at scale 1
+local TSC = {0.5, 0.52, 0.46, 0.36}   -- the treat's scale in the ask bubble
+local LINER, RED = 0xffdce8, 0xe84855
+
+-- The colour of the flower Pearl wears and the ask picture shows: her first Garden colour, else the old pink.
+function P.flower_col()
+  local st = P.st
+  return st.bqn > 0 and st.bcol[1] or C.ROOF
+end
+
+local function bloom(x, y, r, col)
+  gfx.circle_o(x, y, r * 1.5, col, INK, 1.4)
+  for k = 0, 4 do
+    local a = k * 1.2566 - 1.5708
+    gfx.circle_o(x + cos(a) * r, y + sin(a) * r, r * 0.72, col, INK, 1.3)
+  end
+  gfx.circle_o(x, y, r * 0.62, 0xffe36a, INK, 1.2)
+end
+
+-- A topping sitting on a surface at x, y (its bottom). Copied from Bake: cherry, star, heart, strawberry, flower.
+local function topping(id, x, y, s, fc)
+  local o = max(1.1, 1.7 * s)
+  if id == 1 then
+    gfx.line(x + 1 * s, y - 12 * s, x + 6 * s, y - 24 * s, 2.2 * s, 0x4a9a4a)
+    gfx.circle_o(x, y - 7 * s, 8 * s, RED, INK, o)
+    gfx.circle(x - 3 * s, y - 10 * s, 2.4 * s, alpha(C.WHITE, 200))
+  elseif id == 2 then
+    gfx.star(x, y - 10 * s, 13 * s, 0, INK)
+    gfx.star(x, y - 10 * s, 10.5 * s, 0, C.GOLD)
+  elseif id == 3 then
+    gfx.heart(x, y - 9 * s, 17 * s, INK)
+    gfx.heart(x, y - 9 * s, 13.5 * s, 0xff5a8a)
+    gfx.circle(x - 4 * s, y - 12 * s, 2 * s, alpha(C.WHITE, 190))
+  elseif id == 4 then
+    gfx.ellipse_o(x, y - 8 * s, 8 * s, 9.5 * s, RED, INK, o)
+    gfx.tri(x - 6 * s, y - 15 * s, x + 6 * s, y - 15 * s, x, y - 19 * s, 0x4aa84a)
+    for k = -1, 1 do gfx.circle(x + k * 3.2 * s, y - 8 * s + (k % 2) * 3 * s, 1 * s, C.CREAM) end
+  else
+    bloom(x, y - 9 * s, 5 * s, P.COLS[fc > 0 and fc or 1])
+  end
+end
+
+-- The four kinds, from Bake: one toon figure each, parameters in locals so no closure is made per frame.
+local tx, ty, ts, tfl, tfc = 0, 0, 1, 0, 0
+
+local function shapes_cupcake()
+  local x, y, s = tx, ty, ts
+  toon.poly({x - 27 * s, y - 27 * s, x + 27 * s, y - 27 * s, x + 19 * s, y, x - 19 * s, y}, LINER)
+  toon.ellipse(x, y - 29 * s, 30 * s, 15 * s, tfl)
+  toon.ellipse(x, y - 40 * s, 33 * s, 12 * s, tfc)
+  toon.ellipse(x, y - 52 * s, 25 * s, 10 * s, tfc)
+  toon.ellipse(x, y - 62 * s, 16 * s, 8 * s, tfc)
+  toon.tri(x - 8 * s, y - 63 * s, x + 8 * s, y - 63 * s, x + 3 * s, y - 79 * s, tfc)
+end
+
+local function shapes_cookie()
+  local x, y, s = tx, ty, ts
+  toon.ellipse(x, y - 8 * s, 46 * s, 18 * s, shade(tfl, 0.82))
+  toon.ellipse(x, y - 13 * s, 46 * s, 18 * s, tfl)
+  toon.ellipse(x, y - 15 * s, 36 * s, 13 * s, tfc)
+  for k = 0, 9 do
+    local a = k * 0.6283
+    toon.circle(x + cos(a) * 35 * s, y - 15 * s + sin(a) * 12.5 * s, 5.5 * s, tfc)
+  end
+end
+
+local function shapes_layer()
+  local x, y, s = tx, ty, ts
+  toon.rrect(x - 46 * s, y - 32 * s, 92 * s, 32 * s, 7 * s, tfl)
+  toon.rrect(x - 33 * s, y - 60 * s, 66 * s, 29 * s, 7 * s, tfl)
+  toon.ellipse(x, y - 61 * s, 34 * s, 9 * s, tfc)
+  for k = -3, 3 do
+    toon.circle(x + k * 10.5 * s, y - 58 * s, 5.5 * s, tfc)
+    toon.rrect(x + k * 10.5 * s - 3.6 * s, y - 58 * s, 7.2 * s, (6 + (k % 2 == 0 and 7 or 2)) * s, 3 * s, tfc)
+  end
+  for k = -4, 4 do toon.circle(x + k * 10.5 * s, y - 31 * s, 5.2 * s, tfc) end
+end
+
+local function shapes_castle()
+  local x, y, s = tx, ty, ts
+  local roof = tfc
+  toon.rrect(x - 54 * s, y - 30 * s, 108 * s, 30 * s, 5 * s, tfl)
+  toon.rrect(x - 58 * s, y - 62 * s, 26 * s, 58 * s, 4 * s, tfl)
+  toon.rrect(x + 32 * s, y - 62 * s, 26 * s, 58 * s, 4 * s, tfl)
+  toon.rrect(x - 22 * s, y - 80 * s, 44 * s, 70 * s, 4 * s, tfl)
+  toon.tri(x - 63 * s, y - 62 * s, x - 27 * s, y - 62 * s, x - 45 * s, y - 90 * s, roof)
+  toon.tri(x + 27 * s, y - 62 * s, x + 63 * s, y - 62 * s, x + 45 * s, y - 90 * s, roof)
+  toon.tri(x - 27 * s, y - 80 * s, x + 27 * s, y - 80 * s, x, y - 114 * s, roof)
+  for k = -4, 4 do toon.circle(x + k * 12 * s, y - 29 * s, 5.5 * s, tfc) end
+end
+
+local SHAPES = {shapes_cupcake, shapes_cookie, shapes_layer, shapes_castle}
+
+-- A finished treat from its bottom middle (x, y), as Bake draws it (without the sprinkles).
+local function treat(kind, x, y, s, fl, fc)
+  tx, ty, ts, tfl, tfc = x, y, s, fl, fc
+  toon(SHAPES[kind], max(1.4, 2.3 * min(1, s)), INK)
+  if kind == 1 then
+    for k = -2, 2 do gfx.line(x + k * 9 * s, y - 25 * s, x + k * 6.5 * s, y - 2 * s, max(1, 1.4 * s), alpha(INK, 60)) end
+    gfx.ellipse(x - 12 * s, y - 41 * s, 9 * s, 2.5 * s, alpha(C.WHITE, 120))
+    gfx.ellipse(x - 8 * s, y - 53 * s, 7 * s, 2 * s, alpha(C.WHITE, 120))
+  elseif kind == 2 then
+    for k = 0, 6 do
+      local a = k * 0.9 + 0.4
+      gfx.ellipse_o(x + cos(a) * 46 * s * 0.78, y - 12 * s + sin(a) * 18 * s * 0.78, 4.3 * s, 3 * s, 0x5a3a28, INK, 1)
+    end
+    gfx.ellipse(x - 12 * s, y - 20 * s, 10 * s, 2.6 * s, alpha(C.WHITE, 120))
+  elseif kind == 3 then
+    gfx.rect(x - 45 * s, y - 34 * s, 90 * s, 3.5 * s, C.CREAM)
+    gfx.rect(x - 32 * s, y - 62 * s, 64 * s, 3.5 * s, C.CREAM)
+  else
+    for k = -1, 1 do gfx.rrect_o(x + k * 33 * s - 4 * s, y - 52 * s, 8 * s, 14 * s, 4 * s, 0x5a3a48, INK, 1) end
+    gfx.rrect_o(x - 8 * s, y - 24 * s, 16 * s, 24 * s, 8 * s, 0x5a3a48, INK, 1.2)
+    gfx.line(x, y - 114 * s, x, y - 128 * s, max(1.2, 2 * s), INK)
+    gfx.tri(x, y - 128 * s, x + 14 * s, y - 123 * s, x, y - 118 * s, RED)
+  end
+end
+
+-- Her last Bake treat painted once per size under a key, then blitted for nothing (no closure made per frame).
+local lk, lsc, lw, lh = nil, 1, 0, 0
+local function paint_last()
+  local it = P.st.last
+  treat(it.k, lw / 2, lh - 4, lsc, P.FLAVC[it.f], P.FROSTC[it.r])
+  topping(it.t, lw / 2, lh - 4 - TOPY[it.k] * lsc, lsc * 0.95, it.fc)
+end
+
+-- The ask picture for a cupcake: her own treat when she has baked one, centred on cx, cy. s is the icon scale
+-- the plain cupcake uses (1.1 in the bubble), so the treat scales with it.
+local function last_icon(cx, cy, s)
+  local it = P.st.last
+  local k = it.k
+  lsc = TSC[k] * s / 1.1
+  lw, lh = floor(142 * lsc) + 10, floor(150 * lsc) + 12
+  local big = s > 0.9
+  local h = (TOPY[k] + 22) * lsc
+  gfx.blit_key(bake("tea:last:" .. it.word .. (big and ":b" or ":s"), lw, lh, paint_last), floor(cx - lw / 2), floor(cy + h / 2 - (lh - 4)))
+end
+
+-- Every ask picture: the cupcake is her last Bake treat when she has one.
+function P.ask_icon(what, cx, cy, s)
+  if what == "cake" and P.st.last then
+    -- two sizes only (the bubble and the small ones), so two pictures are painted, not one per frame
+    last_icon(cx, cy, s > 0.9 and 1.1 or 0.55)
+  elseif what == "flower" and P.st.bqn > 0 then
+    toon(function()
+      toon.line(cx, cy + 4 * s, cx, cy + 20 * s, 3 * s, 0x5ab05a)
+      for k = 0, 4 do
+        local a = k * 1.2566 + fr() * 0.01
+        toon.circle(cx + cos(a) * 8 * s, cy + sin(a) * 8 * s, 7 * s, P.flower_col())
+      end
+      toon.circle(cx, cy, 6 * s, C.GOLD)
+    end, 2 * s, INK)
+  else
+    P.icon(what, cx, cy, s)
+  end
+end
+
+-- A tiny cupcake on the cloth, one for each treat she has served in Bake (a few, in her colours).
+local function mini_cupcake(x, y, frost, liner)
+  gfx.rrect_o(x - 7, y - 8, 14, 9, 2, liner, INK, 1.2)
+  gfx.circle_o(x, y - 11, 7, frost, INK, 1.2)
+  gfx.circle(x - 2.5, y - 13, 1.6, alpha(C.WHITE, 190))
+  gfx.circle_o(x, y - 18, 2.6, RED, INK, 1)
+end
+
+function P.cake_stand(n)
+  local st = P.st
+  if n <= 0 then return end
+  for i = 1, min(n, 8) do
+    local off = idiv(i, 2) * (i % 2 == 0 and 1 or -1)
+    local frost = (i == 1 and st.last) and P.FROSTC[st.last.r] or P.FROSTC[(i * 3) % 5 + 1]
+    mini_cupcake(W / 2 + off * 38, 337, frost, LINER)
+  end
+end
+
+-- A garden of flowers on the castle lawn for each Garden she finished (the backdrop paints it once).
+function P.lawn(n)
+  local st = P.st
+  local X = {14, 370, 32, 352}
+  for i = 1, min(n, 4) do
+    local x = X[i]
+    local col = st.bqn > 0 and st.bcol[(i - 1) % st.bqn + 1] or P.COLS[((i - 1) * 2) % 6 + 1]
+    gfx.line(x, 210, x, 232, 2.5, 0x5ab05a)
+    gfx.tri(x, 224, x + 9, 217, x + 2, 229, 0x5ab05a)
+    bloom(x, 206, 5.5, col)
   end
 end
 
@@ -483,6 +684,7 @@ local function paint_party()
     end
   end
   gfx.rect(0, 200, W, 4, alpha(INK, 50))
+  P.lawn(st.gardens)
 end
 
 local function draw_decor(hop)
@@ -502,13 +704,21 @@ local function draw_decor(hop)
     gfx.glow(x, y, 12, alpha(0xffe080, floor(tw * 150)))
     gfx.star(x, y, 6, 0, C.GOLD)
   end
-  if st.got.flower > 0 then
+  if st.got.flower > 0 or st.bqn > 0 then
     local vx, vy = st.ncats == 4 and W - 26 or 30, 274
-    for i = 0, min(st.got.flower, 6) - 1 do
+    -- Her Garden bouquet's colours when she has one (at least those, and one more for each flower caught).
+    local n = st.bqn > 0 and max(st.bqn, min(st.got.flower, 6)) or min(st.got.flower, 6)
+    for i = 0, n - 1 do
       local a = -1.9 + i * 0.35
       local fx, fy = vx + cos(a) * 18, vy - 14 + sin(a) * 18
       gfx.line(vx, vy - 6, fx, fy, 2, 0x5ab05a)
-      gfx.circle_o(fx, fy, 5, i % 2 == 1 and 0xff9ac8 or 0xfff09a, INK, 1.5)
+      if st.bqn > 0 then
+        local col = st.bcol[i % st.bqn + 1]
+        gfx.circle_o(fx, fy, 6.5, col, INK, 1.5)
+        gfx.circle(fx, fy, 2.4, 0xffe36a)
+      else
+        gfx.circle_o(fx, fy, 5, i % 2 == 1 and 0xff9ac8 or 0xfff09a, INK, 1.5)
+      end
     end
     gfx.rrect_o(vx - 8, vy - 8, 16, 18, 5, C.MINT, INK, 2)
   end
@@ -525,7 +735,7 @@ function P.draw_party()
   local waving = input.quitting() > 0
   -- The party picture shows the photos on the wall, so it is painted again after each new photo; the old
   -- one is let go (a full-screen layer is 3 MB on the GPU runtime, which ran out after a few, 2026-10-26).
-  local key = "party:" .. st.photos
+  local key = "party:" .. st.photos .. ":" .. st.gardens
   if P.party_key and P.party_key ~= key then unbake(P.party_key) end
   P.party_key = key
   backdrop(key, paint_party)
@@ -550,6 +760,7 @@ function P.draw_party()
   for i = 0, 15 do gfx.circle(26 + i * 22.2, 346, 11, C.CREAM) end
   for i = 0, 15 do gfx.circle(26 + i * 22.2, 344, 4, alpha(0xe86b9a, 120)) end
   gfx.rect(16, 316, W - 32, 6, alpha(0xe86b9a, 90))
+  P.cake_stand(st.btreats)
   for i = 1, st.ncats do
     local x, y = P.seat_x(i), 284 + (i == f and 2 or 0)
     local wave = waving and -abs(sin(fr() * 0.3 + i - 1)) * 22 or 0
@@ -594,7 +805,7 @@ function P.draw_party()
   gfx.circle_o(fx, hy - 118 + bob, 32 * grow, C.WHITE, INK, 2.5)
   gfx.tri(fx - 8, hy - 90 + bob, fx + 8, hy - 90 + bob, fx, hy - 78 + bob, INK)
   gfx.tri(fx - 6, hy - 91 + bob, fx + 6, hy - 91 + bob, fx, hy - 82 + bob, C.WHITE)
-  P.icon(P.ask_of(f), fx, hy - 118 + bob, 1.1 * grow)
+  P.ask_icon(P.ask_of(f), fx, hy - 118 + bob, 1.1 * grow)
   hearts_row(f, fx, hy - 58)
   -- The unicorn trots to the cat she is visiting; a hug brings her right up close.
   local moving = abs(P.seat_x(f) - st.uni_x) > 3
@@ -610,7 +821,7 @@ function P.draw_party()
   if st.toss_t > 0 and st.toss_kind ~= "hug" then
     local k = 1 - st.toss_t / 18
     local ex, ey = P.seat_x(st.toss_who), P.head_y(st.toss_who) + 10
-    P.icon(st.toss_kind, lerp(st.uni_x, ex, k), lerp(350, ey, k) - sin(k * math.pi) * 60, 0.6)
+    P.ask_icon(st.toss_kind, lerp(st.uni_x, ex, k), lerp(350, ey, k) - sin(k * math.pi) * 60, 0.6)
   end
   if st.photo_t > 0 then
     -- The photo floats up to its place on the wall.

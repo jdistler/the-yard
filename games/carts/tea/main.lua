@@ -12,6 +12,7 @@
 -- tea.sav remembers visits, gifts, and photos. Hearts start fresh each visit.
 
 local pics = import("pictures")
+local tunes = import("tunes")
 
 local BAND = 32
 local SKY_STEP, HURRY_STEP = 480, 900
@@ -34,6 +35,7 @@ local st = {
   stick_hold = 0, delight = {0, 0, 0, 0}, heart_pop = {0, 0, 0, 0}, care_kind = {}, toss_t = 0, toss_who = 1,
   toss_kind = "cup", idle_who = 0, idle_t = 0, photo_t = 0, sparkle_t = 0,
   wing = 0, uni_x = W / 2, uni_lx = 0, cat_lean = {0, 0, 0, 0}, tilt = 0,
+  bcol = {}, bqn = 0, last = nil, btreats = 0, gardens = 0, tune = nil, tune_n = 0,
   got = {balloon = 0, cake = 0, flower = 0, star = 0}, basket = {}, clouds = {}, treats = {}, next_treat = 40,
 }
 pics.st = st
@@ -42,7 +44,13 @@ pics.st = st
 
 local sky_bed = {bpm = 96, steps = 2,
   {"C5 . E5 . G5 . E5 . A5 . G5 . E5 . D5 . ", wave = "sine", vol = 0.14, release = 0.35, attack = 0.02, pan = -0.2},
-  {"C3 - - - - - - - F3 - - - G3 - - - ", wave = "sine", vol = 0.12, release = 0.5, attack = 0.05, pan = 0.2}}
+  {"C3 - - - - - - - F3 - - - G3 - - - ", wave = "sine", vol = 0.12, release = 0.5, attack = 0.05, pan = 0.2},
+  -- Three more voices that come in as she catches treats (tracks 3 to 5): bells, a soft pad, a shaker.
+  {"E6 . . . G6 . . . A6 . . . D6 . . . ", wave = "sine", vol = 0.05, release = 0.5, attack = 0.005, pan = 0.3},
+  {"E4 - - - - - - - A4 - - - B4 - - - ", wave = "sine", vol = 0.07, release = 0.6, attack = 0.12, pan = -0.3},
+  {". . H . . . H . . . H . . . H . ", wave = "noise", vol = 0.035, release = 0.05, pan = -0.1}}
+-- Catches that bring each extra voice in (sound only: the flight does not read it back).
+local LAYER_AT = {[2] = 3, [4] = 4, [6] = 5}
 local party_bed = {bpm = 90, steps = 2,
   {"C5 . E5 . G5 . E5 . F5 . A5 . G5 . E5 . ", wave = "tri", vol = 0.10, release = 0.3, attack = 0.01, pan = -0.2},
   {"C3 - - - - - - - F3 - - - G3 - - - ", wave = "sine", vol = 0.14, release = 0.4, attack = 0.05, pan = 0.2}}
@@ -92,6 +100,55 @@ local function load_save()
   end
 end
 
+-- What she made in the castle's other carts, read-only. A missing or odd value leaves today's picture.
+local function find(list, v) for i = 1, #list do if list[i] == v then return i end end end
+
+local function peek_bouquet()
+  local w = save.peek("garden", "bouquet", "")
+  if type(w) ~= "string" or #w == 0 or #w > 32 then return end
+  local n, cols = 0, {}
+  for tok in w:gmatch("[^-]+") do
+    local k = find(pics.CNAME, tok)
+    if not k or n >= 4 then return end
+    n = n + 1
+    cols[n] = pics.COLS[k]
+  end
+  if n == 0 then return end
+  for i = 1, n do st.bcol[i] = cols[i] end
+  st.bqn = n
+end
+
+local function peek_treat()
+  local w = save.peek("bake", "last", "")
+  if type(w) ~= "string" or #w > 32 then return end
+  local a, b, c, d = w:match("^([a-z]+)_([a-z]+)_([a-z]+)_([a-z]+)$")
+  if not a then return end
+  local k, f, r = find(pics.KIND, a), find(pics.FLAV, b), find(pics.FROST, c)
+  if not (k and f and r) then return end
+  local t, fc = find(pics.TOP, d), 0
+  if not t then
+    local cn = d:match("^flower([a-z]+)$")
+    fc = cn and find(pics.CNAME, cn)
+    if not fc then return end
+    t = 5
+  end
+  st.last = {k = k, f = f, r = r, t = t, fc = fc, word = w}
+end
+
+local function load_peeks()
+  peek_bouquet()
+  peek_treat()
+  st.btreats = clamp(save.peek("bake", "treats", 0), 0, 100000)
+  st.gardens = clamp(save.peek("garden", "gardens", 0), 0, 1000)
+  local n = clamp(save.peek("band", "tunes", 0), 0, 4)
+  if n >= 1 then
+    st.tune, st.tune_n = tunes[n], n
+  end
+  if st.bqn > 0 then log("tea bouquet " .. st.bqn) end
+  if st.last then log("tea baked " .. st.last.word) end
+  if st.tune then log("tea tune " .. st.tune_n) end
+end
+
 local function save_tea()
   save.set("visits", st.visits)
   save.set("pip", st.gift[PIP])
@@ -129,10 +186,14 @@ local function ask_of(who)
 end
 pics.ask_of = ask_of
 
+-- Her Bake treat's name for the line (short: the band holds 24 letters), or the plain cupcake.
+local NOUN = {"cupcake", "cookie", "cake", "cake"}
+local function treat_noun() return st.last and NOUN[st.last.k] or "cupcake" end
+
 local function ask_line(who)
   local k = ask_of(who)
   if who == NIB and k ~= "cake" and k ~= "hug" and st.hearts[who] < 3 then return "Nib copies a friend." end
-  if k == "cake" then return NAMES[who] .. " wants a cupcake." end
+  if k == "cake" then return NAMES[who] .. " wants a " .. treat_noun() .. "." end
   if k == "hug" then return NAMES[who] .. " wants a big hug." end
   if k == "yarn" then return "Moth wants the yarn." end
   if k == "flower" then return "Pearl wants a flower." end
@@ -142,7 +203,7 @@ local function ask_line(who)
 end
 
 local function care_line(who, kind)
-  if kind == "cake" then return NAMES[who] .. " ate the cupcake." end
+  if kind == "cake" then return NAMES[who] .. " ate the " .. treat_noun() .. "." end
   if kind == "hug" then return "A big unicorn hug!" end
   if kind == "sparkle" then return NAMES[who] .. " does a little dance." end
   if who == NIB then return "Nib bumped her nose." end
@@ -197,13 +258,16 @@ local function all_full()
 end
 
 local function play_song_note(who)
-  local m = SONG[st.song_i % #SONG + 1]
-  sfx.note("tri", m, 0.45, 0.4)
-  sfx.note("sine", m - 12, 0.5, 0.15)
+  -- Her newest Band tune when she has learned one, else the party song. Each note is cued onto the bed's next
+  -- step so it lands in time; which note is next is only a count of presses.
+  local mel = st.tune and st.tune.mel or SONG
+  local m = mel[st.song_i % #mel + 1]
+  music.cue{wave = "tri", note = m, dur = 0.45, vol = 0.4, release = 0.35}
+  music.cue{wave = "sine", note = m - 12, dur = 0.5, vol = 0.15, release = 0.4}
   st.song_i = st.song_i + 1
   st.delight[who], st.care_kind[who] = 30, "note"
   particles.spawn(seat_x(who) + rnd(-10, 10), head_y(who) - 40, rnd(-0.6, 0.6), -1.2, 70, 6, hsv(st.song_i * 0.13, 0.5, 1), "star", 0, 0.99)
-  if st.song_i % #SONG == 0 then
+  if st.song_i % #mel == 0 then
     for i = 1, 24 do
       particles.spawn(rnd(20, W - 20), rnd(-20, 20), rnd(-0.5, 0.5), rnd(0.6, 1.6), 140, rnd(3, 5), hsv(rnd(), 0.45, 1), i % 2 == 0 and "heart" or "star", 0, 1)
     end
@@ -282,6 +346,11 @@ local function catch_treat(t)
   t.slot = min(#st.basket + 1, BASKET_MAX)
   st.got[t.kind] = st.got[t.kind] + 1
   if #st.basket < BASKET_MAX then st.basket[#st.basket + 1] = t.kind end
+  local layer = LAYER_AT[#st.basket]
+  if layer then
+    music.track(layer, 1)
+    log("tea layer " .. layer)
+  end
   local m = PENT[(#st.basket - 1) % 11 + 1]
   sfx.note("tri", m, 0.3, 0.35)
   sfx.note("sine", m + 12, 0.2, 0.12)
@@ -375,8 +444,11 @@ function init()
   sfx.master(0.30)
   sfx.limit(8000)
   load_save()
+  load_peeks()
   for i = 1, 12 do st.clouds[i] = {a = rnd(0, tau), z = rnd(), squish = 0} end
   music.play(sky_bed)
+  -- She starts with the bass and the tune; the rest come in as she catches treats.
+  for tr = 3, 5 do music.track(tr, 0) end
 end
 
 local function party_step(button, held)
@@ -408,6 +480,7 @@ local function party_step(button, held)
     st.cheer_left = st.cheer_left - 1
     if st.cheer_left == 0 then
       st.song_mode = true
+      if st.tune then music.play(st.tune.bed) end
       react("Play a song for them.", REACT_FRAMES)
     end
   end

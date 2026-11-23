@@ -24,6 +24,16 @@ Version 2 keeps every promise below and fixes those:
 4. **A song after the cheer.** Each press plays the next note of the party song, the cats sway in time, and the sixteenth note rains hearts. Mashing makes music.
 5. **A photo on the wall.** Each cheer hangs a framed photo on the castle wall, and the photos stay between visits, the way Chest's gem pile does. She can see how many parties she has had.
 
+## Version 3: the party collects the castle (2026-11-23)
+
+Additive only: controls, flight, door, party structure and timing, the save keys and the tests are as before. Tea now reads what she made in Garden, Bake and Band (`save.peek`, read-only, clamped; a missing or odd value leaves the plain picture above, and a bad word in a sibling save is ignored whole). The spec is the Tea section of [../CASTLE.md](../CASTLE.md).
+
+* **Garden bouquet.** The vase on the table holds her last bouquet's colours (`bouquet`, up to four of rose, gold, sky, lilac, mint, coral). It stands even if she caught no flowers on the way; each flower caught adds one more bloom in the same colours. Pearl's worn flower and the flower ask are her first bouquet colour. `gardens` puts that many flowers (up to four) on the lawn at the castle's edges, painted into the backdrop.
+* **Bake treat.** The second heart's cupcake picture is her last treat (`last`: kind, flavour, frosting, topping, a flower topping in its Garden colour), drawn as Bake draws it and painted once per size with `bake()`. It is also the picture that flies to the cat and sits at her mouth, and the line says "cookie" or "cake" when it is one. `treats` stands little cupcakes on the cloth's front, one for each treat served (up to eight, the last treat's frosting first, in the middle).
+* **Band tune.** After the cheer, if `tunes` is 1 to 4 the song is the newest learned tune's verse melody (`tunes.lua`: melodies, chords and tempo copied from band/songs.lua; the waltz uses its last four bars, which come home to D) over a soft pad and bass at that tempo. Each press cues its note onto the bed's next step with `music.cue`, so mashing lands in time. With no tune the old sixteen-note song is cued the same way over the party bed. Which note comes next is a press count; the music clock is never read by the rules.
+* **The flight layers in.** The sky bed has three more voices (bells, a soft pad, a shaker) that come in with `music.track` at the 2nd, 4th and 6th catch. She starts with exactly the melody and bass of version 2.
+* **Log lines:** `tea bouquet N`, `tea baked WORD`, `tea tune N` at arrival (only when the sibling save has them), `tea layer N` as a voice comes in.
+
 ## What a turn feels like
 
 She walks up. A unicorn is already in the sky, wings beating, a small castle far ahead on a rainbow. Something sparkly is floating toward her: a pink balloon. If she does nothing, it reaches the unicorn's horn, pops into a little basket at the bottom of the screen, and a bright note plays. If she pushes the stick, the unicorn swoops to the next lane, where a cupcake is coming. If she presses a button, the unicorn sparkles and hurries, and her sparkle reaches the next lane too.
