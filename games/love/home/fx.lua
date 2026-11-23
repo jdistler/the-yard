@@ -26,6 +26,12 @@ function F.glow(x, y, rx, ry, r, g, b, a)
   lg.setBlendMode("alpha")
 end
 
+-- The same glow inside a pass the caller already put in "add" (a row of lamps: one blend switch, not one each).
+function F.glow_add(x, y, rx, ry, r, g, b, a)
+  lg.setColor(r, g, b, a)
+  lg.draw(glow_img, x, y, 0, rx * 2 / 128, (ry or rx) * 2 / 128, 64, 64)
+end
+
 -- ------------------------------------------------------------------ shooting stars
 
 local shooting = {}

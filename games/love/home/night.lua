@@ -636,6 +636,7 @@ end
 -- 11. The Drive-In: retro outdoor movie screen on the horizon, silhouetted cars dimming headlights,
 --     flickering projector beam with moths, and tiny neon arcade silent-film loops.
 local DRIVEIN_REELS = {"THE GREAT CHASE", "INVASION FROM MARS", "STARLIGHT ROMANCE"}
+local CAR_X = {148, 290, 478, 620}
 scenes.drivein = function(st, s, k)
   local sw, sh = 370, 206
   local sx, sy = (W - sw) / 2, HZ - sh - 78
@@ -777,16 +778,18 @@ scenes.drivein = function(st, s, k)
   end
   -- Silhouetted vintage cars parked facing the screen, dimming headlights as the movie starts.
   local head_a = clamp(1 - s / 4.5, 0.08, 1) * k
-  for ci, cx in ipairs({148, 290, 478, 620}) do
+  if head_a > 0.02 then
+    -- (the four glows in one additive pass: a blend switch each is a cost on this GPU)
+    lg.setBlendMode("add")
+    for _, cx in ipairs(CAR_X) do C.fx.glow_add(cx, HZ - 24, 44, 18, 1, 0.92, 0.7, 0.22 * head_a) end
+    lg.setBlendMode("alpha")
+  end
+  for _, cx in ipairs(CAR_X) do
     local cy = HZ - 4
     -- Speaker post beside each car.
     lg.setColor(0.18, 0.16, 0.26, 0.9 * k)
     lg.rectangle("fill", cx - 44, cy - 26, 3, 28)
     lg.rectangle("fill", cx - 47, cy - 30, 9, 6, 2, 2)
-    -- Dimming headlight glow toward screen.
-    if head_a > 0.02 then
-      C.fx.glow(cx, cy - 20, 44, 18, 1, 0.92, 0.7, 0.22 * head_a)
-    end
     -- Vintage car silhouette (rear view, wide fins).
     lg.setColor(0.05, 0.03, 0.1, 0.98 * k)
     lg.rectangle("fill", cx - 34, cy - 18, 68, 18, 5, 5)

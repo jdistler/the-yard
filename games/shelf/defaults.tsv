@@ -13,14 +13,14 @@
 1942	1800	HIGEMARU
 1942	1900	SONSON
 1942	200	
-1942	20000	EXEDEXES
 1942	2000	VULGUS
+1942	20000	EXEDEXES
 1942	2100	EXEDEXES
 1942	2200	RESERVED
 1942	2300	RIGHT
 1942	2400	ALL
-1942	25000	RESERVED
 1942	2500	CAPCOM
+1942	25000	RESERVED
 1942	300	
 1942	30000	RIGHT
 1942	35000	ALL
@@ -36,15 +36,15 @@
 1942	8888	SONSON
 1942	900	
 1942	9999	VULGUS
-1943	10000	POO
 1943	100	BLB
+1943	10000	POO
 1943	15000	YAM
-1943	20000	TAE
 1943	200	MR
+1943	20000	TAE
 1943	300	POO
 1943	400	YAM
-1943	5000	BLB
 1943	500	TAE
+1943	5000	BLB
 1943	7000	MR
 arkanoid	30000	AKR
 arkanoid	35000	ONJ
@@ -53,30 +53,30 @@ arkanoid	45000	SND
 arkanoid	50000	SSB
 bublbobl	100	YSH
 bublbobl	200	KIM
+bublbobl	300	NSO
 bublbobl	30000	I.F
 bublbobl	30000	KIM
 bublbobl	30000	MTJ
 bublbobl	30000	NSO
 bublbobl	30000	YSH
-bublbobl	300	NSO
 bublbobl	400	MTJ
 bublbobl	500	I.F
 commando	100	..........
 commando	10000	COMANDO...
 commando	12000	EXED.EXES.
 commando	19420	CAPCOM....
-commando	20000	HIGEMARU..
 commando	200	COMANDO...
-commando	30000	SON.SON...
+commando	20000	HIGEMARU..
 commando	300	EXED.EXES.
+commando	30000	SON.SON...
 commando	400	CAPCOM....
-commando	50000	VULGUS....
 commando	500	HIGEMARU..
+commando	50000	VULGUS....
 commando	600	SON.SON...
 commando	700	VULGUS....
 commando	8000	..........
-contra	10000	INC
 contra	100	INC
+contra	10000	INC
 contra	11000	NNN
 contra	12000	KKK
 contra	13000	KKK
@@ -142,6 +142,8 @@ frogger	300
 frogger	400	
 frogger	4630	
 frogger	500	
+gng	100	Hor
+gng	1000	Yuk
 gng	10000	Fum
 gng	10000	Hor
 gng	10000	Kei
@@ -152,8 +154,6 @@ gng	10000	Rum
 gng	10000	Tan
 gng	10000	Tom
 gng	10000	Yuk
-gng	1000	Yuk
-gng	100	Hor
 gng	200	Oot
 gng	300	May
 gng	400	Rum
@@ -162,12 +162,7 @@ gng	600	Tan
 gng	700	Tom
 gng	800	Mik
 gng	900	Fum
-joust	16535	MRS
-joust	17635	JAN
-joust	20522	CWK
-joust	22552	KFL
-joust	22917	PFZ
-joust	23310	JRN
+joust	4000	
 mario	100	IYO
 mario	12000	AKI
 mario	200	NAO
@@ -178,32 +173,32 @@ mario	500	AKI
 mario	5400	NAO
 mario	8000	SEI
 mario	9000	CHI
-pang	100000	M.S
-pang	10000	M.M
-pang	1000	M.S
 pang	100	J.O
-pang	20000	M.N
+pang	1000	M.S
+pang	10000	M.M
+pang	100000	M.S
 pang	200	M.M
-pang	30000	Y.F
+pang	20000	M.N
 pang	300	M.N
-pang	40000	Y.K
+pang	30000	Y.F
 pang	400	Y.F
-pang	50000	Y.N
-pang	5000	J.O
+pang	40000	Y.K
 pang	500	Y.K
-pang	60000	K.H
+pang	5000	J.O
+pang	50000	Y.N
 pang	600	Y.N
-pang	70000	T.U
+pang	60000	K.H
 pang	700	K.H
-pang	80000	M.K
+pang	70000	T.U
 pang	800	T.U
+pang	80000	M.K
 pang	900	M.K
-simpsons	1000	BAT
 simpsons	100	KON
+simpsons	1000	BAT
 simpsons	108	BAT
 simpsons	19	KON
-simpsons	200	FOX
 simpsons	20	FOX
+simpsons	200	FOX
 simpsons	300	MAT
 simpsons	33	MAT
 simpsons	37	SIM
@@ -228,8 +223,8 @@ snowbros	39000
 snowbros	400	
 snowbros	40000	
 snowbros	500	
-strider	1000	CAP
 strider	100	COM
+strider	1000	CAP
 strider	11000	COM
 strider	12000	CAP
 strider	13000	COM
@@ -239,8 +234,8 @@ strider	16000	CAP
 strider	17000	COM
 strider	18000	CAP
 strider	19000	COM
-strider	20000	CAP
 strider	200	CAP
+strider	20000	CAP
 strider	300	COM
 strider	400	CAP
 strider	500	COM

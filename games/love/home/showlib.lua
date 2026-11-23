@@ -891,16 +891,5 @@ function L.shadow(x, y, rx, ry, a)
   lg.ellipse("fill", x, y, rx, ry or rx * 0.28, 16)
 end
 
--- Stencil-masked crescent moon (no opaque cutout disc artifact).
-function L.crescent(x, y, r, dx, dy, col, a)
-  a = a or 1
-  if a <= 0 then return end
-  local c = col or {1, 0.96, 0.85}
-  lg.stencil(function() lg.circle("fill", x + dx, y + dy, r * 0.88, 28) end, "replace", 1)
-  lg.setStencilTest("equal", 0)
-  lg.setColor(c[1], c[2], c[3], a)
-  lg.circle("fill", x, y, r, 32)
-  lg.setStencilTest()
-end
 
 return L

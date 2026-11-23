@@ -847,7 +847,8 @@ function M.update(dt)
       G:firework(120 + G.R:random() * 528, 160 + G.R:random() * 300, S.t > 290 + 75, {PINK, RED, {1, 1, 1}})
     end
   elseif sc[2] == "finale" then
-    if lt > 6 and lt < 12 then G:confetti(2, {PINK, RED, {1, 1, 1}}) end
+    -- (a rate, about 45 pieces a second, not a fixed two a frame: the frame rate must not set the shower)
+    if lt > 6 and lt < 12 and G.R:random() < dt * 45 then G:confetti(1, {PINK, RED, {1, 1, 1}}) end
   end
   return S.t >= LEN
 end
