@@ -352,6 +352,16 @@ local function run_lib(env)
     budget("the library", 50000000)
     fn()
   end
+  -- A layer let go (unbake) is a LÖVE Canvas that only goes back to the GPU when Lua collects it, and the
+  -- collector waited until 64 MB of pictures (2026-11-23: Garden's day/dusk backdrop grew 768 KB a garden on the
+  -- cabinet). After an unbake the frame ends with a full collection, at most once a second.
+  local unbake = env.unbake
+  if unbake then
+    env.unbake = function(key)
+      unbake(key)
+      gfx.collect_wanted = true
+    end
+  end
 end
 
 local function run_chunk(cart, env, file)
@@ -619,6 +629,11 @@ local function run(cart, resume_title)
     present(cart, input.quit_progress())
     local t3 = love.timer.getTime()
     t_up, t_draw, t_pres, draws = t_up + (t1 - t0), t_draw + (t2 - t1), t_pres + (t3 - t2), draws + 1
+    if gfx.collect_wanted and (cart.collected_at or -1e9) < t3 - 1 then
+      gfx.collect_wanted, cart.collected_at = false, t3
+      collectgarbage()
+      gfx.collect()
+    end
     if collectgarbage("count") * 1024 + gfx.memory() > MEM_CAP or gfx.texture_memory() > TEX_CAP then
       collectgarbage()
       gfx.collect()
