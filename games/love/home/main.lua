@@ -86,7 +86,23 @@ local function log(...)
   end
 end
 
--- An error: into the log, and quit (homeloop starts Home again; twice in a row, the stock menu). LÖVE's own
+-- The modules Home can live without (guard.lua): an error turns one off, not Home. HOME_SAFE=1 is homeloop's
+-- safe mode (Home failed twice as it started): they start off, and Home is the classics, the Yard and the shows.
+do
+  local guard, safe = require("guard"), os.getenv("HOME_SAFE") == "1"
+  if safe then log("SAFE MODE: Home failed twice as it started; the Longhorns, TV and the games card are off") end
+  local none = function() return {} end
+  guard(utgame, "longhorns", {status = none, games = none, now = function() return os.time() end,
+                              countdown = function() return nil end}, log, safe)
+  guard(tv, "tv", {channel_count = function() return 0, 0, 0 end, has_playlists = function() return false end,
+                   update = function() return "exit" end, handle = function() return "exit" end}, log, safe)
+  guard(shelf, "games card", {cards = none, arcade_games = none, legend_lines = none, count = function() return 0 end,
+                              card_blurb = function() return "" end, commas = function(n) return tostring(n) end,
+                              update = function() return "exit" end, handle = function() return "exit" end},
+        log, safe)
+end
+
+-- An error: into the log, and quit (homeloop starts Home again; then safe mode; then the stock menu). LÖVE's own
 -- handler would leave its error screen up for good on a cabinet with no keyboard.
 function love.errorhandler(msg)
   log("ERROR: " .. debug.traceback(tostring(msg), 2))
@@ -1787,6 +1803,11 @@ end
 -- The cards that say what's coming: the SCHEDULE (AUTO: what the calendar picks next) and the LONGHORNS (the
 -- next game, the live score, the final). Every half minute, and when the mode changes.
 local function update_cards()
+  -- (a refresh that fails is logged and skipped: the cards keep what they had)
+  local ok, err = pcall(ST.update_cards_inner)
+  if not ok then log("update_cards: " .. tostring(err)) end
+end
+ST.update_cards_inner = function()
   for _, it in ipairs(items) do
     if it.kind == "show" and show_mode == "auto" then
       local id = shows.pick(os.time(), game_now, auto_rot)

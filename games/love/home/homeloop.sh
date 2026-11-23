@@ -40,6 +40,7 @@ MODE=${1:-boot}
 TZ=$(cat /data/tv/tz 2>/dev/null || echo CST6CDT,M3.2.0,M11.1.0)
 export TZ
 FAILS=0
+SAFE=0
 # At power-on, Home plays its intro once (its state file says "coming back from a game" otherwise).
 INTRO=0
 [ "$MODE" = boot ] && INTRO=1
@@ -124,7 +125,7 @@ while :; do
   rm -f "$REQ"
   log "home: starting LOVE"
   STARTED=$(cut -d. -f1 /proc/uptime)
-  HOME_INTRO=$INTRO HOME_REQ=$REQ HOME_BACK=$BACK HOME_STATE=$H/state HOME_LOG=$LOG HOME_LOG_MAX=$LOG_MAX HOME_ART=$H/art HOME_GAMES=/data/Games HOME_MODE=$MODE \
+  HOME_SAFE=$SAFE HOME_INTRO=$INTRO HOME_REQ=$REQ HOME_BACK=$BACK HOME_STATE=$H/state HOME_LOG=$LOG HOME_LOG_MAX=$LOG_MAX HOME_ART=$H/art HOME_GAMES=/data/Games HOME_MODE=$MODE \
     /data/love/run.sh $H/home.love
   CODE=$?
   INTRO=0
@@ -133,11 +134,15 @@ while :; do
     # starts, twice running, means it's broken and the original menu should take over. 2026-11-06: two
     # out-of-memory kills, each after 15 minutes of shows, put the cabinet on the stock menu for the night)
     RAN=$(( $(cut -d. -f1 /proc/uptime) - STARTED ))
-    if [ $RAN -gt 120 ]; then FAILS=0; fi
+    if [ $RAN -gt 120 ]; then FAILS=0; SAFE=0; fi
     FAILS=$((FAILS + 1))
     log "Home quit without a choice (code $CODE) after ${RAN} s, $FAILS time(s)"
     [ "$MODE" = preview ] && exit 0
-    [ $FAILS -ge 2 ] && stock
+    # Failing as it starts: once, try again (a passing hiccup); twice, safe mode (HOME_SAFE=1: Home without the
+    # Longhorns' data, the TV guide and the games card, the parts that read the network and the card); a third
+    # time, the original menu. 2026-11-08: a bad cached Longhorns row went straight to the stock menu.
+    if [ $FAILS -eq 2 ]; then SAFE=1; log "starting Home in safe mode"; fi
+    [ $FAILS -ge 3 ] && { SAFE=0; stock; }
     continue
   fi
   FAILS=0

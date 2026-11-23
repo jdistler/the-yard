@@ -1157,6 +1157,28 @@ def home():
     ut_log = read(w, "log") or ""
     check(r.returncode == 0 and "ERROR" not in ut_log and "utgame: season 2 games" in ut_log,
           f"Home: a cached ut_season.txt with an 'in' row starts cleanly at cold boot (rc {r.returncode})")
+    # guard.lua and homeloop's safe mode: a module that fails is turned off, not Home; safe mode still plays.
+    for failing in ("longhorns", "tv", "games card"):
+        w2 = tmpdir()
+        sc2 = os.path.join(w2, "script")
+        open(sc2, "w").write("40 press low\n3000 quit\n")
+        env2 = dict(env, HOME_SCRIPT=sc2, HOME_REQ=os.path.join(w2, "req"), HOME_STATE=os.path.join(w2, "state"),
+                    HOME_LOG=os.path.join(w2, "log"), HOME_STATS=os.path.join(w2, "stats.tsv"),
+                    HOME_FAIL_MODULE=failing)
+        r = subprocess.run([LOVE_RUN, hl], cwd=w2, env=env2, capture_output=True, text=True, timeout=120)
+        lg = read(w2, "log") or ""
+        req = (read(w2, "req") or "").strip()
+        check(r.returncode == 0 and "is off until Home restarts" in lg and req.startswith("classic 0"),
+              f"Home: the {failing} module failing turns it off, and Home still plays ({req!r})")
+    w2 = tmpdir()
+    sc2 = os.path.join(w2, "script")
+    open(sc2, "w").write("40 press low\n3000 quit\n")
+    env2 = dict(env, HOME_SCRIPT=sc2, HOME_REQ=os.path.join(w2, "req"), HOME_STATE=os.path.join(w2, "state"),
+                HOME_LOG=os.path.join(w2, "log"), HOME_STATS=os.path.join(w2, "stats.tsv"), HOME_SAFE="1")
+    r = subprocess.run([LOVE_RUN, hl], cwd=w2, env=env2, capture_output=True, text=True, timeout=120)
+    req = (read(w2, "req") or "").strip()
+    check(r.returncode == 0 and "SAFE MODE" in (read(w2, "log") or "") and req.startswith("classic 0"),
+          f"Home in safe mode starts and plays a classic ({req!r})")
 
 
 def shows():
