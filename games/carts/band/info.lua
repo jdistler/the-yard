@@ -6,7 +6,11 @@ return {
   size = "large",
   save = "band",
   order = 86,
-  stat = function(s) local n = s.songs or 0 return n > 0 and plural(n, "encore") or nil end,
+  stat = function(s)
+    local f, n = s.fans or 0, s.songs or 0
+    if f > 0 then return plural(f, "fan") end
+    return n > 0 and plural(n, "encore") or nil
+  end,
   icon = function(x, y, lit, t)
     local b = lit and sin(t * 6) * 2 or 0
     if lit then gfx.glow(x, y, 18, alpha(0xb998f0, 140)) end
