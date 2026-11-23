@@ -21,7 +21,7 @@ local S = {
   COLS = COLS, ROWS = ROWS, TILE = TILE, TOP = TOP,
   phase = "play", level = 1, best = 0, hi = 0, score = 0, gems = 0, hurts = 0, hurt_cool = 0,
   px = col_x(6), py = row_y(5), face_x = 1, face_y = 0, moving = false, still_t = 0, walk_t = 0,
-  dug = {}, foes = {}, rocks = {}, gems_list = {}, flames = {}, pebbles = {},
+  dug = {}, dug_ver = 0, foes = {}, rocks = {}, gems_list = {}, flames = {}, pebbles = {},
   veggie = nil, rocks_dropped = 0, last_rush = false,
   pump = nil, aim = nil, shot_cool = 0, saw_release = false,
   react = "", react_left = 0, clear_t = 0, restart_t = 0, goodbye = false,
@@ -159,6 +159,7 @@ end
 local function dig_cell(c, r, silent)
   if r < 1 or r > ROWS or c < 1 or c > COLS or S.dug[r][c] then return false end
   S.dug[r][c] = true
+  S.dug_ver = S.dug_ver + 1
   if not silent then
     local x, y = col_x(c), row_y(r)
     particles.burst(x, y, 7, 1.8, 18, 2.5, stratum_col(r), "square")
@@ -183,7 +184,8 @@ local POCKETS = {
   {c0 = 2, r0 = 6, w = 1, h = 3, kind = "puff"},
   {c0 = 10, r0 = 7, w = 1, h = 3, kind = "char"},
 }
-local ROCK_SPOTS = {{3, 2}, {10, 2}, {4, 7}, {9, 7}}
+-- (none sits straight above a critter pocket, so no rock falls on its own at the start)
+local ROCK_SPOTS = {{5, 2}, {10, 2}, {4, 7}, {9, 7}}
 
 local function setup_level(lvl)
   S.phase, S.level, S.hurts, S.hurt_cool = "play", lvl, 0, 0
@@ -191,6 +193,7 @@ local function setup_level(lvl)
   S.veggie, S.rocks_dropped, S.last_rush = nil, 0, false
   S.clear_t, S.restart_t, S.still_t = 0, 0, 0
   S.dug = {}
+  S.dug_ver = S.dug_ver + 1
   for r = 1, ROWS do
     S.dug[r] = {}
     for c = 1, COLS do S.dug[r][c] = false end
@@ -205,8 +208,8 @@ local function setup_level(lvl)
   dig_cell(7, 5, true)
   S.px, S.py, S.face_x, S.face_y = col_x(6), row_y(5), 1, 0
 
-  -- Cave 1 starts punchier (4 critters: 2 Puff + 2 Char), scaling up to 6 on Cave 3+!
-  local nfoes = min(3 + lvl, #POCKETS)
+  -- Cave 1 is gentle for a five-year-old (3 critters: Puff, Char, Puff), scaling up to 6 by Cave 4.
+  local nfoes = min(2 + lvl, #POCKETS)
   for i = 1, nfoes do
     local p = POCKETS[i]
     local kind = p.kind
@@ -219,7 +222,7 @@ local function setup_level(lvl)
     S.foes[#S.foes + 1] = {
       kind = kind, x = cx, y = cy, dx = i % 2 == 0 and -1 or 1, dy = 0,
       puff = 0, deflate = 0, ph = i * 1.7,
-      fire_cool = max(70, 120 - lvl * 12) + i * 32, fire_tele = 0,
+      fire_cool = max(70, 120 - lvl * 12) + i * 32 + (lvl == 1 and 100 or 0), fire_tele = 0,
       ghost = false, ghost_cool = max(140, 260 - lvl * 30) + i * 70,
     }
   end
@@ -617,12 +620,20 @@ end
 
 function init()
   sfx.master(0.42)
-  sfx.limit(12000)
+  sfx.limit(8000)
   S.best = clamp(save.get("best", 0), 0, 100000)
   S.hi = clamp(save.get("hi", 0), 0, 999999)
   S.gems = clamp(save.get("gems", 0), 0, 100000)
   log("dig best " .. S.best)
   setup_level(1)
+end
+
+-- Leaving (1P+2P): keep the gems and the best score found so far.
+function quit()
+  save.set("best", S.best)
+  save.set("hi", S.hi)
+  save.set("gems", S.gems)
+  save.write()
 end
 
 function update()

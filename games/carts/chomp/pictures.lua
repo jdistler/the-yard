@@ -21,7 +21,7 @@ local THEMES = {
 }
 P.THEMES = THEMES
 
-local bg_layer, bg_key = nil, ""
+local bg_layers, bg_keys = {}, {}
 
 local function paint_maze(S, theme_idx, flash_white)
   local T = THEMES[theme_idx]
@@ -54,14 +54,17 @@ local function paint_maze(S, theme_idx, flash_white)
   gfx.rrect(W - ox - 2, wy - ts * 0.45, ox + 2, ts * 0.9, 2, T.bg)
 end
 
+-- Two cached layers (normal and white-flash walls), each repainted only when the maze changes.
 local function ensure_bg(S, flash_white)
   local tidx = ((S.stage - 1) % #THEMES) + 1
-  local key = tidx .. ":" .. (flash_white and "1" or "0") .. ":" .. S.maze_id
-  if not bg_layer then bg_layer = gfx.layer(W, H) end
-  if bg_key ~= key then
-    bg_key = key
-    bg_layer:paint(function() paint_maze(S, tidx, flash_white) end)
+  local key = tidx .. ":" .. S.maze_id
+  local i = flash_white and 2 or 1
+  if not bg_layers[i] then bg_layers[i] = gfx.layer(W, H) end
+  if bg_keys[i] ~= key then
+    bg_keys[i] = key
+    bg_layers[i]:paint(function() paint_maze(S, tidx, flash_white) end)
   end
+  return bg_layers[i]
 end
 
 -- ------------------------------------------------------------------ Chompy (Pac-Man homage)
@@ -194,8 +197,7 @@ end
 function P.draw()
   local S = P.S
   local flash = (S.phase == "clear") and (floor(S.clear_t / 8) % 2 == 0)
-  ensure_bg(S, flash)
-  gfx.draw(bg_layer, 0, 0)
+  gfx.blit(ensure_bg(S, flash), 0, 0)
 
   -- Dots & pulsing Power Pellets!
   local ox, oy, ts = S.OX, S.OY, S.TS

@@ -11,11 +11,11 @@ local C = {
 
 local TRACKS = {
   {name = "Meadow Circuit", sky1 = 0x66c2ff, sky2 = 0xbef0ff, grass1 = 0x62c462, grass2 = 0x52b052,
-   road = 0x6e7282, kerb1 = 0xe84855, kerb2 = 0xfff6ea, rainbow = false, len = 2600},
+   road = 0x6e7282, kerb1 = 0xe84855, kerb2 = 0xfff6ea, rainbow = false, len = 3600},
   {name = "Beach Boardwalk", sky1 = 0x4ab8ff, sky2 = 0xffe8b0, grass1 = 0xf4d28a, grass2 = 0xe8c070,
-   road = 0xb88652, kerb1 = 0x4ac8ff, kerb2 = 0xfff6ea, rainbow = false, len = 2900},
+   road = 0xb88652, kerb1 = 0x4ac8ff, kerb2 = 0xfff6ea, rainbow = false, len = 4200},
   {name = "Rainbow Skyway", sky1 = 0x1a1438, sky2 = 0x382068, grass1 = 0x241848, grass2 = 0x1c123a,
-   road = 0x4a3a7a, kerb1 = 0xffd84a, kerb2 = 0x7fe8ff, rainbow = true, len = 3200},
+   road = 0x4a3a7a, kerb1 = 0xffd84a, kerb2 = 0x7fe8ff, rainbow = true, len = 4800},
 }
 
 local RIVALS_DEF = {
@@ -77,13 +77,13 @@ local function setup_race(tr)
       spin = 0, phase = i * 1.4,
     }
   end
-  for d = 260, T.len - 220, 290 do
+  for d = 300, T.len - 260, 400 do
     for b = -1, 1 do
       S.boxes[#S.boxes + 1] = {x = b * 0.55, d = d, gone = false}
     end
   end
-  for d = 190, T.len - 180, 340 do
-    S.pads[#S.pads + 1] = {x = ((d / 340) % 2 == 0 and -0.42 or 0.42), d = d}
+  for d = 220, T.len - 220, 450 do
+    S.pads[#S.pads + 1] = {x = ((floor(d / 450)) % 2 == 0 and -0.42 or 0.42), d = d}
   end
   log("kart race " .. tr)
   music.play(race_bed)
@@ -197,6 +197,12 @@ function init()
   setup_race(1)
 end
 
+function quit()
+  save.set("best", S.best)
+  save.set("cups", S.cups)
+  save.write()
+end
+
 function update()
   local pressed, held = input.action(), input.action_down()
   local mx, my = input.dir()
@@ -243,14 +249,13 @@ function update()
 
     -- Item boxes.
     for _, b in ipairs(S.boxes) do
-      if not b.gone and abs(b.d - S.dist) < 24 and abs(b.x - S.px) < 0.28 then
+      -- (a box is left for later while his hands are full)
+      if not b.gone and not S.item and abs(b.d - S.dist) < 24 and abs(b.x - S.px) < 0.28 then
         b.gone = true
         S.score = S.score + 50
         particles.burst(W / 2 + S.px * 145, S.py, 14, 2.4, 22, 3, C.GOLD, "star")
-        if not S.item then
-          S.item = ITEMS[rndi(1, #ITEMS)]
-          S.item_spin = 26
-        end
+        S.item = ITEMS[rndi(1, #ITEMS)]
+        S.item_spin = 26
       end
     end
 
@@ -328,7 +333,7 @@ function update()
     end
     if (pressed and S.saw_release and S.finish_t > 80) or S.finish_t > 280 then
       snd.ok()
-      S.cup_pts = 0
+      S.cup_pts, S.score = 0, 0
       setup_race(1)
     end
   end
@@ -359,7 +364,7 @@ function draw()
   local T = TRACKS[S.track]
   local HY = 128
   -- Sky + ground.
-  gfx.vgrad(0, 0, W, HY, T.sky1, T.sky2)
+  gfx.blit(bake("sky" .. S.track, W, HY, function() gfx.vgrad(0, 0, W, HY, T.sky1, T.sky2) end), 0, 0)
   gfx.rect(0, HY, W, H - 32 - HY, T.grass1)
   if T.rainbow then
     for i = 1, 20 do

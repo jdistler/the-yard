@@ -62,6 +62,8 @@ local function draw_clouds()
   end
 end
 
+local tun_layer, tun_ver = nil, -1
+
 local function draw_tunnels()
   local S = P.S
   local COLS, ROWS, TILE, TOP = S.COLS, S.ROWS, S.TILE, S.TOP
@@ -305,7 +307,13 @@ function P.draw()
   local S = P.S
   backdrop("earth", paint_earth)
   draw_clouds()
-  draw_tunnels()
+  -- The tunnels change only when a cell is dug: paint them into a layer then, blit every frame.
+  if not tun_layer then tun_layer = gfx.layer(W, H) end
+  if tun_ver ~= S.dug_ver then
+    tun_ver = S.dug_ver
+    tun_layer:paint(draw_tunnels)
+  end
+  gfx.blit_key(tun_layer, 0, 0)
   -- Buried & dropped gems + classic center bonus veggie.
   for _, g in ipairs(S.gems_list) do draw_gem(g) end
   draw_veggie(S.veggie)

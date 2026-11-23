@@ -1,7 +1,8 @@
 -- Safari v2: Pocket Meadow Monsters!
 -- Rich Pokémon-inspired creature-catching & interactive Gym Stadium adventure (5+).
 -- Stick explores (and dodges in Gym!); LOW tosses a Friend Orb (or unleashes your buddy's
--- signature elemental move in the Gym!); TL/TR switches your active Buddy once you have 2+ friends!
+-- signature elemental move in the Gym!); TL switches your active Buddy once you have 2+ friends
+-- (TR and LOW always do the main verb)!
 -- safari.sav keeps "caught N", "badges N", "best N", and bitmask "dex N".
 
 local pics = import("pictures")
@@ -10,13 +11,13 @@ local ZONES = pics.ZONES
 
 -- Eight distinct Pokémon-homage monsters across 3 habitats, each with a signature move!
 local MONS = {
-  {id = 1, name = "Sparky",  col = C.PIKA,   accent = C.RED,    kind = "elec",  zone = 1, move = "THUNDERBOLT!"},
+  {id = 1, name = "Sparky",  col = C.PIKA,   accent = C.RED,    kind = "elec",  zone = 1, move = "ZAP BOLT!"},
   {id = 2, name = "Sprout",  col = C.MINT,   accent = C.GREEN,  kind = "leaf",  zone = 1, move = "RAZOR LEAF!"},
-  {id = 3, name = "Ember",   col = C.ORANGE, accent = C.GOLD,   kind = "fire",  zone = 2, move = "FLAMETHROWER!"},
-  {id = 4, name = "Mystic",  col = 0xf2c14e, accent = C.CYAN,   kind = "psy",   zone = 2, move = "PSYBEAM!"},
-  {id = 5, name = "Splash",  col = C.BLUE,   accent = C.CYAN,   kind = "water", zone = 3, move = "HYDRO WAVE!"},
+  {id = 3, name = "Ember",   col = C.ORANGE, accent = C.GOLD,   kind = "fire",  zone = 2, move = "FIRE PUFF!"},
+  {id = 4, name = "Mystic",  col = 0xf2c14e, accent = C.CYAN,   kind = "psy",   zone = 2, move = "MIND BEAM!"},
+  {id = 5, name = "Splash",  col = C.BLUE,   accent = C.CYAN,   kind = "water", zone = 3, move = "SPLASH WAVE!"},
   {id = 6, name = "Snooze",  col = C.NAVY,   accent = C.CREAM,  kind = "bear",  zone = 1, move = "MEGA BOUNCE!"},
-  {id = 7, name = "Giggle",  col = C.PURPLE, accent = C.ROSE,   kind = "ghost", zone = 2, move = "SHADOW BALL!"},
+  {id = 7, name = "Giggle",  col = C.PURPLE, accent = C.ROSE,   kind = "ghost", zone = 2, move = "SPOOKY BALL!"},
   {id = 8, name = "Skywing", col = 0xf2a43c, accent = C.TEAL,   kind = "drag",  zone = 3, move = "DRAGON STAR!"},
 }
 
@@ -160,8 +161,11 @@ local function save_progress()
   save.set("caught", count_dex())
   save.set("badges", S.badges)
   save.set("best", S.best)
-  local mask = 0
-  for i = 1, #MONS do if S.dex[i] then mask = mask + 2 ^ (i - 1) end end
+  local mask, bit = 0, 1
+  for i = 1, #MONS do
+    if S.dex[i] then mask = mask + bit end
+    bit = bit * 2
+  end
   save.set("dex", mask)
   save.write()
 end
@@ -284,16 +288,18 @@ end
 -- ------------------------------------------------------------------ Lifecycle
 function init()
   sfx.master(0.42)
-  sfx.limit(12000)
+  sfx.limit(8000)
   pics.build_bgs()
   S.badges = clamp(save.get("badges", 0), 0, 100000)
   S.best = clamp(save.get("best", 0), 0, 999999)
   local mask = clamp(save.get("dex", 0), 0, 255)
+  local bit = 1
   for i = 1, #MONS do
-    if idiv(mask, 2 ^ (i - 1)) % 2 == 1 then
+    if idiv(mask, bit) % 2 == 1 then
       S.dex[i] = true
       if not S.buddy then S.buddy = MONS[i] end
     end
+    bit = bit * 2
   end
   count_dex()
   log("safari caught " .. S.caught)
@@ -403,10 +409,10 @@ local function step_explore(mx, my, pressed, swap_l, swap_r)
   end
 
   -- Switch Buddy with TL/TR when you have 2+ friends; otherwise any right-hand button throws!
-  if S.saw_release and S.swap_cool == 0 and count_dex() >= 2 and (swap_l or swap_r) then
-    cycle_buddy(swap_r and 1 or -1)
+  if S.saw_release and S.swap_cool == 0 and count_dex() >= 2 and swap_l then
+    cycle_buddy(1)
     S.swap_cool = 16
-  elseif pressed and S.saw_release and S.cool == 0 then
+  elseif pressed and not (swap_l and count_dex() >= 2) and S.saw_release and S.cool == 0 then
     throw_orb()
     S.cool = 18
   end
@@ -429,9 +435,11 @@ local function step_gym(mx, pressed, swap_l, swap_r)
   S.by = approach(S.by, S.py - 44, 0.16)
 
   -- Switch buddy mid-battle with TL/TR for type matchups!
-  if S.saw_release and S.swap_cool == 0 and count_dex() >= 2 and (swap_l or swap_r) then
-    cycle_buddy(swap_r and 1 or -1)
+  local swapped = false
+  if S.saw_release and S.swap_cool == 0 and count_dex() >= 2 and swap_l then
+    cycle_buddy(1)
     S.swap_cool = 16
+    swapped = true
   end
 
   -- Gym Champion telegraphs & launches playful dodgeable orbs!
@@ -472,7 +480,7 @@ local function step_gym(mx, pressed, swap_l, swap_r)
   sweep(S.foe_shots, function(sh) return not sh.gone end)
 
   -- Unleash Buddy's signature elemental move!
-  if pressed and S.saw_release and S.cool == 0 then
+  if pressed and not swapped and not (swap_l and count_dex() >= 2) and S.saw_release and S.cool == 0 then
     S.cool = 14
     S.gym_atk_t = 14
     local b = S.buddy or MONS[1]
@@ -514,6 +522,10 @@ local function step_gym(mx, pressed, swap_l, swap_r)
       react_to("YOU WON THE " .. bname .. " BADGE!")
     end
   end
+end
+
+function quit()
+  save_progress()
 end
 
 function update()
@@ -683,7 +695,7 @@ function draw()
   local line = S.react_left > 0 and S.react or (
     S.phase == "gym" and ("Dodge & press for " .. (S.buddy and S.buddy.move or "STAR BEAM!")) or
     (S.aim and ("Press to toss a Friend Orb at " .. S.aim.mon.name .. "!") or
-    (S.buddy and "Walk to the GYM, explore left/right, or TL/TR swap buddy!" or "Walk near a monster and press!")))
+    (S.buddy and "Walk to the GYM, explore left/right, or TL swaps buddy!" or "Walk near a monster and press!")))
   if leaving() then line = "See you next time, Trainer!" end
   ui.band(line)
 end

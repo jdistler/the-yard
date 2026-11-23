@@ -144,7 +144,7 @@ local S = {
   px = 0, py = 0, fx = 1, fy = 0, want_x = 0, want_y = 0, moving = false, walk_t = 0, wakka = 0,
   power_t = 0, combo = 0, dash_t = 0, dash_cool = 0,
   ghosts = {}, fruit = nil, fruit_spawned = false,
-  saw_release = false, react = "", react_left = 0, goodbye = false,
+  sx = 0, sy = 0, saw_release = false, react = "", react_left = 0, goodbye = false,
 }
 pics.S = S
 
@@ -180,12 +180,14 @@ local function spawn_ghosts()
     {id = 4, name = "Goofy", col = C.ORANGE, c = 9, r = 8, dx = -1, dy = 0,  state = "house", release = 175},
   }
   S.ghosts = {}
+  -- Maze 1 has two ghosts, maze 2 three, then all four: a gentle ramp for little hands.
+  local count = min(S.stage + 1, 4)
   for _, d in ipairs(defs) do
-    S.ghosts[#S.ghosts + 1] = {
+    if d.id <= count then S.ghosts[#S.ghosts + 1] = {
       id = d.id, name = d.name, col = d.col,
       x = cell_x(d.c), y = cell_y(d.r), dx = d.dx, dy = d.dy,
       state = d.state, release = d.release,
-    }
+    } end
   end
 end
 
@@ -213,7 +215,7 @@ local function setup_stage(st)
       else
         S.dots[r][c] = 0
       end
-      if ch == "P" then S.px, S.py = cell_x(c), cell_y(r) end
+      if ch == "P" then S.px, S.py, S.sx, S.sy = cell_x(c), cell_y(r), cell_x(c), cell_y(r) end
     end
   end
   S.dots_total = S.dots_left
@@ -436,9 +438,15 @@ local function step_ghosts()
           gfx.shake(5)
           particles.burst(S.px, S.py, 14, 2.4, 24, 2.8, C.ROSE, "star")
           if S.hurts >= 3 then
+            -- Soft restart: the dots he already ate stay eaten; only the ghosts and Chompy go home.
             save_progress()
-            react_to("Nice try! Let's chomp again!")
-            setup_stage(S.stage)
+            S.hurts, S.hurt_cool, S.power_t, S.dash_t, S.combo = 0, 0, 0, 0, 0
+            S.px, S.py, S.fx, S.fy, S.want_x, S.want_y = S.sx, S.sy, 1, 0, 0, 0
+            spawn_ghosts()
+            S.phase, S.ready_t = "ready", 52
+            log("chomp restart " .. game.frame)
+            music.play(maze_bed)
+            react_to("Nice try! The dots you ate stay eaten!")
             return
           else
             -- Gentle bounce back to safe lane without losing dot progress!
@@ -510,11 +518,15 @@ end
 -- ------------------------------------------------------------------ Lifecycle
 function init()
   sfx.master(0.42)
-  sfx.limit(12000)
+  sfx.limit(8000)
   S.best = clamp(save.get("best", 0), 0, 100000)
   S.hi = clamp(save.get("hi", 0), 0, 999999)
   log("chomp hi " .. S.hi)
   setup_stage(1)
+end
+
+function quit()
+  save_progress()
 end
 
 function update()

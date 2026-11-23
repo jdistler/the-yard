@@ -363,13 +363,9 @@ function P.draw_orb(x, y, r, super_orb, wob)
 end
 
 -- ------------------------------------------------------------------ Gym Stadium Arena
-function P.draw_gym_bg(zone, foe_col)
+local function paint_gym()
   gfx.vgrad(0, 0, W, H - 32, 0x262044, 0x3c2e64)
-  -- Stadium spotlight beams from top corners
-  local sw = sin(game.frame * 0.04) * 28
-  gfx.tri(24, 56, 150 + sw, 420, 230 + sw, 420, alpha(C.GOLD, 26))
-  gfx.tri(W - 24, 56, W - 230 - sw, 420, W - 150 - sw, 420, alpha(foe_col or C.CYAN, 26))
-  -- Stadium floor court with Poké-ring center
+  -- Stadium floor court with a ring in the center
   gfx.rrect_o(18, 118, W - 36, 326, 20, 0x4a7e5a, C.INK, 3)
   gfx.rrect(26, 126, W - 52, 310, 14, 0x5c9668)
   gfx.line(26, 280, W - 26, 280, 3, alpha(C.WHITE, 140))
@@ -378,6 +374,14 @@ function P.draw_gym_bg(zone, foe_col)
   -- Opponent & Player battle platforms
   gfx.ellipse_o(192, 188, 92, 26, alpha(C.CREAM, 195), C.INK, 2.2)
   gfx.ellipse_o(192, 368, 102, 28, alpha(C.CREAM, 195), C.INK, 2.2)
+end
+
+-- The arena is painted once (the dithered gradient is the costly part); only the beams move.
+function P.draw_gym_bg(zone, foe_col)
+  backdrop("gym", paint_gym)
+  local sw = sin(game.frame * 0.04) * 28
+  gfx.tri(24, 56, 150 + sw, 420, 230 + sw, 420, alpha(C.GOLD, 22))
+  gfx.tri(W - 24, 56, W - 230 - sw, 420, W - 150 - sw, 420, alpha(foe_col or C.CYAN, 22))
 end
 
 -- ------------------------------------------------------------------ Zone Backdrop & Gym Arch
@@ -404,7 +408,7 @@ end
 
 -- ------------------------------------------------------------------ Badge Ceremony Emblem
 local BADGE_COLS = {C.GOLD, C.BLUE, C.RED, C.GREEN, C.PURPLE, C.CYAN}
-local BADGE_NAMES = {"THUNDER", "CASCADE", "FLAME", "MEADOW", "MYSTIC", "STARLIGHT"}
+local BADGE_NAMES = {"ZAP", "SPLASH", "FLAME", "MEADOW", "MYSTIC", "STARLIGHT"}
 function P.badge_info(n)
   local idx = ((n - 1) % #BADGE_COLS) + 1
   return BADGE_COLS[idx], BADGE_NAMES[idx]
