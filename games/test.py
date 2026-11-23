@@ -941,7 +941,7 @@ def love():
     # `at` is an error the cart can read.
     mc = tmpdir()
     os.makedirs(os.path.join(mc, "musiccheck"))
-    open(os.path.join(mc, "musiccheck", "info.lua"), "w").write('return { title = "Musiccheck" }\n')
+    open(os.path.join(mc, "musiccheck", "info.lua"), "w").write('return { title = "Musiccheck", save = "musiccheck" }\n')
     open(os.path.join(mc, "musiccheck", "main.lua"), "w").write(
         'local A = {bpm = 240, steps = 2, {"C5 E5 G5 E5", wave = "tri", vol = 0.1}, {"C3 - G2 -", wave = "sine"}}\n'
         'local f = 0\n'
@@ -950,7 +950,10 @@ def love():
         '  if f == 5 then music.track(2, 1) music.cue{wave = "sine", note = 72, at = "beat"} end\n'
         '  if f == 20 then A.keep = true music.play(A) log("kept " .. tostring(music.step() > 0)) end\n'
         '  if f == 25 then log("badat " .. tostring(not pcall(music.cue, {at = "later"}))) end\n'
-        '  if f == 30 then music.stop() music.cue{note = 60} log("musicdone") end end\n'
+        '  if f == 30 then music.stop() music.cue{note = 60} log("musicdone") end\n'
+        '  if f == 35 then save.set("gift", 7) save.set("bow", "gold") save.write()\n'
+        '    log("peek " .. save.peek("musiccheck", "gift", 0) .. " " .. save.peek("musiccheck", "bow", 3) .. " "\n'
+        '        .. save.peek("musiccheck", "bow", "x") .. " " .. save.peek("nosuchcart", "gift", 9)) end end\n'
         'function draw() end\n')
     c_dir, l_dir = tmpdir(), tmpdir()
     # (CAB_AUDIO_WAV: the C synth pulled once a frame, so the sequencer runs without a sound device)
@@ -962,6 +965,7 @@ def love():
     _, l_err = run("love", l_dir, script("Musiccheck", "60 quit"), dict(lenv, YARD_CARTS=mc), args=(yl, "musiccheck"),
                    timeout=300, binary=LOVE_RUN)
     for name, err in (("C", c_err), ("GPU", l_err)):
+        check("peek 7 3 gold 9" in err, f"save.peek reads another cart's save, with save.get's defaults, on the {name} runtime")
         check(all(w in err for w in ("kept true", "badat true", "musicdone")),
               f"interactive music (track levels, cues on the beat, keep) works on the {name} runtime")
     # 2. The menu launches a cart in the same process and comes back to a drawn menu.

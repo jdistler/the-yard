@@ -190,7 +190,8 @@ local function budget(name, steps)
   phase_name, steps_left = name, steps
 end
 
-local function make_save(env, name)
+-- name.sav as {values}, {key order}: the rules engine/runtime.c's save_read keeps.
+local function read_sav(name)
   local values, order = {}, {}
   if name and name:match("^[a-z0-9_-]+$") then
     local f = io.open(name .. ".sav")
@@ -213,7 +214,19 @@ local function make_save(env, name)
       f:close()
     end
   end
+  return values, order
+end
+
+local function make_save(env, name)
+  local values, order = read_sav(name)
   local save = {}
+  -- Another cart's save, read only (engine/runtime.c's l_save_peek).
+  function save.peek(other, k, default)
+    if type(other) ~= "string" or type(k) ~= "string" then error("save.peek(other, key, default)", 2) end
+    local v = read_sav(other)[k]
+    if v == nil or (type(default) == "number" and type(v) ~= "number") then return default end
+    return v
+  end
   function save.get(k, default)
     local v = values[k]
     if v == nil then return default end

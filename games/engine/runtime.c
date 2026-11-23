@@ -472,6 +472,23 @@ static int l_save_get(lua_State *L)
     return 1;
 }
 
+/* save.peek(other, key, default): another cart's save, read only (Tea sees what was grown in Garden). The
+ * same rules as save.get; a missing file, key or a word where a number belongs gives the default. */
+static int l_save_peek(lua_State *L)
+{
+    const char *other = luaL_checkstring(L, 1);
+    const char *k = luaL_checkstring(L, 2);
+    lua_settop(L, 3);
+    save_read(L, other); /* 4: values, 5: order */
+    lua_pop(L, 1);
+    lua_getfield(L, 4, k);
+    if (lua_isnil(L, -1) || (lua_type(L, 3) == LUA_TNUMBER && lua_type(L, -1) != LUA_TNUMBER)) {
+        lua_pushvalue(L, 3);
+        return 1;
+    }
+    return 1;
+}
+
 static int l_save_set(lua_State *L)
 {
     const char *k = luaL_checkstring(L, 1);
@@ -570,7 +587,8 @@ static int l_save_all(lua_State *L)
 static void open_save(lua_State *L, const char *name)
 {
     static const luaL_Reg fns[] = {
-        {"get", l_save_get}, {"set", l_save_set}, {"write", l_save_write}, {"all", l_save_all}, {NULL, NULL}};
+        {"get", l_save_get}, {"set", l_save_set}, {"write", l_save_write}, {"all", l_save_all},
+        {"peek", l_save_peek}, {NULL, NULL}};
     snprintf(save_file, sizeof save_file, "%s", name && save_name_ok(name) ? name : "");
     save_read(L, save_file);
     lua_setfield(L, LUA_REGISTRYINDEX, "yard.saveorder");

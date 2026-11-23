@@ -273,6 +273,7 @@ A track is a string of steps. `C5`, `F#4`, and `Bb3` are notes. `.` is a rest, `
 | `save.set(key, value)` | A whole number (±1e9), one word (letters, digits, `_ - .`), or nil to drop the key |
 | `save.write()` | Write the file: temp file, fsync, rename. Returns true on success |
 | `save.all()` | A copy of every key |
+| `save.peek(other, key, default)` | Another cart's save, read only, with `save.get`'s defaults (`other` is its `info.save` name). One world across carts: Tea can set Garden's flowers on the table. Never rely on it: the other cart may never have been played |
 
 Write at moments that matter (a record, a gift, the end of a round), not every frame. Clamp what you load: `clamp(save.get("gems", 0), 0, 100000)`.
 
