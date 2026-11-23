@@ -12,6 +12,8 @@ local master, peak = 0.32, 1
 -- while capping below 0.85 so multi-voice chiptunes + SFX never clip.
 local function gain(v) return math.min(math.min(0.85, peak * 2.5), math.min(1, v * master * 2.5)) end
 local song, step_left, song_step, mus_vol, mus_target, tempo = nil, 0, 0, 1, 1, 1
+-- Interactive music (engine/sfx.c's track_level and cues): a level per track, notes waiting for a step or beat.
+local levels, cues = {1, 1, 1, 1, 1, 1}, {}
 local nsteps = {}
 
 -- Samples go straight into the SoundData's memory through LuaJIT's FFI when it is there: one call per
@@ -183,6 +185,16 @@ local function note_sound(tr, v, i)
 end
 
 function A.song_tick()
+  local i = 1
+  while i <= #cues do
+    local c = cues[i]
+    if c.every <= 1 or song_step % c.every == 0 then
+      play_sd(c.sd, c.vol)
+      table.remove(cues, i)
+    else
+      i = i + 1
+    end
+  end
   for t, tr in ipairs(song.tracks) do
     local st = tr.steps
     local len = #st
@@ -194,10 +206,10 @@ function A.song_tick()
           tr.voice:setVolume(tr.voice:getVolume() * 0.5)
         end
         tr.voice = nil
-        if v ~= -1 then
+        if v ~= -1 and levels[t] >= 0.001 then
           local sd = note_sound(tr, v, song_step % len)
           local src = love.audio.newSource(sd, "static")
-          src:setVolume(gain(tr.vol * mus_vol))
+          src:setVolume(gain(tr.vol * mus_vol * levels[t]))
           src:play()
           tr.voice = src
         end
@@ -250,7 +262,12 @@ function music.play(s)
                  attack = t.attack or 0.005, transpose = t.transpose or 0, duty = t.duty or 0.5}
   end
   song = {bpm = s.bpm or 120, steps = s.steps or 4, tracks = tracks}
-  song_step, step_left = 0, 0
+  if not s.keep then
+    song_step, step_left, cues = 0, 0, {}
+    levels = {1, 1, 1, 1, 1, 1}
+  else
+    step_left = math.min(step_left, 60 / (song.bpm * song.steps))
+  end
   -- Render every note of the song now, so none is made while it plays.
   for _, tr in ipairs(tracks) do
     local st, len = tr.steps, #tr.steps
@@ -262,14 +279,31 @@ function music.play(s)
 end
 function music.stop()
   if song then for _, t in ipairs(song.tracks) do if t.voice then t.voice:stop() end end end
-  song = nil
+  song, cues = nil, {}
 end
 function music.volume(v) mus_target = v end
 function music.tempo(k) tempo = k end
 function music.step() return song_step end
+function music.track(i, level)
+  if i >= 1 and i <= 6 then levels[i] = math.max(0, math.min(1.5, level)) end
+end
+function music.cue(o)
+  local dur = o.dur or 0.25
+  local hz = o.note and midi_hz(o.note) or o.hz or 440
+  local sd = sound(wave_of(o.wave), hz, o.hz_end or 0, dur, o.attack or 0.004, o.release or dur * 0.6, o.duty or 0.5,
+    o.vib_hz or 0, o.vib_depth or 0)
+  local at, every = o.at or "step", 1
+  local spb = song and song.steps or 4
+  if at == "beat" then every = spb elseif at == "bar" then every = spb * 4
+  elseif at ~= "step" then error("music.cue at = '" .. tostring(at) .. "': step, beat or bar", 2) end
+  if not song then play_sd(sd, o.vol or 0.2) return end
+  if #cues >= 16 then table.remove(cues, 1) end
+  cues[#cues + 1] = {sd = sd, vol = o.vol or 0.2, every = every}
+end
 
 function A.reset()
   music.stop()
+  levels, cues = {1, 1, 1, 1, 1, 1}, {}
   for _, s in ipairs(sources) do if s.src then s.src:stop() end end
   sources = {}
   master, peak, tempo, mus_vol, mus_target = 0.32, 1, 1, 1, 1

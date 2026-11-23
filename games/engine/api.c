@@ -939,7 +939,10 @@ static int l_music_play(lua_State *L)
         lua_pop(L, 1);
     }
     s->ntracks = n;
-    music_play(s);
+    lua_getfield(L, 1, "keep");
+    k = lua_toboolean(L, -1);
+    lua_pop(L, 1);
+    music_play_keep(s, k);
     return 0;
 }
 static int l_music_stop(lua_State *L)
@@ -956,6 +959,53 @@ static int l_music_volume(lua_State *L)
 static int l_music_tempo(lua_State *L)
 {
     music_tempo(num(L, 1));
+    return 0;
+}
+/* music.track(i, level): track i (1-based, as written in music.play) louder, softer, or silent (0). */
+static int l_music_track(lua_State *L)
+{
+    music_track((int)luaL_checkinteger(L, 1) - 1, num(L, 2));
+    return 0;
+}
+/* music.cue{wave =, note = (midi) or hz =, dur =, vol =, at = "step" | "beat" | "bar", ...sfx.play's fields}:
+ * a note that waits for the song's next step, beat (steps per beat), or bar (4 beats), so a press lands in time. */
+static int l_music_cue(lua_State *L)
+{
+    sfx_t s;
+    const char *at;
+    int every = 1;
+    const sfx_song *cur = music_current();
+    int spb = cur && cur->steps_per_beat > 0 ? cur->steps_per_beat : 4;
+    luaL_checktype(L, 1, LUA_TTABLE);
+    memset(&s, 0, sizeof s);
+    lua_getfield(L, 1, "wave");
+    s.wave = wave_of(L, -1);
+    lua_pop(L, 1);
+    lua_getfield(L, 1, "note");
+    if (lua_isnumber(L, -1))
+        s.hz = sfx_midi_hz((float)lua_tonumber(L, -1));
+    else
+        s.hz = field_num(L, 1, "hz", 440);
+    lua_pop(L, 1);
+    s.hz_end = field_num(L, 1, "hz_end", 0);
+    s.dur = field_num(L, 1, "dur", 0.25f);
+    s.vol = field_num(L, 1, "vol", 0.2f);
+    s.attack = field_num(L, 1, "attack", 0.004f);
+    s.release = field_num(L, 1, "release", s.dur * 0.6f);
+    s.duty = field_num(L, 1, "duty", 0.5f);
+    s.vib_hz = field_num(L, 1, "vib_hz", 0);
+    s.vib_depth = field_num(L, 1, "vib_depth", 0);
+    s.pan = field_num(L, 1, "pan", 0);
+    lua_getfield(L, 1, "at");
+    at = luaL_optstring(L, -1, "step");
+    if (!strcmp(at, "beat"))
+        every = spb;
+    else if (!strcmp(at, "bar"))
+        every = spb * 4;
+    else if (strcmp(at, "step"))
+        return luaL_error(L, "music.cue at = '%s': step, beat or bar", at);
+    lua_pop(L, 1);
+    music_cue(&s, every);
     return 0;
 }
 static int l_music_step(lua_State *L)
@@ -1057,7 +1107,8 @@ void api_open(lua_State *L)
                                        {"arp", l_arp},   {"play", l_play},     {"master", l_master}, {"limit", l_limit},
                                        {NULL, NULL}};
     static const luaL_Reg music_fns[] = {{"play", l_music_play},     {"stop", l_music_stop}, {"volume", l_music_volume},
-                                         {"tempo", l_music_tempo},   {"step", l_music_step}, {NULL, NULL}};
+                                         {"tempo", l_music_tempo},   {"step", l_music_step}, {"track", l_music_track},
+                                         {"cue", l_music_cue},       {NULL, NULL}};
     static const luaL_Reg part_fns[] = {{"spawn", l_p_spawn}, {"burst", l_p_burst}, {"text", l_p_text},
                                         {"draw", l_p_draw},   {"clear", l_p_clear}, {"count", l_p_count},
                                         {NULL, NULL}};

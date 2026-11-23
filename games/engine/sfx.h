@@ -65,6 +65,10 @@ void music_stop(void);
 void music_volume(float v);   /* 0..1, eases */
 void music_tempo(float k);    /* 1 is the song's own speed */
 int music_step(void);         /* current step, for animation in time with the song */
+/* Interactive music. keep: a new arrangement from the step the old one had reached (tracks' levels kept). */
+void music_play_keep(const sfx_song *s, int keep);
+void music_track(int t, float level);  /* track t (0-based) at level 0..1.5 from its next note; play resets to 1 */
+void music_cue(const sfx_t *s, int every); /* sounds on the next step where step % every == 0 (now, with no song) */
 const sfx_song *music_current(void);
 
 #endif

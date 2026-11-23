@@ -243,6 +243,14 @@ music.play{bpm = 96, steps = 2,              -- steps per beat
 
 A track is a string of steps. `C5`, `F#4`, and `Bb3` are notes. `.` is a rest, `-` holds the last note, and `K S H C` are kick, snare, hat, and clap. A song has up to 6 tracks of up to 128 steps, and loops. `music.stop()` stops it. `music.volume(v)` fades the level, `music.tempo(k)` changes the speed, and `music.step()` returns the current step, to animate in time.
 
+**Interactive music.** A song can answer the player:
+
+| Call | |
+| :--- | :--- |
+| `music.track(i, level)` | Track `i` (1-based, as written) at `level` 0 to 1.5 from its next note; 0 silences it. Layer a song in as the player does well: the bass after the first catch, the drums after the third. `music.play` sets every track back to 1 |
+| `music.cue{note =, wave =, dur =, vol =, at =, ...}` | A note that waits for the song's next `"step"` (default), `"beat"` or `"bar"`, so a press lands in time. `note` is MIDI (or `hz =`); the other fields are `sfx.play`'s. Pick the note from the chord under `music.step()` and a child's mashing is music. With no song it sounds at once |
+| `music.play{..., keep = true}` | A new arrangement from the step the old one reached, track levels kept: the verse turns into the chorus without a restart. Give both the same length and tempo |
+
 ### particles
 
 | Call | |

@@ -35,6 +35,10 @@ static int song_len, song_step, step_left, step_samples;
 static float mus_vol = 1.f, mus_target = 1.f, mus_tempo = 1.f;
 static int base_step;
 static int track_voice[6];
+/* Interactive music: a level per track (music.track), and notes waiting for the next step or beat (music.cue). */
+static float track_level[6] = {1, 1, 1, 1, 1, 1};
+#define NCUE 16
+static struct { sfx_t s; int every; int on; } cues[NCUE];
 
 float sfx_midi_hz(float midi) { return 440.f * powf(2.f, (midi - 69.f) / 12.f); }
 
@@ -226,6 +230,12 @@ static void parse_track(int t, const char *s)
 
 static void song_tick(void)
 {
+    /* A cue sounds on the first step that falls on its grid (every 1: the next step; steps per beat: a beat). */
+    for (int c = 0; c < NCUE; c++)
+        if (cues[c].on && (cues[c].every <= 1 || song_step % cues[c].every == 0)) {
+            cues[c].on = 0;
+            start_voice(alloc_voice(), &cues[c].s, 0);
+        }
     for (int t = 0; t < song->ntracks; t++) {
         const sfx_track *tr = &song->tr[t];
         int len = nsteps[t];
@@ -243,7 +253,7 @@ static void song_tick(void)
                 vs[vi].len = vs[vi].pos + vs[vi].rel;
         }
         track_voice[t] = -1;
-        if (st == -1)
+        if (st == -1 || track_level[t] < 0.001f)
             continue;
         {
             int hold = 1;
@@ -251,7 +261,7 @@ static void song_tick(void)
             memset(&s, 0, sizeof s);
             while (hold < len && steps[t][(song_step + hold) % len] == -2)
                 hold++;
-            s.vol = tr->vol * mus_vol;
+            s.vol = tr->vol * mus_vol * track_level[t];
             s.pan = tr->pan;
             s.attack = tr->attack;
             s.release = tr->release > 0 ? tr->release : 0.05f;
@@ -351,26 +361,40 @@ int sfx_init(void)
     return 0;
 }
 
-void music_play(const sfx_song *s)
+void music_play(const sfx_song *s) { music_play_keep(s, 0); }
+
+void music_play_keep(const sfx_song *s, int keep)
 {
     if (!ready)
         return;
     SDL_LockAudio();
     song = NULL;
     song_len = 0;
+    if (!s)
+        for (int c = 0; c < NCUE; c++)
+            cues[c].on = 0;
     if (s) {
         for (int t = 0; t < s->ntracks && t < 6; t++) {
             parse_track(t, s->tr[t].notes);
             if (nsteps[t] > song_len)
                 song_len = nsteps[t];
-            track_voice[t] = -1;
+            if (!keep)
+                track_voice[t] = -1;
         }
         base_step = (int)(RATE * 60.f / (s->bpm * (s->steps_per_beat > 0 ? s->steps_per_beat : 4)));
         if (base_step < 100)
             base_step = 100;
         step_samples = (int)(base_step / mus_tempo);
-        song_step = 0;
-        step_left = 1;
+        if (!keep) {
+            for (int c = 0; c < NCUE; c++)
+                cues[c].on = 0;
+            song_step = 0;
+            step_left = 1;
+            for (int t = 0; t < 6; t++)
+                track_level[t] = 1;
+        } else if (step_left > step_samples) {
+            step_left = step_samples;
+        }
         song = s;
     }
     SDL_UnlockAudio();
@@ -389,4 +413,31 @@ void music_tempo(float k)
     SDL_UnlockAudio();
 }
 int music_step(void) { return song ? song_step : 0; }
+
+void music_track(int t, float level)
+{
+    if (t < 0 || t >= 6)
+        return;
+    track_level[t] = level < 0 ? 0 : level > 1.5f ? 1.5f : level;
+}
+
+void music_cue(const sfx_t *s, int every)
+{
+    if (!ready)
+        return;
+    SDL_LockAudio();
+    if (!song) {
+        start_voice(alloc_voice(), s, 0);
+    } else {
+        int c = 0;
+        while (c < NCUE && cues[c].on)
+            c++;
+        if (c == NCUE)
+            c = 0; /* full: the oldest slot gives way */
+        cues[c].s = *s;
+        cues[c].every = every;
+        cues[c].on = 1;
+    }
+    SDL_UnlockAudio();
+}
 const sfx_song *music_current(void) { return song; }
