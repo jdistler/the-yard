@@ -384,14 +384,19 @@ static void on_stream(Fields *f, void *ctx)
     (void)ctx;
     if (f->val[3].p) id_add(f->val[3].p);
     const char *ids = f->val[5].p, *pos = f->val[6].p;
-    if (!ids || f->val[5].n < 2 || ids[0] != '[' || !strchr(ids, '"')) { row_add(f->val[0].p ? f->val[0].p : "", (long)rows_n, f); return; }
-    /* every quoted id in the array; its position from gate_pos {"id":n,...} */
-    for (const char *q = strchr(ids, '"'); q; q = strchr(q, '"')) {
-        const char *e = strchr(q + 1, '"');
-        if (!e) break;
+    if (!ids || f->val[5].n < 2 || ids[0] != '[') { row_add(f->val[0].p ? f->val[0].p : "", (long)rows_n, f); return; }
+    /* every id in the array, quoted ("2", the gate) or bare (2, most Xtream panels: the old quoted-only scan
+     * only ever put a channel in its main group there); its position from gate_pos {"id":n,...} */
+    int added = 0;
+    const char *end = ids + f->val[5].n;
+    for (const char *q = ids + 1; q < end; ) {
+        while (q < end && (*q == ' ' || *q == ',' || *q == '"' || *q == '[' || *q == ']')) q++;
+        const char *e = q;
+        while (e < end && *e != '"' && *e != ',' && *e != ']' && *e != ' ') e++;
+        if (e == q) break;
         char cat[64];
-        size_t n = (size_t)(e - q - 1) < sizeof cat - 1 ? (size_t)(e - q - 1) : sizeof cat - 1;
-        memcpy(cat, q + 1, n); cat[n] = 0;
+        size_t n = (size_t)(e - q) < sizeof cat - 1 ? (size_t)(e - q) : sizeof cat - 1;
+        memcpy(cat, q, n); cat[n] = 0;
         long at = (long)rows_n;
         if (pos) {
             char key[80];
@@ -400,8 +405,10 @@ static void on_stream(Fields *f, void *ctx)
             if (k) at = strtol(k + strlen(key), NULL, 10);
         }
         row_add(cat, at, f);
-        q = e + 1;
+        added++;
+        q = e;
     }
+    if (!added) row_add(f->val[0].p ? f->val[0].p : "", (long)rows_n, f);   /* "[]": the channel's own group */
 }
 
 /* Days since 1970-01-01 of a civil date (Howard Hinnant's algorithm). */

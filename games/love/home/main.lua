@@ -446,15 +446,17 @@ local label_jobs = {}
 local function neon_img(s, px, c, glow)
   px = math.floor(px + 0.5)                -- (whole pixels: one picture per text and size, not one a frame)
   local key = s .. "|" .. px .. "|" .. c .. "|" .. (glow or 1) .. (ST.face == "script" and "|s" or "")
-  ST.neon_seq = (ST.neon_seq or 0) + 1
+  local now = love.timer.getTime()
   local e = neon_cache[key]
-  if e then e.used = ST.neon_seq return e end
+  if e then e.used = now return e end
+  -- At most 32 kept: the least recently used goes, but never one used in the last 0.1 s (this frame may still
+  -- draw it, and drawing a released canvas is an error that ends Home).
   local n, old_k, old_t = 0, nil, math.huge
   for k, v in pairs(neon_cache) do
     n = n + 1
     if (v.used or 0) < old_t then old_k, old_t = k, v.used or 0 end
   end
-  if n >= 32 and old_k then
+  if n >= 32 and old_k and now - old_t > 0.1 then
     neon_cache[old_k].img:release()
     neon_cache[old_k] = nil
   end
@@ -470,7 +472,7 @@ local function neon_img(s, px, c, glow)
   neon(s, pad, pad, px, c, glow, "left", cw)
   lg.pop()
   cv:setFilter("linear", "linear")
-  e = {img = cv, w = cw, h = ch, pad = pad, used = ST.neon_seq}
+  e = {img = cv, w = cw, h = ch, pad = pad, used = now}
   neon_cache[key] = e
   return e
 end
@@ -1554,11 +1556,7 @@ local function picture_boot()
   local ar, ag, ab = rgb(ST.ACCENT)
   fx.glow(W / 2, 445, 440, 240, r, g, b, 0.28)
   fx.glow(W / 2, 575, 340, 120, ar, ag, ab, 0.22)
-  neon_draw("PARTYCADE", 0, 355, 64, ST.C, 1.2, "center", W, 1, 1.25)
-  neon_draw("ARCADE", 0, 444, 38, ST.ACCENT, 1.0, "center", W)
-  lg.setColor(ar, ag, ab, 0.6)
-  lg.setLineWidth(2)
-  lg.line(180, 514, W - 180, 514)
+  -- (the sign above is the brand: Starlight, the name the family chose; no second name under it)
   lg.setColor(0.05, 0.02, 0.12, 0.88)
   rrect("fill", 194, 550, W - 388, 66, 20)
   lg.setColor(ar, ag, ab, 0.9)
