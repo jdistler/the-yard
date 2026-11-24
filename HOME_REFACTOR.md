@@ -143,7 +143,7 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
       would have kept stale copies), syncs the frame clock t (`--sync t`: main hands each new value over), and
       runs the section's top-level statements after its names are filled (the first try failed at load). The
       globals gate caught shows_ctx (a declaration with a trailing comment the mover had not parsed).
-- [ ] `menu.lua`: the menu scene's drawing.
+- [x] `menu.lua`: the menu scene's drawing (681 lines; confetti lifted first): locals 96 -> 76.
 - [ ] Milestone: G4, G5.
 
 **CP5. Scenes.**

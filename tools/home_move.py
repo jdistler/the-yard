@@ -77,7 +77,7 @@ def main():
     src = open(MAIN).read()
     lines = src.split("\n")
     heads = [i for i, l in enumerate(lines) if re.match(r"^-- -{10,} ", l)]
-    start = next(i for i in heads if lines[i].endswith(" " + section))
+    start = next(i for i in heads if re.sub(r"^-- -+ ", "", lines[i]) == section)
     end = next((i for i in heads if i > start), len(lines))
     body = lines[start + 1:end]
     before, after = lines[:start], lines[end:]
