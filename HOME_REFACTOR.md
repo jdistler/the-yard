@@ -109,8 +109,9 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
 **CP2. The leaves.** One commit each; G1-G3 each.
 - [x] `draw.lua` from "colors and drawing" (11 names -> 1): locals 192 -> 183, slots 202 -> 192.
 - [x] `input.lua` from "input" (16 names -> 1; the LÖVE key callbacks move with it): locals 183 -> 172, upvalues 54 -> 49.
-- [ ] `pictures.lua` from "the pictures between programs" (6 names -> 1).
-- [ ] Milestone: G4, G5.
+- [x] `pictures.lua` from "the pictures between programs" (6 names -> 1): locals 172 -> 167, upvalues 49 -> 47.
+- [x] Milestone: G4 full suite 249/249; G5 on the cabinet: startup 1.05/0.82 s, menu 58-59 fps, attract 58 fps,
+      textures 12.2 MB, RSS 39 MB, no errors: identical to the CP1 baseline.
 
 **CP3. One context table.** The hub becomes `app`.
 - [ ] `app` created in main; the head's paths, flags and modules move into it (callers use `app.X`; hot loops keep
@@ -141,6 +142,8 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
 (Each checkpoint: date, commits, metrics before and after, gates passed, cabinet numbers.)
 
 * **CP0, 2026-11-24:** locals 192/200, slots 202/250, upvalues 54/60 (love.load). Tour 50 steps, golden saved.
+* **CP2 done, 2026-11-24:** pictures.lua out too: locals 192 -> 167, slots 202 -> 176, upvalues 54 -> 47 overall.
+  G4 249/249, G5 identical to baseline.
 * **CP2 (part), 2026-11-24:** draw.lua and input.lua out: locals 192 -> 172, slots 202 -> 181, most upvalues
   54 -> 49. Gates: the tour identical after each move (50/50), Home tests 30/30, show lint all shows ok. Lesson:
   the scripted renaming missed a table key at the start of a line in a multi-line constructor (`down = down`);

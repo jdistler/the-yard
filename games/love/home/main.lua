@@ -1327,106 +1327,10 @@ end
 
 -- ------------------------------------------------------------------ the pictures between programs
 
--- The backdrop of every picture: the sky, the grid and the sign, still.
-local function backdrop()
-  draw_background(0.3)
-  ST.draw_bulbs(1)
-  ST.draw(0, 24, 96, 1)
-end
-
--- "Get ready": the game's logo (or name) big, and how to come back.
-local function picture_launch(it)
-  if it.kind == "arcade" then return shelf.picture_arcade(it.game, it.shot, it.tint) end
-  if it.kind == "game" then return shelf.picture_game(it.game, it.shot, it.tint) end
-  backdrop()
-  local r, g, b = D.rgb(it.tint)
-  fx.glow(W / 2, 430, 420, 240, r, g, b, 0.35)
-  if it.art then
-    local iw, ih = it.art:getDimensions()
-    local s = math.min(620 / iw, 300 / ih)
-    lg.setColor(1, 1, 1, 1)
-    lg.draw(it.art, W / 2, 430, 0, s, s, iw / 2, ih / 2)
-  elseif it.shot then
-    D.neon_draw(it.title, 0, 214, 54, it.tint, 1.2, "center", W, 1, 1.2)
-    local iw, ih = it.shot:getDimensions()
-    local s = math.min(270 / iw, 290 / ih)
-    local dw, dh = iw * s, ih * s
-    local dx, dy = math.floor((W - dw) / 2), math.floor(445 - dh / 2)
-    lg.setColor(0.05, 0.02, 0.12, 0.92)
-    D.rrect("fill", dx - 10, dy - 10, dw + 20, dh + 20, 18)
-    lg.setColor(1, 1, 1, 1)
-    lg.draw(it.shot, dx, dy, 0, s, s)
-    lg.setColor(r, g, b, 0.95)
-    lg.setLineWidth(3)
-    D.rrect("line", dx - 10, dy - 10, dw + 20, dh + 20, 18)
-  else
-    D.neon_draw(it.title, 0, 380, 64, it.tint, 1.2, "center", W, 1, #it.title > 9 and 1.1 or 1.5)
-  end
-  D.neon_draw("GET READY!", 0, 628, 44, 0xffd23f, 1, "center", W)
-  local leave = LEAVE[it.kind]
-  if leave then
-    lg.setColor(0.04, 0.0, 0.10, 0.85)
-    D.rrect("fill", 60, 800, W - 120, 130, 24)
-    lg.setColor(r, g, b, 0.9)
-    lg.setLineWidth(2)
-    D.rrect("line", 60, 800, W - 120, 130, 24)
-    D.neon_draw(leave[1], 0, 822, 34, it.tint, 0.8, "center", W)
-    lg.setFont(D.font(24))
-    lg.setColor(0.9, 0.88, 1, 1)
-    lg.printf(leave[2], 60, 880, W - 120, "center")
-  end
-end
-
--- "Welcome back": clean, section-neutral card over the sky & marquee (never looks like a frozen empty menu).
-local function picture_back()
-  backdrop()
-  local r, g, b = D.rgb(ST.ACCENT)
-  fx.glow(W / 2, 490, 380, 180, r, g, b, 0.25)
-  lg.setColor(0.05, 0.02, 0.12, 0.88)
-  D.rrect("fill", 124, 424, W - 248, 132, 24)
-  lg.setColor(r, g, b, 0.9)
-  lg.setLineWidth(2.5)
-  D.rrect("line", 124, 424, W - 248, 132, 24)
-  D.neon_draw("WELCOME BACK", 0, 444, 40, ST.C, 1.0, "center", W)
-  lg.setFont(D.font(24))
-  lg.setColor(0.92, 0.90, 1, 0.9)
-  lg.printf("Returning to Starlight...", 124, 504, W - 248, "center")
-end
-
--- Power-on: a bold, lit Starlight hero splash while Linux & LÖVE start up.
-local function picture_boot()
-  draw_background(0.22)
-  ST.draw_bulbs(1, 1)
-  ST.draw(0, 24, 96, 1)
-  local r, g, b = D.rgb(ST.C)
-  local ar, ag, ab = D.rgb(ST.ACCENT)
-  fx.glow(W / 2, 445, 440, 240, r, g, b, 0.28)
-  fx.glow(W / 2, 575, 340, 120, ar, ag, ab, 0.22)
-  -- (the sign above is the brand: Starlight, the name the family chose; no second name under it)
-  lg.setColor(0.05, 0.02, 0.12, 0.88)
-  D.rrect("fill", 194, 550, W - 388, 66, 20)
-  lg.setColor(ar, ag, ab, 0.9)
-  lg.setLineWidth(2)
-  D.rrect("line", 194, 550, W - 388, 66, 20)
-  lg.setFont(D.font(26))
-  lg.setColor(1, 0.95, 0.84, 0.95)
-  lg.printf("STARTING UP...", 194, 568, W - 388, "center")
-end
-
-local function file_exists(p) local f = p and io.open(p, "rb") if f then f:close() return true end return false end
-
--- Just before quitting for a game: its picture on the screen, and the welcome-back picture for homeloop
--- (once per boot: it lives in /tmp).
-local function pictures_for(it)
-  local t0 = uptime()
-  local ok, bytes = pcall(splash.render, function() picture_launch(it) end)
-  if ok then splash.show(bytes) end
-  if BACK and not file_exists(BACK) then
-    local ok2, back = pcall(splash.render, picture_back)
-    if ok2 then splash.save(back, BACK) end
-  end
-  log(string.format("pictures %s in %.2f s", ok and "shown" or ("failed: " .. tostring(bytes)), uptime() - t0))
-end
+-- "Get ready", "welcome back", power-on: pictures.lua (HOME_REFACTOR.md CP2)
+local P = require("pictures")
+P.init({W = W, draw_background = draw_background, ST = ST, shelf = shelf, fx = fx, LEAVE = LEAVE, splash = splash,
+        BACK = BACK, uptime = uptime, log = log})
 
 -- ------------------------------------------------------------------ actions
 
@@ -1434,11 +1338,11 @@ local function request(s, it, picture, gamekey)
   if picture and (not headless or os.getenv("HOME_FB")) then
     local ok, bytes = pcall(splash.render, picture)
     if ok then splash.show(bytes) end
-    if BACK and not file_exists(BACK) then
-      local ok2, back = pcall(splash.render, picture_back)
+    if BACK and not P.file_exists(BACK) then
+      local ok2, back = pcall(splash.render, P.picture_back)
       if ok2 then splash.save(back, BACK) end
     end
-  elseif it and (not headless or os.getenv("HOME_FB")) then pictures_for(it) end
+  elseif it and (not headless or os.getenv("HOME_FB")) then P.pictures_for(it) end
   log("launch " .. s)
   -- The classic's high score as it was: on the way back, a higher one is celebrated.
   local played = nil
@@ -1930,7 +1834,7 @@ local function shelf_setup()
   end
   -- Live TV: the guide's lists, and coming back from a channel (tvloop wrote how it ended).
   tv.load({W = W, H = H, font = D.font, neon_draw = D.neon_draw, rgb = D.rgb, rrect = D.rrect, fx = fx, play = play,
-           log = log, down = I.down, backdrop = backdrop,
+           log = log, down = I.down, backdrop = P.backdrop,
            request = function(s, picture) request(s, nil, picture) end,
            save_picture = function(path, picture)
              if headless and not os.getenv("HOME_FB") then return end
@@ -1938,7 +1842,7 @@ local function shelf_setup()
              if ok then splash.save(bytes, path, true) end
            end})
   shelf.load({W = W, H = H, font = D.font, neon_draw = D.neon_draw, rgb = D.rgb, rrect = D.rrect, fx = fx, play = play,
-              log = log, down = I.down, backdrop = backdrop,
+              log = log, down = I.down, backdrop = P.backdrop,
               request_art = worker and function(key, path) love.thread.getChannel("home_work"):push({"art", key, path}) end,
               request = function(s, picture, key) request(s, nil, picture, key) end})
   do
@@ -1984,7 +1888,7 @@ function love.load()
     -- Render a picture and quit (the PC build of the power-on picture): "boot:PATH".
     local kind, path = RENDER:match("^(%a+):(.+)$")
     ST.world_load("base")
-    local bytes = splash.render(kind == "back" and picture_back or picture_boot)
+    local bytes = splash.render(kind == "back" and P.picture_back or P.picture_boot)
     splash.save(bytes, path, path:match("%.gz$") ~= nil)
     love.event.quit(0)
     return
@@ -2031,7 +1935,7 @@ function love.load()
   shelf_setup()
   shows_ctx = {request_art = worker and function(key, path)
                  love.thread.getChannel("home_work"):push({"art", key, path})
-               end or nil, backdrop = backdrop, rgb = D.rgb, neon_draw = D.neon_draw, font = D.font, fx = fx, rrect = D.rrect, play = play}
+               end or nil, backdrop = P.backdrop, rgb = D.rgb, neon_draw = D.neon_draw, font = D.font, fx = fx, rrect = D.rrect, play = play}
   shows.set_ctx(shows_ctx)
   for k, it in ipairs(items) do
     if it.kind == "tv" then
