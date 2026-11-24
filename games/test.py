@@ -1211,6 +1211,17 @@ def home():
     check(r.returncode == 0 and "SAFE MODE" in (read(w2, "log") or "") and req.startswith("classic 0"),
           f"Home in safe mode starts and plays a classic ({req!r})")
     homeloop_checks()
+    # HOME_REFACTOR.md's gates: the characterization tour matches its golden pixel for pixel, and main.lua stays
+    # inside LuaJIT's limits, no higher than the last checkpoint (lower these as the refactor lands).
+    r = subprocess.run([sys.executable, os.path.join(HERE, "..", "tools", "home_tour.py")], capture_output=True,
+                       text=True, timeout=900)
+    check(r.returncode == 0, f"Home: the characterization tour matches its golden ({r.stdout.strip()[-200:]})")
+    import json
+    mt = json.loads(subprocess.run([sys.executable, os.path.join(HERE, "..", "tools", "home_metrics.py"), "--json"],
+                                   capture_output=True, text=True).stdout)
+    check(mt["main_locals"] <= 192 and mt["max_upvalues"] <= 54 and mt["main_slots"] <= 202,
+          f"Home: main.lua within its refactor ceilings (locals {mt['main_locals']}/192, upvalues "
+          f"{mt['max_upvalues']}/54, slots {mt['main_slots']}/202)")
     # Home's Yard cards come from the carts' own info.lua (cartinfo.lua): one per cart, the cart's title, and its
     # stat line from its save as The Yard shows it.
     w3 = tmpdir()

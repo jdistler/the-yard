@@ -109,6 +109,17 @@ function love.errorhandler(msg)
   return nil
 end
 
+-- Tests only (HOME_REFACTOR.md, the characterization tour): HOME_NOW fixes "now" for os.time/os.date (the menu's
+-- season, the shows' schedule), so a scripted run draws the same pixels every time; HOME_SEED fixes the seed below.
+do
+  local now = tonumber(os.getenv("HOME_NOW") or "")
+  if now then
+    local real_time, real_date = os.time, os.date
+    os.time = function(t) if t then return real_time(t) end return now end
+    os.date = function(f, t) return real_date(f, t or now) end
+  end
+end
+
 -- Startup marks (seconds since boot, /proc/uptime): logged once at the first frame. homeloop logs when it
 -- started LÖVE, so the log shows where the wait goes.
 local function uptime()
@@ -1614,14 +1625,21 @@ local function move(d)
   play(items[sel].section ~= old and "section" or "move")
 end
 
+-- (an empty section is skipped: with no card in the slot ARCADE has no cards, and the stick used to stop dead at
+-- it, found by the characterization tour, 2026-11-24)
 local function jump_section(d)
   local cur = items[sel].section
-  local want = math.max(1, math.min(#SECTIONS, cur + d))
-  if want == cur then return end
-  for i, it in ipairs(items) do
-    if it.section == want then sel = i break end
+  local want = cur + d
+  while want >= 1 and want <= #SECTIONS do
+    for i, it in ipairs(items) do
+      if it.section == want then
+        sel = i
+        play("section")
+        return
+      end
+    end
+    want = want + d
   end
-  play("section")
 end
 
 local function read_volume()
@@ -2091,7 +2109,7 @@ function love.load()
   local fd = love.filesystem.getInfo("fonts/Fredoka-SemiBold.ttf") and love.filesystem.newFileData("fonts/Fredoka-SemiBold.ttf")
   font_data = fd
   ST.script_data = love.filesystem.getInfo("fonts/Pacifico-Starlight.ttf") and love.filesystem.newFileData("fonts/Pacifico-Starlight.ttf")
-  math.randomseed(RENDER and 1 or os.time())   -- the PC-rendered picture is the same every build
+  math.randomseed(RENDER and 1 or tonumber(os.getenv("HOME_SEED") or "") or os.time())   -- (RENDER: the PC-rendered picture is the same every build)
   for i = 1, 90 do
     stars[i] = {math.random() * W, math.random() * 700, math.random() * 6, 0.5 + math.random() * 2,
                 0.4 + math.random() * 0.6, math.random() < 0.15 and 3 or 2}
