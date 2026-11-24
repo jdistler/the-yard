@@ -1,0 +1,9 @@
+#!/bin/sh
+# tools/hooks/pre-push: the quick tests before anything reaches GitHub (SYSTEM_AUDIT.md I3).
+# Install once: ln -sf ../../tools/hooks/pre-push .git/hooks/pre-push   (skip with git push --no-verify)
+cd "$(git rev-parse --show-toplevel)/games" || exit 1
+python3 test.py quick >/tmp/pre-push-tests.log 2>&1
+rc=$?
+tail -1 /tmp/pre-push-tests.log
+[ $rc -eq 0 ] || echo "pre-push: the quick tests failed (/tmp/pre-push-tests.log); nothing was pushed"
+exit $rc

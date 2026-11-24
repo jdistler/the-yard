@@ -131,6 +131,7 @@ end
 -- with the show (finish).
 local ART = os.getenv("HOME_SHOW_ART") or "/mnt/sdcard/partycade/art"
 function G:art(show, name)
+  if home_note then home_note("art:" .. show .. "/" .. name) end
   local f = io.open(ART .. "/" .. show .. "/" .. name .. ".pkm", "rb")
   if not f then return nil end
   local bytes = f:read("*a")
@@ -159,6 +160,7 @@ end
 -- Whether a painted picture is there to load (without loading it: for a show that loads its pictures a scene at a
 -- time and still wants to know, at the start, which live fallbacks it needs).
 function G:has_art(show, name)
+  if home_note then home_note("art:" .. show .. "/" .. name) end
   local f = io.open(ART .. "/" .. show .. "/" .. name .. ".pkm", "rb")
   if f then f:close() return true end
   return false

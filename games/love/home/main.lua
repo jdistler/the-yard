@@ -596,6 +596,7 @@ function ST.world_load(name)
   if ST.world and ST.world_name == name then return end
   if ST.world then ST.world:release() ST.world = nil end
   ST.world_name = name
+  home_note("world:" .. name)
   local f = io.open(ST.WORLD_ART .. "/world_" .. name .. ".pkm", "rb")
   if not f then f = io.open(ST.WORLD_ART .. "/world_base.pkm", "rb") end
   if not f then return end
@@ -626,7 +627,7 @@ local function curtain_step(dt)
   if not cu then return true end
   cu.n = cu.n + 1
   if cu.phase == "cover" then
-    if cu.n >= 2 then cur_show.start(cu.seed, cu.at) cu.phase, cu.n = "settle", 0 end
+    if cu.n >= 2 then home_note("show start") cur_show.start(cu.seed, cu.at) cu.phase, cu.n = "settle", 0 end
     return false
   elseif cu.phase == "settle" then
     cur_show.update(0)                                      -- (its labels paint; its clock stays)
@@ -2346,15 +2347,32 @@ local last_letters = 0
 local FIXED_DT = tonumber(os.getenv("HOME_DT") or "")   -- tests: every frame this long (PC renders of the shows)
 local FPS_EVERY = tonumber(os.getenv("HOME_FPS_EVERY") or "") or 300   -- the frames line: every this many frames
 local hitches = 0
+-- What a frame did that can take time (SYSTEM_AUDIT.md B2): the loaders note it (home_note, a global so the
+-- modules reach it), and a hitch is logged with the notes of the frame it happened in. Home's log had stalls of
+-- 5 to 46 s with nothing saying what was being done.
+ST.notes = {}
+function home_note(s)
+  local n = ST.notes
+  if #n < 6 then n[#n + 1] = s end
+end
 function love.update(dt)
   if FIXED_DT then dt = FIXED_DT end
   -- a frame that took too long (a hitch you can see): logged with what was going on, the first 300 a run
   if dt > 0.045 and frame > 10 and hitches < 300 then
     hitches = hitches + 1
-    log(string.format("hitch %d ms, scene %s%s, music %s, lua %d KB", dt * 1000, scene,
+    local avail = ""
+    if dt > 0.25 then
+      local mi = io.open("/proc/meminfo")
+      local m = mi and mi:read("*a") or ""
+      if mi then mi:close() end
+      avail = ", available " .. (m:match("MemAvailable:%s*(%d+)") or "?") .. " kB"
+    end
+    log(string.format("hitch %d ms, scene %s%s, music %s, lua %d KB%s%s", dt * 1000, scene,
                       cur_show and cur_show.act and (" " .. tostring(cur_show_id) .. ":" .. tostring(cur_show.act())) or "",
-                      tostring(music.now), collectgarbage("count")))
+                      tostring(music.now), collectgarbage("count"), avail,
+                      #ST.notes > 0 and (", did " .. table.concat(ST.notes, " ")) or ""))
   end
+  for i = #ST.notes, 1, -1 do ST.notes[i] = nil end
   fps_t, fps_n = fps_t + dt, fps_n + 1
   if fps_n == FPS_EVERY then
     local st = lg.getStats()
@@ -2378,6 +2396,7 @@ function love.update(dt)
       local msg = love.thread.getChannel("home_done"):pop()
       if not msg then break end
       n_up = n_up + 1
+      home_note("upload:" .. tostring(msg[2]))
       if msg[1] == "art" and type(msg[2]) == "string" and msg[2]:sub(1, 6) == "shelf:" then
         if msg[3] then shelf.art_ready(msg[2], msg[3]) else shelf.art_failed(msg[2]) end
       elseif msg[1] == "art" and type(msg[2]) == "string" then

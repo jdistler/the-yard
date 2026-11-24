@@ -447,6 +447,7 @@ function S.open(ctx, id)
         local fh = io.open(p, "rb")
         local bytes = fh:read("*a")
         fh:close()
+        if home_note then home_note("thumb") end
         local ok, img = pcall(function() return lg.newImage(love.filesystem.newFileData(bytes, "t.png")) end)
         if ok then img:setFilter("linear", "linear") thumbs[i] = img end
       end
