@@ -4,11 +4,17 @@
 #   homeloop preview    from a Yard row, to try Home: "stock" and "yard" come back to The Yard
 # Home writes one request and quits, so each game has the whole machine; then Home starts again on its card.
 # If Home itself fails twice in a row, the original menu takes over (or, in preview, The Yard).
-H=/data/home
-REQ=/tmp/home-req
+# (HOMELOOP_*: the tests run this on the PC with their own folders; on the cabinet they are unset)
+H=${HOMELOOP_H:-/data/home}
+T=${HOMELOOP_TMP:-/tmp}
+CARD=${HOMELOOP_CARD:-/mnt/sdcard}
+RUN=${HOMELOOP_RUN:-/data/love/run.sh}
+GAMES=${HOMELOOP_GAMES:-/data/Games}
+card_in() { if [ -n "$HOMELOOP_CARD" ]; then [ -d "$CARD" ]; else grep -q " $CARD " /proc/mounts; fi; }
+REQ=$T/home-req
 # One supervisor at a time: two (a test tool and a restart racing, 2026-11-06) start two Homes, which don't fit in
 # memory together; the kernel killed one, homeloop fell back to the stock menu, and the cabinet thrashed to a halt.
-PIDF=/tmp/homeloop.pid
+PIDF=$T/homeloop.pid
 if [ -f "$PIDF" ]; then
   OLD=$(cat "$PIDF" 2>/dev/null)
   if [ -n "$OLD" ] && [ "$OLD" != "$$" ] && kill -0 "$OLD" 2>/dev/null && grep -q homeloop "/proc/$OLD/cmdline" 2>/dev/null; then
@@ -18,7 +24,7 @@ fi
 echo $$ > "$PIDF"
 # The welcome-back picture: Home renders it once per boot (it is 3 MB, in /tmp, which is RAM); it goes on the
 # screen the moment a game ends, until Home's first frame (EXPERIENCE.md).
-BACK=/tmp/home-back.fb
+BACK=$T/home-back.fb
 back_picture() { [ -s "$BACK" ] && cat "$BACK" > /dev/fb0 2>/dev/null; }
 # The log: on the SD card when one is in (/data is ~96% full, and the card is the cheap flash to wear), else
 # /data/home; where it is goes into /tmp/home.logpath for the tools. Home trims it itself (HOME_LOG_MAX).
@@ -26,13 +32,20 @@ LOG=$H/home.log
 LOG_MAX=131072
 # (at power-on the card may still be mounting: a few seconds' grace when it is there but not yet mounted)
 n=0
-while [ -b /dev/mmcblk0p1 ] && ! grep -q " /mnt/sdcard " /proc/mounts && [ $n -lt 8 ]; do sleep 1; n=$((n + 1)); done
-if grep -q " /mnt/sdcard " /proc/mounts && mkdir -p /mnt/sdcard/partycade/logs 2>/dev/null &&
-   touch /mnt/sdcard/partycade/logs/home.log 2>/dev/null; then
-  LOG=/mnt/sdcard/partycade/logs/home.log
+while [ -z "$HOMELOOP_CARD" ] && [ -b /dev/mmcblk0p1 ] && ! card_in && [ $n -lt 8 ]; do sleep 1; n=$((n + 1)); done
+# Every other log goes beside it, or to /tmp (RAM), never to /data: the Yard's log grew there unbounded, 112 KB
+# of the partition's last 861 KB (SYSTEM_AUDIT.md A1).
+LOGDIR=$T
+if card_in && mkdir -p $CARD/partycade/logs 2>/dev/null && touch $CARD/partycade/logs/home.log 2>/dev/null; then
+  LOGDIR=$CARD/partycade/logs
+  LOG=$LOGDIR/home.log
   LOG_MAX=4194304
 fi
-echo "$LOG" > /tmp/home.logpath
+echo "$LOG" > $T/home.logpath
+# A log past its size moves to .1 (the one before is dropped).
+trim() { [ -f "$1" ] && [ "$(wc -c < "$1")" -gt "$2" ] && mv "$1" "$1.1"; }
+YLOG=$LOGDIR/love-yard.log
+trim "$YLOG" 1048576
 mkdir -p "$H"
 [ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt $LOG_MAX ] && mv "$LOG" "$LOG.1"
 MODE=${1:-boot}
@@ -41,19 +54,67 @@ TZ=$(cat /data/tv/tz 2>/dev/null || echo CST6CDT,M3.2.0,M11.1.0)
 export TZ
 FAILS=0
 SAFE=0
+USED_GOOD=0
 # At power-on, Home plays its intro once (its state file says "coming back from a game" otherwise).
 INTRO=0
 [ "$MODE" = boot ] && INTRO=1
 log() { echo "$(cut -d' ' -f1 /proc/uptime) $*" >> "$LOG"; }
+# The machine's memory and I/O every 2 s, written to the card in batches (SYSTEM_AUDIT.md B1): Home's log has
+# stalls of 5 to 46 s and nothing said what the machine was doing. A line: uptime, MemAvailable and Cached (kB),
+# major faults and swap-ins since boot, the card's and the flash's I/O time (ms) and requests in flight, tasks
+# blocked on I/O. A gap between lines longer than the 2 s asked for is itself a stall of the whole machine.
+VMLOG=$LOGDIR/vm.log
+# (its own script in $T, so it never answers to "pidof homeloop", which the tools use to see whether Home runs)
+if [ -z "$HOMELOOP_NO_VMLOG" ] && ! { [ -f $T/vmlog.pid ] && kill -0 "$(cat $T/vmlog.pid)" 2>/dev/null; }; then
+  cat > $T/vmlog.sh <<'VMEOF'
+L=$1
+trim() { [ -f "$1" ] && [ "$(wc -c < "$1")" -gt "$2" ] && mv "$1" "$1.1"; }
+trim "$L" 2097152
+echo "# up avail_kB cached_kB majflt swpin card_io_ms card_q flash_io_ms flash_q blocked" >> "$L"
+while :; do
+  i=0; buf=
+  while [ $i -lt 15 ]; do
+    l=$(awk '
+      FILENAME == "/proc/uptime" { up = $1 }
+      FILENAME == "/proc/meminfo" && $1 == "MemAvailable:" { av = $2 }
+      FILENAME == "/proc/meminfo" && $1 == "Cached:" { ca = $2 }
+      FILENAME == "/proc/vmstat" && $1 == "pgmajfault" { mf = $2 }
+      FILENAME == "/proc/vmstat" && $1 == "pswpin" { si = $2 }
+      FILENAME == "/proc/diskstats" && $3 == "mmcblk0" { ci = $13; cq = $12 }
+      FILENAME == "/proc/diskstats" && $3 == "rkflash0" { fi = $13; fq = $12 }
+      FILENAME == "/proc/stat" && $1 == "procs_blocked" { bl = $2 }
+      END { printf "%s %d %d %d %d %d %d %d %d %d", up, av, ca, mf, si, ci, cq, fi, fq, bl }' \
+      /proc/uptime /proc/meminfo /proc/vmstat /proc/diskstats /proc/stat 2>/dev/null)
+    buf="$buf$l
+"
+    i=$((i + 1))
+    sleep 2
+  done
+  printf '%s' "$buf" >> "$L"
+  trim "$L" 2097152
+done
+VMEOF
+  sh $T/vmlog.sh "$VMLOG" </dev/null >/dev/null 2>&1 &
+  echo $! > $T/vmlog.pid
+fi
+# The last Home that worked (SYSTEM_AUDIT.md C): kept on the card after a run that reached a choice or lasted
+# 2 minutes; when a newly pushed home.love fails as it starts, it runs before safe mode.
+GOOD=$CARD/partycade/home.good.love
+HOMEL=$H/home.love
+keep_good() {
+  [ "$HOMEL" = "$H/home.love" ] && card_in || return 0
+  cmp -s "$H/home.love" "$GOOD" 2>/dev/null && return 0
+  cp "$H/home.love" "$GOOD.tmp" 2>/dev/null && sync && mv -f "$GOOD.tmp" "$GOOD" && log "kept this Home as the last good one"
+}
 # Swap on the SD card (made once: dd 128 MB, mkswap; SDCARD.md), only with swap.on beside it: OFF by default
 # since 2026-11-02, when running out of memory with it froze the whole cabinet (the card swapping) instead of
 # the kernel killing Home, which homeloop restarts. Once a boot, in the background, when the card is mounted.
-SWAP=/mnt/sdcard/partycade/swap
-if [ ! -e /tmp/home.swap ] && [ -e "$SWAP.on" ]; then
-  touch /tmp/home.swap
+SWAP=$CARD/partycade/swap
+if [ ! -e $T/home.swap ] && [ -e "$SWAP.on" ]; then
+  touch $T/home.swap
   (
     n=0
-    while ! grep -q " /mnt/sdcard " /proc/mounts && [ $n -lt 60 ]; do sleep 1; n=$((n + 1)); done
+    while ! card_in && [ $n -lt 60 ]; do sleep 1; n=$((n + 1)); done
     if [ -f "$SWAP" ] && ! grep -q "^$SWAP " /proc/swaps; then
       echo 10 > /proc/sys/vm/swappiness
       if swapon "$SWAP" 2>/dev/null; then log "swap on: $SWAP"; else log "swap: could not turn it on"; fi
@@ -125,8 +186,8 @@ while :; do
   rm -f "$REQ"
   log "home: starting LOVE"
   STARTED=$(cut -d. -f1 /proc/uptime)
-  HOME_SAFE=$SAFE HOME_INTRO=$INTRO HOME_REQ=$REQ HOME_BACK=$BACK HOME_STATE=$H/state HOME_LOG=$LOG HOME_LOG_MAX=$LOG_MAX HOME_ART=$H/art HOME_GAMES=/data/Games HOME_MODE=$MODE \
-    /data/love/run.sh $H/home.love
+  HOME_SAFE=$SAFE HOME_INTRO=$INTRO HOME_REQ=$REQ HOME_BACK=$BACK HOME_STATE=$H/state HOME_LOG=$LOG HOME_LOG_MAX=$LOG_MAX HOME_ART=$H/art HOME_GAMES=$GAMES HOME_MODE=$MODE \
+    $RUN $HOMEL
   CODE=$?
   INTRO=0
   if [ ! -s "$REQ" ]; then
@@ -134,25 +195,33 @@ while :; do
     # starts, twice running, means it's broken and the original menu should take over. 2026-11-06: two
     # out-of-memory kills, each after 15 minutes of shows, put the cabinet on the stock menu for the night)
     RAN=$(( $(cut -d. -f1 /proc/uptime) - STARTED ))
-    if [ $RAN -gt 120 ]; then FAILS=0; SAFE=0; fi
+    if [ $RAN -gt 120 ]; then FAILS=0; SAFE=0; USED_GOOD=0; keep_good; fi
     FAILS=$((FAILS + 1))
     log "Home quit without a choice (code $CODE) after ${RAN} s, $FAILS time(s)"
     [ "$MODE" = preview ] && exit 0
-    # Failing as it starts: once, try again (a passing hiccup); twice, safe mode (HOME_SAFE=1: Home without the
-    # Longhorns' data, the TV guide and the games card, the parts that read the network and the card); a third
-    # time, the original menu. 2026-11-08: a bad cached Longhorns row went straight to the stock menu.
-    if [ $FAILS -eq 2 ]; then SAFE=1; log "starting Home in safe mode"; fi
-    [ $FAILS -ge 3 ] && { SAFE=0; stock; }
+    # Failing as it starts: once, try again (a passing hiccup); twice, the last Home that worked, when this one
+    # differs (a broken push); then safe mode (HOME_SAFE=1: Home without the Longhorns' data, the TV guide and
+    # the games card, the parts that read the network and the card); then the original menu. 2026-11-08: a bad
+    # cached Longhorns row went straight to the stock menu.
+    if [ $FAILS -eq 2 ] && [ "$HOMEL" = "$H/home.love" ] && card_in && [ -s "$GOOD" ] && ! cmp -s "$H/home.love" "$GOOD"; then
+      HOMEL=$GOOD; USED_GOOD=1
+      log "starting the last good Home ($GOOD): this one fails as it starts"
+    elif [ $FAILS -eq 2 ] || { [ $FAILS -eq 3 ] && [ $USED_GOOD -eq 1 ]; }; then
+      SAFE=1; log "starting Home in safe mode"
+    elif [ $FAILS -ge 3 ]; then
+      SAFE=0; stock
+    fi
     continue
   fi
   FAILS=0
+  keep_good
   set -- $(head -n 1 "$REQ")
   WHAT=$1
   T0=$(cut -d. -f1 /proc/uptime)
   # The first launch of each game after power-on keeps its "get ready" picture (Home put it in /dev/fb0: how to
   # come back, which the stock games never say) up for 1.5 s; later launches go straight in. Pac-Man covered it
   # with its own black screen after half a second (filmed, 2026-10-27).
-  SEEN=/tmp/home-seen
+  SEEN=$T/home-seen
   if ! grep -qx "$WHAT $2" "$SEEN" 2>/dev/null; then
     echo "$WHAT $2" >> "$SEEN"
     # Stock classics and native Orb blank /dev/fb0 quickly; yard.love keeps it up until its first frame. A Shelf
@@ -164,8 +233,9 @@ while :; do
     cart)
       case "$2" in ""|*[!a-z0-9_-]*) log "bad cart: $2"; continue ;; esac
       log "cart $2"
-      ( cd /data/Games && YARD_PAK=/data/Games/yard.pak YARD_LOG=/data/Games/love-yard.log \
-          /data/love/run.sh /data/love/yard.love "$2" ) ;;
+      trim "$YLOG" 1048576
+      ( cd $GAMES && YARD_PAK=$GAMES/yard.pak YARD_LOG=$YLOG \
+          $RUN /data/love/yard.love "$2" ) ;;
     native)
       case "$2" in ""|*[!a-z0-9_-]*) log "bad native: $2"; continue ;; esac
       log "native $2"

@@ -1210,6 +1210,61 @@ def home():
     req = (read(w2, "req") or "").strip()
     check(r.returncode == 0 and "SAFE MODE" in (read(w2, "log") or "") and req.startswith("classic 0"),
           f"Home in safe mode starts and plays a classic ({req!r})")
+    homeloop_checks()
+
+
+def homeloop_checks():
+    """homeloop's failure ladder, run on the PC with folders of its own (HOMELOOP_*) and a stand-in for LÖVE that
+    fails or chooses on cue: retry, the last good Home, safe mode, the stock menu; logs never on /data."""
+    hl = os.path.join(HERE, "love", "home", "homeloop.sh")
+    shells = [["busybox", "sh"]] if shutil.which("busybox") else []
+    shells.append(["sh"])
+
+    def setup(home_love, good=None):
+        w = tmpdir()
+        h, t, card, games = (os.path.join(w, n) for n in ("home", "tmp", "card", "games"))
+        for d in (h, t, os.path.join(card, "partycade"), games):
+            os.makedirs(d)
+        open(os.path.join(h, "home.love"), "w").write(home_love)
+        if good is not None:
+            open(os.path.join(card, "partycade", "home.good.love"), "w").write(good)
+        # The stand-in: logs which file it ran and HOME_SAFE; "bad" fails at once; "good"/"v1" writes a request
+        # nobody knows (a choice; homeloop logs it and starts Home again). After 6 runs it ends homeloop.
+        run = os.path.join(w, "run.sh")
+        open(run, "w").write(
+            "#!/bin/sh\n"
+            f"echo \"$(cat \"$1\") safe=$HOME_SAFE\" >> {w}/runs\n"
+            f"[ $(wc -l < {w}/runs) -ge 6 ] && {{ kill -9 $PPID; exit 0; }}\n"
+            "[ \"$(cat \"$1\")\" = bad ] && exit 1\n"
+            "echo nosuch > \"$HOME_REQ\"\n")
+        os.chmod(run, 0o755)
+        env = dict(os.environ, HOMELOOP_H=h, HOMELOOP_TMP=t, HOMELOOP_CARD=card, HOMELOOP_RUN=run,
+                   HOMELOOP_GAMES=games, HOMELOOP_NO_VMLOG="1")
+        return w, env
+
+    for sh in shells:
+        name = " ".join(sh)
+        # 1. A broken Home and no good copy: retry, safe mode, then the stock menu (which can't start here: exit).
+        w, env = setup("bad")
+        subprocess.run(sh + [hl], env=env, capture_output=True, timeout=60)
+        runs = (read(w, "runs") or "").split("\n")
+        lg = read(os.path.join(w, "card", "partycade", "logs"), "home.log") or ""
+        check(runs[:3] == ["bad safe=0", "bad safe=0", "bad safe=1"] and "the original menu" in lg,
+              f"homeloop ({name}): a Home that fails as it starts: retry, safe mode, then the stock menu ({runs[:4]})")
+        # 2. A broken push with a good copy on the card: retry, then the good one, which keeps running.
+        w, env = setup("bad", good="good")
+        subprocess.run(sh + [hl], env=env, capture_output=True, timeout=60)
+        runs = (read(w, "runs") or "").split("\n")
+        lg = read(os.path.join(w, "card", "partycade", "logs"), "home.log") or ""
+        check(runs[:4] == ["bad safe=0", "bad safe=0", "good safe=0", "good safe=0"] and "last good Home" in lg,
+              f"homeloop ({name}): a broken push runs the last good Home before safe mode ({runs[:4]})")
+        # 3. A Home that reaches a choice is kept as the last good one; the logs stay off /data (here: the card).
+        w, env = setup("v1")
+        subprocess.run(sh + [hl], env=env, capture_output=True, timeout=60)
+        kept = read(os.path.join(w, "card", "partycade"), "home.good.love")
+        logpath = (read(os.path.join(w, "tmp"), "home.logpath") or "").strip()
+        check(kept == "v1" and logpath.startswith(os.path.join(w, "card")),
+              f"homeloop ({name}): a Home that worked is kept on the card, and its log is there ({kept!r})")
 
 
 def shows():
