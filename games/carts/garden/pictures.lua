@@ -26,6 +26,83 @@ local function hash(n)
 end
 P.hash = hash
 
+-- Painted once (CARTS.md, "Speed"): a figure is drawn into a layer the first time its pose is wanted and copied
+-- after that. Every key names a pose out of a small fixed set (kind, colour, size step, ...), never a frame.
+-- A bake is a canvas switch, so at most two new ones a frame; a pose not yet kept is drawn live that frame.
+-- Only the GPU runtime keeps them (game.gpu): the C runtime's layers have no soft edges or see-through colour,
+-- so there every figure is drawn live, exactly as before.
+local kept, nbake, bake_f = {}, 0, -1
+-- Blooms come in a colour and kind per garden, and a new garden brings new ones: a flower layer not drawn for
+-- 900 frames is let go, so the pictures held are the garden's now, not every garden's so far.
+local idle, IDLE = {}, 900
+local function sweep(f)
+  for key, last in pairs(idle) do
+    if f - last > IDLE then
+      unbake(key)
+      kept[key], idle[key] = nil, nil
+    end
+  end
+end
+local function fig(key, w, h, ox, oy, x, y, paint, k, live, flower)
+  if flower then
+    local f = game.frame
+    idle[key] = f
+    if f % 600 == 0 then sweep(f) end
+  end
+  if not game.gpu then
+    if live then live() else gfx.offset(x, y) paint() gfx.offset(0, 0) end
+    return
+  end
+  local l = kept[key]
+  if not l then
+    local f = game.frame
+    if f ~= bake_f then bake_f, nbake = f, 0 end
+    if nbake >= 2 then
+      if live then live() else gfx.offset(x, y) paint() gfx.offset(0, 0) end
+      return
+    end
+    nbake = nbake + 1
+    l = bake(key, w, h, function() gfx.offset(ox, oy) paint() gfx.offset(0, 0) end)
+    kept[key] = l
+  end
+  if k and k ~= 1 then gfx.draw(l, x, y, {scale = k, ox = ox / w, oy = oy / h})
+  else gfx.blit_key(l, floor(x - ox), floor(y - oy)) end
+end
+
+-- A sheet is many small figures painted into one layer in one go, the first time any is wanted, so a row of
+-- them (a swarm, the shelf, the dots) is drawn from one picture and goes to the GPU as one draw.
+-- Its cells are fixed: each is one pose out of a small set (colour, size step, ...).
+local sheets = {}
+local function sheet_make(name, width, cells)
+  local x, y, rowh = 0, 0, 0
+  for _, c in ipairs(cells) do
+    if x + c.w > width then x, y, rowh = 0, y + rowh, 0 end
+    c.x, c.y = x, y
+    x, rowh = x + c.w, max(rowh, c.h)
+  end
+  sheets[name] = {width = width, height = y + rowh, cells = cells}
+end
+local function sheet_draw(name, i, x, y)
+  local sh = sheets[name]
+  local l = sh.layer
+  if not l then
+    l = bake("sheet:" .. name, sh.width, sh.height, function()
+      for _, c in ipairs(sh.cells) do
+        gfx.clip(c.x, c.y, c.w, c.h)
+        gfx.offset(c.x + c.ox, c.y + c.oy)
+        c.paint()
+        gfx.offset(0, 0)
+      end
+      gfx.clip()
+    end)
+    sh.layer = l
+  end
+  local c = sh.cells[i]
+  gfx.draw(l, floor(x - c.ox), floor(y - c.oy), {quad = {c.x, c.y, c.w, c.h}})
+end
+-- Where each kind of cell starts in the sheet "small" (built at the foot of this file).
+local FF0, DOT0, MU0, PK0, BF0 = 0, 2, 9, 14, 26
+
 -- The six flower colours, in the order the seeds come out of the pouch, and their one-word names.
 P.COLS = {0xf47eb2, 0xffc83a, 0x6ab8ff, 0xb998f0, 0x68d8b8, 0xff8a6a}
 P.CNAME = {"rose", "gold", "sky", "lilac", "mint", "coral"}
@@ -40,11 +117,12 @@ end
 -- ------------------------------------------------------------------ the cats, as in Tea
 
 -- who: 1 Pip, 2 Moth, 3 Pearl, 4 Nib. mood: "sleep", "happy" or nil (awake). lx: where the eyes look.
-function P.cat(who, cx, cy, s, mood, lx)
+-- Drawn as three layers: the body (tail in five steps), the face (one per mood or blink) and, only when the
+-- eyes are open, the eyes themselves, which follow lx. A size that is not a whole percent (a cat popping in)
+-- is drawn live, as it always was.
+local function cat_body(who, cx, cy, s, tail)
   local body, dark = BODY[who], DARK[who]
   local r = (who == 4 and 20 or 27) * s
-  local blink = ((fr() + (who - 1) * 47) % 200) < 7
-  local tail = sin(fr() * 0.07 + who - 1) * 0.6
   local ear = who == 2 and 1.45 or 1.25
   toon(function()
     toon.line(cx + r * 0.7, cy + r * 1.95, cx + r * 1.4, cy + r * 1.95, 8 * s, body)
@@ -65,31 +143,40 @@ function P.cat(who, cx, cy, s, mood, lx)
     gfx.ellipse(cx - r * 0.45, cy - r * 0.35, r * 0.3, r * 0.35, C.ORANGE)
     gfx.circle(cx + r * 0.3, cy + r * 1.3, r * 0.35, C.ORANGE)
   end
+end
+
+local function cat_eyes_open(who, cx, cy, s, lx)
+  local r = (who == 4 and 20 or 27) * s
   local ex, ey = r * 0.38, cy - r * 0.08
-  if mood == "happy" then
+  local look = clamp(((lx or cx) - cx) * 0.02, -2.5, 2.5)
+  for k = -1, 1, 2 do
+    gfx.ellipse(cx + k * ex + look, ey, 5 * s, 6.5 * s, INK)
+    gfx.circle(cx + k * ex + look + 1.5 * s, ey - 2.5 * s, 1.8 * s, C.WHITE)
+  end
+end
+
+-- state: "happy", "sleep", "blink" or "open" (open eyes are not in the layer).
+local function cat_face(who, cx, cy, s, state)
+  local r = (who == 4 and 20 or 27) * s
+  local ex, ey = r * 0.38, cy - r * 0.08
+  if state == "happy" then
     for k = -1, 1, 2 do
       gfx.line(cx + k * ex - 5 * s, ey + 2, cx + k * ex, ey - 3 * s, 2.5 * s, INK)
       gfx.line(cx + k * ex, ey - 3 * s, cx + k * ex + 5 * s, ey + 2, 2.5 * s, INK)
     end
-  elseif mood == "sleep" then
+  elseif state == "sleep" then
     for k = -1, 1, 2 do
       gfx.line(cx + k * ex - 5 * s, ey - 1, cx + k * ex, ey + 2.5 * s, 2.2 * s, INK)
       gfx.line(cx + k * ex, ey + 2.5 * s, cx + k * ex + 5 * s, ey - 1, 2.2 * s, INK)
     end
-  elseif blink then
+  elseif state == "blink" then
     gfx.line(cx - ex - 5 * s, ey, cx - ex + 5 * s, ey, 2.5 * s, INK)
     gfx.line(cx + ex - 5 * s, ey, cx + ex + 5 * s, ey, 2.5 * s, INK)
-  else
-    local look = clamp(((lx or cx) - cx) * 0.02, -2.5, 2.5)
-    for k = -1, 1, 2 do
-      gfx.ellipse(cx + k * ex + look, ey, 5 * s, 6.5 * s, INK)
-      gfx.circle(cx + k * ex + look + 1.5 * s, ey - 2.5 * s, 1.8 * s, C.WHITE)
-    end
   end
   gfx.ellipse(cx - r * 0.6, cy + r * 0.3, 5 * s, 3 * s, C.BLUSH)
   gfx.ellipse(cx + r * 0.6, cy + r * 0.3, 5 * s, 3 * s, C.BLUSH)
   gfx.tri(cx - 3.5 * s, cy + r * 0.2, cx + 3.5 * s, cy + r * 0.2, cx, cy + r * 0.32, C.ROOF)
-  local happy = mood == "happy"
+  local happy = state == "happy"
   local my, mw, dip = cy + r * 0.36, (happy and 5.5 or 4.5) * s, (happy and 4 or 3) * s
   gfx.line(cx, my, cx - mw * 0.5, my + dip, 1.6 * s, INK)
   gfx.line(cx - mw * 0.5, my + dip, cx - mw, my + dip * 0.2, 1.6 * s, INK)
@@ -107,9 +194,33 @@ function P.cat(who, cx, cy, s, mood, lx)
   end
 end
 
+function P.cat(who, cx, cy, s, mood, lx)
+  local blink = ((fr() + (who - 1) * 47) % 200) < 7
+  local tail = sin(fr() * 0.07 + who - 1) * 0.6
+  local state = mood == "happy" and "happy" or (mood == "sleep" and "sleep" or (blink and "blink" or "open"))
+  local s100 = floor(s * 100 + 0.5)
+  if abs(s * 100 - s100) > 0.001 or s100 < 20 then
+    cat_body(who, cx, cy, s, tail)
+    cat_face(who, cx, cy, s, state)
+    if state == "open" then cat_eyes_open(who, cx, cy, s, lx) end
+    return
+  end
+  local sc = s100 / 100
+  local r = (who == 4 and 20 or 27) * sc
+  local tq = floor(tail / 0.3 + 0.5)
+  local bl, br, bt, bb = ceil(1.05 * r + 4), ceil(1.75 * r + 7), ceil(1.45 * r + 5), ceil(2.25 * r + 5)
+  fig(fmt("cat:%d:%d:%d", who, s100, tq), bl + br, bt + bb, bl, bt, cx, cy, function()
+    cat_body(who, 0, 0, sc, tq * 0.3)
+  end, 1, function() cat_body(who, cx, cy, s, tail) end)
+  local fl, ft, fb = ceil(1.1 * r + 3), ceil(1.05 * r + 6), ceil(0.6 * r + 6)
+  fig(fmt("catf:%d:%d:%s", who, s100, state), 2 * fl, ft + fb, fl, ft, cx, cy, function()
+    cat_face(who, 0, 0, sc, state)
+  end, 1, function() cat_face(who, cx, cy, s, state) end)
+  if state == "open" then cat_eyes_open(who, cx, cy, s, lx) end
+end
+
 -- The Unicorn from the front, same white, gold horn and four-stripe mane as Tea's. x, y: the head's middle.
-function P.unicorn(x, y, s, mood, lx)
-  local blink = (fr() % 210) < 7
+local function uni_body(x, y, s)
   toon(function()
     -- Wings, tucked behind the shoulders.
     for side = -1, 1, 2 do
@@ -137,36 +248,64 @@ function P.unicorn(x, y, s, mood, lx)
   gfx.tri(x + 16 * s, y - 20 * s, x + 15 * s, y - 33 * s, x + 9 * s, y - 23 * s, 0xffb8c8)
   -- Forelock: the four mane colours across the forehead.
   for k = 0, 3 do gfx.circle_o(x - 12 * s + k * 8 * s, y - 20 * s + (k % 2) * 3 * s, 5 * s, STRIPES[k + 1], INK, 1.5) end
+end
+
+local function uni_eyes_open(x, y, s, lx)
   local ex, ey = 9 * s, y - 2 * s
-  if mood == "happy" then
+  local look = clamp(((lx or x) - x) * 0.02, -2.5, 2.5)
+  for k = -1, 1, 2 do
+    gfx.ellipse(x + k * ex + look, ey, 5 * s, 6.5 * s, INK)
+    gfx.circle(x + k * ex + look + 1.5 * s, ey - 2.5 * s, 1.8 * s, C.WHITE)
+  end
+end
+
+local function uni_face(x, y, s, state)
+  local ex, ey = 9 * s, y - 2 * s
+  if state == "happy" then
     for k = -1, 1, 2 do
       gfx.line(x + k * ex - 5 * s, ey + 2, x + k * ex, ey - 3 * s, 2.5 * s, INK)
       gfx.line(x + k * ex, ey - 3 * s, x + k * ex + 5 * s, ey + 2, 2.5 * s, INK)
     end
-  elseif mood == "sleep" then
+  elseif state == "sleep" then
     for k = -1, 1, 2 do
       gfx.line(x + k * ex - 5 * s, ey - 1, x + k * ex, ey + 2.5 * s, 2.2 * s, INK)
       gfx.line(x + k * ex, ey + 2.5 * s, x + k * ex + 5 * s, ey - 1, 2.2 * s, INK)
     end
-  elseif blink then
+  elseif state == "blink" then
     gfx.line(x - ex - 5 * s, ey, x - ex + 5 * s, ey, 2.5 * s, INK)
     gfx.line(x + ex - 5 * s, ey, x + ex + 5 * s, ey, 2.5 * s, INK)
-  else
-    local look = clamp(((lx or x) - x) * 0.02, -2.5, 2.5)
-    for k = -1, 1, 2 do
-      gfx.ellipse(x + k * ex + look, ey, 5 * s, 6.5 * s, INK)
-      gfx.circle(x + k * ex + look + 1.5 * s, ey - 2.5 * s, 1.8 * s, C.WHITE)
-    end
   end
   gfx.ellipse(x - 15 * s, y + 8 * s, 5 * s, 3 * s, C.BLUSH)
   gfx.ellipse(x + 15 * s, y + 8 * s, 5 * s, 3 * s, C.BLUSH)
   gfx.ellipse(x, y + 14 * s, 11 * s, 8 * s, 0xffe4ee)
   gfx.circle(x - 4 * s, y + 13 * s, 1.4 * s, alpha(INK, 190))
   gfx.circle(x + 4 * s, y + 13 * s, 1.4 * s, alpha(INK, 190))
-  local happy = mood == "happy"
+  local happy = state == "happy"
   local my = y + 18 * s
   gfx.line(x - 4 * s, my, x, my + (happy and 4 or 2.5) * s, 1.6 * s, INK)
   gfx.line(x, my + (happy and 4 or 2.5) * s, x + 4 * s, my, 1.6 * s, INK)
+end
+
+function P.unicorn(x, y, s, mood, lx)
+  local blink = (fr() % 210) < 7
+  local state = mood == "happy" and "happy" or (mood == "sleep" and "sleep" or (blink and "blink" or "open"))
+  local s100 = floor(s * 100 + 0.5)
+  if abs(s * 100 - s100) > 0.001 or s100 < 20 then
+    uni_body(x, y, s)
+    uni_face(x, y, s, state)
+    if state == "open" then uni_eyes_open(x, y, s, lx) end
+    return
+  end
+  local sc = s100 / 100
+  local bx, bt, bb = ceil(68 * sc), ceil(66 * sc), ceil(86 * sc)
+  fig(fmt("uni:%d", s100), 2 * bx + 2, bt + bb + 2, bx + 1, bt + 1, x, y, function()
+    uni_body(0, 0, sc)
+  end, 1, function() uni_body(x, y, s) end)
+  local fx, ft, fb = ceil(22 * sc), ceil(10 * sc) + 2, ceil(24 * sc) + 2
+  fig(fmt("unif:%d:%s", s100, state), 2 * fx + 2, ft + fb, fx + 1, ft, x, y, function()
+    uni_face(0, 0, sc, state)
+  end, 1, function() uni_face(x, y, s, state) end)
+  if state == "open" then uni_eyes_open(x, y, s, lx) end
 end
 
 -- ------------------------------------------------------------------ flowers
@@ -196,8 +335,9 @@ local function face(cx, cy, s, happy, cream)
 end
 
 -- A flower head, outlined as one toon figure. kind 1..6 (tulip, daisy, sunflower, rose, star-lily, rainbow
--- rose), middle at cx, cy, scale s, petal colour col.
-function P.head(kind, cx, cy, s, col, happy)
+-- rose), middle at cx, cy, scale s, petal colour col. It is two pictures, the petals and the face, so a
+-- bloom on a bed is two kept layers (P.flower).
+local function head_body(kind, cx, cy, s, col)
   local lite, dark = mix(col, 0xffffff, 0.5), mix(col, INK, 0.3)
   if kind == 1 then
     toon(function()
@@ -207,7 +347,6 @@ function P.head(kind, cx, cy, s, col, happy)
       toon.tri(cx - 9 * s, cy - 6 * s, cx, cy - 29 * s, cx + 9 * s, cy - 6 * s, col)
     end, 2, INK)
     gfx.ellipse(cx - 8 * s, cy, 2.5 * s, 8 * s, alpha(0xffffff, 100))
-    face(cx, cy + 4 * s, s, happy)
   elseif kind == 2 then
     toon(function()
       for k = 0, 7 do
@@ -216,7 +355,6 @@ function P.head(kind, cx, cy, s, col, happy)
       end
       toon.circle(cx, cy, 11 * s, 0xffe36a)
     end, 2, INK)
-    face(cx, cy - s, 0.95 * s, happy)
   elseif kind == 3 then
     toon(function()
       for k = 0, 11 do
@@ -228,7 +366,6 @@ function P.head(kind, cx, cy, s, col, happy)
     for k = 0, 6 do
       gfx.circle(cx + cos(k * 0.9) * 9.5 * s, cy + sin(k * 0.9) * 9.5 * s, 1.1 * s, 0xa8703e)
     end
-    face(cx, cy - s, 0.95 * s, happy, true)
   elseif kind == 4 then
     toon(function()
       for k = 0, 5 do
@@ -238,14 +375,12 @@ function P.head(kind, cx, cy, s, col, happy)
       toon.circle(cx, cy, 14 * s, lite)
     end, 2, INK)
     gfx.ring(cx, cy, 13 * s, 1.6, dark)
-    face(cx, cy - s, 0.9 * s, happy)
   elseif kind == 5 then
     toon(function()
       toon.tri(cx - 23 * s, cy + 13 * s, cx + 23 * s, cy + 13 * s, cx, cy - 27 * s, col)
       toon.tri(cx - 23 * s, cy - 13 * s, cx + 23 * s, cy - 13 * s, cx, cy + 27 * s, col)
       toon.circle(cx, cy, 11 * s, lite)
     end, 2, INK)
-    face(cx, cy - s, 0.9 * s, happy)
   else
     toon(function()
       for k = 0, 5 do
@@ -255,25 +390,62 @@ function P.head(kind, cx, cy, s, col, happy)
       toon.circle(cx, cy, 14 * s, col)
     end, 2, INK)
     gfx.ring(cx, cy, 10 * s, 2, alpha(0xffffff, 150))
-    gfx.glow(cx, cy, 20 * s, alpha(0xffffff, 60 + floor(40 * sin(fr() * 0.1))))
-    face(cx, cy - s, 0.9 * s, happy)
   end
+end
+
+local function head_face(kind, cx, cy, s, happy)
+  if kind == 1 then face(cx, cy + 4 * s, s, happy)
+  elseif kind == 2 then face(cx, cy - s, 0.95 * s, happy)
+  elseif kind == 3 then face(cx, cy - s, 0.95 * s, happy, true)
+  else face(cx, cy - s, 0.9 * s, happy) end
+end
+
+function P.head(kind, cx, cy, s, col, happy)
+  head_body(kind, cx, cy, s, col)
+  -- The rainbow rose's soft light shimmers over its face.
+  if kind == 6 then gfx.glow(cx, cy, 20 * s, alpha(0xffffff, 60 + floor(40 * sin(fr() * 0.1)))) end
+  head_face(kind, cx, cy, s, happy)
+end
+
+-- How far a petal reaches from the middle, per kind: left/right, up, down (at scale 1).
+local HX, HT, HB = {19, 28, 31, 25, 25, 25}, {31, 28, 31, 25, 29, 25}, {22, 28, 31, 25, 29, 25}
+-- The size steps a bloom is kept at; a bloom between two steps is the nearer one, drawn a little larger or
+-- smaller. Growing (0.45 up to 1) and the beat's bounce (up to 1.16) are the only times it is not step 1.
+local RSTEP = {0.6, 1, 1.12}
+local COLIX = {}
+for i, c in ipairs(P.COLS) do COLIX[c] = i end
+
+-- A flower head on a bed: petals and face as one kept layer per kind, colour, happiness and size step.
+function P.flower(kind, cx, cy, s, col, happy)
+  local ri = s < 0.8 and 1 or (s < 1.06 and 2 or 3)
+  local R = RSTEP[ri]
+  local ci = COLIX[col] or 0
+  local hx, ht, hb = ceil(HX[kind] * R) + 2, ceil(HT[kind] * R) + 2, ceil(HB[kind] * R) + 2
+  local k = s / R
+  if abs(k - 1) < 0.002 then k = 1 end
+  local hp = happy and 1 or 0
+  -- The rainbow rose's soft light shimmers over its face: that one is drawn live, between petals and face.
+  if kind == 6 then
+    fig(fmt("hb:%d:%d:%d", kind, ci, ri), 2 * hx, ht + hb, hx, ht, cx, cy, function()
+      head_body(kind, 0, 0, R, col)
+    end, k, function() head_body(kind, cx, cy, s, col) end, true)
+    gfx.glow(cx, cy, 20 * s, alpha(0xffffff, 60 + floor(40 * sin(fr() * 0.1))))
+    local fx, ft, fb = ceil(13 * R) + 2, ceil(5.5 * R) + 2, ceil(8 * R) + 2
+    fig(fmt("hf:%d:%d:%d", kind, hp, ri), 2 * fx, ft + fb, fx, ft, cx, cy, function()
+      head_face(kind, 0, 0, R, happy)
+    end, k, function() head_face(kind, cx, cy, s, happy) end)
+    return
+  end
+  fig(fmt("hb:%d:%d:%d:%d", kind, ci, hp, ri), 2 * hx, ht + hb, hx, ht, cx, cy, function()
+    head_body(kind, 0, 0, R, col)
+    head_face(kind, 0, 0, R, happy)
+  end, k, function() head_body(kind, cx, cy, s, col) head_face(kind, cx, cy, s, happy) end, true)
 end
 
 local HS = {0, 0, 24, 46, 60}
 
--- One bed's plant. st 1 seed, 2 sprout, 3 bud, 4 bloom; k 0..1 how far into the stage it has grown.
--- sway: a sideways swing of the stem top; pulse: the flower singing now (0..1).
-function P.plant(x, y, st, k, kind, col, sway, pulse, happy)
-  if st == 1 then
-    local sq = 1 + (1 - k) * 0.5
-    toon(function() toon.ellipse(x, y + 1, 6 * sq, 8 * sq, col) end, 1.8, INK)
-    gfx.ellipse(x - 2, y - 1, 1.5, 3, alpha(0xffffff, 140))
-    gfx.ellipse(x, y + 8, 14, 5, C.SOIL)
-    return
-  end
-  local h = lerp(HS[st - 1], HS[st], k)
-  local tx, ty = x + sway * (h / 60), y + 6 - h
+-- The stalk with its two leaves, and the bud on it. (x, y + 6) is the foot of the stalk, tx, ty its top.
+local function stalk(x, y, st, tx, ty)
   toon(function()
     toon.line(x, y + 6, tx, ty, 5, C.LEAF)
     if st == 2 then
@@ -286,19 +458,53 @@ function P.plant(x, y, st, k, kind, col, sway, pulse, happy)
       toon.ellipse(mx + 10, my - 3, 10, 4.5, C.LEAF)
     end
   end, 2, INK)
+end
+
+local function bud(tx, ty, bs, col)
+  toon(function()
+    toon.ellipse(tx, ty - 9 * bs, 8 * bs, 11 * bs, col)
+    toon.tri(tx - 6 * bs, ty - 12 * bs, tx, ty - 26 * bs, tx + 6 * bs, ty - 12 * bs, col)
+    toon.tri(tx - 9 * bs, ty - 2, tx - 3, ty - 9 * bs, tx - 1, ty + 1, C.LEAFD)
+    toon.tri(tx + 9 * bs, ty - 2, tx + 3, ty - 9 * bs, tx + 1, ty + 1, C.LEAFD)
+  end, 2, INK)
+  gfx.line(tx - 2, ty - 8 * bs, tx - 2, ty - 18 * bs, 2, alpha(0xffffff, 120))
+end
+
+-- One bed's plant. st 1 seed, 2 sprout, 3 bud, 4 bloom; k 0..1 how far into the stage it has grown.
+-- sway: a sideways swing of the stem top; pulse: the flower singing now (0..1).
+-- Once a stage has grown (k = 1) its stalk is a kept layer per pixel of sway, its bud one per colour.
+function P.plant(x, y, st, k, kind, col, sway, pulse, happy)
+  if st == 1 then
+    local sq = 1 + (1 - k) * 0.5
+    toon(function() toon.ellipse(x, y + 1, 6 * sq, 8 * sq, col) end, 1.8, INK)
+    gfx.ellipse(x - 2, y - 1, 1.5, 3, alpha(0xffffff, 140))
+    gfx.ellipse(x, y + 8, 14, 5, C.SOIL)
+    return
+  end
+  local h = lerp(HS[st - 1], HS[st], k)
+  local tx, ty = x + sway * (h / 60), y + 6 - h
+  if k >= 1 then
+    local sq = floor(sway + 0.5)
+    local hh = HS[st]
+    local ttx = sq * (hh / 60)
+    local top = hh + 9
+    fig(fmt("stalk:%d:%d", st, sq), 60, top + 8, 30, top, x, y + 6, function()
+      stalk(0, -6, st, ttx, -hh)
+    end, 1, function() stalk(x, y, st, tx, ty) end)
+  else
+    stalk(x, y, st, tx, ty)
+  end
   if st == 3 then
     local bs = 0.7 + 0.3 * k
-    toon(function()
-      toon.ellipse(tx, ty - 9 * bs, 8 * bs, 11 * bs, col)
-      toon.tri(tx - 6 * bs, ty - 12 * bs, tx, ty - 26 * bs, tx + 6 * bs, ty - 12 * bs, col)
-      toon.tri(tx - 9 * bs, ty - 2, tx - 3, ty - 9 * bs, tx - 1, ty + 1, C.LEAFD)
-      toon.tri(tx + 9 * bs, ty - 2, tx + 3, ty - 9 * bs, tx + 1, ty + 1, C.LEAFD)
-    end, 2, INK)
-    gfx.line(tx - 2, ty - 8 * bs, tx - 2, ty - 18 * bs, 2, alpha(0xffffff, 120))
+    if k >= 1 then
+      fig(fmt("bud:%x", col), 30, 36, 15, 30, tx, ty, function() bud(0, 0, 1, col) end, 1, function() bud(tx, ty, 1, col) end, true)
+    else
+      bud(tx, ty, bs, col)
+    end
   elseif st == 4 then
     local o = 0.45 + 0.55 * ease.out_back(min(1, k))
     local ps = o * (1 + 0.16 * pulse)
-    P.head(kind, tx, ty - 6 - 6 * pulse, ps, col, happy or pulse > 0.2)
+    P.flower(kind, tx, ty - 6 - 6 * pulse, ps, col, happy or pulse > 0.2)
   end
 end
 
@@ -352,21 +558,16 @@ end
 -- ------------------------------------------------------------------ the fairy, her pouch and the fairy ring
 
 -- x, y: her head. dir: where she looks (-1, 0, 1). pc: pouch colour (next seed). flap: 0..1 wing.
-function P.fairy(x, y, s, dir, happy, flap, pc, kind)
-  local blink = (fr() % 190) < 6
-  local t = fr()
-  local wy = 0.7 + 0.3 * flap
+-- At her usual size the wings (six beats), the dress and hair, the face (six looks), the pouch (one per colour)
+-- and the wand's star (twelve turns) are kept layers; the wand and the pouch's string and glow stay live.
+local function fairy_wings(x, y, s, wy)
   gfx.ellipse_o(x - 13 * s, y + 2 * s, 11 * s * wy, 17 * s, alpha(0xd8ecff, 215), INK, 1.5)
   gfx.ellipse_o(x + 13 * s, y + 2 * s, 11 * s * wy, 17 * s, alpha(0xd8ecff, 215), INK, 1.5)
   gfx.ellipse_o(x - 10 * s, y + 18 * s, 7 * s * wy, 10 * s, alpha(0xffd0ec, 215), INK, 1.5)
   gfx.ellipse_o(x + 10 * s, y + 18 * s, 7 * s * wy, 10 * s, alpha(0xffd0ec, 215), INK, 1.5)
-  -- Wand arm.
-  local wx, wy2 = x + 25 * s, y - 2 * s + sin(t * 0.12) * 3
-  gfx.line(x + 6 * s, y + 20 * s, wx, wy2 + 5 * s, 4 * s, INK)
-  gfx.line(x + 6 * s, y + 20 * s, wx, wy2 + 5 * s, 2 * s, 0xffe2cc)
-  gfx.line(wx, wy2 + 5 * s, wx + 3 * s, wy2 - 8 * s, 3 * s, 0xf4d8a0)
-  gfx.glow(wx + 3 * s, wy2 - 10 * s, 14 * s, alpha(0xfff0a0, 140))
-  gfx.star(wx + 3 * s, wy2 - 10 * s, 6 * s, t * 0.08, C.SUN)
+end
+
+local function fairy_body(x, y, s)
   toon(function()
     toon.tri(x - 13 * s, y + 38 * s, x + 13 * s, y + 38 * s, x, y + 14 * s, 0xc9a8f0)
     toon.circle(x + 11 * s, y - 8 * s, 6 * s, 0xf2a03a)
@@ -376,9 +577,12 @@ function P.fairy(x, y, s, dir, happy, flap, pc, kind)
   gfx.circle(x - 6 * s, y - 8 * s, 4 * s, 0xf2a03a)
   gfx.circle(x + 6 * s, y - 8 * s, 4 * s, 0xf2a03a)
   gfx.tri(x - 4 * s, y - 15 * s, x, y - 24 * s, x + 4 * s, y - 15 * s, C.SUN)
+end
+
+local function fairy_face(x, y, s, shut, dir)
   local ex = 4.5 * s
   local look = dir * 1.5 * s
-  if happy or blink then
+  if shut then
     for k = -1, 1, 2 do
       gfx.line(x + k * ex + look - 3 * s, y + 1.5 * s, x + k * ex + look, y - 1.5 * s, 1.8 * s, INK)
       gfx.line(x + k * ex + look, y - 1.5 * s, x + k * ex + look + 3 * s, y + 1.5 * s, 1.8 * s, INK)
@@ -391,33 +595,95 @@ function P.fairy(x, y, s, dir, happy, flap, pc, kind)
   gfx.ellipse(x + 8.5 * s, y + 5 * s, 3 * s, 2 * s, C.BLUSH)
   gfx.line(x - 3 * s, y + 6 * s, x, y + 8.5 * s, 1.5 * s, INK)
   gfx.line(x, y + 8.5 * s, x + 3 * s, y + 6 * s, 1.5 * s, INK)
-  -- The seed pouch, hanging at her side: its colour is the next seed's.
-  local px, py = x - 17 * s, y + 30 * s + sin(t * 0.1) * 1.5
-  gfx.line(x - 8 * s, y + 22 * s, px + 2 * s, py - 6 * s, 1.6, INK)
+end
+
+local function fairy_pouch(px, py, s, pc)
   toon(function() toon.circle(px, py, 8.5 * s, pc) end, 2, INK)
   gfx.tri(px - 4 * s, py - 6 * s, px, py - 13 * s, px + 4 * s, py - 6 * s, 0xf4d8a0)
   gfx.circle(px - 3 * s, py - 2 * s, 2 * s, alpha(0xffffff, 130))
+end
+
+function P.fairy(x, y, s, dir, happy, flap, pc, kind)
+  local blink = (fr() % 190) < 6
+  local t = fr()
+  local wy = 0.7 + 0.3 * flap
+  local s100 = floor(s * 100 + 0.5)
+  local kept_s = abs(s * 100 - s100) < 0.001 and s100 >= 20
+  local sc = s100 / 100
+  if kept_s then
+    local q = floor((wy - 0.7) / 0.06 + 0.5)
+    local wx, wt, wb = ceil(27 * sc) + 2, ceil(18 * sc) + 2, ceil(30 * sc) + 2
+    fig(fmt("fwing:%d:%d", s100, q), 2 * wx, wt + wb, wx, wt, x, y, function() fairy_wings(0, 0, sc, 0.7 + 0.06 * q) end, 1,
+      function() fairy_wings(x, y, s, wy) end)
+  else
+    fairy_wings(x, y, s, wy)
+  end
+  -- Wand arm.
+  local wx, wy2 = x + 25 * s, y - 2 * s + sin(t * 0.12) * 3
+  gfx.line(x + 6 * s, y + 20 * s, wx, wy2 + 5 * s, 4 * s, INK)
+  gfx.line(x + 6 * s, y + 20 * s, wx, wy2 + 5 * s, 2 * s, 0xffe2cc)
+  gfx.line(wx, wy2 + 5 * s, wx + 3 * s, wy2 - 8 * s, 3 * s, 0xf4d8a0)
+  gfx.glow(wx + 3 * s, wy2 - 10 * s, 14 * s, alpha(0xfff0a0, 140))
+  if kept_s then
+    local u = floor((t * 0.08 % 1.2566) / 1.2566 * 12 + 0.5) % 12
+    local sr = 6 * s
+    local hr = ceil(sr) + 2
+    fig(fmt("fstar:%d:%d", s100, u), 2 * hr, 2 * hr, hr, hr, wx + 3 * s, wy2 - 10 * s, function()
+      gfx.star(0, 0, 6 * sc, u / 12 * 1.2566, C.SUN)
+    end, 1, function() gfx.star(wx + 3 * s, wy2 - 10 * s, sr, t * 0.08, C.SUN) end)
+  else
+    gfx.star(wx + 3 * s, wy2 - 10 * s, 6 * s, t * 0.08, C.SUN)
+  end
+  local shut = happy or blink
+  if kept_s then
+    local bl, br, bt, bb = ceil(15 * sc) + 3, ceil(19 * sc) + 3, ceil(26 * sc) + 3, ceil(40 * sc) + 3
+    fig("fbody:" .. s100, bl + br, bt + bb, bl, bt, x, y, function() fairy_body(0, 0, sc) end, 1,
+      function() fairy_body(x, y, s) end)
+    local fx, ft, fb = ceil(14 * sc) + 2, ceil(5 * sc) + 2, ceil(10 * sc) + 2
+    fig(fmt("fface:%d:%d:%d", s100, shut and 1 or 0, dir), 2 * fx, ft + fb, fx, ft, x, y, function()
+      fairy_face(0, 0, sc, shut, dir)
+    end, 1, function() fairy_face(x, y, s, shut, dir) end)
+  else
+    fairy_body(x, y, s)
+    fairy_face(x, y, s, shut, dir)
+  end
+  -- The seed pouch, hanging at her side: its colour is the next seed's.
+  local px, py = x - 17 * s, y + 30 * s + sin(t * 0.1) * 1.5
+  gfx.line(x - 8 * s, y + 22 * s, px + 2 * s, py - 6 * s, 1.6, INK)
+  if kept_s then
+    local pr, pt, pb = ceil(11 * sc) + 2, ceil(14 * sc) + 2, ceil(11 * sc) + 2
+    fig(fmt("fpouch:%d:%x", s100, pc), 2 * pr, pt + pb, pr, pt, px, py, function() fairy_pouch(0, 0, sc, pc) end, 1,
+      function() fairy_pouch(px, py, s, pc) end)
+  else
+    fairy_pouch(px, py, s, pc)
+  end
   gfx.glow(px, py, 14 * s, alpha(pc, 90))
 end
 
 -- The ring of toadstools round the bed she is at. cx, cy: the bed's soil; t: frames.
+-- A toadstool is a kept layer in one of five sizes (sc is rounded to 0.1, under a pixel's difference).
+local function mushroom(mx, my, sc)
+  gfx.ellipse_o(mx, my - 3 * sc, 3.2 * sc, 5 * sc, C.CREAM, INK, 1.3)
+  gfx.ellipse_o(mx, my - 8 * sc, 7.5 * sc, 5.5 * sc, 0xe85a6a, INK, 1.5)
+  gfx.circle(mx - 2.5 * sc, my - 9 * sc, 1.3 * sc, C.WHITE)
+  gfx.circle(mx + 2.5 * sc, my - 7 * sc, 1.1 * sc, C.WHITE)
+end
+
 function P.ring(cx, cy, t)
   for k = 0, 8 do
     local a = t * 0.012 + k * 0.6981
     local mx, my = cx + cos(a) * 52, cy + 13 + sin(a) * 19
     local sc = 0.85 + 0.2 * sin(a)
-    gfx.ellipse_o(mx, my - 3 * sc, 3.2 * sc, 5 * sc, C.CREAM, INK, 1.3)
-    gfx.ellipse_o(mx, my - 8 * sc, 7.5 * sc, 5.5 * sc, 0xe85a6a, INK, 1.5)
-    gfx.circle(mx - 2.5 * sc, my - 9 * sc, 1.3 * sc, C.WHITE)
-    gfx.circle(mx + 2.5 * sc, my - 7 * sc, 1.1 * sc, C.WHITE)
+    local q = clamp(floor((sc - 0.65) / 0.1 + 0.5), 0, 4)
+    if game.gpu then sheet_draw("small", MU0 + q + 1, mx, my) else mushroom(mx, my, sc) end
   end
   gfx.glow(cx, cy + 10, 52, alpha(0xfff0a0, 70 + floor(25 * sin(t * 0.14))))
 end
 
 -- ------------------------------------------------------------------ visitors
 
--- A butterfly. flap: 0..1 how open the wings are.
-function P.butterfly(x, y, col, flap)
+-- A butterfly. flap: 0..1 how open the wings are (eight steps: one pixel of wing each).
+local function butterfly(x, y, col, flap)
   local w = 3 + 8 * flap
   local lite = mix(col, 0xffffff, 0.5)
   gfx.ellipse_o(x - 7, y - 3, w, 8, col, INK, 1.4)
@@ -429,6 +695,12 @@ function P.butterfly(x, y, col, flap)
   gfx.ellipse(x, y + 1, 2, 7, INK)
   gfx.line(x, y - 5, x - 3, y - 10, 1, INK)
   gfx.line(x, y - 5, x + 3, y - 10, 1, INK)
+end
+
+function P.butterfly(x, y, col, flap)
+  if not game.gpu then return butterfly(x, y, col, flap) end
+  local q = floor(flap * 8 + 0.5)
+  sheet_draw("small", BF0 + (COLIX[col] - 1) * 9 + q + 1, x, y)
 end
 
 -- The bee. sq: how hard the beat just landed (0..1), it squashes; dir: -1 or 1.
@@ -498,11 +770,19 @@ function P.hedgehog(x, y, curl, dir)
   end
 end
 
-function P.firefly(x, y, g)
-  gfx.glow(x, y, 16, alpha(0xfff080, floor(150 * g)))
+local function firefly(x, y, lit)
   gfx.ellipse(x - 4, y - 3, 3.5, 1.8, alpha(0xffffff, 170))
   gfx.ellipse(x + 4, y - 3, 3.5, 1.8, alpha(0xffffff, 170))
-  gfx.circle_o(x, y, 3.8, g > 0.5 and 0xfff6a0 or 0xc8a850, INK, 1.2)
+  gfx.circle_o(x, y, 3.8, lit and 0xfff6a0 or 0xc8a850, INK, 1.2)
+end
+
+-- The light and the bug are drawn apart so a swarm's lights go down together (one blend change, not one each).
+function P.firefly_glow(x, y, g)
+  gfx.glow(x, y, 16, alpha(0xfff080, floor(150 * g)))
+end
+
+function P.firefly(x, y, g)
+  if game.gpu then sheet_draw("small", FF0 + (g > 0.5 and 2 or 1), x, y) else firefly(x, y, g > 0.5) end
 end
 
 function P.rain_cloud(x, y)
@@ -520,15 +800,33 @@ function P.rain_cloud(x, y)
 end
 
 -- The sun in the corner of the sky. glad: it beams.
+-- The disc and face are two kept layers (glad or not); the twelve rays turn once every 43 frames, kept in
+-- twelve turns of their ring, and drawn live only while the sun beams.
+local function sun_rays(x, y, a0, r)
+  for k = 0, 11 do
+    local a = a0 + k * 0.5236
+    gfx.line(x + cos(a) * (r + 5), y + sin(a) * (r + 5), x + cos(a) * (r + 13), y + sin(a) * (r + 13), 4.5, C.SUN)
+  end
+end
+
 function P.sun(x, y, t, glad)
   local r = 22 + (glad and 4 or 0)
   gfx.glow(x, y, r * 2.6, alpha(0xfff0a0, glad and 150 or 90))
-  for k = 0, 11 do
-    local a = t * 0.012 + k * 0.5236
-    gfx.line(x + cos(a) * (r + 5), y + sin(a) * (r + 5), x + cos(a) * (r + 13), y + sin(a) * (r + 13), 4.5, C.SUN)
+  local a0 = t * 0.012
+  if glad then
+    sun_rays(x, y, a0, r)
+  else
+    local q = floor((a0 % 0.5236) / 0.5236 * 12 + 0.5) % 12
+    fig("sunr:" .. q, 80, 80, 40, 40, x, y, function() sun_rays(0, 0, q / 12 * 0.5236, 22) end, 1,
+      function() sun_rays(x, y, a0, r) end)
   end
-  gfx.circle_o(x, y, r, 0xffe680, INK, 2.5)
-  face(x, y - 2, 1.1, glad)
+  fig(glad and "sund:1" or "sund:0", 64, 64, 32, 32, x, y, function()
+    gfx.circle_o(0, 0, r, 0xffe680, INK, 2.5)
+    face(0, -2, 1.1, glad)
+  end, 1, function()
+    gfx.circle_o(x, y, r, 0xffe680, INK, 2.5)
+    face(x, y - 2, 1.1, glad)
+  end)
 end
 
 -- ------------------------------------------------------------------ bouquets, vase and packets
@@ -577,10 +875,8 @@ function P.vase(x, y, c1, c2, c3, c4)
 end
 
 -- A seed packet on the shelf. state: 0 locked, 1 open, 2 next to be planted. x: middle, y: top.
-function P.packet(kind, x, y, state, t, fresh)
-  local lift = state == 2 and -abs(sin(t * 0.1)) * 3 or 0
-  y = y + lift
-  if state == 2 then gfx.glow(x, y + 16, 34, alpha(0xfff0a0, 150)) end
+-- The packet itself is a kept layer per kind (locked or open); its glow and new-star stay live.
+local function packet(kind, x, y, state)
   if state == 0 then
     gfx.rrect_o(x - 19, y, 38, 34, 5, 0xb8aec4, INK, 2)
     gfx.rrect_o(x - 8, y + 15, 16, 12, 3, 0x6a5a88, INK, 1.6)
@@ -590,8 +886,34 @@ function P.packet(kind, x, y, state, t, fresh)
     gfx.rrect_o(x - 19, y, 38, 34, 5, C.CREAM, INK, 2)
     gfx.rect(x - 17, y + 2, 34, 6, P.COLS[(kind - 1) % 6 + 1])
     P.head(kind, x, y + 20, 0.4, P.COLS[(kind - 1) % 6 + 1], false)
-    if fresh then gfx.star(x + 17, y + 3, 8 + sin(t * 0.2) * 2, t * 0.03, C.GOLD) end
   end
+end
+
+function P.packet(kind, x, y, state, t, fresh)
+  local lift = state == 2 and -abs(sin(t * 0.1)) * 3 or 0
+  y = y + lift
+  if state == 2 then gfx.glow(x, y + 16, 34, alpha(0xfff0a0, 150)) end
+  local open = state == 0 and 0 or 1
+  if game.gpu then sheet_draw("small", PK0 + (kind - 1) * 2 + open + 1, x, y) else packet(kind, x, y, open) end
+  if open == 1 and fresh then gfx.star(x + 17, y + 3, 8 + sin(t * 0.2) * 2, t * 0.03, C.GOLD) end
+end
+
+-- The two boxes of the corner display (the blooms so far, and the count), and its dots (0 = empty).
+function P.hud_left()
+  fig("hud:l", 128, 30, 2, 2, 8, 8, function() gfx.rrect_o(0, 0, 124, 26, 11, C.CREAM, INK, 2) end)
+end
+function P.hud_right(x)
+  fig("hud:r", 94, 30, 2, 2, x, 8, function()
+    gfx.rrect_o(0, 0, 90, 26, 11, C.CREAM, INK, 2)
+    P.head(1, 18, 17, 0.38, P.COLS[1], false)
+  end)
+end
+local function dot(x, y, ci)
+  if ci > 0 then gfx.circle_o(x, y, 7.5, P.COLS[ci], INK, 1.6)
+  else gfx.circle_o(x, y, 6.5, 0xe8dccc, 0xb8a8b8, 1.5) end
+end
+function P.dot(x, y, ci)
+  if game.gpu then sheet_draw("small", DOT0 + ci + 1, x, y) else dot(x, y, ci) end
 end
 
 -- ------------------------------------------------------------------ the sky and the meadow (painted once)
@@ -670,6 +992,23 @@ function P.paint(dusk, rainbow, nunlocked)
   gfx.rrect_o(10, 436, 364, 44, 8, C.WOOD, INK, 2.5)
   gfx.rect(14, 440, 356, 4, C.WOODL)
   gfx.rect(14, 476, 356, 2, 0x9a6038)
+end
+
+-- The sheet "small": two fireflies, the seven dots, five toadstools, twelve seed packets and fifty-four
+-- butterflies (six colours, nine wing beats). Order matters: it is the FF0..BF0 offsets above.
+do
+  local cells = {}
+  local function add(w, h, ox, oy, paint) cells[#cells + 1] = {w = w, h = h, ox = ox, oy = oy, paint = paint} end
+  for lit = 0, 1 do add(18, 12, 9, 6, function() firefly(0, 0, lit == 1) end) end
+  for ci = 0, 6 do add(22, 22, 11, 11, function() dot(0, 0, ci) end) end
+  for q = 0, 4 do add(22, 22, 11, 18, function() mushroom(0, 0, 0.65 + 0.1 * q) end) end
+  for kind = 1, 6 do
+    for open = 0, 1 do add(44, 42, 22, 3, function() packet(kind, 0, 0, open) end) end
+  end
+  for ci = 1, 6 do
+    for q = 0, 8 do add(42, 26, 21, 14, function() butterfly(0, 0, P.COLS[ci], q / 8) end) end
+  end
+  sheet_make("small", 512, cells)
 end
 
 return P

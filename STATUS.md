@@ -15,6 +15,13 @@ Read this before the history below. Dig Dug II opens The Yard.
 * **Wi-Fi without a new kernel (2026-10-26, on the cabinet, not yet tried).** The user has no USB-Ethernet adapter but has the TP-Link AC600. `games/net/wifi/build.sh` builds `cfg80211.ko`, the RTL8821AU driver `8821au.ko`, and a static `wpa_supplicant` 2.11 for the stock kernel, with the vendor's own compiler (Linaro GCC 6.3-2017.05) and a config tuned until 7009 of 7152 exported kernel functions are byte-identical to the cabinet's (`tools/kernel_abi.py`). `yardnet` loads them when the AC600 is plugged in and `net/wifi.conf` exists, behind a crash guard. A FAT USB stick with `yard/` now carries settings in, files in (`put.tar`), a script, and logs out, with no Mask ROM. Details and what the 2026-10-24 attempt got wrong: [games/net/wifi/README.md](games/net/wifi/README.md).
 * **Over Wi-Fi now (2026-10-26, verified):** the AC600 works with our modules, and `ssh -i ~/yard_key_ecdsa root@192.168.1.225` is a root shell (the address is DHCP; Wi-Fi starts when The Yard first opens after a boot). Files can be changed in place over SSH, with no Mask ROM: `scp -O` (the cabinet has no sftp-server), and `dd conv=notrunc` for same-size files when `/userdata` (96% full) has no room for a second copy. The stock menu ignores SIGTERM (the supervisor's SIGKILL fallback is needed); restart it as S50ui does (`XDG_CONFIG_HOME=/userdata/ MG_CFG_PATH=/etc /usr/bin/game`). **A Mask ROM deploy must start from a fresh dump**, since the cabinet's files now change over SSH.
 * **Boot customization over the air (2026-10-26, verified):** the boot partition now holds the stock boot image plus a 3.7 KB initramfs (`games/boot/`: `tinyinit`), written over Wi-Fi from Linux (`tools/ota_boot.sh`; sha256 `94172b67…3704`; the stock one `a0ce5967…3fba90` is in the dumps and on the SD card). At every power-on it runs `/userdata/boot/stage2.sh` (changeable over Wi-Fi) before the stock boot; v1 starts Wi-Fi and SSH right away (no Dig Dug II needed: SSH 42 s after power-on) and logs to `/userdata/boot/boot.log`. Safety: 1-player + 2-player held or tapped in the first seconds, `boot/disabled`, or 3 unfinished boots give the stock boot; stage2 runs with a 30 s limit as a child. Undo: `tools/ota_boot.sh restore`. **No Micro-USB needed for anything from here, short of a recovery.**
+* **2026-11-24: whole-system audit, SYSTEM_AUDIT.md (findings, recommendations, checklist), first pass landed (247 tests; verified on the cabinet).**
+  Supervisor logs off /data, a memory/I/O recorder (`partycade/logs/vm.log`) for the unexplained 5-46 s freezes,
+  the last good Home before safe mode; Home's Yard cards from the carts' info.lua; hitch causes logged; tests for
+  the supervisor ladder, memory flatness (found Bake's window leak) and sound; `tools/cab_bench.py` (on-cabinet
+  fps/memory against `captures/bench/baseline.tsv`, saves restored); Garden 37 -> 47 fps, Band 42 -> 46. All 8
+  adventure games pushed and measured on the cabinet (43-59 fps). **On-cabinet bot runs had written into the kids'
+  saves (Nov 23-24);** the bot's keys were removed, backup in `/mnt/sdcard/partycade/save-backup-2026-11-24/`.
 * **2026-11-23 (evening): interactive music, one castle world, and a deep pass on 12 Yard games (PC-verified, 211 tests).**
   * **Engine (both runtimes):** `music.track` (per-track level), `music.cue` (a note on the next step/beat/bar),
     `music.play{keep = true}` (new arrangement without a restart), `save.peek` (read another cart's save). CARTS.md.
@@ -24,8 +31,7 @@ Read this before the history below. Dig Dug II opens The Yard.
     Garden, Bake, Tea verified on the cabinet (no errors, 58-60 logic steps/s; drawn 30-55 fps: Garden falls to
     ~30 fps as it fills, a polish item).
   * **The adventures (ADVENTURE.md):** Dig, Chest, Safari, Keep, Chomp, Star Kart, Tower, Starship deepened (story,
-    music that follows play, things that grow between visits). PC only: **not yet pushed** (cabinet offline);
-    push with `games/cart push`, then measure each on the cabinet (YARD_STATS=1, as in this entry's castle check).
+    music that follows play, things that grow between visits). Pushed and measured on the cabinet 2026-11-24 (see the entry above).
   * Nobody has listened to the new music yet; WAV renders were checked for silence and clipping only.
 * **2026-11-23: audit of every commit since 15e23c0 (PC-verified, 206 tests; not yet on the cabinet: it was offline).**
   * **Boot resilience:** `guard.lua` turns off a failing extra (Longhorns data, TV guide, games card) instead of

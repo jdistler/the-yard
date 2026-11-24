@@ -44,3 +44,9 @@ some visits (one `rnd` in `init`).
 ## Log lines
 `band songs N`, `band song ID`, `band wake NAME`, `band solo NAME` (first per song), `band chorus`,
 `band encore N`, `band learned N`, `band fans N`, `band fan N`, `band visitor owl`.
+
+## Drawing speed (GPU runtime)
+On the GPU runtime (`game.gpu`) the figures are painted once and copied: the audience and the lamps are one sheet
+(the whole audience is one draw), the cats and the unicorn are body (tail in five steps) plus face, the bass, harp
+and bars are kept without the string or bar that is moving (that one is live), and the kick, toms and tambourine
+are kept in quarter steps. Keys are poses out of a fixed set, never frames. The C runtime draws everything live.

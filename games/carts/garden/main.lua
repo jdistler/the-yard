@@ -442,6 +442,13 @@ local function bfly(i, f)
   return lerp(fx, x0 + 13, L), lerp(fy, y0 + 10, L), flap
 end
 
+-- At dusk each bloom has a soft light behind it, drawn for a row of beds together.
+local function bed_light(i, dusk)
+  if not (dusk and S.stage[i] == 4) then return end
+  local ba = amp(B.bf[i], 24)
+  gfx.glow(BEDX[i], BEDY[i] - 58, 40, alpha(COLS[S.ci[i]], 60 + floor(70 * ba)))
+end
+
 local function draw_bed(i, dusk)
   local st = S.stage[i]
   if st == 0 then return end
@@ -452,7 +459,6 @@ local function draw_bed(i, dusk)
   local ba = 0
   if st == 4 then ba = amp(B.bf[i], 24) * (dusk and 1 or 0.55) end
   local sway = sin(game.frame * 0.05 + i) * 2.5 + pa * sin(game.frame * 0.45) * 4
-  if dusk and st == 4 then gfx.glow(x, y - 58, 40, alpha(COLS[S.ci[i]], 60 + floor(70 * ba))) end
   pics.plant(x, y, st, k, S.kind[i], COLS[S.ci[i]], sway, max(pa, ba), S.phase ~= "grow" and st == 4)
 end
 
@@ -524,12 +530,15 @@ local function draw_visitors(dusk, phase)
     pics.hedgehog(hx, 352 - k * 7, k > 0.5 and 1 or 0, 1)
   end
   if dusk then
-    for k = 1, S.fly do
-      local h = pics.hash(k * 5)
-      local fx = 24 + h * 336 + sin(t * 0.011 + k) * 22
-      local fy = 215 + pics.hash(k * 5 + 2) * 230 + cos(t * 0.013 + k * 2) * 18
-      local g = 0.5 + 0.5 * sin(t * 0.07 + k * 2.1)
-      pics.firefly(fx, fy, max(g, amp(B.beat, 10) * 0.8))
+    for pass = 1, 2 do
+      for k = 1, S.fly do
+        local h = pics.hash(k * 5)
+        local fx = 24 + h * 336 + sin(t * 0.011 + k) * 22
+        local fy = 215 + pics.hash(k * 5 + 2) * 230 + cos(t * 0.013 + k * 2) * 18
+        local g = 0.5 + 0.5 * sin(t * 0.07 + k * 2.1)
+        g = max(g, amp(B.beat, 10) * 0.8)
+        if pass == 1 then pics.firefly_glow(fx, fy, g) else pics.firefly(fx, fy, g) end
+      end
     end
   end
 end
@@ -551,18 +560,11 @@ local function draw_cast(phase)
 end
 
 local function draw_hud()
-  gfx.rrect_o(8, 8, 124, 26, 11, C.CREAM, C.INK, 2)
+  pics.hud_left()
   for k = 1, NB do
-    local b = S.bord[k]
-    local cx = 24 + (k - 1) * 19
-    if k <= S.nbloom then
-      gfx.circle_o(cx, 21, 7.5, COLS[S.ci[b]], C.INK, 1.6)
-    else
-      gfx.circle_o(cx, 21, 6.5, 0xe8dccc, 0xb8a8b8, 1.5)
-    end
+    pics.dot(24 + (k - 1) * 19, 21, k <= S.nbloom and S.ci[S.bord[k]] or 0)
   end
-  gfx.rrect_o(W - 98, 8, 90, 26, 11, C.CREAM, C.INK, 2)
-  pics.head(1, W - 80, 25, 0.38, COLS[1], false)
+  pics.hud_right(W - 98)
   gfx.text(tostring(S.blooms), W - 40, 12, 16, C.INK, "center")
 end
 
@@ -612,11 +614,13 @@ function draw()
   local px = S.fx
   S.fx, S.fy = approach(S.fx, tx, 0.2), approach(S.fy, ty, 0.2)
   if abs(S.fx - px) > 0.6 then S.fdir = S.fx > px and 1 or -1 end
+  for i = 1, 3 do bed_light(i, dusk) end
   for i = 1, 3 do draw_bed(i, dusk) end
   if S.nst > 0 then
     local mood = S.nst == 2 and "happy" or nil
     pics.cat(4, S.nx, S.ny, 0.55, mood, S.nst == 2 and BEDX[S.nb] or S.nx + S.ndir * 40)
   end
+  for i = 4, NB do bed_light(i, dusk) end
   for i = 4, NB do draw_bed(i, dusk) end
   draw_visitors(dusk, phase)
   if S.phase ~= "bouquet" then

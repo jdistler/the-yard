@@ -53,3 +53,11 @@ Saved at each bloom, at evening, at the bouquet, and in `quit()`. Loads are clam
 Logic counts `game.frame`; `music.step()` only draws (bounces, lights, drum hits) and picks cue pitch. The only
 chance is one `rnd()` in `init`. `bot()` plays a whole garden (every 20 frames) and the evening, reaching the
 bouquet at about frame 1050. One backdrop at a time (day or dusk, 768 KB); particles under 100.
+
+## Drawing speed (GPU runtime)
+The Mali is fill-rate bound and every shape is a call, so on the GPU runtime (`game.gpu`) the figures are painted
+once and copied: blooms (petals and face, three size steps, per kind and colour; let go after 900 idle frames, a
+garden's colours are not the last garden's), stalks (per pixel of sway), buds, cats and the unicorn (body, face,
+tail in five steps; only open eyes are live), the fairy (wings, dress, face, pouch, wand star), the sun (rays in
+twelve turns), and one sheet of small pictures (fireflies, dots, toadstools, packets, butterflies). Every key is a
+pose out of a fixed set, never a frame. The C runtime draws everything live, as before.

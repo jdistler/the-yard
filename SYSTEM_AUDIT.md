@@ -202,13 +202,18 @@ Ticked as each lands, with the commit.
 - [x] E3. `tools/cab_bench.sh`: every game on the cabinet, quiet mode, fps/memory/errors against a stored baseline.
 
 **F. Filesystem safety**
-- [ ] F1. SD card: `e2fsck -p` before mount when its clean flag is down, with a time limit. *(boot path: test on
-      the PC with a loop image first)*
+- [ ] F1. SD card check. **Measured 2026-11-24:** the card's ext2 has 1,949,696 inodes (476 MB of inode tables)
+      and uses 872; its state is "not clean", 33 mounts unchecked since Oct 24. `e2fsck` reads every inode table,
+      so a boot-time check would cost about 30 s per boot at the card's ~15 MB/s: not acceptable. Plan (needs the
+      card out of the cabinet, the user's job): copy its files to the PC, `mke2fs -t ext2 -N 65536 -L PARTYCADE`
+      (16 MB of inode tables), copy back, then add `e2fsck -p` before the card mounts (about 2 s, only when
+      not clean). Until then: the card holds only things that can be re-made from the PC (library, art, logs,
+      the last good Home), never the only copy of anything; saves live on /userdata.
 - [ ] F2. `/userdata` check: **needs the user's written approval** (flash write). Recommendation only.
 
 **G. Performance (P2)**
-- [ ] G1. Garden: bake characters and flower poses as stamps; target 45+ fps when full.
-- [ ] G2. Band: the same.
+- [x] G1. Garden: characters and flower poses kept as pictures on the GPU runtime: 37 -> 47 fps on the cabinet.
+- [x] G2. Band: the same: 42 -> 46 fps. (Shape draws per frame 885 -> 291 and 745 -> 190; images ~2.6 MB, flat.)
 - [ ] G3. Home: move show and Shelf art loads off the main thread where a hitch shows in B2.
 
 **H. Home refactor (P2, in steps behind the Home tests)**
@@ -227,4 +232,17 @@ Ticked as each lands, with the commit.
 
 ## 6. Results log
 
-(Filled in as the checklist lands: what changed, what was measured afterwards.)
+**2026-11-24, first pass** (commits c6fe528 .. this one; all pushed to the cabinet and verified there unless noted):
+
+* **Supervisor:** logs off `/data` (989 KB free, was 861); `vm.log` recording memory and I/O every 2 s (running
+  under its own name, verified); the last good Home kept on the card and run before safe mode (PC-tested in
+  busybox sh and dash; the cabinet's copy appears after Home's first 2 minutes or first choice).
+* **Home:** Yard cards from the carts' `info.lua` (verified: 14 cards with live stat lines); hitches name what the
+  frame loaded.
+* **Tests:** 247 (was 211): the homeloop ladder, the cards, two-minute memory flatness for 13 games (it found and
+  fixed a live leak in Bake), sound for 13 games. `tools/cab_bench.py` with a stored baseline; pre-push hook.
+* **Sound:** loudness spread 7.3 -> 5.5 dB.
+* **Speed:** Garden 37 -> 47 fps, Band 42 -> 46 fps (cabinet).
+* **Saves:** the bot's progress from on-cabinet runs removed (backup on the card); the bench protects saves.
+* **Open:** B3 (read a week of vm.log and hitch notes, then fix the freezes), F1 (reformat the card, the user's
+  part), F2 (needs approval), G3 and H (Home refactor, behind the Home tests).

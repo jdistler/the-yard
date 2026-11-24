@@ -505,17 +505,21 @@ local function draw_board()
   end
 end
 
+local FX, FY, FUP, FKIND = {}, {}, {}, {}
 local function draw_audience(phase)
   local glad = S.phase == "chorus" or S.phase == "finish"
   local n = min(S.fans, MAX_SEATS)
   for k = n, 1, -1 do
-    local x, y = SEATX[k], SEATY[k]
     local age = game.frame - S.seat_age[k]
     local drop = 0
     if age < 50 then drop = (1 - ease.out_bounce(age / 50)) * 80 end
-    local up = glad and abs(sin(phase * math.pi + k * 0.7)) * 8 or max(0, sin(game.frame * 0.05 + k * 1.3) - 0.8) * 10
-    pics.fan((k * 7 + S.seed) % 5 + 1, x, y - drop, up, glad)
+    FX[k], FY[k] = SEATX[k], SEATY[k] - drop
+    FUP[k] = glad and abs(sin(phase * math.pi + k * 0.7)) * 8 or max(0, sin(game.frame * 0.05 + k * 1.3) - 0.8) * 10
+    FKIND[k] = (k * 7 + S.seed) % 5 + 1
   end
+  -- The fireflies' lights go down together, then the whole audience from one picture.
+  for k = n, 1, -1 do pics.fan_glow(FKIND[k], FX[k], FY[k], FUP[k]) end
+  for k = n, 1, -1 do pics.fan(FKIND[k], FX[k], FY[k], FUP[k], glad) end
   if glad and game.frame % 14 == 0 and n > 0 and particles.count() < 90 then
     local k = (game.frame * 7) % n + 1
     particles.spawn(SEATX[k], SEATY[k] - 14, 0, -1.2, 40, 4, C.ROOF, "heart", -0.01)
@@ -527,6 +531,7 @@ local function draw_stage(phase, sf)
   local chorus = S.phase == "chorus" or S.phase == "finish"
   -- Lamps: lit for whoever is awake; in the chorus the whole rig swings.
   for i = 1, 5 do pics.lamp(LX[i], S.awake[i] or chorus, COL[i]) end
+  for i = 1, 5 do if S.awake[i] or chorus then pics.lamp_glow(LX[i], COL[i]) end end
   if chorus then
     for i = 1, 5 do
       local a = sin(game.frame * 0.05 + i * 1.3) * 60
