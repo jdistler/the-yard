@@ -223,12 +223,14 @@ Ticked as each lands, with the commit.
 - [x] G2. Band: the same: 42 -> 46 fps. (Shape draws per frame 885 -> 291 and 745 -> 190; images ~2.6 MB, flat.)
 - [x] G4. Checked: LuaJIT's JIT is on in Home (`sound.lua`) and in the GPU yard (since 2026-10-24, measured
       3.4 x then); LÖVE turns it off on ARM, both turn it back on. No gain left there.
+- [ ] G3. Home: move show and Shelf art loads off the main thread where a hitch shows in B2.
 
-**H. Home refactor (P2, in steps behind the Home tests)**
-- [ ] H1. Art cache out of `main.lua` into a module.
-- [ ] H2. Input repeat out.
-- [ ] H3. Game cards out (follows D).
-- [ ] H4. Scenes out (menu, attract, night).
+**H. Home refactor: the plan, gates and checkpoints are in [HOME_REFACTOR.md](HOME_REFACTOR.md)**
+- [x] H0. Safety net (CP0) and cabinet baseline (CP1).
+- [ ] H1. CP2 the leaves (drawing helpers, input, pictures).
+- [ ] H2. CP3 one context table.
+- [ ] H3. CP4 the big consumers (catalog, actions, idle, menu).
+- [ ] H4. CP5 scenes; CP6 docs and soak.
 
 **J. Sound (P2)**
 - [x] J1. Loudness measured for every game (E2); spread 7.3 dB -> 5.5 dB (Chomp down, Bake and Band up).
