@@ -80,17 +80,31 @@ function ST.near_shots(all)
 end
 
 local function restore_menu_pictures()
+  -- (each step's time goes into the hitch notes: waking cost 252 ms on the cabinet, 2026-11-24, and the notes
+  -- named only what ran, not what took the time)
+  local clock = love.timer.getTime
+  local t0 = clock()
+  local function lap(what)
+    local now = clock()
+    home_note(string.format("%s %dms", what, (now - t0) * 1000))
+    t0 = now
+  end
   stop_show()
+  lap("stop")
   if not ST.menu_freed then return end
   ST.menu_freed = false
   for k, e in pairs(D.neon_cache) do e.img:release() D.neon_cache[k] = nil end
   -- Reclaim show/night textures before allocating menu art so Mali doesn't peak over 118 MB on wakeup.
   collectgarbage()
+  lap("gc")
   load_art()
+  lap("art")
   ST.world_load(ST.world_want)
   ST.img(96)
+  lap("brand")
   ST.labels_for, ST.labels_sel = {}, nil
   manage_labels(false)
+  lap("labels")
   D.label_jobs[#D.label_jobs + 1] = function() D.neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1) end
   lg.setCanvas()
 end

@@ -58,11 +58,21 @@ ST.note, ST.note_t = nil, 0
 ST.stars = {}
 -- The living menu's world (tools/art/home.py): a painting a season, on the SD card; nil: the synthwave grid.
 ST.WORLD_ART = (os.getenv("HOME_SHOW_ART") or "/mnt/sdcard/partycade/art") .. "/home"
-function ST.world_load(name)
-  if ST.world and ST.world_name == name then return end
-  if ST.world then ST.world:release() ST.world = nil end
+function ST.world_load(name, now)
+  if ST.world_name == name and (ST.world or ST.world_pending == name) then return end
   ST.world_name = name
   home_note("world:" .. name)
+  -- With the worker running, it reads the picture and makes its texture data off the frame (read here it was a
+  -- 272 ms hitch in the menu, named by the hitch notes, 2026-11-24, SYSTEM_AUDIT.md G3); drain_worker uploads it
+  -- and the old world stays on screen until then. now = true (Home's start: the first frame must have it), or no
+  -- worker (the PC renders): here, as before.
+  if ST.worker and not now then
+    ST.world_pending = name
+    love.thread.getChannel("home_work"):push({"world", name, ST.WORLD_ART .. "/world_" .. name .. ".pkm",
+                                              ST.WORLD_ART .. "/world_base.pkm"})
+    return
+  end
+  if ST.world then ST.world:release() ST.world = nil end
   local f = io.open(ST.WORLD_ART .. "/world_" .. name .. ".pkm", "rb")
   if not f then f = io.open(ST.WORLD_ART .. "/world_base.pkm", "rb") end
   if not f then return end
@@ -260,7 +270,18 @@ local function drain_worker()
     if not msg then break end
     n_up = n_up + 1
     home_note("upload:" .. tostring(msg[2]))
-    if msg[1] == "art" and type(msg[2]) == "string" and msg[2]:sub(1, 6) == "shelf:" then
+    if msg[1] == "world" then
+      if ST.world_pending == msg[2] then ST.world_pending = nil end
+      if msg[3] and msg[2] == ST.world_name then
+        local ok, img = pcall(lg.newImage, msg[3])
+        if ok then
+          if ST.world then ST.world:release() end
+          img:setFilter("linear", "linear")
+          ST.world = img
+        end
+      end
+      if msg[3] then pcall(function() msg[3]:release() end) end
+    elseif msg[1] == "art" and type(msg[2]) == "string" and msg[2]:sub(1, 6) == "shelf:" then
       if msg[3] then shelf.art_ready(msg[2], msg[3]) else shelf.art_failed(msg[2]) end
     elseif msg[1] == "art" and type(msg[2]) == "string" then
       if msg[3] then shows.thumb_ready(msg[2], msg[3]) end

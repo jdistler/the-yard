@@ -17,6 +17,7 @@ D.trace_font = nil           -- (HOME_TRACE: a new font made; set once the trace
 -- new_canvas: a clip carried onto a canvas left it unpainted).
 D.neon_cache = {}
 D.label_jobs = {}
+D.painted = 0
 
 function D.init(w) W = w end
 
@@ -94,6 +95,7 @@ function D.neon_img(s, px, c, glow)
     D.neon_cache[old_k].img:release()
     D.neon_cache[old_k] = nil
   end
+  D.painted = D.painted + 1   -- (labels painted, for the hitch notes: main.lua's love.draw)
   local f = D.face == "script" and D.script_font(px) or D.font(px)
   local pad = 10
   local cw, ch = f:getWidth(s) + pad * 2, f:getHeight() + pad * 2

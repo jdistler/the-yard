@@ -331,7 +331,7 @@ function love.load()
   HS.load_art()
   mark("art")
   -- The labels in view now; the rest a few a frame, before the frame's drawing starts (see neon_img).
-  ST.world_load(ST.world_want)
+  ST.world_load(ST.world_want, true)   -- (here, not in the worker: the first frame shows it)
   ST.img(96)
   if ST.scene == "intro" or os.getenv("HOME_INTRO") == "1" then D.neon_img("ARCADE  ·  SHOWS  ·  TV", 34, ST.ACCENT, 0.8) end
   HS.manage_labels(false)
@@ -477,9 +477,15 @@ local FIXED_DT = tonumber(os.getenv("HOME_DT") or "")   -- tests: every frame th
 ST.notes = {}
 function home_note(s)
   local n = ST.notes
-  if #n < 6 then n[#n + 1] = s end
+  if #n < 10 then n[#n + 1] = s end
+end
+-- (update and draw each note their own time when over 30 ms: a hitch's notes then say where the frame went)
+local function slow(what, t0)
+  local ms = (love.timer.getTime() - t0) * 1000
+  if ms > 30 then home_note(string.format("%s %dms", what, ms)) end
 end
 function love.update(dt)
+  local u0 = love.timer.getTime()
   if FIXED_DT then dt = FIXED_DT end
   DIAG.frame(dt)
   dt = math.min(dt, 0.1)
@@ -545,10 +551,13 @@ function love.update(dt)
       A.request(s, it)
     end
   end
+  slow("update", u0)
 end
 
 local first_drawn = false
 function love.draw()
+  local d0 = love.timer.getTime()
+  D.painted = 0
   -- Labels still to paint: two a frame, before anything is drawn on the screen.
   for _ = 1, 2 do
     local job = table.remove(D.label_jobs, 1)
@@ -590,4 +599,5 @@ function love.draw()
     lg.translate(-W / 2, -H / 2)
     MENU.draw_scene()
   end
+  if D.painted > 0 then slow("draw (" .. D.painted .. " labels painted)", d0) else slow("draw", d0) end
 end

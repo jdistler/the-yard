@@ -226,6 +226,13 @@ Ticked as each lands, with the commit.
 - [ ] G3. Home: move show and Shelf art loads off the main thread where a hitch shows in B2.
       First named by B2's notes (2026-11-24): a show starting reads its art from the card on the main thread, 226 ms
       ("did show start art:thanksgiving/open art:thanksgiving/parade ..."). Preload through the worker.
+      **Waking from a show, measured on the cabinet (2026-11-24, per-step timings now in the hitch notes):** one 240 ms
+      frame: update 102 ms (a full collection 35, the cards' labels 37, the rest small) and draw 134 ms (5 neon labels
+      painted from scratch, ~25 ms each: the label cache is emptied for a show's memory); then ~0.4 s of 50 ms frames
+      while the worker's card pictures upload, two a frame with mipmaps. Done: the menu's world picture is read and
+      decoded in the worker now (it was read on the frame). Options for the rest, to choose: a short fade-in on
+      waking while labels paint a few a frame (the show start's curtain, mirrored); keeping the menu's chrome labels
+      (tabs, footer, panel) through shows (GPU memory: the reason they are freed, 2026-11-01); one upload a frame.
 
 **H. Home refactor: the plan, gates and checkpoints are in [HOME_REFACTOR.md](HOME_REFACTOR.md)**
 - [x] H0. Safety net (CP0) and cabinet baseline (CP1).
