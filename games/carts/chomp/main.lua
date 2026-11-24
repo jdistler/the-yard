@@ -744,7 +744,7 @@ end
 
 -- ------------------------------------------------------------------ Lifecycle
 function init()
-  sfx.master(0.42)
+  sfx.master(0.36)
   sfx.limit(8000)
   S.best = clamp(save.get("best", 0), 0, 100000)
   S.hi = clamp(save.get("hi", 0), 0, 999999)

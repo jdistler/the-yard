@@ -401,7 +401,13 @@ local function react_events()
   end
   if sv == 130 then sfx.slide("sine", 400, 900, 0.3, 0.12) end
   if sv == 150 then
-    -- The treat lands in the window.
+    -- The treat lands in the window. A treat that slid out lets its picture go (each design is its own layer:
+    -- kept, they grew image memory by a layer a treat, 2026-11-24, SYSTEM_AUDIT.md E1).
+    for i = 1, #S.shown do
+      local gone = true
+      for j = 1, #S.sh do if S.sh[j].key == S.shown[i].key then gone = false end end
+      if gone then unbake(S.shown[i].key) end
+    end
     S.shown = {}
     for i = 1, #S.sh do S.shown[i] = S.sh[i] end
     S.shift_t = 20
@@ -435,7 +441,7 @@ end
 function quit() save_all() end
 
 function init()
-  sfx.master(0.30)
+  sfx.master(0.38)
   sfx.limit(8000)
   S.treats = clamp(save.get("treats", 0), 0, 100000)
   S.nkinds = kinds_open(S.treats)

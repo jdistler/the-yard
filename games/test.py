@@ -1237,6 +1237,82 @@ def home():
           "Home: a Yard card's stat line is the cart's own info.stat on its save")
 
 
+def sound():
+    """Every game's sound, from its bot's run on the C runtime written to a WAV (CAB_AUDIO_WAV): it plays, it has
+    no long silence, it seldom reaches its limiter, and no game is far louder or quieter than the rest (a child
+    switching games hears no jump). Nobody has to listen for these (SYSTEM_AUDIT.md E2)."""
+    import array, math, statistics
+    say("== sound: every game's music and effects, measured")
+    levels = {}
+    for cid, title in LOVE_CARTS.items():
+        d = tmpdir()
+        env = dict(os.environ, YARD_CARTS=os.path.join(HERE, "carts"), SDL_AUDIODRIVER="dummy",
+                   SDL_VIDEODRIVER="dummy", CAB_AUTOPLAY="1", CAB_AUDIO_WAV=os.path.join(d, "a"))
+        run("yard", d, script(title, "1800 quit"), env, args=(cid,), timeout=300)
+        wavs = [f for f in os.listdir(d) if f.endswith(".wav")]
+        raw = open(os.path.join(d, wavs[0]), "rb").read()[44:] if wavs else b""
+        a = array.array("h")
+        a.frombytes(raw[:len(raw) // 2 * 2])
+        win = 8820  # 0.1 s of stereo samples
+        rms = [math.sqrt(sum(x * x for x in a[i:i + win]) / win) for i in range(0, len(a) - win, win)]
+        loud = [r for r in rms if r > 30]
+        level = math.sqrt(sum(r * r for r in loud) / len(loud)) if loud else 0
+        quiet = run_ = 0
+        for r in rms:
+            run_ = run_ + 1 if r < 30 else 0
+            quiet = max(quiet, run_)
+        peak = max((abs(x) for x in a), default=0)
+        at_peak = sum(1 for x in a if abs(x) >= peak - 1) / max(1, len(a))
+        db = 20 * math.log10(level / 32767) if level else -99
+        levels[cid] = db
+        check(level > 300 and quiet < 50 and at_peak < 0.01,
+              f"{cid}: plays ({db:.1f} dBFS), longest silence {quiet / 10:.1f} s, {at_peak * 100:.2f}% at its limiter")
+    if levels:
+        mid = statistics.median(levels.values())
+        far = {c: round(v - mid, 1) for c, v in levels.items() if abs(v - mid) > 5}
+        check(not far, f"every game within 5 dB of the others' middle ({mid:.1f} dBFS); outside: {far}")
+
+
+def leaks(images, lua):
+    """A slow leak in a long run's samples (KB). Pictures: their floor (the lowest point of a stretch, once let-go
+    layers are collected) still rising from the middle third of the run to the last; a game may hold one more
+    layer for a while (Garden's dusk), a leak keeps lifting the floor. Caught: Garden's unbake leak (2026-11-23,
+    768 KB a garden) and Bake's window (2026-11-24, floor +149 KB a minute). Lua: past 10 MB (games sit at 2 to
+    5; its collector swings too much in two minutes for a trend; the runtime stops a game at 32).
+    (SYSTEM_AUDIT.md E1)"""
+    t = len(images) // 3
+    grew = t >= 2 and min(images[2 * t:]) > min(images[t:2 * t]) + 80
+    return bool(grew), bool(lua and max(lua) > 10240)
+
+
+def endurance():
+    """Each game for two minutes of its bot on the GPU runtime (the cabinet's), its memory sampled every 300 frames."""
+    say("== endurance: two minutes of each game, memory must stop growing")
+    if not os.path.exists(LOVE_RUN):
+        say("  skip: no out/love-x86 (games/love/build.sh x86)")
+        return
+    old_bake = [808, 841, 841, 881, 955, 995, 874, 948, 1024, 1024, 1097, 1138, 1138, 999, 1073, 1108, 1148, 1222,
+                1175, 1175, 1249, 1311, 1311, 1246]
+    dusk = [768] * 15 + [1536, 1536, 768, 1536, 768, 1536, 1536, 1536, 1536]
+    check(leaks([768 * i for i in range(1, 10)], [2000])[0] and leaks(old_bake, [2000])[0]
+          and not leaks(dusk, [2000])[0] and leaks([800] * 9, [3000, 12000])[1],
+          "endurance: the leak test catches Garden's and Bake's old leaks, not Garden's dusk")
+    d = tmpdir()
+    yl = os.path.join(d, "yard.love")
+    subprocess.run([os.path.join(HERE, "cart"), "love-pack", "--out", yl], check=True, capture_output=True)
+    lenv = {"YARD_CARTS": os.path.join(HERE, "carts"), "SDL_AUDIODRIVER": "dummy", "YARD_HEADLESS": "1",
+            "SDL_VIDEODRIVER": "offscreen", "ALSOFT_DRIVERS": "null", "CAB_AUTOPLAY": "1", "YARD_STATS": "1"}
+    for cid, title in LOVE_CARTS.items():
+        w = tmpdir()
+        _, err = run("love", w, script(title, "7200 quit"), lenv, args=(yl, cid), timeout=600, binary=LOVE_RUN)
+        im = [int(x) for x in re.findall(r"^stats \S+ frame \d+ .* images (\d+)KB", err, re.M)]
+        lu = [int(x) for x in re.findall(r"^stats \S+ frame \d+ .* lua (\d+)KB", err, re.M)]
+        grew, rose = leaks(im, lu)
+        check(len(im) >= 10 and not grew and not rose,
+              f"{cid}: memory flat over two minutes (images {im[:1]}..{max(im) if im else '?'} KB, lua up to "
+              f"{max(lu) if lu else '?'} KB)")
+
+
 def homeloop_checks():
     """homeloop's failure ladder, run on the PC with folders of its own (HOMELOOP_*) and a stand-in for LÖVE that
     fails or chooses on cue: retry, the last good Home, safe mode, the stock menu; logs never on /data."""
@@ -1325,6 +1401,10 @@ def main():
         love()
     if which in ("home", "all"):
         home()
+    if which in ("sound", "all"):
+        sound()
+    if which in ("endurance", "all"):
+        endurance()
     if which == "shows":
         shows()
     say(f"== {passes} passed, {len(failures)} failed ==")

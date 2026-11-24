@@ -294,7 +294,7 @@ end
 function quit() save_all() end
 
 function init()
-  sfx.master(0.30)
+  sfx.master(0.38)
   sfx.limit(8000)
   S.songs = clamp(save.get("songs", 0), 0, 100000)
   S.tunes = clamp(save.get("tunes", 0), 0, 4)
