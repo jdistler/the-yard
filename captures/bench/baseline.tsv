@@ -1,0 +1,14 @@
+# tools/cab_bench.py --save: game	fps	steps	images	lua	rss	errors (fps mean, steps min, KB, KB, MB)
+keep	58.4	56.4	300	4128	26	0
+lamp	56.4	59.9	300	3243	23	0
+tea	48.1	57.0	6745	2871	24	0
+chest	43.1	55.5	768	4592	30	0
+dig	45.8	56.5	1604	4359	31	0
+chomp	59.1	60.0	768	4206	28	0
+kart	54.1	56.3	966	3954	31	0
+safari	51.4	58.2	768	3776	27	0
+tower	53.2	54.7	768	4174	30	0
+garden	37.2	57.5	768	2870	27	0
+bake	55.1	59.3	841	4418	27	0
+band	42.2	58.0	768	3295	27	0
+rocket	55.0	55.5	768	4539	31	0

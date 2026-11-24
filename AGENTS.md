@@ -27,7 +27,12 @@ Read these, in this order, before doing anything:
 * `./cart check` must say `all carts pass`, and `./stress.sh` must pass, before a game is called done. Add the new cart's checks to `games/test.py`.
 * Keep every log line and save key a test or a save file depends on. Changing them silently breaks the tests or the saves on the cabinet.
 * A change to the engine (`games/engine/`) needs a reason, a binding in `api.c`, a line in CARTS.md, a check in `test.py`, and `./stress.sh` passing. Run `python3 tools/bin2c.py` after editing `engine/lib/`.
-* Shipping is `./cart pack`, then `./cart deploy`, which only stages. The write follows the rules above.
+* Shipping is `games/cart push` over Wi-Fi (no flash write: files on `/data` and the SD card, sha-checked; Home is
+  stopped and started again), and `tools/shelf_sync.sh` for the Shelf's library. Then `tools/cab_bench.py` measures
+  every game on the cabinet against `captures/bench/baseline.tsv` (quiet mode; saves restored). `./cart deploy`
+  only stages a Mask ROM image, whose write follows the rules above.
+* Never let a test play on the cabinet against the kids' saves: copy them aside and put them back (cab_bench does).
+* The whole-system audit and its checklist: [SYSTEM_AUDIT.md](SYSTEM_AUDIT.md). Tick items as they land.
 
 ## Keeping the docs true
 
