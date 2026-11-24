@@ -409,40 +409,40 @@ local t = 0
 ST.frame = 0
 -- HOME_TRACE=PATH (tools/show_review.py): what a show does, as it plays, one line an event: "<show secs> <kind> ..."
 -- (act: the scene; music: the song; sfx: a sound; cam x y zoom, 10 a second; say/caption/plate: words shown).
-local TRACE = os.getenv("HOME_TRACE") and io.open(os.getenv("HOME_TRACE"), "w")
-local trace_t, trace_seen = nil, {}
+ST.TRACE = os.getenv("HOME_TRACE") and io.open(os.getenv("HOME_TRACE"), "w")
+ST.trace_t, ST.trace_seen = nil, {}
 local function trace(kind, a, b, c)
-  if kind == "t" then trace_t = a return end
-  local when = trace_t or ST.frame / 60
+  if kind == "t" then ST.trace_t = a return end
+  local when = ST.trace_t or ST.frame / 60
   if kind == "parts" then
     if ST.frame % 30 ~= 0 then return end
-    TRACE:write(string.format("%.2f parts %d %d\n", when, a, b))
+    ST.TRACE:write(string.format("%.2f parts %d %d\n", when, a, b))
     return
   end
   if kind == "crowd" then
     if ST.frame % 6 ~= 0 then return end
-    TRACE:write(string.format("%.2f crowd %s\n", when, a))
+    ST.TRACE:write(string.format("%.2f crowd %s\n", when, a))
     return
   end
   if kind == "cast" then
     if ST.frame % 6 ~= 0 then return end
-    TRACE:write(string.format("%.2f cast %.0f %.0f %.0f\n", when, a, b or 0, c or 0))
+    ST.TRACE:write(string.format("%.2f cast %.0f %.0f %.0f\n", when, a, b or 0, c or 0))
     return
   end
   if kind == "cam" then
     if ST.frame % 6 ~= 0 then return end
-    TRACE:write(string.format("%.2f cam %.0f %.0f %.3f\n", when, a, b, c))
+    ST.TRACE:write(string.format("%.2f cam %.0f %.0f %.3f\n", when, a, b, c))
     return
   end
   if kind == "say" or kind == "caption" or kind == "plate" then
     -- (words are drawn every frame: once, then again only after a second away)
     local k = kind .. a
-    local last = trace_seen[k]
-    trace_seen[k] = ST.frame
+    local last = ST.trace_seen[k]
+    ST.trace_seen[k] = ST.frame
     if last and ST.frame - last < 60 then return end
   end
-  TRACE:write(string.format("%.2f %s %s\n", when, kind, tostring(a)))
-  if kind == "act" or kind == "music" then TRACE:flush() end
+  ST.TRACE:write(string.format("%.2f %s %s\n", when, kind, tostring(a)))
+  if kind == "act" or kind == "music" then ST.TRACE:flush() end
 end
 ST.scene = "intro"           -- intro, menu, attract, night, show (an idle show), shows (a show's tiles), tv
 ST.intro_t = 0
@@ -450,7 +450,7 @@ ST.idle = 0
 ST.attract_t = 0
 ST.launch_t, ST.launch_item = 0, nil
 ST.note, ST.note_t = nil, 0
-local stars = {}
+ST.stars = {}
 -- The living menu's world (tools/art/home.py): a painting a season, on the SD card; nil: the synthwave grid.
 ST.WORLD_ART = (os.getenv("HOME_SHOW_ART") or "/mnt/sdcard/partycade/art") .. "/home"
 function ST.world_load(name)
@@ -473,25 +473,25 @@ function ST.world_load(name)
   end)
   if ok then img:setFilter("linear", "linear") ST.world = img end
 end
-local direct = not headless and os.getenv("HOME_CANVAS") ~= "1"
-local canvas
-local shot_req
-local vol_level, vol_t, vol_read = nil, 0, nil
+ST.direct = not headless and os.getenv("HOME_CANVAS") ~= "1"
+
+
+ST.vol_level, ST.vol_t, ST.vol_read = nil, 0, nil
 ST.night_t = 0
-local cur_show, cur_show_id             -- the idle show playing (its module; nil for the night sky), and its id
+-- (ST.cur_show, ST.cur_show_id) -- the idle show playing (its module; nil for the night sky), and its id
 -- A show's start behind a curtain: the screen black while it sets up (its pictures, its labels: 300 ms and more
 -- on the cabinet, which froze whatever was moving), its clock still until frames come smoothly, then a fade in.
-local curtain
+
 -- The curtain's step: true when the show may run as usual this frame.
 local function curtain_step(dt)
-  local cu = curtain
+  local cu = ST.curtain
   if not cu then return true end
   cu.n = cu.n + 1
   if cu.phase == "cover" then
-    if cu.n >= 2 then home_note("show start") cur_show.start(cu.seed, cu.at) cu.phase, cu.n = "settle", 0 end
+    if cu.n >= 2 then home_note("show start") ST.cur_show.start(cu.seed, cu.at) cu.phase, cu.n = "settle", 0 end
     return false
   elseif cu.phase == "settle" then
-    cur_show.update(0)                                      -- (its labels paint; its clock stays)
+    ST.cur_show.update(0)                                      -- (its labels paint; its clock stays)
     cu.good = dt < 0.025 and cu.good + 1 or 0
     cu.held = (cu.held or 0) + dt
     -- (from idle: the NOW SHOWING card holds a moment, to be read)
@@ -499,12 +499,12 @@ local function curtain_step(dt)
     return false
   end
   cu.f = cu.f + dt
-  if cu.f >= 0.4 then curtain = nil end
+  if cu.f >= 0.4 then ST.curtain = nil end
   return true
 end
 
 local function curtain_draw()
-  local cu = curtain
+  local cu = ST.curtain
   if not cu then return end
   local a = cu.phase == "fade" and math.max(0, 1 - cu.f / 0.6) or 1
   lg.setColor(0.02, 0.01, 0.05, a)
@@ -528,17 +528,17 @@ end
 ST.auto_night_t = 0            -- AUTO: how long the night sky has had its turn
 ST.menu_in = 0                 -- the menu fading in after the intro (seconds left)
 -- (ST.attract_sel) -- the card before the attract tour: given back on waking
-local returning = false           -- Home started again after a game (not at power-on)
-local celebrate                   -- {score, title, tint, t}: back from a classic with a new high score
+ST.returning = false           -- Home started again after a game (not at power-on)
+-- (ST.celebrate) -- {score, title, tint, t}: back from a classic with a new high score
 local party = 0                   -- party mode (the secret code): seconds left
-local code_buf = {}
+ST.code_buf = {}
 local CODE = {"up", "up", "down", "down", "left", "right", "left", "right", "tl", "low"}
-local last_played                 -- the card of the last game played (state file)
+-- (ST.last_played) -- the card of the last game played (state file)
 
 -- The cards' neon titles (two pictures each, ~0.2 MB of GPU memory per card): painted for the cards near the
 -- chosen one, given back for the far ones (all of them painted, Home's labels alone were most of its 12 MB of
 -- pictures, and GPU memory is what this cabinet runs out of).
-local labels_for, labels_sel = {}, nil
+ST.labels_for, ST.labels_sel = {}, nil
 local function title_labels(it)
   D.neon_img(it.title, 64, it.tint, 1.2)
   D.neon_img(it.title, 44, it.tint, 0.9)
@@ -549,16 +549,16 @@ local function neon_release(s, px, c, glow)
   if e then e.img:release() D.neon_cache[key] = nil end
 end
 local function manage_labels(all_now)
-  if labels_sel == ST.sel then return end
-  labels_sel = ST.sel
+  if ST.labels_sel == ST.sel then return end
+  ST.labels_sel = ST.sel
   for k, it in ipairs(items) do
     local d = math.abs(k - ST.sel)
-    if d <= 3 and not labels_for[k] then
-      labels_for[k] = true
+    if d <= 3 and not ST.labels_for[k] then
+      ST.labels_for[k] = true
       if all_now or d <= 1 then title_labels(it)
-      else D.label_jobs[#D.label_jobs + 1] = function() if labels_for[k] then title_labels(it) end end end
-    elseif d > 5 and labels_for[k] then
-      labels_for[k] = nil
+      else D.label_jobs[#D.label_jobs + 1] = function() if ST.labels_for[k] then title_labels(it) end end end
+    elseif d > 5 and ST.labels_for[k] then
+      ST.labels_for[k] = nil
       neon_release(it.title, 64, it.tint, 1.2)
       neon_release(it.title, 44, it.tint, 0.9)
     end
@@ -572,7 +572,7 @@ local function load_state()
   local sm = s and s:match("show (%a+)")
   if sm and SHOW_NAMES[sm] then show_mode = sm end
   local lp = s and (item_by_key(s:match("playedkey (%S+)") or "") or tonumber(s:match("played (%d+)")))
-  if lp and items[lp] then last_played = items[lp] end
+  if lp and items[lp] then ST.last_played = items[lp] end
   -- At power-on, never on the original menu's card (the last choice made before the power went off).
   if os.getenv("HOME_INTRO") == "1" and items[ST.sel].kind == "stock" then ST.sel, ST.pos = 1, 1 end
   -- Nothing played yet: start on the first real card (Pac-Man), not on the empty FAVORITES card.
@@ -582,8 +582,8 @@ end
 local function save_state(extra, played)
   if not STATE then return end
   local lp = played
-  if not lp and last_played then
-    for k, it in ipairs(items) do if it == last_played then lp = k end end
+  if not lp and ST.last_played then
+    for k, it in ipairs(items) do if it == ST.last_played then lp = k end end
   end
   local f = io.open(STATE, "w")
   if f then
@@ -596,7 +596,7 @@ end
 
 -- The classics' logos (cut from the stock menu by tools/home_art.py, on the cabinet only). The cards in view
 -- are loaded at once; the rest are decoded by the worker and arrive over the first frames.
-local worker
+
 local function art_image(data)
   local ok, img = pcall(lg.newImage, data, {mipmaps = true})
   if not ok then return nil end
@@ -608,7 +608,7 @@ local function art_path(it) return ART .. "/classic_" .. it.index .. ".png" end
 local function load_art()
   for k, it in ipairs(items) do
     if it.kind == "classic" then
-      if math.abs(k - ST.sel) <= 2 or not worker then
+      if math.abs(k - ST.sel) <= 2 or not ST.worker then
         local b = read_file(art_path(it))
         if b then
           local ok, data = pcall(love.image.newImageData, love.filesystem.newFileData(b, "c.png"))
@@ -626,7 +626,7 @@ local function load_art()
       -- near the chosen one: all of them at once, with the browser's box art, ran Home out of memory.
       if it.game.art and not it.shot and not it.asked and math.abs(k - ST.sel) <= 3 then
         it.asked = true
-        if worker then love.thread.getChannel("home_work"):push({"art", k, it.game.art})
+        if ST.worker then love.thread.getChannel("home_work"):push({"art", k, it.game.art})
         else
           local b = read_file(it.game.art)
           local ok, data = pcall(function() return love.image.newImageData(love.filesystem.newFileData(b, "a.png")) end)
@@ -636,7 +636,7 @@ local function load_art()
           end
         end
       end
-    elseif it.id and not it.shot and (math.abs(k - ST.sel) <= 2 or not worker) and love.filesystem.getInfo("art/" .. it.id .. ".png") then
+    elseif it.id and not it.shot and (math.abs(k - ST.sel) <= 2 or not ST.worker) and love.filesystem.getInfo("art/" .. it.id .. ".png") then
       -- Our games: a frame of the game itself (cart shots), packed into home.love (loaded near sel).
       it.shot = lg.newImage("art/" .. it.id .. ".png")
       it.shot:setFilter("linear", "linear")
@@ -660,7 +660,7 @@ function ST.draw_world(dim)
   lg.setColor(1 - dim * 0.5, 1 - dim * 0.5, 1 - dim * 0.4, 1)
   lg.draw(ST.world, 0, 0)
   -- the sky alive: stars twinkling over the painted ones, a shooting star now and then
-  for _, st in ipairs(stars) do
+  for _, st in ipairs(ST.stars) do
     local tw = math.abs(math.sin(t * st[4] + st[3]))
     if tw > 0.7 then
       lg.setColor(1, 0.97, 0.88, (tw - 0.7) * 2.6 * st[5] * (1 - dim * 0.5))
@@ -726,7 +726,7 @@ local function draw_background(dim)
   lg.setColor(0.02, 0.0, 0.05, 1)
   lg.rectangle("fill", 0, HORIZON, W, H - HORIZON)
   -- Stars.
-  for _, s in ipairs(stars) do
+  for _, s in ipairs(ST.stars) do
     local tw = 0.45 + 0.55 * math.abs(math.sin(t * s[4] + s[3]))
     lg.setColor(1, 0.9, 1, tw * s[5])
     lg.rectangle("fill", s[1], s[2], s[6], s[6])
@@ -987,7 +987,7 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
   lg.setColor(r, g, b, (0.35 + 0.65 * focus) * alpha)
   lg.setLineWidth(focus > 0 and 3 or 2)
   D.rrect("line", x, y, cw, ch, 22)
-  if it == last_played and focus > 0.3 then
+  if it == ST.last_played and focus > 0.3 then
     -- The game played last: a little tab on the card's top edge.
     lg.setFont(D.font(16))
     local tw = D.font(16):getWidth("LAST PLAYED") + 22
@@ -1086,8 +1086,8 @@ end
 -- NEW HIGH SCORE: a banner and confetti in the game's colour and its friends, for 5 s (any press keeps going).
 local confetti
 local function draw_celebration()
-  if not celebrate then return end
-  local c = celebrate
+  if not ST.celebrate then return end
+  local c = ST.celebrate
   if not confetti then
     confetti = {}
     local cols = {{D.rgb(c.tint)}, {1, 0.31, 0.85}, {0.43, 0.94, 0.78}, {1, 0.82, 0.25}, {0.55, 0.7, 1}}
@@ -1162,8 +1162,8 @@ end
 
 -- The volume meter: fifteen neon bars under the tabs, for a moment after a volume button.
 local function draw_volume()
-  if vol_t <= 0 or not vol_level then return end
-  local a = math.min(1, vol_t * 3)
+  if ST.vol_t <= 0 or not ST.vol_level then return end
+  local a = math.min(1, ST.vol_t * 3)
   local bw, bh = 520, 70
   local bx, by = (W - bw) / 2, 226
   lg.setColor(0.04, 0.0, 0.1, 0.9 * a)
@@ -1172,9 +1172,9 @@ local function draw_volume()
   lg.setLineWidth(2)
   D.rrect("line", bx, by, bw, bh, 20)
   lg.setFont(D.font(22))
-  lg.print(vol_level == 0 and "MUTED" or "VOLUME", bx + 20, by + 22)
+  lg.print(ST.vol_level == 0 and "MUTED" or "VOLUME", bx + 20, by + 22)
   for i = 1, 15 do
-    local on = i <= vol_level
+    local on = i <= ST.vol_level
     local h = 14 + i * 2
     local x = bx + 150 + (i - 1) * 23
     lg.setColor(0.43, 0.94, 0.78, (on and 1 or 0.18) * a)
@@ -1265,13 +1265,13 @@ local function draw_scene()
     draw_note()
     return
   end
-  if ST.scene == "show" and cur_show then
+  if ST.scene == "show" and ST.cur_show then
     -- An idle show draws the whole picture (freedom.lua, texas.lua, ...).
     ST.L.top_busy = 0
-    cur_show.draw()
+    ST.cur_show.draw()
     -- the on-air bug: STARLIGHT, faint, in the corner; it fades away while the show writes up there
     ST.bug = math.max(0, math.min(1, (ST.bug or 1) + (ST.L.top_busy > 0 and -0.08 or 0.03)))
-    if not curtain and ST.bug > 0 then ST.draw(W - 190, 8, 30, 0.38 * ST.bug, nil, "left", 180) end
+    if not ST.curtain and ST.bug > 0 then ST.draw(W - 190, 8, 30, 0.38 * ST.bug, nil, "left", 180) end
     curtain_draw()
     draw_volume()
     return
@@ -1399,17 +1399,17 @@ end
 local function read_volume()
   local s = read_file(VOLUME_FILE)
   local n = s and tonumber(s:match("%d+"))
-  if n then vol_level = math.max(0, math.min(15, n)) end
+  if n then ST.vol_level = math.max(0, math.min(15, n)) end
 end
 
 -- The secret code: up up down down left right left right, top-left (B), lower (A).
 local code_before = {}            -- the card and settings before each press: the code's moves are undone
 local function secret(name)
-  code_buf[#code_buf + 1] = name
+  ST.code_buf[#ST.code_buf + 1] = name
   code_before[#code_before + 1] = {sel = ST.sel, speed = {unpack(speed)}, smooth = {unpack(smooth)}}
-  if #code_buf > #CODE then table.remove(code_buf, 1) table.remove(code_before, 1) end
-  if #code_buf < #CODE then return false end
-  for i = 1, #CODE do if code_buf[i] ~= CODE[i] then return false end end
+  if #ST.code_buf > #CODE then table.remove(ST.code_buf, 1) table.remove(code_before, 1) end
+  if #ST.code_buf < #CODE then return false end
+  for i = 1, #CODE do if ST.code_buf[i] ~= CODE[i] then return false end end
   local b = code_before[1]
   ST.sel = b.sel
   for i = 1, 12 do
@@ -1420,7 +1420,7 @@ local function secret(name)
       break
     end
   end
-  code_buf, code_before = {}, {}
+  ST.code_buf, code_before = {}, {}
   return true
 end
 
@@ -1452,14 +1452,14 @@ local function free_menu_pictures()
   for k, e in pairs(D.neon_cache) do e.img:release() D.neon_cache[k] = nil end
   if ST.world then ST.world:release() ST.world = nil ST.world_name = nil end
   for i = #D.label_jobs, 1, -1 do D.label_jobs[i] = nil end
-  labels_for, labels_sel, ST.near_sel = {}, nil, nil
+  ST.labels_for, ST.labels_sel, ST.near_sel = {}, nil, nil
   collectgarbage()
 end
 local demo                              -- started from a show's tiles: its id (back to them at the end)
 local auto_rot = 0                      -- AUTO: ordinary days take turns
 local function stop_show()
-  if cur_show then cur_show.stop() cur_show = nil end
-  curtain = nil
+  if ST.cur_show then ST.cur_show.stop() ST.cur_show = nil end
+  ST.curtain = nil
   night.set_only(nil)
   -- the show's painted labels go with it (in AUTO, show follows show with no menu between: they piled up)
   if menu_freed then
@@ -1473,7 +1473,7 @@ function ST.near_shots(all)
   for k, it in ipairs(items) do
     if (it.kind == "arcade" or it.kind == "game") and it.game.art then
       local d = math.abs(k - ST.sel)
-      if (d <= 3 or (all and it.kind == "arcade")) and not it.shot and not it.asked and worker then
+      if (d <= 3 or (all and it.kind == "arcade")) and not it.shot and not it.asked and ST.worker then
         it.asked = true
         love.thread.getChannel("home_work"):push({"art", k, it.game.art})
       elseif d > 5 and it.shot and not all then
@@ -1503,7 +1503,7 @@ local function restore_menu_pictures()
   load_art()
   ST.world_load(ST.world_want)
   ST.img(96)
-  labels_for, labels_sel = {}, nil
+  ST.labels_for, ST.labels_sel = {}, nil
   manage_labels(false)
   D.label_jobs[#D.label_jobs + 1] = function() D.neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1) end
   lg.setCanvas()
@@ -1527,7 +1527,7 @@ local function play_show(id, seg, from_demo)
   free_menu_pictures()
   stop_show()
   demo = from_demo and id or nil
-  cur_show_id = id
+  ST.cur_show_id = id
   local sg = seg and seg > 0 and shows.segments(id)[seg] or nil
   if id == "night" then
     -- the night sky is the menu's world, darkened: its painting stays (384 KB)
@@ -1537,10 +1537,10 @@ local function play_show(id, seg, from_demo)
     night.set_only(sg and sg[3] or nil)
     ST.night_t = (sg and not sg[3]) and sg[1] / NIGHT_SPEED or 0
   else
-    cur_show = shows.module(id)
-    if not cur_show then ST.scene = "menu" restore_menu_pictures() return end
+    ST.cur_show = shows.module(id)
+    if not ST.cur_show then ST.scene = "menu" restore_menu_pictures() return end
     ST.scene = "show"
-    curtain = {phase = "cover", n = 0, good = 0, f = 0, seed = os.time() + math.random(1, 1e6), at = sg and sg[1] or nil,
+    ST.curtain = {phase = "cover", n = 0, good = 0, f = 0, seed = os.time() + math.random(1, 1e6), at = sg and sg[1] or nil,
                card = (not from_demo and not os.getenv("HOME_SHOW")) and id or nil}
   end
   log("show " .. id .. (sg and (": " .. sg[2]) or ""))
@@ -1654,7 +1654,7 @@ local function handle(name)
   if name == "volup" or name == "voldown" then
     -- The kernel has changed it (volctrl.sh saves it); read it a moment later and show it.
     read_volume()
-    vol_t, vol_read = 1.8, 0.2
+    ST.vol_t, ST.vol_read = 1.8, 0.2
     if ST.scene ~= "night" then play("volume") end
     return
   end
@@ -1717,7 +1717,7 @@ local function handle(name)
     -- (the code's presses moved the cards and maybe a setting: put back as they were)
     for _, it in ipairs(items) do if it.kind == "classic" then it.score = high_score(it.index) end end
     party = 20
-    celebrate = {score = "PARTY MODE", title = "you found the secret", tint = 0xff4fd8, t = 0, big = true}
+    ST.celebrate = {score = "PARTY MODE", title = "you found the secret", tint = 0xff4fd8, t = 0, big = true}
     log("party mode")
     return
   end
@@ -1734,7 +1734,7 @@ local function handle(name)
       it.score = high_score(it.index)      -- fast Pac-Man keeps its own high score
     else smooth[i] = 1 - smooth[i] cfg_write("Smoothing.cfg", smooth) end
     play("toggle")
-  elseif (name == "low" or name == "1p") and returning and t < 0.6 then
+  elseif (name == "low" or name == "1p") and ST.returning and t < 0.6 then
     -- Just back from a game: a button still being mashed there (fire is the lower button) is not a choice.
     return
   elseif (name == "tl" or name == "tr") and it.kind == "show" then
@@ -1809,7 +1809,7 @@ local function shelf_setup()
                       shelf.save_name(it.id, score, initials)
                       it.table = shelf.arcade_table(it.id)
                       it.score = ST.arcade_score_text(it)
-                      celebrate = {score = shelf.commas(score), title = it.title .. "   ·   " .. initials, tint = it.tint, t = 0}
+                      ST.celebrate = {score = shelf.commas(score), title = it.title .. "   ·   " .. initials, tint = it.tint, t = 0}
                       log("initials " .. it.id .. " " .. score .. " " .. initials)
                     end})
   -- Back from an arcade board with a better score than it had: the classics' celebration, with the initials.
@@ -1827,7 +1827,7 @@ local function shelf_setup()
             ST.initials.start(it, t[1][1])
             ST.scene = "initials"
           else
-            celebrate = {score = shelf.commas(t[1][1]), title = it.title .. "   ·   " .. t[1][2], tint = it.tint, t = 0}
+            ST.celebrate = {score = shelf.commas(t[1][1]), title = it.title .. "   ·   " .. t[1][2], tint = it.tint, t = 0}
           end
         end
       end
@@ -1844,7 +1844,7 @@ local function shelf_setup()
            end})
   shelf.load({W = W, H = H, font = D.font, neon_draw = D.neon_draw, rgb = D.rgb, rrect = D.rrect, fx = fx, play = play,
               log = log, down = I.down, backdrop = P.backdrop,
-              request_art = worker and function(key, path) love.thread.getChannel("home_work"):push({"art", key, path}) end,
+              request_art = ST.worker and function(key, path) love.thread.getChannel("home_work"):push({"art", key, path}) end,
               request = function(s, picture, key) request(s, nil, picture, key) end})
   do
     -- Back from a game on the Shelf: the browser, on that game.
@@ -1852,7 +1852,7 @@ local function shelf_setup()
     if key then
       for k, it in ipairs(items) do if it.kind == "shelf" and (it.row == key or (key == "recent" and it.row)) then ST.sel, ST.pos = k, k break end end
       ST.shelf_open(key, file, failed)
-      returning = true
+      ST.returning = true
     end
   end
 end
@@ -1865,7 +1865,7 @@ function love.load()
   D.script_data = love.filesystem.getInfo("fonts/Pacifico-Starlight.ttf") and love.filesystem.newFileData("fonts/Pacifico-Starlight.ttf")
   math.randomseed(RENDER and 1 or tonumber(os.getenv("HOME_SEED") or "") or os.time())   -- (RENDER: the PC-rendered picture is the same every build)
   for i = 1, 90 do
-    stars[i] = {math.random() * W, math.random() * 700, math.random() * 6, 0.5 + math.random() * 2,
+    ST.stars[i] = {math.random() * W, math.random() * 700, math.random() * 6, 0.5 + math.random() * 2,
                 0.4 + math.random() * 0.6, math.random() < 0.15 and 3 or 2}
   end
   fx.load()
@@ -1876,7 +1876,7 @@ function love.load()
                     brand_draw = function(y, px, a) ST.draw(0, y, px, a) end,
                     fx = fx, sfx = music.sfx,
                     log = log, rgb = D.rgb}
-  if TRACE then
+  if ST.TRACE then
     D.trace_font = function(px) trace("font", px) end
     show_ctx.trace = trace
     show_ctx.sfx = function(name, gain) trace("sfx", name) music.sfx(name, gain) end
@@ -1896,8 +1896,8 @@ function love.load()
   end
   load_state()
   if love.thread then
-    worker = love.thread.newThread("worker.lua")
-    worker:start()
+    ST.worker = love.thread.newThread("worker.lua")
+    ST.worker:start()
     -- (the music: its own thread, music.lua, started after the first frame)
   end
   load_art()
@@ -1923,18 +1923,18 @@ function love.load()
     idx, before = tonumber(idx), tonumber(before)
     local now = idx and high_score(idx)
     if now and before and now > before and os.getenv("HOME_INTRO") ~= "1" then
-      celebrate = {score = now, title = CLASSICS[idx + 1].title, tint = CLASSICS[idx + 1].tint, t = 0}
+      ST.celebrate = {score = now, title = CLASSICS[idx + 1].title, tint = CLASSICS[idx + 1].tint, t = 0}
       log("new high score " .. idx .. " " .. before .. " -> " .. now)
     end
   end
   if os.getenv("HOME_INTRO") ~= "1" and (os.getenv("HOME_SKIP_INTRO") == "1" or (STATE and read_file(STATE))) then
     ST.scene = "menu"       -- the intro is for power-on; coming back from a game goes straight to the menu
-    returning = STATE ~= nil and read_file(STATE) ~= nil and os.getenv("HOME_INTRO") ~= "1"
+    ST.returning = STATE ~= nil and read_file(STATE) ~= nil and os.getenv("HOME_INTRO") ~= "1"
   else
     play("intro")
   end
   shelf_setup()
-  shows_ctx = {request_art = worker and function(key, path)
+  shows_ctx = {request_art = ST.worker and function(key, path)
                  love.thread.getChannel("home_work"):push({"art", key, path})
                end or nil, backdrop = P.backdrop, rgb = D.rgb, neon_draw = D.neon_draw, font = D.font, fx = fx, rrect = D.rrect, play = play}
   shows.set_ctx(shows_ctx)
@@ -1958,7 +1958,7 @@ function love.load()
       else
         ST.scene = "menu"
       end
-      returning = true
+      ST.returning = true
     end
   end
   show_card()
@@ -1994,7 +1994,7 @@ function love.load()
       if how == "@" then play_show(id, tonumber(n))
       else
         play_show(id)
-        if how == ":" and curtain then curtain.at = tonumber(n) curtain.seed = 1 end
+        if how == ":" and ST.curtain then ST.curtain.at = tonumber(n) ST.curtain.seed = 1 end
       end
     end
   end
@@ -2016,14 +2016,14 @@ function love.load()
     end
   end
   -- Back from a game: a soft welcome (the celebration has its own fanfare).
-  if returning and not celebrate then play("back") end
-  if headless or not direct then canvas = lg.newCanvas(W, H) end
+  if ST.returning and not ST.celebrate then play("back") end
+  if headless or not ST.direct then ST.canvas = lg.newCanvas(W, H) end
   log("home start, " .. #items .. " items, scene " .. ST.scene)
 end
 
 -- The worker waits for jobs: tell it to stop, so LÖVE's exit does not wait on it.
 function love.quit()
-  if worker then love.thread.getChannel("home_work"):push({"quit"}) end
+  if ST.worker then love.thread.getChannel("home_work"):push({"quit"}) end
   tv.quit()
   shelf.quit()
   music.quit()
@@ -2039,15 +2039,15 @@ local function music_tick()
   if ST.scene == "night" then
     local sc = night.scene_at(ST.night_t * NIGHT_SPEED)
     want, vol, fade = NIGHT_SONG[sc] or sc, 0.26, 3
-  elseif ST.scene == "show" and cur_show then
+  elseif ST.scene == "show" and ST.cur_show then
     -- (behind the curtain, before the show has started, it isn't asked: silence until it has)
-    if curtain and curtain.phase == "cover" then return end
-    want, vol, fade = cur_show.music(), 0.42, 2
-    if TRACE then
-      if cur_show.clock then trace("t", cur_show.clock()) end
-      if want ~= trace_seen.music then trace_seen.music = want trace("music", want) end
-      local act = cur_show.act and cur_show.act()
-      if act ~= trace_seen.act then trace_seen.act = act trace("act", act) end
+    if ST.curtain and ST.curtain.phase == "cover" then return end
+    want, vol, fade = ST.cur_show.music(), 0.42, 2
+    if ST.TRACE then
+      if ST.cur_show.clock then trace("t", ST.cur_show.clock()) end
+      if want ~= ST.trace_seen.music then ST.trace_seen.music = want trace("music", want) end
+      local act = ST.cur_show.act and ST.cur_show.act()
+      if act ~= ST.trace_seen.act then ST.trace_seen.act = act trace("act", act) end
     end
   elseif ST.scene == "tv" or ST.scene == "shelf" then want = "tv"
   elseif ST.scene == "attract" then want = "attract" end
@@ -2095,15 +2095,15 @@ local function update_idle(dt)
       if id ~= "night" then auto_rot = auto_rot + 1 play_show(id) else ST.auto_night_t = 0 end
     end
   end
-  if ST.scene == "show" and cur_show then
+  if ST.scene == "show" and ST.cur_show then
     ST.idle = 0
-    if curtain_step(dt) and cur_show.update(dt) then
+    if curtain_step(dt) and ST.cur_show.update(dt) then
       if os.getenv("HOME_SHOW_ONCE") then love.event.quit(0) return end   -- (tools/show_lint.py)
       -- The show is over: its tiles again (watching one), the same show (one show only), or the night sky's
       -- turn (AUTO; the Longhorns go on while the game is on).
       if demo then open_tiles(demo)
       elseif show_mode ~= "auto" then play_show(show_mode)
-      elseif cur_show_id == "longhorns" and game_now.window then play_show("longhorns")
+      elseif ST.cur_show_id == "longhorns" and game_now.window then play_show("longhorns")
       else play_show("night") end
     end
   end
@@ -2140,7 +2140,7 @@ function love.update(dt)
       avail = ", available " .. (m:match("MemAvailable:%s*(%d+)") or "?") .. " kB"
     end
     log(string.format("hitch %d ms, scene %s%s, music %s, lua %d KB%s%s", dt * 1000, ST.scene,
-                      cur_show and cur_show.act and (" " .. tostring(cur_show_id) .. ":" .. tostring(cur_show.act())) or "",
+                      ST.cur_show and ST.cur_show.act and (" " .. tostring(ST.cur_show_id) .. ":" .. tostring(ST.cur_show.act())) or "",
                       tostring(music.now), collectgarbage("count"), avail,
                       #ST.notes > 0 and (", did " .. table.concat(ST.notes, " ")) or ""))
   end
@@ -2161,7 +2161,7 @@ function love.update(dt)
   if ST.frame % 60 == 0 then game_now = utgame.status() end
   local merr = music.check()
   if merr then log("music: " .. merr) end
-  if worker then
+  if ST.worker then
     -- At most 2 GPU texture uploads per frame so waking from idle never spikes Mali memory or hitches.
     local n_up = 0
     while n_up < 2 do
@@ -2189,15 +2189,15 @@ function love.update(dt)
         pcall(function() msg[3]:release() end)   -- (always release decoded ImageData, even if menu_freed)
       end
     end
-    local err = worker:getError()
-    if err then log("worker: " .. err) worker = nil end
+    local err = ST.worker:getError()
+    if err then log("worker: " .. err) ST.worker = nil end
   end
   for _, c in ipairs(I.script) do
     if c[1] == ST.frame then
       if c[2] == "press" then I.control_down(c[3]) I.control_up(c[3])
       elseif c[2] == "down" then I.control_down(c[3])
       elseif c[2] == "up" then I.control_up(c[3])
-      elseif c[2] == "shot" then shot_req = c[3]
+      elseif c[2] == "shot" then ST.shot_req = c[3]
       elseif c[2] == "quit" then love.event.quit(0) end
     end
   end
@@ -2220,17 +2220,17 @@ function love.update(dt)
   end
   update_idle(dt)
   fx.update(dt, ST.scene == "menu" or ST.scene == "attract" or ST.scene == "night")
-  if vol_t > 0 then vol_t = vol_t - dt end
+  if ST.vol_t > 0 then ST.vol_t = ST.vol_t - dt end
   if ST.menu_in > 0 then ST.menu_in = math.max(0, ST.menu_in - dt) end
   if party > 0 then party = math.max(0, party - dt) end
-  if celebrate then
-    if celebrate.t == 0 then play("fanfare") confetti = nil end
-    celebrate.t = celebrate.t + dt
-    if celebrate.t > 5 then celebrate = nil end
+  if ST.celebrate then
+    if ST.celebrate.t == 0 then play("fanfare") confetti = nil end
+    ST.celebrate.t = ST.celebrate.t + dt
+    if ST.celebrate.t > 5 then ST.celebrate = nil end
   end
-  if vol_read then
-    vol_read = vol_read - dt
-    if vol_read <= 0 then vol_read = nil read_volume() end
+  if ST.vol_read then
+    ST.vol_read = ST.vol_read - dt
+    if ST.vol_read <= 0 then ST.vol_read = nil read_volume() end
   end
   ST.pos = ST.pos + (ST.sel - ST.pos) * math.min(1, dt * 11)
   if ST.scene ~= "hall" then ST.near_shots() end
@@ -2260,25 +2260,25 @@ function love.draw()
     for i, m in ipairs(marks) do parts[i] = string.format("%s %.2f", m[1], m[2]) end
     log("startup: " .. table.concat(parts, ", "))
   end
-  if canvas then
-    lg.setCanvas(canvas)
+  if ST.canvas then
+    lg.setCanvas(ST.canvas)
     lg.clear(0, 0, 0, 1)
     lg.origin()
     draw_scene()
     lg.setCanvas()
-    if shot_req then
+    if ST.shot_req then
       -- (straight to the file: two test runs at once would share a "shot.png" in the save directory)
-      local d = canvas:newImageData():encode("png"):getString()
-      local f = io.open(shot_req, "wb")
+      local d = ST.canvas:newImageData():encode("png"):getString()
+      local f = io.open(ST.shot_req, "wb")
       if f then f:write(d) f:close() end
-      if TRACE then trace("shot", shot_req) end
-      shot_req = nil
+      if ST.TRACE then trace("shot", ST.shot_req) end
+      ST.shot_req = nil
     end
     if not headless then
       lg.origin()
       local ww, wh = lg.getDimensions()
       lg.setColor(1, 1, 1, 1)
-      lg.draw(canvas, ww / 2, wh / 2, -math.pi / 2, 1, 1, W / 2, H / 2)
+      lg.draw(ST.canvas, ww / 2, wh / 2, -math.pi / 2, 1, 1, W / 2, H / 2)
     end
   else
     -- Straight onto the framebuffer, turned (as GPU yard does: the canvas cost a whole extra pass).

@@ -85,8 +85,9 @@ def main():
         def sub(m):
             before = code[:m.start()].rstrip()
             after = code[m.end():]
-            if re.match(r"\s*=(?!=)", after) and (before.endswith(("{", ",")) or before == "") \
-                    and opener_at(m.start()) == "{":
+            prev_code = split_comment(prev)[0].rstrip()
+            if re.match(r"\s*=(?!=)", after) and opener_at(m.start()) == "{" and (
+                    before.endswith(("{", ",")) or (before == "" and prev_code.endswith(("{", ",")))):
                 return m.group(0)              # a table key
             return "ST." + m.group(1)
         parts = re.split(r'("(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\')', code)

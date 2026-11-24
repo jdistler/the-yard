@@ -125,7 +125,13 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
       aliases).
 - [ ] The state section moves into `app` one group at a time, a commit each:
   - [x] selection and scene, scene timers, note, launch (15 names): locals 167 -> 153, upvalues 47 -> 44.
-  - [ ] labels; art cache; volume; the curtain and show control; codes and party mode; trace; canvas.
+  - [x] volume, the show playing and its curtain, returning and celebration, the code buffer, last played, labels,
+        stars, the canvas and the shot request, the worker, the trace (20 names): locals 153 -> 137, upvalues
+        44 -> 37. The globals gate caught a real behaviour change the tour could not see: `celebrate = {...}` inside
+        a callback within a table constructor had been kept as a key, so after initials the celebration would never
+        have shown. Fixed; the tool now needs the previous line to end in `{` or `,` for a line-start key.
+  - [ ] Left as locals on purpose: `t` (the frame clock, shadowed 16 times, hot), `party` (shadowed once).
+        The state section's functions move with their modules in CP4.
 - [ ] Milestone: G4, G5. Expected: top-level locals under 110, the loop's upvalues under 30.
 
 **CP4. The big consumers.**
