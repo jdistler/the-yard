@@ -3,11 +3,11 @@
 -- returns with them, where the section was: it fills the mirrors, then runs the section's text, so its
 -- top-level statements run in the same order as before.
 local M = {}
-local CAT, D, H, ST, W, fx, headless, lg, read_file, shows
+local CAT, D, H, ST, W, fx, headless, lg, read_file, shows, shelf, log
 
 return function(c)
 CAT, D, H, ST, W, fx = c.CAT, c.D, c.H, c.ST, c.W, c.fx
-headless, lg, read_file, shows = c.headless, c.lg, c.read_file, c.shows
+headless, lg, read_file, shows, shelf, log = c.headless, c.lg, c.read_file, c.shows, c.shelf, c.log
 
 
 ST.sel, ST.pos = 1, 1
@@ -250,10 +250,45 @@ local function load_art()
 end
 
 
+-- The art worker's results (worker.lua decodes on its own thread): at most 2 GPU texture uploads per frame, so
+-- waking from idle never spikes Mali memory or hitches. (main.lua's love.update until HOME_REFACTOR.md CP5)
+local function drain_worker()
+  if not ST.worker then return end
+  local n_up = 0
+  while n_up < 2 do
+    local msg = love.thread.getChannel("home_done"):pop()
+    if not msg then break end
+    n_up = n_up + 1
+    home_note("upload:" .. tostring(msg[2]))
+    if msg[1] == "art" and type(msg[2]) == "string" and msg[2]:sub(1, 6) == "shelf:" then
+      if msg[3] then shelf.art_ready(msg[2], msg[3]) else shelf.art_failed(msg[2]) end
+    elseif msg[1] == "art" and type(msg[2]) == "string" then
+      if msg[3] then shows.thumb_ready(msg[2], msg[3]) end
+    elseif msg[1] == "art" and msg[3] then
+      if not ST.menu_freed then
+        local it = CAT.items[msg[2]]
+        if it then
+          if it.kind == "arcade" or it.kind == "game" then
+            if it.shot then it.shot:release() end
+            it.shot = art_image(msg[3])
+          else
+            if it.art then it.art:release() end
+            it.art = art_image(msg[3])
+          end
+        end
+      end
+      pcall(function() msg[3]:release() end)   -- (always release decoded ImageData, even if menu_freed)
+    end
+  end
+  local err = ST.worker:getError()
+  if err then log("worker: " .. err) ST.worker = nil end
+end
+
 M.CODE = CODE
 M.art_image = art_image
 M.curtain_draw = curtain_draw
 M.curtain_step = curtain_step
+M.drain_worker = drain_worker
 M.load_art = load_art
 M.load_state = load_state
 M.manage_labels = manage_labels

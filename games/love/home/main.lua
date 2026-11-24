@@ -171,7 +171,7 @@ local t = 0                       -- the frame clock (seconds): the loop's; modu
 
 -- homestate.lua (HOME_REFACTOR.md CP4)
 local HS = require("homestate")({CAT = CAT, D = D, H = H, ST = ST,
-  W = W, fx = fx, headless = headless, lg = lg, read_file = read_file, shows = shows})
+  W = W, fx = fx, headless = headless, lg = lg, read_file = read_file, shows = shows, shelf = shelf, log = log})
 
 -- ------------------------------------------------------------------ drawing
 
@@ -460,11 +460,11 @@ local TICK = require("ticks")({CAT = CAT, HS = HS, IDLE = IDLE, ST = ST,
 
 -- ------------------------------------------------------------------ the frame
 
-local fps_t, fps_n = 0, 0
 local last_letters = 0
+-- the hitch and frames lines: diag.lua (HOME_REFACTOR.md CP5)
+local DIAG = require("diag")
+DIAG.init({ST = ST, log = log, music = music})
 local FIXED_DT = tonumber(os.getenv("HOME_DT") or "")   -- tests: every frame this long (PC renders of the shows)
-local FPS_EVERY = tonumber(os.getenv("HOME_FPS_EVERY") or "") or 300   -- the frames line: every this many frames
-local hitches = 0
 -- What a frame did that can take time (SYSTEM_AUDIT.md B2): the loaders note it (home_note, a global so the
 -- modules reach it), and a hitch is logged with the notes of the frame it happened in. Home's log had stalls of
 -- 5 to 46 s with nothing saying what was being done.
@@ -475,30 +475,7 @@ function home_note(s)
 end
 function love.update(dt)
   if FIXED_DT then dt = FIXED_DT end
-  -- a frame that took too long (a hitch you can see): logged with what was going on, the first 300 a run
-  if dt > 0.045 and ST.frame > 10 and hitches < 300 then
-    hitches = hitches + 1
-    local avail = ""
-    if dt > 0.25 then
-      local mi = io.open("/proc/meminfo")
-      local m = mi and mi:read("*a") or ""
-      if mi then mi:close() end
-      avail = ", available " .. (m:match("MemAvailable:%s*(%d+)") or "?") .. " kB"
-    end
-    log(string.format("hitch %d ms, scene %s%s, music %s, lua %d KB%s%s", dt * 1000, ST.scene,
-                      ST.cur_show and ST.cur_show.act and (" " .. tostring(ST.cur_show_id) .. ":" .. tostring(ST.cur_show.act())) or "",
-                      tostring(music.now), collectgarbage("count"), avail,
-                      #ST.notes > 0 and (", did " .. table.concat(ST.notes, " ")) or ""))
-  end
-  for i = #ST.notes, 1, -1 do ST.notes[i] = nil end
-  fps_t, fps_n = fps_t + dt, fps_n + 1
-  if fps_n == FPS_EVERY then
-    local st = lg.getStats()
-    log(string.format("frames: %.1f fps (%.2f ms), scene %s, lua %d KB, textures %d KB (%d), draws %d", fps_n / fps_t,
-                      fps_t / fps_n * 1000, ST.scene, collectgarbage("count"), st.texturememory / 1024, st.images + st.canvases,
-                      st.drawcalls))
-    fps_t, fps_n = 0, 0
-  end
+  DIAG.frame(dt)
   dt = math.min(dt, 0.1)
   t = t + dt
   MENU.sync_t(t)
@@ -509,37 +486,7 @@ function love.update(dt)
   if ST.frame % 60 == 0 then ST.game_now = utgame.status() end
   local merr = music.check()
   if merr then log("music: " .. merr) end
-  if ST.worker then
-    -- At most 2 GPU texture uploads per frame so waking from idle never spikes Mali memory or hitches.
-    local n_up = 0
-    while n_up < 2 do
-      local msg = love.thread.getChannel("home_done"):pop()
-      if not msg then break end
-      n_up = n_up + 1
-      home_note("upload:" .. tostring(msg[2]))
-      if msg[1] == "art" and type(msg[2]) == "string" and msg[2]:sub(1, 6) == "shelf:" then
-        if msg[3] then shelf.art_ready(msg[2], msg[3]) else shelf.art_failed(msg[2]) end
-      elseif msg[1] == "art" and type(msg[2]) == "string" then
-        if msg[3] then shows.thumb_ready(msg[2], msg[3]) end
-      elseif msg[1] == "art" and msg[3] then
-        if not ST.menu_freed then
-          local it = CAT.items[msg[2]]
-          if it then
-            if it.kind == "arcade" or it.kind == "game" then
-              if it.shot then it.shot:release() end
-              it.shot = HS.art_image(msg[3])
-            else
-              if it.art then it.art:release() end
-              it.art = HS.art_image(msg[3])
-            end
-          end
-        end
-        pcall(function() msg[3]:release() end)   -- (always release decoded ImageData, even if menu_freed)
-      end
-    end
-    local err = ST.worker:getError()
-    if err then log("worker: " .. err) ST.worker = nil end
-  end
+  HS.drain_worker()
   for _, c in ipairs(I.script) do
     if c[1] == ST.frame then
       if c[2] == "press" then I.control_down(c[3]) I.control_up(c[3])
