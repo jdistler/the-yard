@@ -404,32 +404,33 @@ local I = require("input")
 
 -- ------------------------------------------------------------------ state
 
-local sel, pos = 1, 1
-local t, frame = 0, 0
+ST.sel, ST.pos = 1, 1
+local t = 0
+ST.frame = 0
 -- HOME_TRACE=PATH (tools/show_review.py): what a show does, as it plays, one line an event: "<show secs> <kind> ..."
 -- (act: the scene; music: the song; sfx: a sound; cam x y zoom, 10 a second; say/caption/plate: words shown).
 local TRACE = os.getenv("HOME_TRACE") and io.open(os.getenv("HOME_TRACE"), "w")
 local trace_t, trace_seen = nil, {}
 local function trace(kind, a, b, c)
   if kind == "t" then trace_t = a return end
-  local when = trace_t or frame / 60
+  local when = trace_t or ST.frame / 60
   if kind == "parts" then
-    if frame % 30 ~= 0 then return end
+    if ST.frame % 30 ~= 0 then return end
     TRACE:write(string.format("%.2f parts %d %d\n", when, a, b))
     return
   end
   if kind == "crowd" then
-    if frame % 6 ~= 0 then return end
+    if ST.frame % 6 ~= 0 then return end
     TRACE:write(string.format("%.2f crowd %s\n", when, a))
     return
   end
   if kind == "cast" then
-    if frame % 6 ~= 0 then return end
+    if ST.frame % 6 ~= 0 then return end
     TRACE:write(string.format("%.2f cast %.0f %.0f %.0f\n", when, a, b or 0, c or 0))
     return
   end
   if kind == "cam" then
-    if frame % 6 ~= 0 then return end
+    if ST.frame % 6 ~= 0 then return end
     TRACE:write(string.format("%.2f cam %.0f %.0f %.3f\n", when, a, b, c))
     return
   end
@@ -437,18 +438,18 @@ local function trace(kind, a, b, c)
     -- (words are drawn every frame: once, then again only after a second away)
     local k = kind .. a
     local last = trace_seen[k]
-    trace_seen[k] = frame
-    if last and frame - last < 60 then return end
+    trace_seen[k] = ST.frame
+    if last and ST.frame - last < 60 then return end
   end
   TRACE:write(string.format("%.2f %s %s\n", when, kind, tostring(a)))
   if kind == "act" or kind == "music" then TRACE:flush() end
 end
-local scene = "intro"           -- intro, menu, attract, night, show (an idle show), shows (a show's tiles), tv
-local intro_t = 0
-local idle = 0
-local attract_t = 0
-local launch_t, launch_item = 0, nil
-local note, note_t = nil, 0
+ST.scene = "intro"           -- intro, menu, attract, night, show (an idle show), shows (a show's tiles), tv
+ST.intro_t = 0
+ST.idle = 0
+ST.attract_t = 0
+ST.launch_t, ST.launch_item = 0, nil
+ST.note, ST.note_t = nil, 0
 local stars = {}
 -- The living menu's world (tools/art/home.py): a painting a season, on the SD card; nil: the synthwave grid.
 ST.WORLD_ART = (os.getenv("HOME_SHOW_ART") or "/mnt/sdcard/partycade/art") .. "/home"
@@ -476,7 +477,7 @@ local direct = not headless and os.getenv("HOME_CANVAS") ~= "1"
 local canvas
 local shot_req
 local vol_level, vol_t, vol_read = nil, 0, nil
-local night_t = 0
+ST.night_t = 0
 local cur_show, cur_show_id             -- the idle show playing (its module; nil for the night sky), and its id
 -- A show's start behind a curtain: the screen black while it sets up (its pictures, its labels: 300 ms and more
 -- on the cabinet, which froze whatever was moving), its clock still until frames come smoothly, then a fade in.
@@ -524,9 +525,9 @@ local function curtain_draw()
     end
   end
 end
-local auto_night_t = 0            -- AUTO: how long the night sky has had its turn
-local menu_in = 0                 -- the menu fading in after the intro (seconds left)
-local attract_sel                 -- the card before the attract tour: given back on waking
+ST.auto_night_t = 0            -- AUTO: how long the night sky has had its turn
+ST.menu_in = 0                 -- the menu fading in after the intro (seconds left)
+-- (ST.attract_sel) -- the card before the attract tour: given back on waking
 local returning = false           -- Home started again after a game (not at power-on)
 local celebrate                   -- {score, title, tint, t}: back from a classic with a new high score
 local party = 0                   -- party mode (the secret code): seconds left
@@ -548,10 +549,10 @@ local function neon_release(s, px, c, glow)
   if e then e.img:release() D.neon_cache[key] = nil end
 end
 local function manage_labels(all_now)
-  if labels_sel == sel then return end
-  labels_sel = sel
+  if labels_sel == ST.sel then return end
+  labels_sel = ST.sel
   for k, it in ipairs(items) do
-    local d = math.abs(k - sel)
+    local d = math.abs(k - ST.sel)
     if d <= 3 and not labels_for[k] then
       labels_for[k] = true
       if all_now or d <= 1 then title_labels(it)
@@ -567,15 +568,15 @@ end
 local function load_state()
   local s = STATE and read_file(STATE)
   local n = s and (item_by_key(s:match("selkey (%S+)") or "") or tonumber(s:match("sel (%d+)")))
-  if n and items[n] then sel, pos = n, n end
+  if n and items[n] then ST.sel, ST.pos = n, n end
   local sm = s and s:match("show (%a+)")
   if sm and SHOW_NAMES[sm] then show_mode = sm end
   local lp = s and (item_by_key(s:match("playedkey (%S+)") or "") or tonumber(s:match("played (%d+)")))
   if lp and items[lp] then last_played = items[lp] end
   -- At power-on, never on the original menu's card (the last choice made before the power went off).
-  if os.getenv("HOME_INTRO") == "1" and items[sel].kind == "stock" then sel, pos = 1, 1 end
+  if os.getenv("HOME_INTRO") == "1" and items[ST.sel].kind == "stock" then ST.sel, ST.pos = 1, 1 end
   -- Nothing played yet: start on the first real card (Pac-Man), not on the empty FAVORITES card.
-  if items[sel].kind == "favhint" then sel, pos = 2, 2 end
+  if items[ST.sel].kind == "favhint" then ST.sel, ST.pos = 2, 2 end
   return s and s:match("returned (.+)")
 end
 local function save_state(extra, played)
@@ -586,7 +587,7 @@ local function save_state(extra, played)
   end
   local f = io.open(STATE, "w")
   if f then
-    f:write("sel " .. sel .. "\nselkey " .. item_key(items[sel]) .. "\n" ..
+    f:write("sel " .. ST.sel .. "\nselkey " .. item_key(items[ST.sel]) .. "\n" ..
             (lp and ("played " .. lp .. "\nplayedkey " .. item_key(items[lp]) .. "\n") or "") ..
             "show " .. show_mode .. "\n" .. (extra or ""))
     f:close()
@@ -607,7 +608,7 @@ local function art_path(it) return ART .. "/classic_" .. it.index .. ".png" end
 local function load_art()
   for k, it in ipairs(items) do
     if it.kind == "classic" then
-      if math.abs(k - sel) <= 2 or not worker then
+      if math.abs(k - ST.sel) <= 2 or not worker then
         local b = read_file(art_path(it))
         if b then
           local ok, data = pcall(love.image.newImageData, love.filesystem.newFileData(b, "c.png"))
@@ -623,7 +624,7 @@ local function load_art()
     elseif it.kind == "arcade" or it.kind == "game" then
       -- The board's title screen, from the card (decoded on the worker; the reply sets it.shot). Only the cards
       -- near the chosen one: all of them at once, with the browser's box art, ran Home out of memory.
-      if it.game.art and not it.shot and not it.asked and math.abs(k - sel) <= 3 then
+      if it.game.art and not it.shot and not it.asked and math.abs(k - ST.sel) <= 3 then
         it.asked = true
         if worker then love.thread.getChannel("home_work"):push({"art", k, it.game.art})
         else
@@ -635,7 +636,7 @@ local function load_art()
           end
         end
       end
-    elseif it.id and not it.shot and (math.abs(k - sel) <= 2 or not worker) and love.filesystem.getInfo("art/" .. it.id .. ".png") then
+    elseif it.id and not it.shot and (math.abs(k - ST.sel) <= 2 or not worker) and love.filesystem.getInfo("art/" .. it.id .. ".png") then
       -- Our games: a frame of the game itself (cart shots), packed into home.love (loaded near sel).
       it.shot = lg.newImage("art/" .. it.id .. ".png")
       it.shot:setFilter("linear", "linear")
@@ -1001,13 +1002,13 @@ local function draw_carousel()
   -- The chosen card in the middle; its neighbours smaller and dimmer above and below, peeking out from behind.
   -- Drawn farthest first, so the chosen card is on top.
   local list = {}
-  for k = math.floor(pos) - 2, math.floor(pos) + 2 do
+  for k = math.floor(ST.pos) - 2, math.floor(ST.pos) + 2 do
     if items[k] then list[#list + 1] = k end
   end
-  table.sort(list, function(p, q) return math.abs(p - pos) > math.abs(q - pos) end)
+  table.sort(list, function(p, q) return math.abs(p - ST.pos) > math.abs(q - ST.pos) end)
   for _, k in ipairs(list) do
     local it = items[k]
-    local off = k - pos
+    local off = k - ST.pos
     local a = math.abs(off)
     if a < 1.9 then
       local cw = 540 * (1 - math.min(a, 1.6) * 0.30)
@@ -1016,14 +1017,14 @@ local function draw_carousel()
       -- Fade out before reaching the marquee and the tabs (a card scrolling up slid under them).
       alpha = alpha * math.max(0, math.min(1, (cy - cw * 0.29 - 262) / 60))
       local focus = math.max(0, 1 - a * 2)
-      if launch_item == it then cw = cw * (1 + 0.25 * math.min(1, launch_t / 0.5)) end
+      if ST.launch_item == it then cw = cw * (1 + 0.25 * math.min(1, ST.launch_t / 0.5)) end
       draw_card(it, W / 2, cy, cw, focus, alpha)
     end
   end
 end
 
 local function draw_info()
-  local it = items[sel]
+  local it = items[ST.sel]
   local y = 800
   lg.setColor(0.04, 0.0, 0.10, 0.84)
   D.rrect("fill", 40, y, W - 80, 196, 24)
@@ -1072,7 +1073,7 @@ end
 
 -- The bottom line: how to play, and, for the chosen game, how to come back from it.
 local function draw_footer()
-  local it = items[sel]
+  local it = items[ST.sel]
   local leave = LEAVE[it.kind]
   if leave and math.floor(t / 4) % 2 == 1 then
     draw_hint(it.kind == "classic" and "in the game:  hold 1-PLAYER for 5 seconds to come back"
@@ -1132,14 +1133,14 @@ local function draw_celebration()
 end
 
 local function draw_note()
-  if not note then return end
-  local a = math.min(1, note_t)
+  if not ST.note then return end
+  local a = math.min(1, ST.note_t)
   lg.setColor(0.25, 0.02, 0.12, 0.92 * a)
   D.rrect("fill", 70, 240, W - 140, 60, 20)
   lg.setColor(1, 0.5, 0.6, a)
   D.rrect("line", 70, 240, W - 140, 60, 20)
   lg.setFont(D.font(22))
-  lg.printf(note, 70, 256, W - 140, "center")
+  lg.printf(ST.note, 70, 256, W - 140, "center")
 end
 
 -- The hold meter, as The Yard draws it: a panel in the middle, a bar filling over the hold.
@@ -1184,15 +1185,15 @@ end
 -- The night scene (idle a few minutes): the sky dims, the sign sleeps, a chase runs along the horizon.
 local function draw_night()
   -- The show (night.lua): the sky through a whole night, the moon, and the scenes.
-  local nt = night_t * NIGHT_SPEED
+  local nt = ST.night_t * NIGHT_SPEED
   night.draw(nt)
   -- The sign asleep: it breathes, slowly (dimmer in the rest stretch before dawn).
   local rest = night.scene_at(nt) == "rest" and 0.35 or 1
-  local breath = (0.3 + 0.12 * math.sin(night_t * 1.1)) * rest
+  local breath = (0.3 + 0.12 * math.sin(ST.night_t * 1.1)) * rest
   fx.glow(W / 2, 80, 330, 60, 1, 0.75, 0.35, breath * 0.25)
   ST.draw(0, 24, 96, breath)
   for i = 0, 2 do
-    local k = ((night_t * 0.3) + i / 3) % 1
+    local k = ((ST.night_t * 0.3) + i / 3) % 1
     local zx, zy = W / 2 + 260 + k * 60 + math.sin(k * 6) * 10, 120 - k * 110
     lg.setFont(D.font(math.floor(30 + k * 26)))
     lg.setColor(0.43, 0.94, 0.78, math.sin(k * math.pi) * 0.85 * rest)
@@ -1215,14 +1216,14 @@ end
 -- across in neon, a spark at the pen; "ARCADE · SHOWS · TV" under it; then the menu fades in under the sign.
 local INTRO_LEN = 3.0
 local function draw_intro()
-  local up = math.min(1, intro_t / 0.6)
+  local up = math.min(1, ST.intro_t / 0.6)
   if up < 1 then
     lg.setColor(0, 0, 0, 1 - up)
     lg.rectangle("fill", 0, 0, W, H)
   end
-  local lit = math.max(0, math.min(1, (intro_t - 0.3) / 1.0))
+  local lit = math.max(0, math.min(1, (ST.intro_t - 0.3) / 1.0))
   ST.draw_bulbs(1, lit)
-  local wk = math.max(0, math.min(1, (intro_t - 0.9) / 1.0))
+  local wk = math.max(0, math.min(1, (ST.intro_t - 0.9) / 1.0))
   if wk < 1 then draw_unlit_sign() end
   if wk > 0 then
     -- the wordmark written across: a widening window over the painted label
@@ -1239,32 +1240,32 @@ local function draw_intro()
     end
     fx.glow(W / 2, 92, 300, 70, 1, 0.75, 0.35, 0.16 * wk)
   end
-  if intro_t > 1.9 then
-    local a = math.min(1, (intro_t - 1.9) / 0.5)
+  if ST.intro_t > 1.9 then
+    local a = math.min(1, (ST.intro_t - 1.9) / 0.5)
     D.neon_draw("ARCADE  ·  SHOWS  ·  TV", 0, 470, 34, ST.ACCENT, 0.8, "center", W, a)
   end
 end
 
 local function draw_scene()
-  if scene == "hall" then
+  if ST.scene == "hall" then
     ST.hall.draw()
     draw_volume()
     return
   end
-  if scene == "shelf" then
+  if ST.scene == "shelf" then
     shelf.draw()
     draw_volume()
     draw_note()
     return
   end
-  if scene == "tv" then
+  if ST.scene == "tv" then
     -- The guide draws its own quiet backdrop (Home's sky under it cost ~15 fps: two extra full-screen passes).
     tv.draw()
     draw_volume()
     draw_note()
     return
   end
-  if scene == "show" and cur_show then
+  if ST.scene == "show" and cur_show then
     -- An idle show draws the whole picture (freedom.lua, texas.lua, ...).
     ST.L.top_busy = 0
     cur_show.draw()
@@ -1275,29 +1276,29 @@ local function draw_scene()
     draw_volume()
     return
   end
-  if scene == "shows" then
+  if ST.scene == "shows" then
     shows.draw()
     draw_volume()
     return
   end
-  local dim = scene == "night" and 1 or 0
+  local dim = ST.scene == "night" and 1 or 0
   draw_background(dim)
-  if scene == "intro" then
+  if ST.scene == "intro" then
     draw_intro()
     return
   end
-  if scene == "night" then
+  if ST.scene == "night" then
     draw_night()
     return
   end
   draw_marquee()
-  draw_tabs(items[sel].section)
+  draw_tabs(items[ST.sel].section)
   draw_carousel()
-  if scene == "attract" then
+  if ST.scene == "attract" then
     lg.setColor(0, 0, 0, 0.25)
     lg.rectangle("fill", 0, 780, W, H - 780)
     D.neon_draw("PRESS ANY BUTTON", 0, 860, 44, 0xffd23f, 1, "center", W, 0.6 + 0.4 * math.sin(t * 4))
-    local it = items[sel]
+    local it = items[ST.sel]
     if it.score then
       draw_hint("HIGH SCORE  " .. it.score .. "  —  can you beat it?", 930, 0.9)
     else
@@ -1307,19 +1308,19 @@ local function draw_scene()
     draw_info()
     draw_footer()
   end
-  if menu_in > 0 then
+  if ST.menu_in > 0 then
     -- After the intro: the menu comes up under the sign.
-    lg.setColor(0.02, 0.0, 0.05, menu_in / 0.45 * 0.8)
+    lg.setColor(0.02, 0.0, 0.05, ST.menu_in / 0.45 * 0.8)
     lg.rectangle("fill", 0, 178, W, H - 178)
   end
   draw_volume()
   draw_celebration()
-  if scene == "initials" then ST.initials.draw() end
+  if ST.scene == "initials" then ST.initials.draw() end
   draw_note()
   draw_hold()
-  if launch_item then
-    local r, g, b = D.rgb(launch_item.tint)
-    local k = math.max(0, math.min(1, (launch_t - 0.25) / 0.3))
+  if ST.launch_item then
+    local r, g, b = D.rgb(ST.launch_item.tint)
+    local k = math.max(0, math.min(1, (ST.launch_t - 0.25) / 0.3))
     lg.setColor(r * 0.16, g * 0.08, b * 0.2, k)        -- into a dark glow of the game's colour
     lg.rectangle("fill", 0, 0, W, H)
   end
@@ -1346,7 +1347,7 @@ local function request(s, it, picture, gamekey)
   log("launch " .. s)
   -- The classic's high score as it was: on the way back, a higher one is celebrated.
   local played = nil
-  if it and it.kind ~= "stock" then played = sel end
+  if it and it.kind ~= "stock" then played = ST.sel end
   local extra = it and it.kind == "classic" and ("score " .. it.index .. " " .. (high_score(it.index) or 0) .. "\n")
                 or it and it.kind == "arcade" and ("ascore " .. it.id .. " " .. ST.arcade_best(it) .. "\n") or ""
   -- (a Shelf game, from the browser or a FAVORITES card: favs.lua credits its play time to it)
@@ -1373,20 +1374,20 @@ local function launch(it)
 end
 
 local function move(d)
-  local old = items[sel].section
-  sel = math.max(1, math.min(#items, sel + d))
-  play(items[sel].section ~= old and "section" or "move")
+  local old = items[ST.sel].section
+  ST.sel = math.max(1, math.min(#items, ST.sel + d))
+  play(items[ST.sel].section ~= old and "section" or "move")
 end
 
 -- (an empty section is skipped: with no card in the slot ARCADE has no cards, and the stick used to stop dead at
 -- it, found by the characterization tour, 2026-11-24)
 local function jump_section(d)
-  local cur = items[sel].section
+  local cur = items[ST.sel].section
   local want = cur + d
   while want >= 1 and want <= #SECTIONS do
     for i, it in ipairs(items) do
       if it.section == want then
-        sel = i
+        ST.sel = i
         play("section")
         return
       end
@@ -1405,12 +1406,12 @@ end
 local code_before = {}            -- the card and settings before each press: the code's moves are undone
 local function secret(name)
   code_buf[#code_buf + 1] = name
-  code_before[#code_before + 1] = {sel = sel, speed = {unpack(speed)}, smooth = {unpack(smooth)}}
+  code_before[#code_before + 1] = {sel = ST.sel, speed = {unpack(speed)}, smooth = {unpack(smooth)}}
   if #code_buf > #CODE then table.remove(code_buf, 1) table.remove(code_before, 1) end
   if #code_buf < #CODE then return false end
   for i = 1, #CODE do if code_buf[i] ~= CODE[i] then return false end end
   local b = code_before[1]
-  sel = b.sel
+  ST.sel = b.sel
   for i = 1, 12 do
     if speed[i] ~= b.speed[i] or smooth[i] ~= b.smooth[i] then
       speed, smooth = b.speed, b.smooth
@@ -1467,11 +1468,11 @@ local function stop_show()
 end
 -- Arcade and FAVORITES pictures follow the chosen card: asked for within 3, released beyond 5.
 function ST.near_shots(all)
-  if menu_freed or (ST.near_sel == sel and not all) then return end
-  ST.near_sel = sel
+  if menu_freed or (ST.near_sel == ST.sel and not all) then return end
+  ST.near_sel = ST.sel
   for k, it in ipairs(items) do
     if (it.kind == "arcade" or it.kind == "game") and it.game.art then
-      local d = math.abs(k - sel)
+      local d = math.abs(k - ST.sel)
       if (d <= 3 or (all and it.kind == "arcade")) and not it.shot and not it.asked and worker then
         it.asked = true
         love.thread.getChannel("home_work"):push({"art", k, it.game.art})
@@ -1480,7 +1481,7 @@ function ST.near_shots(all)
         it.shot, it.asked = nil, nil
       end
     elseif it.id and love.filesystem.getInfo("art/" .. it.id .. ".png") then
-      local d = math.abs(k - sel)
+      local d = math.abs(k - ST.sel)
       if d <= 3 and not it.shot then
         it.shot = lg.newImage("art/" .. it.id .. ".png")
         it.shot:setFilter("linear", "linear")
@@ -1512,12 +1513,12 @@ end
 -- art, ran Home out of memory), and gives it back on the way out.
 function ST.shelf_open(row, file, failed)
   free_menu_pictures()
-  scene = "shelf"
+  ST.scene = "shelf"
   if file then shelf.enter_at(row, file, failed) else shelf.enter(row) end
 end
 function ST.shelf_close()
   shelf.quit()
-  scene = "menu"
+  ST.scene = "menu"
   restore_menu_pictures()
 end
 
@@ -1531,14 +1532,14 @@ local function play_show(id, seg, from_demo)
   if id == "night" then
     -- the night sky is the menu's world, darkened: its painting stays (384 KB)
     ST.world_load(ST.world_want)
-    scene = "night"
-    auto_night_t = 0
+    ST.scene = "night"
+    ST.auto_night_t = 0
     night.set_only(sg and sg[3] or nil)
-    night_t = (sg and not sg[3]) and sg[1] / NIGHT_SPEED or 0
+    ST.night_t = (sg and not sg[3]) and sg[1] / NIGHT_SPEED or 0
   else
     cur_show = shows.module(id)
-    if not cur_show then scene = "menu" restore_menu_pictures() return end
-    scene = "show"
+    if not cur_show then ST.scene = "menu" restore_menu_pictures() return end
+    ST.scene = "show"
     curtain = {phase = "cover", n = 0, good = 0, f = 0, seed = os.time() + math.random(1, 1e6), at = sg and sg[1] or nil,
                card = (not from_demo and not os.getenv("HOME_SHOW")) and id or nil}
   end
@@ -1646,7 +1647,7 @@ local function open_tiles(id)
   stop_show()
   demo = nil
   shows.open(shows_ctx, id)
-  scene = "shows"
+  ST.scene = "shows"
 end
 
 local function handle(name)
@@ -1654,37 +1655,37 @@ local function handle(name)
     -- The kernel has changed it (volctrl.sh saves it); read it a moment later and show it.
     read_volume()
     vol_t, vol_read = 1.8, 0.2
-    if scene ~= "night" then play("volume") end
+    if ST.scene ~= "night" then play("volume") end
     return
   end
-  idle = 0
-  if scene == "intro" then
-    scene = "menu"
-    menu_in = 0.3
+  ST.idle = 0
+  if ST.scene == "intro" then
+    ST.scene = "menu"
+    ST.menu_in = 0.3
     return
   end
-  if scene == "attract" then
-    scene = "menu"
-    if attract_sel then sel = attract_sel end
+  if ST.scene == "attract" then
+    ST.scene = "menu"
+    if ST.attract_sel then ST.sel = ST.attract_sel end
     return
   end
-  if scene == "night" or scene == "show" then
+  if ST.scene == "night" or ST.scene == "show" then
     -- The first press only wakes it: back to the show's tiles (watching one), or the menu.
     if demo then
       open_tiles(demo)
     else
-      scene = "menu"
-      if attract_sel then sel, pos = attract_sel, attract_sel end
+      ST.scene = "menu"
+      if ST.attract_sel then ST.sel, ST.pos = ST.attract_sel, ST.attract_sel end
       restore_menu_pictures()
     end
     play("wake")
     return
   end
-  if scene == "shows" then
+  if ST.scene == "shows" then
     local r = shows.handle(name)
     if r == "back" then
       shows.close()
-      scene = "menu"
+      ST.scene = "menu"
       restore_menu_pictures()
       play("back")
     elseif type(r) == "table" then
@@ -1694,23 +1695,23 @@ local function handle(name)
     end
     return
   end
-  if scene == "tv" then
-    if tv.handle(name) == "exit" then scene = "menu" end
+  if ST.scene == "tv" then
+    if tv.handle(name) == "exit" then ST.scene = "menu" end
     return
   end
-  if scene == "shelf" then
+  if ST.scene == "shelf" then
     if shelf.handle(name) == "exit" then ST.shelf_close() end
     return
   end
-  if scene == "initials" then
+  if ST.scene == "initials" then
     ST.initials.handle(name)
     return
   end
-  if scene == "hall" then
-    if ST.hall.handle(name) == "exit" then scene = "menu" ST.near_sel = nil end
+  if ST.scene == "hall" then
+    if ST.hall.handle(name) == "exit" then ST.scene = "menu" ST.near_sel = nil end
     return
   end
-  if launch_item then return end
+  if ST.launch_item then return end
   if name == "2p" then return end
   if secret(name) then
     -- (the code's presses moved the cards and maybe a setting: put back as they were)
@@ -1720,7 +1721,7 @@ local function handle(name)
     log("party mode")
     return
   end
-  local it = items[sel]
+  local it = items[ST.sel]
   if name == "up" then move(-1)
   elseif name == "down" then move(1)
   elseif name == "left" then jump_section(-1)
@@ -1747,18 +1748,18 @@ local function handle(name)
     play("toggle")
   elseif (name == "low" or name == "1p") and it.kind == "show" then
     -- Watch it now (AUTO: what the calendar picks).
-    attract_sel = sel
+    ST.attract_sel = ST.sel
     play("launch")
     play_show(show_mode == "auto" and shows.pick(os.time(), game_now, auto_rot) or show_mode)
   elseif (name == "low" or name == "1p") and it.kind == "showcard" then
-    attract_sel = sel
+    ST.attract_sel = ST.sel
     play("launch")
     open_tiles(it.show)
   elseif (name == "low" or name == "1p") and it.kind == "favhint" then
     -- The empty FAVORITES card: nothing to start (a launch here would have been the original menu).
     play("back")
   elseif (name == "low" or name == "1p") and it.kind == "hall" then
-    scene = "hall"
+    ST.scene = "hall"
     ST.near_shots(true)   -- (its rows show every board's title screen)
     ST.hall.enter()
     play("launch")
@@ -1770,12 +1771,12 @@ local function handle(name)
     end
   elseif (name == "low" or name == "1p") and it.kind == "tv" then
     -- The guide opens in Home itself: no program to start.
-    scene = "tv"
+    ST.scene = "tv"
     tv.enter()
     play("launch")
   elseif name == "low" or name == "1p" then
-    launch_item = it
-    launch_t = 0
+    ST.launch_item = it
+    ST.launch_t = 0
     play("launch")
   end
 end
@@ -1793,11 +1794,11 @@ local function shelf_setup()
                     if it.kind == "arcade" then
                       it.table = shelf.arcade_table(it.id)
                       out[#out + 1] = {title = it.title, tint = it.tint, item = it, rows = it.table,
-                                       launch = function() sel, pos = k, k scene = "menu" launch_item = it launch_t = 0 end}
+                                       launch = function() ST.sel, ST.pos = k, k ST.scene = "menu" ST.launch_item = it ST.launch_t = 0 end}
                     elseif it.kind == "classic" and it.score then
                       out[#out + 1] = {title = it.title, tint = it.tint, item = it, classic = true,
                                        rows = {{tonumber(it.score) or 0, "", false}},
-                                       launch = function() sel, pos = k, k scene = "menu" launch_item = it launch_t = 0 end}
+                                       launch = function() ST.sel, ST.pos = k, k ST.scene = "menu" ST.launch_item = it ST.launch_t = 0 end}
                     end
                   end
                   return out
@@ -1824,7 +1825,7 @@ local function shelf_setup()
           if t[1][2] == "" then
             -- The board asked for no initials: Home does (initials.lua), then celebrates.
             ST.initials.start(it, t[1][1])
-            scene = "initials"
+            ST.scene = "initials"
           else
             celebrate = {score = shelf.commas(t[1][1]), title = it.title .. "   ·   " .. t[1][2], tint = it.tint, t = 0}
           end
@@ -1849,7 +1850,7 @@ local function shelf_setup()
     -- Back from a game on the Shelf: the browser, on that game.
     local key, file, failed = shelf.returning()
     if key then
-      for k, it in ipairs(items) do if it.kind == "shelf" and (it.row == key or (key == "recent" and it.row)) then sel, pos = k, k break end end
+      for k, it in ipairs(items) do if it.kind == "shelf" and (it.row == key or (key == "recent" and it.row)) then ST.sel, ST.pos = k, k break end end
       ST.shelf_open(key, file, failed)
       returning = true
     end
@@ -1904,7 +1905,7 @@ function love.load()
   -- The labels in view now; the rest a few a frame, before the frame's drawing starts (see neon_img).
   ST.world_load(ST.world_want)
   ST.img(96)
-  if scene == "intro" or os.getenv("HOME_INTRO") == "1" then D.neon_img("ARCADE  ·  SHOWS  ·  TV", 34, ST.ACCENT, 0.8) end
+  if ST.scene == "intro" or os.getenv("HOME_INTRO") == "1" then D.neon_img("ARCADE  ·  SHOWS  ·  TV", 34, ST.ACCENT, 0.8) end
   manage_labels(false)
   D.label_jobs[#D.label_jobs + 1] = function() D.neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1) end
   D.label_jobs[#D.label_jobs + 1] = function() D.neon_img("NEW HIGH SCORE!", 44, 0xffd23f, 1) end
@@ -1914,7 +1915,7 @@ function love.load()
   mark("sounds")
   local returned = load_state()
   if returned and returned:match("failed") then
-    note, note_t = "That one didn't start. Pick another?", 4
+    ST.note, ST.note_t = "That one didn't start. Pick another?", 4
   end
   do
     local st = STATE and read_file(STATE) or ""
@@ -1927,7 +1928,7 @@ function love.load()
     end
   end
   if os.getenv("HOME_INTRO") ~= "1" and (os.getenv("HOME_SKIP_INTRO") == "1" or (STATE and read_file(STATE))) then
-    scene = "menu"       -- the intro is for power-on; coming back from a game goes straight to the menu
+    ST.scene = "menu"       -- the intro is for power-on; coming back from a game goes straight to the menu
     returning = STATE ~= nil and read_file(STATE) ~= nil and os.getenv("HOME_INTRO") ~= "1"
   else
     play("intro")
@@ -1950,12 +1951,12 @@ function love.load()
   do
     local rc, idx = tv.returning()
     if rc then
-      for k, it in ipairs(items) do if it.kind == "tv" then sel, pos = k, k end end
+      for k, it in ipairs(items) do if it.kind == "tv" then ST.sel, ST.pos = k, k end end
       if rc ~= 10 then
-        scene = "tv"
+        ST.scene = "tv"
         tv.enter(rc, idx)
       else
-        scene = "menu"
+        ST.scene = "menu"
       end
       returning = true
     end
@@ -2017,7 +2018,7 @@ function love.load()
   -- Back from a game: a soft welcome (the celebration has its own fanfare).
   if returning and not celebrate then play("back") end
   if headless or not direct then canvas = lg.newCanvas(W, H) end
-  log("home start, " .. #items .. " items, scene " .. scene)
+  log("home start, " .. #items .. " items, scene " .. ST.scene)
 end
 
 -- The worker waits for jobs: tell it to stop, so LÖVE's exit does not wait on it.
@@ -2033,12 +2034,12 @@ end
 local NIGHT_SONG = {dusk = "dusk", quiet = "quiet", rest = "none", dawn = "dawn"}
 local music_vol
 local function music_tick()
-  if scene == "intro" then return end
+  if ST.scene == "intro" then return end
   local want, vol, fade = "menu", 0.32, 1.2
-  if scene == "night" then
-    local sc = night.scene_at(night_t * NIGHT_SPEED)
+  if ST.scene == "night" then
+    local sc = night.scene_at(ST.night_t * NIGHT_SPEED)
     want, vol, fade = NIGHT_SONG[sc] or sc, 0.26, 3
-  elseif scene == "show" and cur_show then
+  elseif ST.scene == "show" and cur_show then
     -- (behind the curtain, before the show has started, it isn't asked: silence until it has)
     if curtain and curtain.phase == "cover" then return end
     want, vol, fade = cur_show.music(), 0.42, 2
@@ -2048,8 +2049,8 @@ local function music_tick()
       local act = cur_show.act and cur_show.act()
       if act ~= trace_seen.act then trace_seen.act = act trace("act", act) end
     end
-  elseif scene == "tv" or scene == "shelf" then want = "tv"
-  elseif scene == "attract" then want = "attract" end
+  elseif ST.scene == "tv" or ST.scene == "shelf" then want = "tv"
+  elseif ST.scene == "attract" then want = "attract" end
   -- (headless tests choose the song too, so a show that can't say which is caught on the PC, but play nothing)
   if headless then return end
   if vol ~= music_vol then music_vol = vol music.volume(vol, 1.5) end
@@ -2062,40 +2063,40 @@ local cards_t = 0
 local function update_idle(dt)
   cards_t = cards_t - dt
   if cards_t <= 0 then cards_t = 30 update_cards() end
-  if scene == "tv" then
-    idle = 0
-    if tv.update(dt) == "exit" then scene = "menu" end
+  if ST.scene == "tv" then
+    ST.idle = 0
+    if tv.update(dt) == "exit" then ST.scene = "menu" end
   end
-  if scene == "shelf" then
-    idle = 0
+  if ST.scene == "shelf" then
+    ST.idle = 0
     if shelf.update(dt) == "exit" then ST.shelf_close() end
   end
-  if scene == "initials" then
-    idle = 0
-    if ST.initials.update(dt) == "done" then scene = "menu" end
+  if ST.scene == "initials" then
+    ST.idle = 0
+    if ST.initials.update(dt) == "done" then ST.scene = "menu" end
   end
-  if scene == "hall" then
-    idle = 0
-    if ST.hall.update(dt) == "exit" then scene = "menu" ST.near_sel = nil end
+  if ST.scene == "hall" then
+    ST.idle = 0
+    if ST.hall.update(dt) == "exit" then ST.scene = "menu" ST.near_sel = nil end
   end
-  idle = idle + dt
-  if scene == "menu" and idle > IDLE_ATTRACT then scene = "attract" attract_t = 0 attract_sel = sel end
-  if scene == "attract" then
-    attract_t = attract_t + dt
-    if attract_t > 3.5 then attract_t = 0 sel = sel % #items + 1 end
-    if idle > IDLE_NIGHT then start_show() end
+  ST.idle = ST.idle + dt
+  if ST.scene == "menu" and ST.idle > IDLE_ATTRACT then ST.scene = "attract" ST.attract_t = 0 ST.attract_sel = ST.sel end
+  if ST.scene == "attract" then
+    ST.attract_t = ST.attract_t + dt
+    if ST.attract_t > 3.5 then ST.attract_t = 0 ST.sel = ST.sel % #items + 1 end
+    if ST.idle > IDLE_NIGHT then start_show() end
   end
-  if scene == "night" then
-    night_t = night_t + dt
-    auto_night_t = auto_night_t + dt
+  if ST.scene == "night" then
+    ST.night_t = ST.night_t + dt
+    ST.auto_night_t = ST.auto_night_t + dt
     -- AUTO: the night sky has had its half hour (or the Longhorns kick off): the calendar's show.
-    if show_mode == "auto" and not demo and (auto_night_t > AUTO_NIGHT_BLOCK or game_now.window) then
+    if show_mode == "auto" and not demo and (ST.auto_night_t > AUTO_NIGHT_BLOCK or game_now.window) then
       local id = shows.pick(os.time(), game_now, auto_rot)
-      if id ~= "night" then auto_rot = auto_rot + 1 play_show(id) else auto_night_t = 0 end
+      if id ~= "night" then auto_rot = auto_rot + 1 play_show(id) else ST.auto_night_t = 0 end
     end
   end
-  if scene == "show" and cur_show then
-    idle = 0
+  if ST.scene == "show" and cur_show then
+    ST.idle = 0
     if curtain_step(dt) and cur_show.update(dt) then
       if os.getenv("HOME_SHOW_ONCE") then love.event.quit(0) return end   -- (tools/show_lint.py)
       -- The show is over: its tiles again (watching one), the same show (one show only), or the night sky's
@@ -2106,9 +2107,9 @@ local function update_idle(dt)
       else play_show("night") end
     end
   end
-  if scene == "shows" then
+  if ST.scene == "shows" then
     shows.update(dt)
-    if idle > IDLE_NIGHT then shows.close() start_show() end
+    if ST.idle > IDLE_NIGHT then shows.close() start_show() end
   end
   music_tick()
 end
@@ -2129,7 +2130,7 @@ end
 function love.update(dt)
   if FIXED_DT then dt = FIXED_DT end
   -- a frame that took too long (a hitch you can see): logged with what was going on, the first 300 a run
-  if dt > 0.045 and frame > 10 and hitches < 300 then
+  if dt > 0.045 and ST.frame > 10 and hitches < 300 then
     hitches = hitches + 1
     local avail = ""
     if dt > 0.25 then
@@ -2138,7 +2139,7 @@ function love.update(dt)
       if mi then mi:close() end
       avail = ", available " .. (m:match("MemAvailable:%s*(%d+)") or "?") .. " kB"
     end
-    log(string.format("hitch %d ms, scene %s%s, music %s, lua %d KB%s%s", dt * 1000, scene,
+    log(string.format("hitch %d ms, scene %s%s, music %s, lua %d KB%s%s", dt * 1000, ST.scene,
                       cur_show and cur_show.act and (" " .. tostring(cur_show_id) .. ":" .. tostring(cur_show.act())) or "",
                       tostring(music.now), collectgarbage("count"), avail,
                       #ST.notes > 0 and (", did " .. table.concat(ST.notes, " ")) or ""))
@@ -2148,16 +2149,16 @@ function love.update(dt)
   if fps_n == FPS_EVERY then
     local st = lg.getStats()
     log(string.format("frames: %.1f fps (%.2f ms), scene %s, lua %d KB, textures %d KB (%d), draws %d", fps_n / fps_t,
-                      fps_t / fps_n * 1000, scene, collectgarbage("count"), st.texturememory / 1024, st.images + st.canvases,
+                      fps_t / fps_n * 1000, ST.scene, collectgarbage("count"), st.texturememory / 1024, st.images + st.canvases,
                       st.drawcalls))
     fps_t, fps_n = 0, 0
   end
   dt = math.min(dt, 0.1)
   t = t + dt
-  frame = frame + 1
-  if frame == 3 and not headless then music.start() end
+  ST.frame = ST.frame + 1
+  if ST.frame == 3 and not headless then music.start() end
   utgame.update(dt)
-  if frame % 60 == 0 then game_now = utgame.status() end
+  if ST.frame % 60 == 0 then game_now = utgame.status() end
   local merr = music.check()
   if merr then log("music: " .. merr) end
   if worker then
@@ -2192,7 +2193,7 @@ function love.update(dt)
     if err then log("worker: " .. err) worker = nil end
   end
   for _, c in ipairs(I.script) do
-    if c[1] == frame then
+    if c[1] == ST.frame then
       if c[2] == "press" then I.control_down(c[3]) I.control_up(c[3])
       elseif c[2] == "down" then I.control_down(c[3])
       elseif c[2] == "up" then I.control_up(c[3])
@@ -2203,24 +2204,24 @@ function love.update(dt)
   for _, n in ipairs(I.pressed_q) do handle(n) end
   I.pressed_q = {}
   if not menu_freed then manage_labels(false) end
-  if PREVIEW and I.down["1p"] and I.down["2p"] and not launch_item then
+  if PREVIEW and I.down["1p"] and I.down["2p"] and not ST.launch_item then
     I.hold_t = I.hold_t + dt
-    idle = 0
+    ST.idle = 0
     if I.hold_t >= I.HOLD_SECS then I.hold_t = 0 request("yard") end
   else
     I.hold_t = 0
   end
-  if scene == "intro" then
-    intro_t = intro_t + dt
-    if intro_t > 0.9 and not ST.stung then ST.stung = true music.sfx("sting", 0.9) end
-    local letters = math.floor(math.min(1, intro_t / 1.2) * 9 + 0.001)
+  if ST.scene == "intro" then
+    ST.intro_t = ST.intro_t + dt
+    if ST.intro_t > 0.9 and not ST.stung then ST.stung = true music.sfx("sting", 0.9) end
+    local letters = math.floor(math.min(1, ST.intro_t / 1.2) * 9 + 0.001)
     if letters > last_letters then last_letters = letters play("tick") end
-    if intro_t > INTRO_LEN then scene = "menu" menu_in = 0.45 end
+    if ST.intro_t > INTRO_LEN then ST.scene = "menu" ST.menu_in = 0.45 end
   end
   update_idle(dt)
-  fx.update(dt, scene == "menu" or scene == "attract" or scene == "night")
+  fx.update(dt, ST.scene == "menu" or ST.scene == "attract" or ST.scene == "night")
   if vol_t > 0 then vol_t = vol_t - dt end
-  if menu_in > 0 then menu_in = math.max(0, menu_in - dt) end
+  if ST.menu_in > 0 then ST.menu_in = math.max(0, ST.menu_in - dt) end
   if party > 0 then party = math.max(0, party - dt) end
   if celebrate then
     if celebrate.t == 0 then play("fanfare") confetti = nil end
@@ -2231,15 +2232,15 @@ function love.update(dt)
     vol_read = vol_read - dt
     if vol_read <= 0 then vol_read = nil read_volume() end
   end
-  pos = pos + (sel - pos) * math.min(1, dt * 11)
-  if scene ~= "hall" then ST.near_shots() end
-  if note then note_t = note_t - dt if note_t <= 0 then note = nil end end
-  if launch_item then
-    launch_t = launch_t + dt
-    if launch_t > 0.6 then
-      local it = launch_item
+  ST.pos = ST.pos + (ST.sel - ST.pos) * math.min(1, dt * 11)
+  if ST.scene ~= "hall" then ST.near_shots() end
+  if ST.note then ST.note_t = ST.note_t - dt if ST.note_t <= 0 then ST.note = nil end end
+  if ST.launch_item then
+    ST.launch_t = ST.launch_t + dt
+    if ST.launch_t > 0.6 then
+      local it = ST.launch_item
       local s = launch(it)
-      launch_item = nil
+      ST.launch_item = nil
       request(s, it)
     end
   end

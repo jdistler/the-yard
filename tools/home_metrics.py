@@ -25,6 +25,9 @@ def metrics(path=os.path.join(HOME, "main.lua")):
     if out.returncode != 0:
         raise SystemExit(out.stderr)
     protos = re.split(r"(?m)^-- BYTECODE -- ", out.stdout)[1:]
+    # Globals main.lua writes (GSET): LÖVE's callbacks and the few meant to be shared; anything else is a local
+    # that lost its declaration (a refactor slip: the code reads one variable and writes another).
+    gsets = sorted(set(re.findall(r'GSET\s+\d+\s+\d+\s+;\s+"(\w+)"', out.stdout)))
     fns = []
     for p in protos:
         head = p.split("\n", 1)[0].strip()
@@ -44,7 +47,7 @@ def metrics(path=os.path.join(HOME, "main.lua")):
         m = re.match(r"^local ([A-Za-z_][\w, ]*?)\s*(=|$)", line)
         if m:
             names += len([n for n in m.group(1).split(",") if n.strip()])
-    return {"lines": lines, "main_locals": names, "main_slots": main[0]["slots"] if main else 0,
+    return {"lines": lines, "main_locals": names, "globals": gsets, "main_slots": main[0]["slots"] if main else 0,
             "max_upvalues": max(f["upvalues"] for f in rest), "max_upvalues_fn": max(rest, key=lambda f: f["upvalues"])["fn"],
             "max_slots": max(f["slots"] for f in rest), "functions": len(fns)}
 
@@ -59,6 +62,7 @@ def main():
     print(f"  main chunk slots {m['main_slots']} / 250 (locals and temporaries)")
     print(f"  most upvalues    {m['max_upvalues']} / 60 ({m['max_upvalues_fn']})")
     print(f"  most slots       {m['max_slots']} / 250 (any other function)")
+    print(f"  globals written  {', '.join(m['globals']) or 'none'}")
     sys.exit(1 if m["main_locals"] > 190 or m["main_slots"] > 240 or m["max_upvalues"] > 56 else 0)
 
 

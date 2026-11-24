@@ -114,10 +114,18 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
       textures 12.2 MB, RSS 39 MB, no errors: identical to the CP1 baseline.
 
 **CP3. One context table.** The hub becomes `app`.
+- [x] Decision: the app table is `ST`, which already holds Starlight's shared state and is passed around; no
+      second shared-state table. `tools/home_lift.py NAME...` moves top-level locals into it (refuses shadowed
+      names, mixed declarations, existing fields; keeps table keys, comments, strings).
+- [x] A new gate: `home_metrics.py` lists the globals main.lua writes (LuaJIT `GSET`); the Home tests require only
+      `home_note`. Found its reason the first time: the first lift left `pos`, `launch_item`, `note_t` as
+      accidental globals in multi-target assignments (`ST.sel, pos = ...`), which the tour did not see because
+      the code happens to assign them before reading. Fixed, and the tool now tracks brackets across lines.
 - [ ] `app` created in main; the head's paths, flags and modules move into it (callers use `app.X`; hot loops keep
       aliases).
-- [ ] The state section moves into `app` one group at a time, a commit each: selection and scene; timers; labels;
-      art cache; volume; the curtain and show control; codes and party mode.
+- [ ] The state section moves into `app` one group at a time, a commit each:
+  - [x] selection and scene, scene timers, note, launch (15 names): locals 167 -> 153, upvalues 47 -> 44.
+  - [ ] labels; art cache; volume; the curtain and show control; codes and party mode; trace; canvas.
 - [ ] Milestone: G4, G5. Expected: top-level locals under 110, the loop's upvalues under 30.
 
 **CP4. The big consumers.**
