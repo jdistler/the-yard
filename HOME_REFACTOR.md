@@ -99,12 +99,12 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
       `captures/home_tour/cabinet_baseline.tsv`: startup 1.05 s cold / 0.82 s warm, menu 58 fps, attract 58 fps,
       textures 12.2 MB, RSS 39 MB, no errors. A repeat run is within 0.05 s and 0.8 fps (the gate's margins are
       0.3 s and 3 fps). The night scene comes only at night: not measured.
-- [x] Experiment, a call on the cabinet (LÖVE's LuaJIT, its JIT off, see below): local/upvalue function 302 ns,
-      module field `M.f` 356 ns (+18 %), nested `app.M.f` 390 ns (+29 %), an alias made before the loop 286 ns.
-      So rule 3: a module call costs ~0.05 us; alias only in loops of more than ~1,000 calls a frame (0.05 ms).
-- [x] Found on the way: **LuaJIT's JIT is off on the cabinet.** LÖVE's `jitsetup.lua` turns it off on ARM
-      (code-allocation range limits there can make compiling slow and unreliable). Turned on, the same call takes
-      9.3 ns (32 x faster). A separate experiment (SYSTEM_AUDIT.md G4), not part of this refactor.
+- [x] Experiment, a call on the cabinet, in a bare LÖVE program (its JIT off, as LÖVE leaves it on ARM):
+      local/upvalue function 302 ns, module field `M.f` 356 ns (+18 %), nested `app.M.f` 390 ns (+29 %), an
+      alias made before the loop 286 ns. With the JIT on (as Home and the games run: `sound.lua` and the GPU yard
+      turn it on) all four are ~9.3 ns and the same. So rule 3: in Home a module call costs nothing measurable when
+      its trace compiles, and at most ~0.05 us when it does not; alias only in loops of more than ~1,000 calls a
+      frame.
 
 **CP2. The leaves.** One commit each; G1-G3 each.
 - [ ] `draw.lua` from "colors and drawing" (11 names -> 1).
@@ -141,4 +141,5 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
 (Each checkpoint: date, commits, metrics before and after, gates passed, cabinet numbers.)
 
 * **CP0, 2026-11-24:** locals 192/200, slots 202/250, upvalues 54/60 (love.load). Tour 50 steps, golden saved.
-* **CP1, 2026-11-24:** cabinet baseline saved; call-cost experiment done (numbers above).
+* **CP1, 2026-11-24:** cabinet baseline saved; call-cost experiment done (numbers above). (A first reading that
+  the JIT was off in Home was wrong: it is on; only the bare benchmark had it off.)

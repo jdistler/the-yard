@@ -221,12 +221,8 @@ Ticked as each lands, with the commit.
 **G. Performance (P2)**
 - [x] G1. Garden: characters and flower poses kept as pictures on the GPU runtime: 37 -> 47 fps on the cabinet.
 - [x] G2. Band: the same: 42 -> 46 fps. (Shape draws per frame 885 -> 291 and 745 -> 190; images ~2.6 MB, flat.)
-- [ ] G4. **The JIT experiment.** LuaJIT's JIT is off on the cabinet (LÖVE's jitsetup.lua does it on ARM, because
-      ARM's code-allocation range can make compiling fail slowly); turned on, a Lua call is 32 x faster (302 -> 9.3
-      ns, measured 2026-11-24). Every game and Home run interpreted. Experiment: an opt-in switch per program,
-      then `tools/cab_bench.py` and `tools/home_bench.py` with it on: fps, hitches (a failed compile is a stall),
-      RSS (machine code pools); keep it on only where it measures better and steady.
-- [ ] G3. Home: move show and Shelf art loads off the main thread where a hitch shows in B2.
+- [x] G4. Checked: LuaJIT's JIT is on in Home (`sound.lua`) and in the GPU yard (since 2026-10-24, measured
+      3.4 x then); LÖVE turns it off on ARM, both turn it back on. No gain left there.
 
 **H. Home refactor (P2, in steps behind the Home tests)**
 - [ ] H1. Art cache out of `main.lua` into a module.
