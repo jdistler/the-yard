@@ -317,14 +317,12 @@ end
 
 -- ------------------------------------------------------------------ colors and drawing
 
-local function rgb(c, a)
-  return math.floor(c / 65536) % 256 / 255, math.floor(c / 256) % 256 / 255, c % 256 / 255, a or 1
-end
+-- rgb, fonts, neon labels, rrect: draw.lua (HOME_REFACTOR.md CP2)
+local D = require("draw")
+D.init(W)
 
-local fonts = {}
-local font_data
 -- Starlight's state, in one table (main.lua is at Lua's 200 locals): the script face, the world, the marquee
-local ST = {script_fonts = {}, face = "round", world_want = "base", L = require("showlib"), initials = require("initials"),
+local ST = {world_want = "base", L = require("showlib"), initials = require("initials"),
             hall = require("hall")}
 -- An arcade board's best score, and its line on the info panel ("23,310  JRN").
 function ST.arcade_best(it)
@@ -379,124 +377,21 @@ do
   for i = #favs, 1, -1 do table.insert(items, 1, favs[i]) end
 end
 
-local trace_font                            -- (HOME_TRACE: a new font made; set once the trace exists)
-local function font(px)
-  -- (whole pixels only: a size that changes smoothly, 22 + ph * 10, made a new font every frame, each with its
-  -- glyph texture, until the cabinet ran out of memory 14 minutes into Texas, 2026-11-06)
-  px = math.floor(px + 0.5)
-  if not fonts[px] then
-    if trace_font then trace_font(px) end
-    fonts[px] = font_data and lg.newFont(font_data, px) or lg.newFont(px)
-  end
-  return fonts[px]
-end
--- Starlight's wordmark face (Pacifico, OFL; a subset): the marquee and the brand's titles
-function ST.script_font(px)
-  px = math.floor(px + 0.5)
-  if not ST.script_fonts[px] then
-    ST.script_fonts[px] = ST.script_data and lg.newFont(ST.script_data, px) or font(px)
-  end
-  return ST.script_fonts[px]
-end
 
--- Text with a neon glow: soft additive copies around it, then the text.
-local function neon(s, x, y, px, c, glow, align, width)
-  local f = ST.face == "script" and ST.script_font(px) or font(px)
-  lg.setFont(f)
-  local r, g, b = rgb(c)
-  glow = glow or 1
-  -- (white on white glow read as blur on the cabinet: pale labels get a crisp dark edge and only a faint glow;
-  -- coloured ones keep their neon, tighter)
-  local pale = math.min(r, g, b) > 0.75
-  if pale then
-    lg.setColor(0, 0, 0, 0.55)
-    for k = 0, 7 do
-      local ang = k * math.pi / 4
-      lg.printf(s, x + math.floor(math.cos(ang) * 2 + 0.5), y + math.floor(math.sin(ang) * 2 + 0.5), width or W, align or "center")
-    end
-  end
-  if glow > 0 then
-    lg.setBlendMode("add")
-    for _, o in ipairs(pale and {{3, 0.04}} or {{2, 0.12}, {4, 0.06}}) do
-      local d, a = o[1], o[2] * glow
-      lg.setColor(r, g, b, a)
-      for k = 0, 7 do
-        local ang = k * math.pi / 4
-        lg.printf(s, x + math.floor(math.cos(ang) * d + 0.5), y + math.floor(math.sin(ang) * d + 0.5), width or W, align or "center")
-      end
-    end
-    lg.setBlendMode("alpha")
-  end
-  lg.setColor(r * 0.35 + 0.65, g * 0.35 + 0.65, b * 0.35 + 0.65, 1)   -- the hot white core of a neon tube
-  lg.printf(s, x, y, width or W, align or "center")
-end
 
-local function rrect(mode, x, y, w, h, r) lg.rectangle(mode, x, y, w, h, r, r, 16) end
 
--- Neon labels painted once into a picture (glow included): drawing one is a single quad. Live neon() was 17
--- prints a label, and Home ran at 48-55 fps on the cabinet (2026-10-27). All are painted in love.load, before
--- the first frame (a canvas switch mid-frame is costly on the Mali). Made with no scissor (see gfx.lua's
--- new_canvas: a clip carried onto a canvas left it unpainted).
-local neon_cache = {}
-local label_jobs = {}
-local function neon_img(s, px, c, glow)
-  px = math.floor(px + 0.5)                -- (whole pixels: one picture per text and size, not one a frame)
-  local key = s .. "|" .. px .. "|" .. c .. "|" .. (glow or 1) .. (ST.face == "script" and "|s" or "")
-  local now = love.timer.getTime()
-  local e = neon_cache[key]
-  if e then e.used = now return e end
-  -- At most 32 kept: the least recently used goes, but never one used in the last 0.1 s (this frame may still
-  -- draw it, and drawing a released canvas is an error that ends Home).
-  local n, old_k, old_t = 0, nil, math.huge
-  for k, v in pairs(neon_cache) do
-    n = n + 1
-    if (v.used or 0) < old_t then old_k, old_t = k, v.used or 0 end
-  end
-  if n >= 32 and old_k and now - old_t > 0.1 then
-    neon_cache[old_k].img:release()
-    neon_cache[old_k] = nil
-  end
-  local f = ST.face == "script" and ST.script_font(px) or font(px)
-  local pad = 10
-  local cw, ch = f:getWidth(s) + pad * 2, f:getHeight() + pad * 2
-  lg.push("all")
-  lg.setScissor()
-  local cv = lg.newCanvas(math.max(1, cw), math.max(1, ch))
-  lg.origin()
-  lg.setCanvas(cv)
-  lg.clear(0, 0, 0, 0)
-  neon(s, pad, pad, px, c, glow, "left", cw)
-  lg.pop()
-  cv:setFilter("linear", "linear")
-  e = {img = cv, w = cw, h = ch, pad = pad, used = now}
-  neon_cache[key] = e
-  return e
-end
--- Draw a painted label: like neon(s, x, y, ...) with align over width; sc scales it about its top left.
-local function neon_draw(s, x, y, px, c, glow, align, width, alpha, sc)
-  local e = neon_img(s, px, c, glow)
-  sc = sc or 1
-  local w = e.w * sc
-  local dx = align == "left" and 0 or align == "right" and (width - w + e.pad * sc * 2) or ((width or W) - w) / 2 + e.pad * sc
-  local a = alpha or 1
-  lg.setBlendMode("alpha", "premultiplied")
-  lg.setColor(a, a, a, a)
-  -- (on whole pixels: a label drawn at a half pixel is resampled, and soft)
-  lg.draw(e.img, math.floor(x + dx - e.pad * sc + 0.5), math.floor(y - e.pad * sc + 0.5), 0, sc, sc)
-  lg.setBlendMode("alpha")
-end
 
 -- The brand: STARLIGHT in its script neon (a painted label, like any other).
 ST.BRAND, ST.C, ST.ACCENT = "Starlight", 0xffd36b, 0x6ef0c8
 function ST.draw(x, y, px, alpha, sc, align, width)
-  ST.face = "script"
-  neon_draw(ST.BRAND, x or 0, y, px, ST.C, 1.5, align or "center", width or W, alpha, sc)
-  ST.face = "round"
+  D.face = "script"
+  D.neon_draw(ST.BRAND, x or 0, y, px, ST.C, 1.5, align or "center", width or W, alpha, sc)
+  D.face = "round"
 end
 function ST.img(px)
-  ST.face = "script"
-  local e = neon_img(ST.BRAND, px, ST.C, 1.5)
-  ST.face = "round"
+  D.face = "script"
+  local e = D.neon_img(ST.BRAND, px, ST.C, 1.5)
+  D.face = "round"
   return e
 end
 
@@ -504,54 +399,8 @@ local play = sound.play
 
 -- ------------------------------------------------------------------ input
 
--- The cabinet's deck through SDL (games/love/yard/input.lua has the same map), and keys on a PC. Buttons 20
--- and 21 are volume down and up: the kernel changes the volume itself (volctrl.sh); Home only shows it.
-local JOY = {[1] = "low", [2] = "tl", [4] = "tr", [7] = "1p", [8] = "2p", [16] = "up", [17] = "left", [18] = "right",
-             [19] = "down", [20] = "voldown", [21] = "volup"}
-local KEYS = {up = "up", down = "down", left = "left", right = "right", z = "low", x = "tl", c = "tr",
-              ["1"] = "1p", ["2"] = "2p", ["return"] = "low", space = "low", ["-"] = "voldown", ["="] = "volup"}
--- Holding 1-player + 2-player for a second leaves the preview (The Yard's convention, with its meter), so 1P
--- launches on release, and only when 2P was not pressed with it.
-local HOLD_SECS = 1
-local pressed_q, down, both_seen, hold_t = {}, {}, false, 0
-local function press(name) pressed_q[#pressed_q + 1] = name end
-local down_at = {}
-local function control_down(name)
-  down[name] = true
-  down_at[name] = love.timer.getTime()
-  if (name == "1p" and down["2p"]) or (name == "2p" and down["1p"]) then both_seen = true end
-  if name ~= "1p" and name ~= "2p" then press(name) end
-end
-local function control_up(name)
-  -- A 1-player tap starts the game: only a press Home saw begin, and short. (Leaving a classic is a 5 s
-  -- 1-player hold; let go after Home is back, and Home saw only the release: it started the game again,
-  -- filmed 2026-10-27.)
-  local seen = down[name] and down_at[name] and love.timer.getTime() - down_at[name] < 0.8
-  down[name] = nil
-  if name == "1p" and seen and not both_seen then press("1p") end
-  if name == "2p" and seen and not both_seen and not down["1p"] then press("2p") end
-  if not down["1p"] and not down["2p"] then both_seen = false end
-end
-function love.joystickpressed(_, b) if JOY[b] then control_down(JOY[b]) end end
-function love.joystickreleased(_, b) if JOY[b] then control_up(JOY[b]) end end
-function love.keypressed(k)
-  if k == "escape" then love.event.quit(0) end
-  if KEYS[k] then control_down(KEYS[k]) end
-end
-function love.keyreleased(k) if KEYS[k] then control_up(KEYS[k]) end end
-
--- HOME_SCRIPT (tests): lines "<frame> press NAME", "<frame> down NAME", "<frame> up NAME", "<frame> shot PATH",
--- "<frame> quit".
-local script = {}
-do
-  local s = os.getenv("HOME_SCRIPT") and read_file(os.getenv("HOME_SCRIPT"))
-  if s then
-    for line in s:gmatch("[^\n]+") do
-      local f, op, arg = line:match("^(%d+)%s+(%a+)%s*(.*)$")
-      if f then script[#script + 1] = {tonumber(f), op, arg} end
-    end
-  end
-end
+-- The deck, the keys, the 1P/2P rules, the press queue, HOME_SCRIPT: input.lua (HOME_REFACTOR.md CP2)
+local I = require("input")
 
 -- ------------------------------------------------------------------ state
 
@@ -664,12 +513,12 @@ local function curtain_draw()
     local sh = shows.BY_ID[cu.card]
     if sh then
       local k = math.min(1, (cu.held or 0) / 0.5) * a
-      fx.glow(W / 2, 470, 360, 220, rgb(sh.tint, 0.18 * k))
+      fx.glow(W / 2, 470, 360, 220, D.rgb(sh.tint, 0.18 * k))
       ST.draw(0, 250, 72, k)
-      neon_draw("NOW SHOWING", 0, 380, 30, ST.ACCENT, 0.8, "center", W, k)
-      local px = math.min(72, 64 * 620 / (font(64):getWidth(sh.title) + 20))
-      neon_draw(sh.title, 0, 440, 64, sh.tint, 1.2, "center", W, k, px / 64)
-      lg.setFont(font(26))
+      D.neon_draw("NOW SHOWING", 0, 380, 30, ST.ACCENT, 0.8, "center", W, k)
+      local px = math.min(72, 64 * 620 / (D.font(64):getWidth(sh.title) + 20))
+      D.neon_draw(sh.title, 0, 440, 64, sh.tint, 1.2, "center", W, k, px / 64)
+      lg.setFont(D.font(26))
       lg.setColor(0.93, 0.9, 1, 0.9 * k)
       lg.printf(sh.blurb, 80, 560, W - 160, "center")
     end
@@ -690,13 +539,13 @@ local last_played                 -- the card of the last game played (state fil
 -- pictures, and GPU memory is what this cabinet runs out of).
 local labels_for, labels_sel = {}, nil
 local function title_labels(it)
-  neon_img(it.title, 64, it.tint, 1.2)
-  neon_img(it.title, 44, it.tint, 0.9)
+  D.neon_img(it.title, 64, it.tint, 1.2)
+  D.neon_img(it.title, 44, it.tint, 0.9)
 end
 local function neon_release(s, px, c, glow)
-  local key = s .. "|" .. px .. "|" .. c .. "|" .. (glow or 1) .. (ST.face == "script" and "|s" or "")
-  local e = neon_cache[key]
-  if e then e.img:release() neon_cache[key] = nil end
+  local key = s .. "|" .. px .. "|" .. c .. "|" .. (glow or 1) .. (D.face == "script" and "|s" or "")
+  local e = D.neon_cache[key]
+  if e then e.img:release() D.neon_cache[key] = nil end
 end
 local function manage_labels(all_now)
   if labels_sel == sel then return end
@@ -706,7 +555,7 @@ local function manage_labels(all_now)
     if d <= 3 and not labels_for[k] then
       labels_for[k] = true
       if all_now or d <= 1 then title_labels(it)
-      else label_jobs[#label_jobs + 1] = function() if labels_for[k] then title_labels(it) end end end
+      else D.label_jobs[#D.label_jobs + 1] = function() if labels_for[k] then title_labels(it) end end end
     elseif d > 5 and labels_for[k] then
       labels_for[k] = nil
       neon_release(it.title, 64, it.tint, 1.2)
@@ -954,7 +803,7 @@ local function draw_marquee(alpha_k)
   local flick = 0.93 + 0.07 * math.sin(t * 0.8)
   if not ST.world then
     lg.setColor(0.04, 0.02, 0.08, 0.85 * a)
-    rrect("fill", 64, 14, 640, 152, 14)
+    D.rrect("fill", 64, 14, 640, 152, 14)
   end
   ST.draw_bulbs(a)
   fx.glow(W / 2, 92, 300, 70, 1, 0.75, 0.35, 0.16 * a)
@@ -965,13 +814,13 @@ local function draw_tabs(cur)
   -- (26 px: readable from the couch; on a dark pill so the sky's stars don't fight them)
   local px, gap = 26, 10
   local total = 0
-  for _, s in ipairs(SECTIONS) do total = total + font(px):getWidth(s.name) + 28 + gap end
+  for _, s in ipairs(SECTIONS) do total = total + D.font(px):getWidth(s.name) + 28 + gap end
   local x = math.floor((W - total + gap) / 2)
   if total - gap > W - 20 then
     -- Wider than the glass (eight sections since FAVORITES): slide so the chosen tab is in the middle.
     local cx = 0
     for i, s in ipairs(SECTIONS) do
-      local w = font(px):getWidth(s.name) + 28
+      local w = D.font(px):getWidth(s.name) + 28
       if i == cur then cx = cx + w / 2 break end
       cx = cx + w + gap
     end
@@ -980,18 +829,18 @@ local function draw_tabs(cur)
     x = math.floor(ST.tab_x)
   end
   lg.setColor(0.03, 0.02, 0.08, 0.6)
-  rrect("fill", x - 10, 182, total - gap + 20, 46, 23)
+  D.rrect("fill", x - 10, 182, total - gap + 20, 46, 23)
   for i, s in ipairs(SECTIONS) do
     local on = i == cur
-    lg.setFont(font(px))
-    local w = font(px):getWidth(s.name) + 28
-    local r, g, b = rgb(s.tint)
+    lg.setFont(D.font(px))
+    local w = D.font(px):getWidth(s.name) + 28
+    local r, g, b = D.rgb(s.tint)
     if on then
       lg.setColor(r, g, b, 0.28)
-      rrect("fill", x, 186, w, 38, 19)
+      D.rrect("fill", x, 186, w, 38, 19)
       lg.setColor(r, g, b, 1)
       lg.setLineWidth(2)
-      rrect("line", x, 186, w, 38, 19)
+      D.rrect("line", x, 186, w, 38, 19)
     end
     lg.setColor(r, g, b, on and 1 or 0.6)
     lg.print(s.name, x + 14, 190)
@@ -999,7 +848,7 @@ local function draw_tabs(cur)
   end
   -- Now and next: tonight's show, the Longhorns' next game (set by update_cards)
   if ST.now_line then
-    lg.setFont(font(20))
+    lg.setFont(D.font(20))
     lg.setColor(0, 0, 0, 0.5)
     lg.printf(ST.now_line, 2, 240, W, "center")
     lg.setColor(1, 0.86, 0.5, 0.95)
@@ -1011,7 +860,7 @@ end
 local function draw_card(it, cx, cy, cw, focus, alpha)
   local ch = cw * 0.58
   local x, y = cx - cw / 2, cy - ch / 2
-  local r, g, b = rgb(it.tint)
+  local r, g, b = D.rgb(it.tint)
   if focus > 0 then
     -- The glow and the pulsing frame of the chosen card.
     local p = 0.75 + 0.25 * math.sin(t * 4)
@@ -1019,12 +868,12 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
     for k = 1, 4 do
       lg.setColor(r, g, b, 0.07 * focus * p)
       lg.setLineWidth(6 + k * 7)
-      rrect("line", x - 6, y - 6, cw + 12, ch + 12, 26)
+      D.rrect("line", x - 6, y - 6, cw + 12, ch + 12, 26)
     end
     lg.setBlendMode("alpha")
   end
   lg.setColor(0.07, 0.03, 0.14, 0.9 * alpha)
-  rrect("fill", x, y, cw, ch, 22)
+  D.rrect("fill", x, y, cw, ch, 22)
   if it.art then
     -- A classic: its logo on a soft light of its own colour, gently breathing when chosen.
     local iw, ih = it.art:getDimensions()
@@ -1036,7 +885,7 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
   elseif it.kind == "classic" then
     -- No logo on this machine (a PC test): the name in neon.
     local px = math.floor(cw * (#it.title > 9 and 0.09 or 0.12))
-    neon_draw(it.title, x, cy - px * 0.62, 64, it.tint, 1.2, "center", cw, alpha, px / 64)
+    D.neon_draw(it.title, x, cy - px * 0.62, 64, it.tint, 1.2, "center", cw, alpha, px / 64)
   elseif it.kind == "arcade" then
     -- An arcade board: its title screen on the left, its leaderboard on the right (the board's own table).
     local aw = cw * 0.42
@@ -1057,26 +906,26 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
     local tbl = it.table
     if focus > 0.05 then fx.glow(tx + tw / 2, cy, tw * 0.55, ch * 0.4, r, g, b, 0.12 * focus * alpha) end
     if tbl and tbl[1][1] > 0 then
-      lg.setFont(font(math.floor(18 * sc)))
+      lg.setFont(D.font(math.floor(18 * sc)))
       lg.setColor(1, 0.85, 0.3, alpha)
       local house = tbl[1][3]
       lg.printf(house and "SCORE TO BEAT" or "HIGH SCORE", tx, y + 22 * sc, tw, "center")
-      lg.setFont(font(math.floor(46 * sc)))
+      lg.setFont(D.font(math.floor(46 * sc)))
       lg.setColor(1, 1, 1, alpha)
       lg.printf(shelf.commas(tbl[1][1]), tx, y + 46 * sc, tw, "center")
       if not tbl.nameless then
-        neon_draw(house and "THE HOUSE" or (tbl[1][2] ~= "" and tbl[1][2] or "---"), tx, y + 100 * sc, 64,
+        D.neon_draw(house and "THE HOUSE" or (tbl[1][2] ~= "" and tbl[1][2] or "---"), tx, y + 100 * sc, 64,
                   house and 0x8a86a8 or it.tint, house and 0.5 or 1.1, "center", tw, alpha, (house and 0.42 or 0.62) * sc)
       end
-      lg.setFont(font(math.floor(17 * sc)))
+      lg.setFont(D.font(math.floor(17 * sc)))
       for i = 2, math.min(3, #tbl) do
         lg.setColor(0.86, 0.84, 0.98, 0.85 * alpha)
         lg.printf(i .. ".  " .. (tbl.nameless and "" or ((tbl[i][2] ~= "" and tbl[i][2] or "---") .. "   ")) .. shelf.commas(tbl[i][1]), tx,
                   y + (170 + (i - 2) * 24) * sc, tw, "center")
       end
     else
-      local px = math.min(cw * 0.09, 64 * tw / (font(64):getWidth(it.title) + 20))
-      neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", tw, alpha, px / 64)
+      local px = math.min(cw * 0.09, 64 * tw / (D.font(64):getWidth(it.title) + 20))
+      D.neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", tw, alpha, px / 64)
     end
   elseif it.shot then
     -- A portrait frame of the game on the left, the name in neon on the right.
@@ -1090,8 +939,8 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
     local tx = x + 24 + iw * s
     local px = math.floor(cw * 0.12)
     if focus > 0.05 then fx.glow((tx + x + cw) / 2, cy, (x + cw - tx) * 0.5, ch * 0.35, r, g, b, 0.12 * focus * alpha) end
-    neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", x + cw - tx, alpha, px / 64)
-    lg.setFont(font(math.max(12, math.floor(cw * 0.034))))
+    D.neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", x + cw - tx, alpha, px / 64)
+    lg.setFont(D.font(math.max(12, math.floor(cw * 0.034))))
     lg.setColor(0.9, 0.88, 1, 0.85 * alpha * focus)   -- the chosen card only: the panel below repeats it
     lg.printf(it.blurb, tx + 8, cy + px * 0.55, x + cw - tx - 16, "center")
   elseif it.kind == "show" or it.kind == "showcard" then
@@ -1099,10 +948,10 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
     local sc = ch / 260
     shows.icon(it.kind == "showcard" and it.show or show_mode, x + 40 * sc, cy, sc, alpha, t)
     local tx = x + 230 * sc
-    local px = math.min(cw * 0.1, 64 * (x + cw - tx - 24) / (font(64):getWidth(it.title) + 20))
-    neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", x + cw - tx, alpha, px / 64)
+    local px = math.min(cw * 0.1, 64 * (x + cw - tx - 24) / (D.font(64):getWidth(it.title) + 20))
+    D.neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", x + cw - tx, alpha, px / 64)
     if it.kind == "show" then
-      lg.setFont(font(math.max(12, math.floor(cw * 0.036))))
+      lg.setFont(D.font(math.max(12, math.floor(cw * 0.036))))
       lg.setColor(1, 0.85, 0.3, alpha)
       lg.printf(SHOW_NAMES[show_mode], tx, cy + px * 0.5, x + cw - tx, "center")
     end
@@ -1124,25 +973,25 @@ local function draw_card(it, cx, cy, cw, focus, alpha)
     lg.circle("fill", wx + math.sin(t * 2) * wr * 0.3, cy + math.cos(t * 1.3) * wr * 0.3, 5, 12)
     local tx = x + ch * 1.05
     local px = math.floor(cw * 0.12)
-    neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", x + cw - tx, alpha, px / 64)
-    lg.setFont(font(math.max(12, math.floor(cw * 0.034))))
+    D.neon_draw(it.title, tx, cy - px * 0.75, 64, it.tint, 1.2, "center", x + cw - tx, alpha, px / 64)
+    lg.setFont(D.font(math.max(12, math.floor(cw * 0.034))))
     lg.setColor(0.9, 0.88, 1, 0.85 * alpha * focus)
     lg.printf(it.blurb, tx + 8, cy + px * 0.55, x + cw - tx - 16, "center")
   else
     lg.setColor(1, 1, 1, alpha)
     local px = math.floor(cw * (#it.title > 9 and 0.11 or 0.15))
     if focus > 0.05 then fx.glow(cx, cy, cw * 0.42, ch * 0.3, r, g, b, 0.12 * focus * alpha) end
-    neon_draw(it.title, x, cy - px * 0.62, 64, it.tint, 1.2, "center", cw, alpha, px / 64)
+    D.neon_draw(it.title, x, cy - px * 0.62, 64, it.tint, 1.2, "center", cw, alpha, px / 64)
   end
   lg.setColor(r, g, b, (0.35 + 0.65 * focus) * alpha)
   lg.setLineWidth(focus > 0 and 3 or 2)
-  rrect("line", x, y, cw, ch, 22)
+  D.rrect("line", x, y, cw, ch, 22)
   if it == last_played and focus > 0.3 then
     -- The game played last: a little tab on the card's top edge.
-    lg.setFont(font(16))
-    local tw = font(16):getWidth("LAST PLAYED") + 22
+    lg.setFont(D.font(16))
+    local tw = D.font(16):getWidth("LAST PLAYED") + 22
     lg.setColor(r, g, b, alpha)
-    rrect("fill", cx - tw / 2, y - 13, tw, 26, 13)
+    D.rrect("fill", cx - tw / 2, y - 13, tw, 26, 13)
     lg.setColor(0.06, 0.02, 0.12, alpha)
     lg.printf("LAST PLAYED", cx - tw / 2, y - 9, tw, "center")
   end
@@ -1177,21 +1026,21 @@ local function draw_info()
   local it = items[sel]
   local y = 800
   lg.setColor(0.04, 0.0, 0.10, 0.84)
-  rrect("fill", 40, y, W - 80, 196, 24)
-  lg.setColor(rgb(it.tint, 0.8))
+  D.rrect("fill", 40, y, W - 80, 196, 24)
+  lg.setColor(D.rgb(it.tint, 0.8))
   lg.setLineWidth(2)
-  rrect("line", 40, y, W - 80, 196, 24)
-  neon_draw(it.title, 60, y + 14, 44, it.tint, 0.9, "left", W - 120)
-  lg.setFont(font(22))
+  D.rrect("line", 40, y, W - 80, 196, 24)
+  D.neon_draw(it.title, 60, y + 14, 44, it.tint, 0.9, "left", W - 120)
+  lg.setFont(D.font(22))
   lg.setColor(0.8, 0.76, 0.98, 1)
   lg.printf(it.sub, 60, y + 70, W - 120, "left")
   if it.score or it.stat then
-    lg.setFont(font(22))
+    lg.setFont(D.font(22))
     lg.setColor(1, 0.85, 0.3, 1)
     local house = type(it.score) == "string" and it.score:find("HOUSE")
     lg.printf(it.score and ((house and "TO BEAT  " or "HIGH SCORE  ") .. it.score) or it.stat, 60, y + 22, W - 120, "right")
   end
-  lg.setFont(font(26))
+  lg.setFont(D.font(26))
   lg.setColor(0.97, 0.95, 1, 1)
   lg.printf(it.blurb, 60, y + 100, W - 120, "left")
   if it.kind == "classic" then
@@ -1199,24 +1048,24 @@ local function draw_info()
     local chips = {{"SPEED", speed[i] == 1 and "FAST" or "NORMAL"}, {"SMOOTH", smooth[i] == 1 and "ON" or "OFF"}}
     local x = 60
     for _, c in ipairs(chips) do
-      lg.setFont(font(21))
+      lg.setFont(D.font(21))
       local s = c[1] .. "  " .. c[2]
-      local w = font(21):getWidth(s) + 26
+      local w = D.font(21):getWidth(s) + 26
       lg.setColor(1, 0.85, 0.3, 0.18)
-      rrect("fill", x, y + 146, w, 32, 16)
+      D.rrect("fill", x, y + 146, w, 32, 16)
       lg.setColor(1, 0.85, 0.3, 1)
-      rrect("line", x, y + 146, w, 32, 16)
+      D.rrect("line", x, y + 146, w, 32, 16)
       lg.print(s, x + 13, y + 151)
       x = x + w + 14
     end
     lg.setColor(0.78, 0.74, 0.95, 0.95)
-    lg.setFont(font(19))
+    lg.setFont(D.font(19))
     lg.print("top buttons change", x + 4, y + 153)
   end
 end
 
 local function draw_hint(s, y, alpha)
-  lg.setFont(font(21))
+  lg.setFont(D.font(21))
   lg.setColor(0.85, 0.8, 1, alpha or 0.9)
   lg.printf(s, 0, y, W, "center")
 end
@@ -1240,7 +1089,7 @@ local function draw_celebration()
   local c = celebrate
   if not confetti then
     confetti = {}
-    local cols = {{rgb(c.tint)}, {1, 0.31, 0.85}, {0.43, 0.94, 0.78}, {1, 0.82, 0.25}, {0.55, 0.7, 1}}
+    local cols = {{D.rgb(c.tint)}, {1, 0.31, 0.85}, {0.43, 0.94, 0.78}, {1, 0.82, 0.25}, {0.55, 0.7, 1}}
     for i = 1, 140 do
       confetti[i] = {x = math.random() * W, y = -40 - math.random() * 900, vy = 260 + math.random() * 260,
                      sway = math.random() * 6, ph = math.random() * 6, w = 6 + math.random() * 8,
@@ -1249,22 +1098,22 @@ local function draw_celebration()
   end
   local fade = math.min(1, c.t * 4, (5 - c.t) * 2)
   local pop = 1 + 0.15 * math.max(0, 1 - c.t * 3)
-  local r, g, b = rgb(c.tint)
+  local r, g, b = D.rgb(c.tint)
   -- The banner, over the chosen card.
   local by, bh = 395, 220
   fx.glow(W / 2, by + bh / 2, 380, 170, r, g, b, 0.35 * fade)
   lg.setColor(0.04, 0.0, 0.10, fade)
-  rrect("fill", 44, by, W - 88, bh, 28)
+  D.rrect("fill", 44, by, W - 88, bh, 28)
   lg.setColor(r, g, b, fade)
   lg.setLineWidth(4)
-  rrect("line", 44, by, W - 88, bh, 28)
+  D.rrect("line", 44, by, W - 88, bh, 28)
   if not c.big then
-    neon_draw("NEW HIGH SCORE!", 0, by + 22, 44, 0xffd23f, 1, "center", W, fade * (0.9 + 0.1 * math.sin(c.t * 2.5)), 1)
+    D.neon_draw("NEW HIGH SCORE!", 0, by + 22, 44, 0xffd23f, 1, "center", W, fade * (0.9 + 0.1 * math.sin(c.t * 2.5)), 1)
   end
-  lg.setFont(font(math.floor((c.big and 64 or 72) * pop)))
+  lg.setFont(D.font(math.floor((c.big and 64 or 72) * pop)))
   if c.big then lg.setColor(hue(c.t * 0.8, fade)) else lg.setColor(1, 1, 1, fade) end
   lg.printf(tostring(c.score), 0, by + (c.big and 50 or 80) - 36 * (pop - 1), W, "center")
-  lg.setFont(font(24))
+  lg.setFont(D.font(24))
   lg.setColor(0.85, 0.8, 1, fade)
   lg.printf(c.title, 0, by + 172, W, "center")
   -- Confetti, over everything.
@@ -1286,27 +1135,27 @@ local function draw_note()
   if not note then return end
   local a = math.min(1, note_t)
   lg.setColor(0.25, 0.02, 0.12, 0.92 * a)
-  rrect("fill", 70, 240, W - 140, 60, 20)
+  D.rrect("fill", 70, 240, W - 140, 60, 20)
   lg.setColor(1, 0.5, 0.6, a)
-  rrect("line", 70, 240, W - 140, 60, 20)
-  lg.setFont(font(22))
+  D.rrect("line", 70, 240, W - 140, 60, 20)
+  lg.setFont(D.font(22))
   lg.printf(note, 70, 256, W - 140, "center")
 end
 
 -- The hold meter, as The Yard draws it: a panel in the middle, a bar filling over the hold.
 local function draw_hold()
-  if hold_t <= 0 then return end
-  local k = math.min(1, hold_t / HOLD_SECS)
+  if I.hold_t <= 0 then return end
+  local k = math.min(1, I.hold_t / I.HOLD_SECS)
   local bw, bh = W * 3 / 4, 110
   local bx, by = (W - bw) / 2, H / 2 - bh / 2
   lg.setColor(8 / 255, 6 / 255, 16 / 255, 0.9)
-  rrect("fill", bx - 6, by - 6, bw + 12, bh + 12, 24)
+  D.rrect("fill", bx - 6, by - 6, bw + 12, bh + 12, 24)
   lg.setColor(40 / 255, 34 / 255, 64 / 255, 0.95)
-  rrect("fill", bx, by, bw, bh, 20)
+  D.rrect("fill", bx, by, bw, bh, 20)
   lg.setColor(1, 200 / 255, 90 / 255)
-  rrect("fill", bx + 10, by + bh - 34, (bw - 20) * k, 24, 10)
+  D.rrect("fill", bx + 10, by + bh - 34, (bw - 20) * k, 24, 10)
   lg.setColor(1, 246 / 255, 234 / 255)
-  lg.setFont(font(40))
+  lg.setFont(D.font(40))
   lg.printf("back to The Yard...", bx, by + 12, bw, "center")
 end
 
@@ -1317,18 +1166,18 @@ local function draw_volume()
   local bw, bh = 520, 70
   local bx, by = (W - bw) / 2, 226
   lg.setColor(0.04, 0.0, 0.1, 0.9 * a)
-  rrect("fill", bx, by, bw, bh, 20)
+  D.rrect("fill", bx, by, bw, bh, 20)
   lg.setColor(0.43, 0.94, 0.78, a)
   lg.setLineWidth(2)
-  rrect("line", bx, by, bw, bh, 20)
-  lg.setFont(font(22))
+  D.rrect("line", bx, by, bw, bh, 20)
+  lg.setFont(D.font(22))
   lg.print(vol_level == 0 and "MUTED" or "VOLUME", bx + 20, by + 22)
   for i = 1, 15 do
     local on = i <= vol_level
     local h = 14 + i * 2
     local x = bx + 150 + (i - 1) * 23
     lg.setColor(0.43, 0.94, 0.78, (on and 1 or 0.18) * a)
-    rrect("fill", x, by + bh / 2 + 22 - h, 14, h, 4)
+    D.rrect("fill", x, by + bh / 2 + 22 - h, 14, h, 4)
   end
 end
 
@@ -1345,7 +1194,7 @@ local function draw_night()
   for i = 0, 2 do
     local k = ((night_t * 0.3) + i / 3) % 1
     local zx, zy = W / 2 + 260 + k * 60 + math.sin(k * 6) * 10, 120 - k * 110
-    lg.setFont(font(math.floor(30 + k * 26)))
+    lg.setFont(D.font(math.floor(30 + k * 26)))
     lg.setColor(0.43, 0.94, 0.78, math.sin(k * math.pi) * 0.85 * rest)
     lg.print("z", zx, zy)
   end
@@ -1355,9 +1204,9 @@ end
 -- The sign, unlit: the board dark, its bulbs out, the tubes faintly there (the power-on picture).
 local function draw_unlit_sign(a)
   ST.draw_bulbs(a or 1, 0)
-  ST.face = "script"
-  lg.setFont(ST.script_font(96))
-  ST.face = "round"
+  D.face = "script"
+  lg.setFont(D.script_font(96))
+  D.face = "round"
   lg.setColor(0.28, 0.2, 0.12, a or 1)
   lg.printf(ST.BRAND, 0, 24 + 10, W, "center")
 end
@@ -1392,7 +1241,7 @@ local function draw_intro()
   end
   if intro_t > 1.9 then
     local a = math.min(1, (intro_t - 1.9) / 0.5)
-    neon_draw("ARCADE  ·  SHOWS  ·  TV", 0, 470, 34, ST.ACCENT, 0.8, "center", W, a)
+    D.neon_draw("ARCADE  ·  SHOWS  ·  TV", 0, 470, 34, ST.ACCENT, 0.8, "center", W, a)
   end
 end
 
@@ -1447,7 +1296,7 @@ local function draw_scene()
   if scene == "attract" then
     lg.setColor(0, 0, 0, 0.25)
     lg.rectangle("fill", 0, 780, W, H - 780)
-    neon_draw("PRESS ANY BUTTON", 0, 860, 44, 0xffd23f, 1, "center", W, 0.6 + 0.4 * math.sin(t * 4))
+    D.neon_draw("PRESS ANY BUTTON", 0, 860, 44, 0xffd23f, 1, "center", W, 0.6 + 0.4 * math.sin(t * 4))
     local it = items[sel]
     if it.score then
       draw_hint("HIGH SCORE  " .. it.score .. "  —  can you beat it?", 930, 0.9)
@@ -1469,7 +1318,7 @@ local function draw_scene()
   draw_note()
   draw_hold()
   if launch_item then
-    local r, g, b = rgb(launch_item.tint)
+    local r, g, b = D.rgb(launch_item.tint)
     local k = math.max(0, math.min(1, (launch_t - 0.25) / 0.3))
     lg.setColor(r * 0.16, g * 0.08, b * 0.2, k)        -- into a dark glow of the game's colour
     lg.rectangle("fill", 0, 0, W, H)
@@ -1490,7 +1339,7 @@ local function picture_launch(it)
   if it.kind == "arcade" then return shelf.picture_arcade(it.game, it.shot, it.tint) end
   if it.kind == "game" then return shelf.picture_game(it.game, it.shot, it.tint) end
   backdrop()
-  local r, g, b = rgb(it.tint)
+  local r, g, b = D.rgb(it.tint)
   fx.glow(W / 2, 430, 420, 240, r, g, b, 0.35)
   if it.art then
     local iw, ih = it.art:getDimensions()
@@ -1498,31 +1347,31 @@ local function picture_launch(it)
     lg.setColor(1, 1, 1, 1)
     lg.draw(it.art, W / 2, 430, 0, s, s, iw / 2, ih / 2)
   elseif it.shot then
-    neon_draw(it.title, 0, 214, 54, it.tint, 1.2, "center", W, 1, 1.2)
+    D.neon_draw(it.title, 0, 214, 54, it.tint, 1.2, "center", W, 1, 1.2)
     local iw, ih = it.shot:getDimensions()
     local s = math.min(270 / iw, 290 / ih)
     local dw, dh = iw * s, ih * s
     local dx, dy = math.floor((W - dw) / 2), math.floor(445 - dh / 2)
     lg.setColor(0.05, 0.02, 0.12, 0.92)
-    rrect("fill", dx - 10, dy - 10, dw + 20, dh + 20, 18)
+    D.rrect("fill", dx - 10, dy - 10, dw + 20, dh + 20, 18)
     lg.setColor(1, 1, 1, 1)
     lg.draw(it.shot, dx, dy, 0, s, s)
     lg.setColor(r, g, b, 0.95)
     lg.setLineWidth(3)
-    rrect("line", dx - 10, dy - 10, dw + 20, dh + 20, 18)
+    D.rrect("line", dx - 10, dy - 10, dw + 20, dh + 20, 18)
   else
-    neon_draw(it.title, 0, 380, 64, it.tint, 1.2, "center", W, 1, #it.title > 9 and 1.1 or 1.5)
+    D.neon_draw(it.title, 0, 380, 64, it.tint, 1.2, "center", W, 1, #it.title > 9 and 1.1 or 1.5)
   end
-  neon_draw("GET READY!", 0, 628, 44, 0xffd23f, 1, "center", W)
+  D.neon_draw("GET READY!", 0, 628, 44, 0xffd23f, 1, "center", W)
   local leave = LEAVE[it.kind]
   if leave then
     lg.setColor(0.04, 0.0, 0.10, 0.85)
-    rrect("fill", 60, 800, W - 120, 130, 24)
+    D.rrect("fill", 60, 800, W - 120, 130, 24)
     lg.setColor(r, g, b, 0.9)
     lg.setLineWidth(2)
-    rrect("line", 60, 800, W - 120, 130, 24)
-    neon_draw(leave[1], 0, 822, 34, it.tint, 0.8, "center", W)
-    lg.setFont(font(24))
+    D.rrect("line", 60, 800, W - 120, 130, 24)
+    D.neon_draw(leave[1], 0, 822, 34, it.tint, 0.8, "center", W)
+    lg.setFont(D.font(24))
     lg.setColor(0.9, 0.88, 1, 1)
     lg.printf(leave[2], 60, 880, W - 120, "center")
   end
@@ -1531,15 +1380,15 @@ end
 -- "Welcome back": clean, section-neutral card over the sky & marquee (never looks like a frozen empty menu).
 local function picture_back()
   backdrop()
-  local r, g, b = rgb(ST.ACCENT)
+  local r, g, b = D.rgb(ST.ACCENT)
   fx.glow(W / 2, 490, 380, 180, r, g, b, 0.25)
   lg.setColor(0.05, 0.02, 0.12, 0.88)
-  rrect("fill", 124, 424, W - 248, 132, 24)
+  D.rrect("fill", 124, 424, W - 248, 132, 24)
   lg.setColor(r, g, b, 0.9)
   lg.setLineWidth(2.5)
-  rrect("line", 124, 424, W - 248, 132, 24)
-  neon_draw("WELCOME BACK", 0, 444, 40, ST.C, 1.0, "center", W)
-  lg.setFont(font(24))
+  D.rrect("line", 124, 424, W - 248, 132, 24)
+  D.neon_draw("WELCOME BACK", 0, 444, 40, ST.C, 1.0, "center", W)
+  lg.setFont(D.font(24))
   lg.setColor(0.92, 0.90, 1, 0.9)
   lg.printf("Returning to Starlight...", 124, 504, W - 248, "center")
 end
@@ -1549,17 +1398,17 @@ local function picture_boot()
   draw_background(0.22)
   ST.draw_bulbs(1, 1)
   ST.draw(0, 24, 96, 1)
-  local r, g, b = rgb(ST.C)
-  local ar, ag, ab = rgb(ST.ACCENT)
+  local r, g, b = D.rgb(ST.C)
+  local ar, ag, ab = D.rgb(ST.ACCENT)
   fx.glow(W / 2, 445, 440, 240, r, g, b, 0.28)
   fx.glow(W / 2, 575, 340, 120, ar, ag, ab, 0.22)
   -- (the sign above is the brand: Starlight, the name the family chose; no second name under it)
   lg.setColor(0.05, 0.02, 0.12, 0.88)
-  rrect("fill", 194, 550, W - 388, 66, 20)
+  D.rrect("fill", 194, 550, W - 388, 66, 20)
   lg.setColor(ar, ag, ab, 0.9)
   lg.setLineWidth(2)
-  rrect("line", 194, 550, W - 388, 66, 20)
-  lg.setFont(font(26))
+  D.rrect("line", 194, 550, W - 388, 66, 20)
+  lg.setFont(D.font(26))
   lg.setColor(1, 0.95, 0.84, 0.95)
   lg.printf("STARTING UP...", 194, 568, W - 388, "center")
 end
@@ -1695,9 +1544,9 @@ local function free_menu_pictures()
     if it.shot then it.shot:release() it.shot = nil end
     it.asked = nil
   end
-  for k, e in pairs(neon_cache) do e.img:release() neon_cache[k] = nil end
+  for k, e in pairs(D.neon_cache) do e.img:release() D.neon_cache[k] = nil end
   if ST.world then ST.world:release() ST.world = nil ST.world_name = nil end
-  for i = #label_jobs, 1, -1 do label_jobs[i] = nil end
+  for i = #D.label_jobs, 1, -1 do D.label_jobs[i] = nil end
   labels_for, labels_sel, ST.near_sel = {}, nil, nil
   collectgarbage()
 end
@@ -1709,7 +1558,7 @@ local function stop_show()
   night.set_only(nil)
   -- the show's painted labels go with it (in AUTO, show follows show with no menu between: they piled up)
   if menu_freed then
-    for k, e in pairs(neon_cache) do e.img:release() neon_cache[k] = nil end
+    for k, e in pairs(D.neon_cache) do e.img:release() D.neon_cache[k] = nil end
   end
 end
 -- Arcade and FAVORITES pictures follow the chosen card: asked for within 3, released beyond 5.
@@ -1743,7 +1592,7 @@ local function restore_menu_pictures()
   stop_show()
   if not menu_freed then return end
   menu_freed = false
-  for k, e in pairs(neon_cache) do e.img:release() neon_cache[k] = nil end
+  for k, e in pairs(D.neon_cache) do e.img:release() D.neon_cache[k] = nil end
   -- Reclaim show/night textures before allocating menu art so Mali doesn't peak over 118 MB on wakeup.
   collectgarbage()
   load_art()
@@ -1751,7 +1600,7 @@ local function restore_menu_pictures()
   ST.img(96)
   labels_for, labels_sel = {}, nil
   manage_labels(false)
-  label_jobs[#label_jobs + 1] = function() neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1) end
+  D.label_jobs[#D.label_jobs + 1] = function() D.neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1) end
   lg.setCanvas()
 end
 
@@ -2032,8 +1881,8 @@ end
 -- The TV guide's and the Shelf's drawing helpers, and coming back from one of their programs. (Out of
 -- love.load: LuaJIT allows a function 60 upvalues.)
 local function shelf_setup()
-  ST.hall.load({W = W, H = H, font = font, neon_draw = neon_draw, rgb = rgb, rrect = rrect, fx = fx, play = play,
-                down = down, commas = shelf.commas,
+  ST.hall.load({W = W, H = H, font = D.font, neon_draw = D.neon_draw, rgb = D.rgb, rrect = D.rrect, fx = fx, play = play,
+                down = I.down, commas = shelf.commas,
                 entries = function()
                   local out = {}
                   for k, it in ipairs(items) do
@@ -2049,8 +1898,8 @@ local function shelf_setup()
                   end
                   return out
                 end})
-  ST.initials.load({W = W, H = H, font = font, neon_draw = neon_draw, rgb = rgb, rrect = rrect, fx = fx, play = play,
-                    down = down, commas = shelf.commas,
+  ST.initials.load({W = W, H = H, font = D.font, neon_draw = D.neon_draw, rgb = D.rgb, rrect = D.rrect, fx = fx, play = play,
+                    down = I.down, commas = shelf.commas,
                     done = function(it, score, initials)
                       shelf.save_name(it.id, score, initials)
                       it.table = shelf.arcade_table(it.id)
@@ -2080,16 +1929,16 @@ local function shelf_setup()
     end
   end
   -- Live TV: the guide's lists, and coming back from a channel (tvloop wrote how it ended).
-  tv.load({W = W, H = H, font = font, neon_draw = neon_draw, rgb = rgb, rrect = rrect, fx = fx, play = play,
-           log = log, down = down, backdrop = backdrop,
+  tv.load({W = W, H = H, font = D.font, neon_draw = D.neon_draw, rgb = D.rgb, rrect = D.rrect, fx = fx, play = play,
+           log = log, down = I.down, backdrop = backdrop,
            request = function(s, picture) request(s, nil, picture) end,
            save_picture = function(path, picture)
              if headless and not os.getenv("HOME_FB") then return end
              local ok, bytes = pcall(splash.render, picture)
              if ok then splash.save(bytes, path, true) end
            end})
-  shelf.load({W = W, H = H, font = font, neon_draw = neon_draw, rgb = rgb, rrect = rrect, fx = fx, play = play,
-              log = log, down = down, backdrop = backdrop,
+  shelf.load({W = W, H = H, font = D.font, neon_draw = D.neon_draw, rgb = D.rgb, rrect = D.rrect, fx = fx, play = play,
+              log = log, down = I.down, backdrop = backdrop,
               request_art = worker and function(key, path) love.thread.getChannel("home_work"):push({"art", key, path}) end,
               request = function(s, picture, key) request(s, nil, picture, key) end})
   do
@@ -2107,23 +1956,23 @@ function love.load()
   mark("love.load")
   love.mouse.setVisible(false)
   local fd = love.filesystem.getInfo("fonts/Fredoka-SemiBold.ttf") and love.filesystem.newFileData("fonts/Fredoka-SemiBold.ttf")
-  font_data = fd
-  ST.script_data = love.filesystem.getInfo("fonts/Pacifico-Starlight.ttf") and love.filesystem.newFileData("fonts/Pacifico-Starlight.ttf")
+  D.font_data = fd
+  D.script_data = love.filesystem.getInfo("fonts/Pacifico-Starlight.ttf") and love.filesystem.newFileData("fonts/Pacifico-Starlight.ttf")
   math.randomseed(RENDER and 1 or tonumber(os.getenv("HOME_SEED") or "") or os.time())   -- (RENDER: the PC-rendered picture is the same every build)
   for i = 1, 90 do
     stars[i] = {math.random() * W, math.random() * 700, math.random() * 6, 0.5 + math.random() * 2,
                 0.4 + math.random() * 0.6, math.random() < 0.15 and 3 or 2}
   end
   fx.load()
-  night.load({W = W, H = H, HORIZON = HORIZON, font = font, neon_draw = neon_draw, fx = fx, log = log})
+  night.load({W = W, H = H, HORIZON = HORIZON, font = D.font, neon_draw = D.neon_draw, fx = fx, log = log})
   music.log = log
   if not RENDER then utgame.start(log) end
-  local show_ctx = {W = W, H = H, font = font, neon_draw = neon_draw, neon_img = neon_img, neon_release = neon_release,
+  local show_ctx = {W = W, H = H, font = D.font, neon_draw = D.neon_draw, neon_img = D.neon_img, neon_release = neon_release,
                     brand_draw = function(y, px, a) ST.draw(0, y, px, a) end,
                     fx = fx, sfx = music.sfx,
-                    log = log, rgb = rgb}
+                    log = log, rgb = D.rgb}
   if TRACE then
-    trace_font = function(px) trace("font", px) end
+    D.trace_font = function(px) trace("font", px) end
     show_ctx.trace = trace
     show_ctx.sfx = function(name, gain) trace("sfx", name) music.sfx(name, gain) end
   end
@@ -2151,10 +2000,10 @@ function love.load()
   -- The labels in view now; the rest a few a frame, before the frame's drawing starts (see neon_img).
   ST.world_load(ST.world_want)
   ST.img(96)
-  if scene == "intro" or os.getenv("HOME_INTRO") == "1" then neon_img("ARCADE  ·  SHOWS  ·  TV", 34, ST.ACCENT, 0.8) end
+  if scene == "intro" or os.getenv("HOME_INTRO") == "1" then D.neon_img("ARCADE  ·  SHOWS  ·  TV", 34, ST.ACCENT, 0.8) end
   manage_labels(false)
-  label_jobs[#label_jobs + 1] = function() neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1) end
-  label_jobs[#label_jobs + 1] = function() neon_img("NEW HIGH SCORE!", 44, 0xffd23f, 1) end
+  D.label_jobs[#D.label_jobs + 1] = function() D.neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1) end
+  D.label_jobs[#D.label_jobs + 1] = function() D.neon_img("NEW HIGH SCORE!", 44, 0xffd23f, 1) end
   lg.setCanvas()
   mark("labels")
   sound.load()
@@ -2182,7 +2031,7 @@ function love.load()
   shelf_setup()
   shows_ctx = {request_art = worker and function(key, path)
                  love.thread.getChannel("home_work"):push({"art", key, path})
-               end or nil, backdrop = backdrop, rgb = rgb, neon_draw = neon_draw, font = font, fx = fx, rrect = rrect, play = play}
+               end or nil, backdrop = backdrop, rgb = D.rgb, neon_draw = D.neon_draw, font = D.font, fx = fx, rrect = D.rrect, play = play}
   shows.set_ctx(shows_ctx)
   for k, it in ipairs(items) do
     if it.kind == "tv" then
@@ -2438,24 +2287,24 @@ function love.update(dt)
     local err = worker:getError()
     if err then log("worker: " .. err) worker = nil end
   end
-  for _, c in ipairs(script) do
+  for _, c in ipairs(I.script) do
     if c[1] == frame then
-      if c[2] == "press" then control_down(c[3]) control_up(c[3])
-      elseif c[2] == "down" then control_down(c[3])
-      elseif c[2] == "up" then control_up(c[3])
+      if c[2] == "press" then I.control_down(c[3]) I.control_up(c[3])
+      elseif c[2] == "down" then I.control_down(c[3])
+      elseif c[2] == "up" then I.control_up(c[3])
       elseif c[2] == "shot" then shot_req = c[3]
       elseif c[2] == "quit" then love.event.quit(0) end
     end
   end
-  for _, n in ipairs(pressed_q) do handle(n) end
-  pressed_q = {}
+  for _, n in ipairs(I.pressed_q) do handle(n) end
+  I.pressed_q = {}
   if not menu_freed then manage_labels(false) end
-  if PREVIEW and down["1p"] and down["2p"] and not launch_item then
-    hold_t = hold_t + dt
+  if PREVIEW and I.down["1p"] and I.down["2p"] and not launch_item then
+    I.hold_t = I.hold_t + dt
     idle = 0
-    if hold_t >= HOLD_SECS then hold_t = 0 request("yard") end
+    if I.hold_t >= I.HOLD_SECS then I.hold_t = 0 request("yard") end
   else
-    hold_t = 0
+    I.hold_t = 0
   end
   if scene == "intro" then
     intro_t = intro_t + dt
@@ -2496,7 +2345,7 @@ local first_drawn = false
 function love.draw()
   -- Labels still to paint: two a frame, before anything is drawn on the screen.
   for _ = 1, 2 do
-    local job = table.remove(label_jobs, 1)
+    local job = table.remove(D.label_jobs, 1)
     if job then job() lg.setCanvas() end
   end
   if not first_drawn then

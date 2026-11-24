@@ -1219,9 +1219,9 @@ def home():
     import json
     mt = json.loads(subprocess.run([sys.executable, os.path.join(HERE, "..", "tools", "home_metrics.py"), "--json"],
                                    capture_output=True, text=True).stdout)
-    check(mt["main_locals"] <= 192 and mt["max_upvalues"] <= 54 and mt["main_slots"] <= 202,
-          f"Home: main.lua within its refactor ceilings (locals {mt['main_locals']}/192, upvalues "
-          f"{mt['max_upvalues']}/54, slots {mt['main_slots']}/202)")
+    check(mt["main_locals"] <= 172 and mt["max_upvalues"] <= 49 and mt["main_slots"] <= 181,
+          f"Home: main.lua within its refactor ceilings (locals {mt['main_locals']}/172, upvalues "
+          f"{mt['max_upvalues']}/49, slots {mt['main_slots']}/181)")
     # Home's Yard cards come from the carts' own info.lua (cartinfo.lua): one per cart, the cart's title, and its
     # stat line from its save as The Yard shows it.
     w3 = tmpdir()

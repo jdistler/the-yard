@@ -107,8 +107,8 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
       frame.
 
 **CP2. The leaves.** One commit each; G1-G3 each.
-- [ ] `draw.lua` from "colors and drawing" (11 names -> 1).
-- [ ] `input.lua` from "input" (16 names -> 1; the LÖVE key callbacks move with it).
+- [x] `draw.lua` from "colors and drawing" (11 names -> 1): locals 192 -> 183, slots 202 -> 192.
+- [x] `input.lua` from "input" (16 names -> 1; the LÖVE key callbacks move with it): locals 183 -> 172, upvalues 54 -> 49.
 - [ ] `pictures.lua` from "the pictures between programs" (6 names -> 1).
 - [ ] Milestone: G4, G5.
 
@@ -141,5 +141,9 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
 (Each checkpoint: date, commits, metrics before and after, gates passed, cabinet numbers.)
 
 * **CP0, 2026-11-24:** locals 192/200, slots 202/250, upvalues 54/60 (love.load). Tour 50 steps, golden saved.
+* **CP2 (part), 2026-11-24:** draw.lua and input.lua out: locals 192 -> 172, slots 202 -> 181, most upvalues
+  54 -> 49. Gates: the tour identical after each move (50/50), Home tests 30/30, show lint all shows ok. Lesson:
+  the scripted renaming missed a table key at the start of a line in a multi-line constructor (`down = down`);
+  caught by reading the diff, now checked for after every move.
 * **CP1, 2026-11-24:** cabinet baseline saved; call-cost experiment done (numbers above). (A first reading that
   the JIT was off in Home was wrong: it is on; only the bare benchmark had it off.)
