@@ -136,7 +136,8 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
       the rest are functions, which move with their modules in CP4.)
 
 **CP4. The big consumers.**
-- [ ] `catalog.lua`: the cards and the state file.
+- [x] `catalog.lua`: the classics, arcade, Yard and sections, the stock settings, the classics' high scores: locals
+      76 -> 53. (The state file's load/save stay with the state functions, next.)
 - [x] `actions.lua` (tools/home_move.py; speed and smooth lifted into ST first): locals 118 -> 110.
 - [x] `idle.lua`: attract, night, the shows' curtain and schedule (356 lines): locals 110 -> 96, upvalues 32 -> 30.
       The mover now refuses an export the section reassigns (it caught auto_rot, game_now, menu_freed, demo: main

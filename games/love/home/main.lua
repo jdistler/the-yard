@@ -145,179 +145,9 @@ end
 
 -- ------------------------------------------------------------------ the games
 
--- tint: each classic's own colour (its card's glow and frame), from its logo.
-local CLASSICS = {
-  {title = "PAC-MAN", year = 1980, tint = 0xffd23f, blurb = "Eat the dots. Mind the ghosts."},
-  {title = "PAC & PAL", year = 1983, tint = 0xff9a3c, blurb = "Flip the cards, find the treats."},
-  {title = "SUPER PAC-MAN", year = 1982, tint = 0xff8a4c, blurb = "Keys, doors, and a super-size power pellet."},
-  {title = "PAC-MAN PLUS", year = 1982, tint = 0xff5aa8, blurb = "Pac-Man, with tricks in the maze."},
-  {title = "PAC-LAND", year = 1984, tint = 0x5fd16a, blurb = "Run the whole town back to Fairyland."},
-  {title = "PAC-MANIA", year = 1987, tint = 0x6aa8ff, blurb = "Jump the ghosts in rolling 3-D mazes."},
-  {title = "GALAGA", year = 1981, tint = 0x3fd6c0, blurb = "Win your captured fighter back. Fly two."},
-  {title = "GALAXIAN", year = 1979, tint = 0x4fe0a0, blurb = "The swarm dives. Stay sharp."},
-  {title = "MAPPY", year = 1983, tint = 0x5ab8ff, blurb = "A police mouse, a mansion, trampolines."},
-  {title = "DIG DUG", year = 1982, tint = 0xff7a4a, blurb = "Dig, pump, and drop the rocks."},
-  {title = "DIG DUG II", year = 1985, tint = 0x9ad65a, blurb = "Sink the island under the monsters."},
-  {title = "ROMPERS", year = 1989, tint = 0xff6a7a, blurb = "Push the walls down on the monsters."},
-}
--- The Yard games, from their own info.lua (cartinfo.lua): title, tint, blurb, stat line, as The Yard shows them.
-local OURS = require("cartinfo").list(log)
-local SECTIONS = {
-  {name = "FAVORITES", tint = 0xff7ab8},
-  {name = "CLASSICS", tint = 0xffd23f},
-  {name = "ARCADE", tint = 0xffb43c},
-  {name = "GAMES", tint = 0xff4fd8},
-  {name = "THE YARD", tint = 0x6ef0c8},
-  {name = "TV", tint = 0xff6b6b},
-  {name = "SHOWS", tint = 0xff4a5a},
-  {name = "EXTRAS", tint = 0x8ab4ff},
-}
--- How to come back to Home from each kind of game (said on the info panel and on the "get ready" picture).
-local LEAVE = {
-  classic = {"HOLD  1-PLAYER  FOR 5 SECONDS", "to come back to Home (your high score is saved)"},
-  cart = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
-  native = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
-  game = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
-  arcade = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
-  yard = {"HOLD  1-PLAYER + 2-PLAYER", "to come back to Home"},
-}
--- (FAVORITES is section 1 and CLASSICS 2, written as numbers: main.lua is at Lua's 200-local limit)
-local ARCADE_SECTION, GAMES_SECTION, YARD_SECTION, TV_SECTION, SHOWS_SECTION, MORE_SECTION = 3, 4, 5, 6, 7, 8
-
-local PREVIEW = os.getenv("HOME_MODE") == "preview"
-local items = {}
-for i, c in ipairs(CLASSICS) do
-  items[#items + 1] = {kind = "classic", index = i - 1, section = 2, title = c.title,
-                       sub = c.year .. "  NAMCO", blurb = c.blurb, tint = c.tint}
-end
--- The Shelf (shelf.lua): the games on the microSD card, a card per row (PARTY PICKS, then each system), each
--- opening the browser there. No card in the slot: one card that says so.
-shelf.init()
--- The arcade boards on the card (shelf.lua): a card each, like the classics, with the board's own high-score
--- table (its top score and initials on the panel, the top five on the get-ready picture).
--- The Hall of Fame (hall.lua): every board's record and the players ranked across them, first in ARCADE.
-if #shelf.arcade_games() > 0 then
-  items[#items + 1] = {kind = "hall", section = ARCADE_SECTION, title = "HALL OF FAME", sub = "EVERY RECORD  ·  THE CHAMPIONS",
-                       blurb = "The top score on every game, and who holds the most.", tint = 0xffd23f}
-end
-for _, g in ipairs(shelf.arcade_games()) do
-  local meta = {}
-  if g.year ~= "" then meta[#meta + 1] = g.year end
-  if g.maker ~= "" then meta[#meta + 1] = g.maker:upper() end
-  items[#items + 1] = {kind = "arcade", id = g.set, game = g, section = ARCADE_SECTION, title = g.title:upper(),
-                       sub = table.concat(meta, "  "), blurb = g.blurb, tint = g.tint or 0xffb43c}
-end
-do
-  local cards = shelf.cards()
-  for _, c in ipairs(cards) do
-    items[#items + 1] = {kind = "shelf", row = c.key, section = GAMES_SECTION, title = c.title,
-                         sub = c.sub:upper(), blurb = shelf.card_blurb(c.key), tint = c.tint}
-  end
-  if #cards == 0 then
-    items[#items + 1] = {kind = "shelf", section = GAMES_SECTION, title = "GAMES", sub = "THE GAMES CARD",
-                         blurb = "Put the YARD card in the slot (power off first) for the arcade and console games.",
-                         tint = 0xff4fd8}
-  end
-end
-for _, g in ipairs(OURS) do
-  items[#items + 1] = {kind = g.native and "native" or "cart", id = g.id, native = g.native, section = YARD_SECTION,
-                       title = g.title, sub = "THE YARD", blurb = g.blurb, tint = g.tint, statdef = g}
-end
--- Live TV (tv.lua): one card, which opens the guide in Home itself.
-items[#items + 1] = {kind = "tv", section = TV_SECTION, title = "LIVE TV", sub = "CHANNEL GUIDE",
-                     blurb = "Live sports, news and locals.", tint = 0xff6b6b}
--- The idle shows (shows.lua): a card each (LOWER: its parts, to watch any of them), and the SCHEDULE.
-for _, sh in ipairs(shows.LIST) do
-  if shows.available(sh.id) then
-    items[#items + 1] = {kind = "showcard", show = sh.id, section = SHOWS_SECTION, title = sh.title,
-                         sub = "IDLE SHOW  ·  LOWER BUTTON: pick a part to watch", blurb = sh.blurb, tint = sh.tint}
-  end
-end
-items[#items + 1] = {kind = "show", section = SHOWS_SECTION, title = "SCHEDULE", sub = "AUTO", blurb = "", tint = 0xff4a5a}
--- HOME_MODE=preview (opened from a Yard row to try Home): the last card goes back to The Yard.
-if PREVIEW then
-  items[#items + 1] = {kind = "stock", section = MORE_SECTION, title = "BACK TO THE YARD", sub = "HOME PREVIEW",
-                       blurb = "Home is a preview for now: this goes back to The Yard.", tint = 0xff9c5a}
-else
-  items[#items + 1] = {kind = "yard", section = MORE_SECTION, title = "YARD MENU", sub = "THE WHOLE YARD",
-                       blurb = "Every Yard game, in its own menu.", tint = 0x7fe8ff}
-  items[#items + 1] = {kind = "stock", section = MORE_SECTION, title = "ORIGINAL MENU", sub = "ARCADE1UP",
-                       blurb = "The menu as it came. On it, hold 1-PLAYER + 2-PLAYER to come back.", tint = 0xff9c5a}
-end
-
--- A card's name in the state file (numbers move when cards are added).
-local function item_key(it)
-  -- (a FAVORITES card has its own name, so coming back from the original card returns to the original)
-  return (it.fav and "fav:" or "") .. it.kind .. ":" .. tostring(it.id or it.show or it.index or it.title):gsub("%s", "_")
-end
-local function item_by_key(k)
-  for i, it in ipairs(items) do if item_key(it) == k then return i end end
-end
-
--- The stock menu's settings: one byte per classic.
-local function cfg_read(name)
-  local s = read_file(ST.GAMES .. "/" .. name)
-  local t = {}
-  for i = 1, 12 do t[i] = s and s:byte(i) or 0 end
-  return t
-end
-local function cfg_write(name, t)
-  local f = io.open(ST.GAMES .. "/" .. name, "wb")
-  if not f then return end
-  local b = {}
-  for i = 1, 12 do b[i] = string.char(t[i] == 1 and 1 or 0) end
-  f:write(table.concat(b))
-  f:close()
-end
-ST.speed, ST.smooth = cfg_read("Speed.cfg"), cfg_read("Smoothing.cfg")
-
--- The classics' high scores, from the boards' own save memory (each game its own layout). Every decoding was
--- checked against the score the game shows on its attract screen (2026-10-27, tools/cabview screenshots).
-local function bcd(b) return math.floor(b / 16) * 10 + b % 16 end
-local function bcd_be(s, at, n) local v = 0 for i = 0, n - 1 do v = v * 100 + bcd(s:byte(at + i) or 0) end return v end
-local function bcd_le(s, at, n) local v = 0 for i = n - 1, 0, -1 do v = v * 100 + bcd(s:byte(at + i) or 0) end return v end
-local function digits(s, at, n, low_first)
-  local v = 0
-  for i = 0, n - 1 do
-    local d = s:byte(low_first and (at + n - 1 - i) or (at + i)) or 0
-    if d > 9 then d = 0 end                 -- a blank
-    v = v * 10 + d
-  end
-  return v
-end
-local function be32(s, at) local a, b, c, d = s:byte(at, at + 3) return ((a * 256 + b) * 256 + c) * 256 + d end
-local function best(s, first, stride, count, f)
-  local m = 0
-  for k = 0, count - 1 do
-    local at = first + k * stride
-    if at + stride - 1 <= #s then m = math.max(m, f(s, at)) end
-  end
-  return m
-end
--- index -> {save file, decoder}; "fast" games keep a second save (PacManFast.sav).
-local SCORES = {
-  [0] = {"PacMan", function(s) return bcd_le(s, 1, 3) end, fast = "PacManFast"},
-  [1] = {"PacandPal", function(s) return best(s, 1, 8, 5, function(t, a) return bcd_be(t, a, 3) * 10 end) end},
-  [2] = {"SuperPacMan", function(s) return best(s, 1, 8, 5, function(t, a) return bcd_be(t, a, 3) * 10 end) end},
-  [3] = {"PacManPlus", function(s) return bcd_le(s, 1, 3) end, fast = "PacManPlusFast"},
-  [4] = {"PacLand", function(s) return best(s, 1, 16, 5, function(t, a) return digits(t, a, 5) * 10 end) end},
-  [5] = {"PacMania", function(s) return best(s, 2049, 8, 10, function(t, a) return bcd_be(t, a, 4) * 10 end) end},
-  [6] = {"Galaga", function(s) return best(s, 1, 6, 5, function(t, a) return digits(t, a, 6, true) end) end},
-  [7] = {"Galaxian", function(s) return bcd_le(s, 1, 3) end},
-  [8] = {"Mappy", function(s) return best(s, 1, 8, 5, function(t, a) return bcd_be(t, a, 3) * 10 end) end},
-  [9] = {"DigDug", function(s) return best(s, 1, 3, 5, function(t, a) return bcd_be(t, a, 3) end) end},
-  [10] = {"DigDugII", function(s) return best(s, 1, 16, 5, function(t, a) return digits(t, a, 6) * 10 end) end},
-  [11] = {"Rompers", function(s) return best(s, 2049, 4, 5, function(t, a) return be32(t, a) * 10 end) end},
-}
-local function high_score(index)
-  local e = SCORES[index]
-  if not e then return nil end
-  local s = ST.speed[index + 1] == 1 and e.fast and read_file(ST.GAMES .. "/" .. e.fast .. ".sav")
-  s = s or read_file(ST.GAMES .. "/" .. e[1] .. ".sav")
-  if not s or #s < 3 then return nil end
-  local ok, v = pcall(e[2], s)
-  return ok and v > 0 and v < 100000000 and v or nil
-end
+-- catalog.lua (HOME_REFACTOR.md CP4)
+local CAT = require("catalog")({ST = ST, log = log, read_file = read_file, shelf = shelf,
+  shows = shows})
 
 -- ------------------------------------------------------------------ colors and drawing
 
@@ -336,7 +166,7 @@ function ST.arcade_score_text(it)
   if t[1][3] then return shelf.commas(t[1][1]) .. "  (HOUSE)" end   -- (no player record yet: the house's to beat)
   return shelf.commas(t[1][1]) .. (t[1][2] ~= "" and ("  " .. t[1][2]) or "")
 end
-for _, it in ipairs(items) do
+for _, it in ipairs(CAT.items) do
   if it.kind == "arcade" then it.table = shelf.arcade_table(it.id) it.score = ST.arcade_score_text(it) end
 end
 
@@ -361,7 +191,7 @@ do
                 tint = g.tint or 0xff4fd8}
       end
     else
-      for _, it in ipairs(items) do if item_key(it) == k then base = it break end end
+      for _, it in ipairs(CAT.items) do if CAT.item_key(it) == k then base = it break end end
     end
     if base and base.kind ~= "stock" then
       local c = {}
@@ -375,7 +205,7 @@ do
     favs[1] = {kind = "favhint", fav = true, section = 1, title = "FAVORITES", sub = "YOUR MOST-PLAYED GAMES",
                blurb = "Play anything and it lands here: the last game played, then the ones played most.", tint = 0xff7ab8}
   end
-  for i = #favs, 1, -1 do table.insert(items, 1, favs[i]) end
+  for i = #favs, 1, -1 do table.insert(CAT.items, 1, favs[i]) end
 end
 
 
@@ -552,7 +382,7 @@ end
 local function manage_labels(all_now)
   if ST.labels_sel == ST.sel then return end
   ST.labels_sel = ST.sel
-  for k, it in ipairs(items) do
+  for k, it in ipairs(CAT.items) do
     local d = math.abs(k - ST.sel)
     if d <= 3 and not ST.labels_for[k] then
       ST.labels_for[k] = true
@@ -568,28 +398,28 @@ end
 
 local function load_state()
   local s = ST.STATE and read_file(ST.STATE)
-  local n = s and (item_by_key(s:match("selkey (%S+)") or "") or tonumber(s:match("sel (%d+)")))
-  if n and items[n] then ST.sel, ST.pos = n, n end
+  local n = s and (CAT.item_by_key(s:match("selkey (%S+)") or "") or tonumber(s:match("sel (%d+)")))
+  if n and CAT.items[n] then ST.sel, ST.pos = n, n end
   local sm = s and s:match("show (%a+)")
   if sm and ST.SHOW_NAMES[sm] then ST.show_mode = sm end
-  local lp = s and (item_by_key(s:match("playedkey (%S+)") or "") or tonumber(s:match("played (%d+)")))
-  if lp and items[lp] then ST.last_played = items[lp] end
+  local lp = s and (CAT.item_by_key(s:match("playedkey (%S+)") or "") or tonumber(s:match("played (%d+)")))
+  if lp and CAT.items[lp] then ST.last_played = CAT.items[lp] end
   -- At power-on, never on the original menu's card (the last choice made before the power went off).
-  if os.getenv("HOME_INTRO") == "1" and items[ST.sel].kind == "stock" then ST.sel, ST.pos = 1, 1 end
+  if os.getenv("HOME_INTRO") == "1" and CAT.items[ST.sel].kind == "stock" then ST.sel, ST.pos = 1, 1 end
   -- Nothing played yet: start on the first real card (Pac-Man), not on the empty FAVORITES card.
-  if items[ST.sel].kind == "favhint" then ST.sel, ST.pos = 2, 2 end
+  if CAT.items[ST.sel].kind == "favhint" then ST.sel, ST.pos = 2, 2 end
   return s and s:match("returned (.+)")
 end
 local function save_state(extra, played)
   if not ST.STATE then return end
   local lp = played
   if not lp and ST.last_played then
-    for k, it in ipairs(items) do if it == ST.last_played then lp = k end end
+    for k, it in ipairs(CAT.items) do if it == ST.last_played then lp = k end end
   end
   local f = io.open(ST.STATE, "w")
   if f then
-    f:write("sel " .. ST.sel .. "\nselkey " .. item_key(items[ST.sel]) .. "\n" ..
-            (lp and ("played " .. lp .. "\nplayedkey " .. item_key(items[lp]) .. "\n") or "") ..
+    f:write("sel " .. ST.sel .. "\nselkey " .. CAT.item_key(CAT.items[ST.sel]) .. "\n" ..
+            (lp and ("played " .. lp .. "\nplayedkey " .. CAT.item_key(CAT.items[lp]) .. "\n") or "") ..
             "show " .. ST.show_mode .. "\n" .. (extra or ""))
     f:close()
   end
@@ -607,7 +437,7 @@ local function art_image(data)
 end
 local function art_path(it) return ST.ART .. "/classic_" .. it.index .. ".png" end
 local function load_art()
-  for k, it in ipairs(items) do
+  for k, it in ipairs(CAT.items) do
     if it.kind == "classic" then
       if math.abs(k - ST.sel) <= 2 or not ST.worker then
         local b = read_file(art_path(it))
@@ -648,30 +478,30 @@ end
 -- ------------------------------------------------------------------ drawing
 
 -- menu.lua (HOME_REFACTOR.md CP4)
-local MENU = require("menu")({D = D, H = H, I = I, LEAVE = LEAVE,
-  SECTIONS = SECTIONS, ST = ST, W = W, curtain_draw = curtain_draw, fx = fx, items = items,
+local MENU = require("menu")({D = D, H = H, I = I, LEAVE = CAT.LEAVE,
+  SECTIONS = CAT.SECTIONS, ST = ST, W = W, curtain_draw = curtain_draw, fx = fx, items = CAT.items,
   lg = lg, night = night, shelf = shelf, shows = shows, t = t, tv = tv})
 
 -- ------------------------------------------------------------------ the pictures between programs
 
 -- "Get ready", "welcome back", power-on: pictures.lua (HOME_REFACTOR.md CP2)
 local P = require("pictures")
-P.init({W = W, draw_background = MENU.draw_background, ST = ST, shelf = shelf, fx = fx, LEAVE = LEAVE, splash = splash,
+P.init({W = W, draw_background = MENU.draw_background, ST = ST, shelf = shelf, fx = fx, LEAVE = CAT.LEAVE, splash = splash,
         BACK = ST.BACK, uptime = uptime, log = log})
 
 -- ------------------------------------------------------------------ actions
 
 -- actions.lua (HOME_REFACTOR.md CP4)
 local A = require("actions")
-A.init({CODE = CODE, P = P, SECTIONS = SECTIONS, ST = ST, cfg_write = cfg_write,
-        headless = headless, high_score = high_score, items = items, log = log, play = play, read_file = read_file,
+A.init({CODE = CODE, P = P, SECTIONS = CAT.SECTIONS, ST = ST, cfg_write = CAT.cfg_write,
+        headless = headless, high_score = CAT.high_score, items = CAT.items, log = log, play = play, read_file = read_file,
         save_state = save_state, splash = splash})
 
 -- ------------------------------------------------------------------ the idle shows
 
 -- idle.lua (HOME_REFACTOR.md CP4)
-local IDLE = require("idle")({A = A, D = D, ST = ST, cfg_write = cfg_write,
-  high_score = high_score, items = items, lg = lg, load_art = load_art, log = log, manage_labels = manage_labels,
+local IDLE = require("idle")({A = A, D = D, ST = ST, cfg_write = CAT.cfg_write,
+  high_score = CAT.high_score, items = CAT.items, lg = lg, load_art = load_art, log = log, manage_labels = manage_labels,
   night = night, play = play, save_state = save_state, shelf = shelf, shows = shows, t = t,
   tv = tv, utgame = utgame})
 
@@ -684,7 +514,7 @@ local function shelf_setup()
                 down = I.down, commas = shelf.commas,
                 entries = function()
                   local out = {}
-                  for k, it in ipairs(items) do
+                  for k, it in ipairs(CAT.items) do
                     if it.kind == "arcade" then
                       it.table = shelf.arcade_table(it.id)
                       out[#out + 1] = {title = it.title, tint = it.tint, item = it, rows = it.table,
@@ -711,7 +541,7 @@ local function shelf_setup()
     local st = ST.STATE and read_file(ST.STATE) or ""
     local set, before = st:match("ascore (%S+) (%d+)")
     before = tonumber(before)
-    for _, it in ipairs(items) do
+    for _, it in ipairs(CAT.items) do
       if it.kind == "arcade" and it.id == set and before and os.getenv("HOME_INTRO") ~= "1" then
         local t = shelf.arcade_table(it.id)
         if t and t[1][1] > before then
@@ -744,7 +574,7 @@ local function shelf_setup()
     -- Back from a game on the Shelf: the browser, on that game.
     local key, file, failed = shelf.returning()
     if key then
-      for k, it in ipairs(items) do if it.kind == "shelf" and (it.row == key or (key == "recent" and it.row)) then ST.sel, ST.pos = k, k break end end
+      for k, it in ipairs(CAT.items) do if it.kind == "shelf" and (it.row == key or (key == "recent" and it.row)) then ST.sel, ST.pos = k, k break end end
       ST.shelf_open(key, file, failed)
       ST.returning = true
     end
@@ -815,9 +645,9 @@ function love.load()
     local st = ST.STATE and read_file(ST.STATE) or ""
     local idx, before = st:match("score (%d+) (%d+)")
     idx, before = tonumber(idx), tonumber(before)
-    local now = idx and high_score(idx)
+    local now = idx and CAT.high_score(idx)
     if now and before and now > before and os.getenv("HOME_INTRO") ~= "1" then
-      ST.celebrate = {score = now, title = CLASSICS[idx + 1].title, tint = CLASSICS[idx + 1].tint, t = 0}
+      ST.celebrate = {score = now, title = CAT.CLASSICS[idx + 1].title, tint = CAT.CLASSICS[idx + 1].tint, t = 0}
       log("new high score " .. idx .. " " .. before .. " -> " .. now)
     end
   end
@@ -832,7 +662,7 @@ function love.load()
                  love.thread.getChannel("home_work"):push({"art", key, path})
                end or nil, backdrop = P.backdrop, rgb = D.rgb, neon_draw = D.neon_draw, font = D.font, fx = fx, rrect = D.rrect, play = play}
   shows.set_ctx(ST.shows_ctx)
-  for k, it in ipairs(items) do
+  for k, it in ipairs(CAT.items) do
     if it.kind == "tv" then
       local n, g, p = tv.channel_count()
       if n > 0 then
@@ -845,7 +675,7 @@ function love.load()
   do
     local rc, idx = tv.returning()
     if rc then
-      for k, it in ipairs(items) do if it.kind == "tv" then ST.sel, ST.pos = k, k end end
+      for k, it in ipairs(CAT.items) do if it.kind == "tv" then ST.sel, ST.pos = k, k end end
       if rc ~= 10 then
         ST.scene = "tv"
         tv.enter(rc, idx)
@@ -894,15 +724,15 @@ function love.load()
   end
   A.read_volume()
   local sc = {}
-  for _, it in ipairs(items) do
+  for _, it in ipairs(CAT.items) do
     if it.kind == "classic" then
-      it.score = high_score(it.index)
+      it.score = CAT.high_score(it.index)
       sc[#sc + 1] = it.index .. "=" .. tostring(it.score)
     end
   end
   log("high scores: " .. table.concat(sc, " "))
   -- Our games: their save's number, as The Yard shows it.
-  for _, it in ipairs(items) do
+  for _, it in ipairs(CAT.items) do
     local d = it.statdef
     if d then
       it.stat = require("cartinfo").stat(d, read_file(ST.GAMES .. "/" .. d.save .. ".sav"))
@@ -912,7 +742,7 @@ function love.load()
   -- Back from a game: a soft welcome (the celebration has its own fanfare).
   if ST.returning and not ST.celebrate then play("back") end
   if headless or not ST.direct then ST.canvas = lg.newCanvas(W, H) end
-  log("home start, " .. #items .. " items, scene " .. ST.scene)
+  log("home start, " .. #CAT.items .. " items, scene " .. ST.scene)
 end
 
 -- The worker waits for jobs: tell it to stop, so LÖVE's exit does not wait on it.
@@ -977,7 +807,7 @@ local function update_idle(dt)
   if ST.scene == "menu" and ST.idle > ST.IDLE_ATTRACT then ST.scene = "attract" ST.attract_t = 0 ST.attract_sel = ST.sel end
   if ST.scene == "attract" then
     ST.attract_t = ST.attract_t + dt
-    if ST.attract_t > 3.5 then ST.attract_t = 0 ST.sel = ST.sel % #items + 1 end
+    if ST.attract_t > 3.5 then ST.attract_t = 0 ST.sel = ST.sel % #CAT.items + 1 end
     if ST.idle > ST.IDLE_NIGHT then IDLE.start_show() end
   end
   if ST.scene == "night" then
@@ -1071,7 +901,7 @@ function love.update(dt)
         if msg[3] then shows.thumb_ready(msg[2], msg[3]) end
       elseif msg[1] == "art" and msg[3] then
         if not ST.menu_freed then
-          local it = items[msg[2]]
+          local it = CAT.items[msg[2]]
           if it then
             if it.kind == "arcade" or it.kind == "game" then
               if it.shot then it.shot:release() end
@@ -1100,7 +930,7 @@ function love.update(dt)
   for _, n in ipairs(I.pressed_q) do IDLE.handle(n) end
   I.pressed_q = {}
   if not ST.menu_freed then manage_labels(false) end
-  if PREVIEW and I.down["1p"] and I.down["2p"] and not ST.launch_item then
+  if CAT.PREVIEW and I.down["1p"] and I.down["2p"] and not ST.launch_item then
     I.hold_t = I.hold_t + dt
     ST.idle = 0
     if I.hold_t >= I.HOLD_SECS then I.hold_t = 0 A.request("yard") end
