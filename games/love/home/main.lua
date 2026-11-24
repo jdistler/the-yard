@@ -269,7 +269,7 @@ local function cfg_write(name, t)
   f:write(table.concat(b))
   f:close()
 end
-local speed, smooth = cfg_read("Speed.cfg"), cfg_read("Smoothing.cfg")
+ST.speed, ST.smooth = cfg_read("Speed.cfg"), cfg_read("Smoothing.cfg")
 
 -- The classics' high scores, from the boards' own save memory (each game its own layout). Every decoding was
 -- checked against the score the game shows on its attract screen (2026-10-27, tools/cabview screenshots).
@@ -312,7 +312,7 @@ local SCORES = {
 local function high_score(index)
   local e = SCORES[index]
   if not e then return nil end
-  local s = speed[index + 1] == 1 and e.fast and read_file(ST.GAMES .. "/" .. e.fast .. ".sav")
+  local s = ST.speed[index + 1] == 1 and e.fast and read_file(ST.GAMES .. "/" .. e.fast .. ".sav")
   s = s or read_file(ST.GAMES .. "/" .. e[1] .. ".sav")
   if not s or #s < 3 then return nil end
   local ok, v = pcall(e[2], s)
@@ -1047,7 +1047,7 @@ local function draw_info()
   lg.printf(it.blurb, 60, y + 100, W - 120, "left")
   if it.kind == "classic" then
     local i = it.index + 1
-    local chips = {{"SPEED", speed[i] == 1 and "FAST" or "NORMAL"}, {"SMOOTH", smooth[i] == 1 and "ON" or "OFF"}}
+    local chips = {{"SPEED", ST.speed[i] == 1 and "FAST" or "NORMAL"}, {"SMOOTH", ST.smooth[i] == 1 and "ON" or "OFF"}}
     local x = 60
     for _, c in ipairs(chips) do
       lg.setFont(D.font(21))
@@ -1336,94 +1336,11 @@ P.init({W = W, draw_background = draw_background, ST = ST, shelf = shelf, fx = f
 
 -- ------------------------------------------------------------------ actions
 
-local function request(s, it, picture, gamekey)
-  if picture and (not headless or os.getenv("HOME_FB")) then
-    local ok, bytes = pcall(splash.render, picture)
-    if ok then splash.show(bytes) end
-    if ST.BACK and not P.file_exists(ST.BACK) then
-      local ok2, back = pcall(splash.render, P.picture_back)
-      if ok2 then splash.save(back, ST.BACK) end
-    end
-  elseif it and (not headless or os.getenv("HOME_FB")) then P.pictures_for(it) end
-  log("launch " .. s)
-  -- The classic's high score as it was: on the way back, a higher one is celebrated.
-  local played = nil
-  if it and it.kind ~= "stock" then played = ST.sel end
-  local extra = it and it.kind == "classic" and ("score " .. it.index .. " " .. (high_score(it.index) or 0) .. "\n")
-                or it and it.kind == "arcade" and ("ascore " .. it.id .. " " .. ST.arcade_best(it) .. "\n") or ""
-  -- (a Shelf game, from the browser or a FAVORITES card: favs.lua credits its play time to it)
-  gamekey = gamekey or (it and it.kind == "game" and ("game:" .. it.game.sys .. "/" .. it.game.file))
-  if gamekey then extra = extra .. "playedgame " .. gamekey .. "\n" end
-  save_state(extra ~= "" and extra or nil, played)
-  if ST.REQ then
-    local f = io.open(ST.REQ, "w")
-    if f then f:write(s .. "\n") f:close() end
-  end
-  love.event.quit(0)
-end
-
-local function launch(it)
-  if it.kind == "classic" then
-    local i = it.index + 1
-    return "classic " .. it.index .. " " .. smooth[i] .. " " .. speed[i]
-  elseif it.kind == "cart" then return "cart " .. it.id
-  elseif it.kind == "native" then return "native " .. it.native
-  elseif it.kind == "arcade" then return "shelf arcade " .. it.game.file
-  elseif it.kind == "game" then return "shelf " .. it.game.sys .. " " .. it.game.file
-  elseif it.kind == "yard" then return "yard"
-  else return "stock" end
-end
-
-local function move(d)
-  local old = items[ST.sel].section
-  ST.sel = math.max(1, math.min(#items, ST.sel + d))
-  play(items[ST.sel].section ~= old and "section" or "move")
-end
-
--- (an empty section is skipped: with no card in the slot ARCADE has no cards, and the stick used to stop dead at
--- it, found by the characterization tour, 2026-11-24)
-local function jump_section(d)
-  local cur = items[ST.sel].section
-  local want = cur + d
-  while want >= 1 and want <= #SECTIONS do
-    for i, it in ipairs(items) do
-      if it.section == want then
-        ST.sel = i
-        play("section")
-        return
-      end
-    end
-    want = want + d
-  end
-end
-
-local function read_volume()
-  local s = read_file(ST.VOLUME_FILE)
-  local n = s and tonumber(s:match("%d+"))
-  if n then ST.vol_level = math.max(0, math.min(15, n)) end
-end
-
--- The secret code: up up down down left right left right, top-left (B), lower (A).
-local code_before = {}            -- the card and settings before each press: the code's moves are undone
-local function secret(name)
-  ST.code_buf[#ST.code_buf + 1] = name
-  code_before[#code_before + 1] = {sel = ST.sel, speed = {unpack(speed)}, smooth = {unpack(smooth)}}
-  if #ST.code_buf > #CODE then table.remove(ST.code_buf, 1) table.remove(code_before, 1) end
-  if #ST.code_buf < #CODE then return false end
-  for i = 1, #CODE do if ST.code_buf[i] ~= CODE[i] then return false end end
-  local b = code_before[1]
-  ST.sel = b.sel
-  for i = 1, 12 do
-    if speed[i] ~= b.speed[i] or smooth[i] ~= b.smooth[i] then
-      speed, smooth = b.speed, b.smooth
-      cfg_write("Speed.cfg", speed)
-      cfg_write("Smoothing.cfg", smooth)
-      break
-    end
-  end
-  ST.code_buf, code_before = {}, {}
-  return true
-end
+-- actions.lua (HOME_REFACTOR.md CP4)
+local A = require("actions")
+A.init({CODE = CODE, P = P, SECTIONS = SECTIONS, ST = ST, cfg_write = cfg_write,
+        headless = headless, high_score = high_score, items = items, log = log, play = play, read_file = read_file,
+        save_state = save_state, splash = splash})
 
 -- ------------------------------------------------------------------ the idle shows
 local SHOW_BLURB = {
@@ -1654,7 +1571,7 @@ end
 local function handle(name)
   if name == "volup" or name == "voldown" then
     -- The kernel has changed it (volctrl.sh saves it); read it a moment later and show it.
-    read_volume()
+    A.read_volume()
     ST.vol_t, ST.vol_read = 1.8, 0.2
     if ST.scene ~= "night" then play("volume") end
     return
@@ -1714,7 +1631,7 @@ local function handle(name)
   end
   if ST.launch_item then return end
   if name == "2p" then return end
-  if secret(name) then
+  if A.secret(name) then
     -- (the code's presses moved the cards and maybe a setting: put back as they were)
     for _, it in ipairs(items) do if it.kind == "classic" then it.score = high_score(it.index) end end
     party = 20
@@ -1723,17 +1640,17 @@ local function handle(name)
     return
   end
   local it = items[ST.sel]
-  if name == "up" then move(-1)
-  elseif name == "down" then move(1)
-  elseif name == "left" then jump_section(-1)
-  elseif name == "right" then jump_section(1)
+  if name == "up" then A.move(-1)
+  elseif name == "down" then A.move(1)
+  elseif name == "left" then A.jump_section(-1)
+  elseif name == "right" then A.jump_section(1)
   elseif (name == "tl" or name == "tr") and it.kind == "classic" then
     local i = it.index + 1
     if name == "tl" then
-      speed[i] = 1 - speed[i]
-      cfg_write("Speed.cfg", speed)
+      ST.speed[i] = 1 - ST.speed[i]
+      cfg_write("Speed.cfg", ST.speed)
       it.score = high_score(it.index)      -- fast Pac-Man keeps its own high score
-    else smooth[i] = 1 - smooth[i] cfg_write("Smoothing.cfg", smooth) end
+    else ST.smooth[i] = 1 - ST.smooth[i] cfg_write("Smoothing.cfg", ST.smooth) end
     play("toggle")
   elseif (name == "low" or name == "1p") and ST.returning and t < 0.6 then
     -- Just back from a game: a button still being mashed there (fire is the lower button) is not a choice.
@@ -1837,7 +1754,7 @@ local function shelf_setup()
   -- Live TV: the guide's lists, and coming back from a channel (tvloop wrote how it ended).
   tv.load({W = W, H = H, font = D.font, neon_draw = D.neon_draw, rgb = D.rgb, rrect = D.rrect, fx = fx, play = play,
            log = log, down = I.down, backdrop = P.backdrop,
-           request = function(s, picture) request(s, nil, picture) end,
+           request = function(s, picture) A.request(s, nil, picture) end,
            save_picture = function(path, picture)
              if headless and not os.getenv("HOME_FB") then return end
              local ok, bytes = pcall(splash.render, picture)
@@ -1846,7 +1763,7 @@ local function shelf_setup()
   shelf.load({W = W, H = H, font = D.font, neon_draw = D.neon_draw, rgb = D.rgb, rrect = D.rrect, fx = fx, play = play,
               log = log, down = I.down, backdrop = P.backdrop,
               request_art = ST.worker and function(key, path) love.thread.getChannel("home_work"):push({"art", key, path}) end,
-              request = function(s, picture, key) request(s, nil, picture, key) end})
+              request = function(s, picture, key) A.request(s, nil, picture, key) end})
   do
     -- Back from a game on the Shelf: the browser, on that game.
     local key, file, failed = shelf.returning()
@@ -1999,7 +1916,7 @@ function love.load()
       end
     end
   end
-  read_volume()
+  A.read_volume()
   local sc = {}
   for _, it in ipairs(items) do
     if it.kind == "classic" then
@@ -2208,7 +2125,7 @@ function love.update(dt)
   if PREVIEW and I.down["1p"] and I.down["2p"] and not ST.launch_item then
     I.hold_t = I.hold_t + dt
     ST.idle = 0
-    if I.hold_t >= I.HOLD_SECS then I.hold_t = 0 request("yard") end
+    if I.hold_t >= I.HOLD_SECS then I.hold_t = 0 A.request("yard") end
   else
     I.hold_t = 0
   end
@@ -2231,7 +2148,7 @@ function love.update(dt)
   end
   if ST.vol_read then
     ST.vol_read = ST.vol_read - dt
-    if ST.vol_read <= 0 then ST.vol_read = nil read_volume() end
+    if ST.vol_read <= 0 then ST.vol_read = nil A.read_volume() end
   end
   ST.pos = ST.pos + (ST.sel - ST.pos) * math.min(1, dt * 11)
   if ST.scene ~= "hall" then ST.near_shots() end
@@ -2240,9 +2157,9 @@ function love.update(dt)
     ST.launch_t = ST.launch_t + dt
     if ST.launch_t > 0.6 then
       local it = ST.launch_item
-      local s = launch(it)
+      local s = A.launch(it)
       ST.launch_item = nil
-      request(s, it)
+      A.request(s, it)
     end
   end
 end

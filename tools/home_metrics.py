@@ -47,9 +47,32 @@ def metrics(path=os.path.join(HOME, "main.lua")):
         m = re.match(r"^local ([A-Za-z_][\w, ]*?)\s*(=|$)", line)
         if m:
             names += len([n for n in m.group(1).split(",") if n.strip()])
-    return {"lines": lines, "main_locals": names, "globals": gsets, "main_slots": main[0]["slots"] if main else 0,
+    return {"lines": lines, "main_locals": names, "globals": gsets, "module_globals": module_globals(), "main_slots": main[0]["slots"] if main else 0,
             "max_upvalues": max(f["upvalues"] for f in rest), "max_upvalues_fn": max(rest, key=lambda f: f["upvalues"])["fn"],
             "max_slots": max(f["slots"] for f in rest), "functions": len(fns)}
+
+
+# The modules made by the refactor (HOME_REFACTOR.md): they may touch only Lua's and LÖVE's globals. Anything else
+# is a name main.lua passes in that the module forgot to mirror (a nil at run time, or a stray global).
+MODULES = ["draw", "input", "pictures", "actions", "catalog", "idle", "menu", "scenes"]
+STD = set("assert collectgarbage error getmetatable ipairs next pairs pcall print rawequal rawget rawlen rawset "
+          "require select setmetatable tonumber tostring type unpack xpcall setfenv getfenv loadstring load "
+          "io math os string table coroutine debug jit bit love home_note arg _G".split())
+
+
+def module_globals():
+    bad = {}
+    for m in MODULES:
+        path = os.path.join(HOME, m + ".lua")
+        if not os.path.exists(path):
+            continue
+        out = subprocess.run([os.path.join(LJ, "luajit"), "-bl", path], capture_output=True, text=True,
+                             env=dict(os.environ, LD_LIBRARY_PATH=os.path.join(LJ, "lib"))).stdout
+        names = set(re.findall(r'G(?:GET|SET)\s+\d+\s+\d+\s+;\s+"(\w+)"', out))
+        extra = sorted(names - STD)
+        if extra:
+            bad[m] = extra
+    return bad
 
 
 def main():
@@ -63,6 +86,7 @@ def main():
     print(f"  most upvalues    {m['max_upvalues']} / 60 ({m['max_upvalues_fn']})")
     print(f"  most slots       {m['max_slots']} / 250 (any other function)")
     print(f"  globals written  {', '.join(m['globals']) or 'none'}")
+    print(f"  modules' stray globals {m['module_globals'] or 'none'}")
     sys.exit(1 if m["main_locals"] > 190 or m["main_slots"] > 240 or m["max_upvalues"] > 56 else 0)
 
 
