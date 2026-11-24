@@ -145,6 +145,8 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
       runs the section's top-level statements after its names are filled (the first try failed at load). The
       globals gate caught shows_ctx (a declaration with a trailing comment the mover had not parsed).
 - [x] `menu.lua`: the menu scene's drawing (681 lines; confetti lifted first): locals 96 -> 76.
+- [x] `homestate.lua`: the state file, the labels, the art cache, the curtain, the trace (240 lines): locals
+      53 -> 42, upvalues 28 -> 24 (t, the loop's clock, declared above it first).
 - [ ] Milestone: G4, G5.
 
 **CP5. Scenes.**

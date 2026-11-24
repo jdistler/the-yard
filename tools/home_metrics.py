@@ -54,7 +54,7 @@ def metrics(path=os.path.join(HOME, "main.lua")):
 
 # The modules made by the refactor (HOME_REFACTOR.md): they may touch only Lua's and LÖVE's globals. Anything else
 # is a name main.lua passes in that the module forgot to mirror (a nil at run time, or a stray global).
-MODULES = ["draw", "input", "pictures", "actions", "catalog", "idle", "menu", "scenes"]
+MODULES = ["draw", "input", "pictures", "actions", "catalog", "idle", "menu", "homestate", "scenes"]
 STD = set("assert collectgarbage error getmetatable ipairs next pairs pcall print rawequal rawget rawlen rawset "
           "require select setmetatable tonumber tostring type unpack xpcall setfenv getfenv loadstring load "
           "io math os string table coroutine debug jit bit love home_note arg _G".split())
