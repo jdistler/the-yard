@@ -147,7 +147,10 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
 - [x] `menu.lua`: the menu scene's drawing (681 lines; confetti lifted first): locals 96 -> 76.
 - [x] `homestate.lua`: the state file, the labels, the art cache, the curtain, the trace (240 lines): locals
       53 -> 42, upvalues 28 -> 24 (t, the loop's clock, declared above it first).
-- [ ] Milestone: G4, G5.
+- [x] Milestone (with homestate): G4 full suite 251/251; G5 on the cabinet: no regression against the CP1
+      baseline.
+- [x] `cards.lua`: the arcade scores, FAVORITES cards, the brand helpers ("colors and drawing"'s remainder, after
+      D and play moved to the head). `ticks.lua`: the music and idle ticks. main.lua 784 -> 640 lines, locals 38.
 
 **CP5. Scenes.**
 - [ ] A scene table and dispatcher in main: `love.update/draw/handle` call the current scene; intro, menu, attract,

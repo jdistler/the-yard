@@ -143,90 +143,22 @@ local function read_file(path)
   return s
 end
 
+-- rgb, fonts, neon labels, rrect: draw.lua (HOME_REFACTOR.md CP2)
+local D = require("draw")
+D.init(W)
+local play = sound.play
+
 -- ------------------------------------------------------------------ the games
 
 -- catalog.lua (HOME_REFACTOR.md CP4)
 local CAT = require("catalog")({ST = ST, log = log, read_file = read_file, shelf = shelf,
   shows = shows})
 
--- ------------------------------------------------------------------ colors and drawing
+-- ------------------------------------------------------------------ the cards
 
--- rgb, fonts, neon labels, rrect: draw.lua (HOME_REFACTOR.md CP2)
-local D = require("draw")
-D.init(W)
-
--- An arcade board's best score, and its line on the info panel ("23,310  JRN").
-function ST.arcade_best(it)
-  local t = shelf.arcade_table(it.id)
-  return t and t[1][1] or 0
-end
-function ST.arcade_score_text(it)
-  local t = shelf.arcade_table(it.id)
-  if not t or t[1][1] <= 0 then return nil end
-  if t[1][3] then return shelf.commas(t[1][1]) .. "  (HOUSE)" end   -- (no player record yet: the house's to beat)
-  return shelf.commas(t[1][1]) .. (t[1][2] ~= "" and ("  " .. t[1][2]) or "")
-end
-for _, it in ipairs(CAT.items) do
-  if it.kind == "arcade" then it.table = shelf.arcade_table(it.id) it.score = ST.arcade_score_text(it) end
-end
-
--- FAVORITES (favs.lua): the game played last, then the most played, as cards that launch straight away.
-ST.favs = require("favs")
-do
-  local stats = ST.favs.credit(ST.STATE)
-  local last = ST.favs.last(stats)
-  local order, seen = {}, {}
-  if last then order[1], seen[last] = last, true end
-  for _, k in ipairs(ST.favs.ranked(stats)) do
-    if not seen[k] and #order < 8 then order[#order + 1], seen[k] = k, true end
-  end
-  local favs = {}
-  for i, k in ipairs(order) do
-    local base
-    local sys, file = k:match("^game:([^/]+)/(.+)$")
-    if sys then
-      local g = shelf.find(sys, file)
-      if g then
-        base = {kind = "game", game = g, id = sys .. "/" .. file, title = g.title:upper(), blurb = g.blurb,
-                tint = g.tint or 0xff4fd8}
-      end
-    else
-      for _, it in ipairs(CAT.items) do if CAT.item_key(it) == k then base = it break end end
-    end
-    if base and base.kind ~= "stock" then
-      local c = {}
-      for kk, vv in pairs(base) do c[kk] = vv end
-      c.section, c.fav, c.statkey = 1, true, k
-      c.sub = (i == 1 and k == last and "LAST PLAYED  ·  " or "") .. ST.favs.line(stats[k])
-      favs[#favs + 1] = c
-    end
-  end
-  if #favs == 0 then
-    favs[1] = {kind = "favhint", fav = true, section = 1, title = "FAVORITES", sub = "YOUR MOST-PLAYED GAMES",
-               blurb = "Play anything and it lands here: the last game played, then the ones played most.", tint = 0xff7ab8}
-  end
-  for i = #favs, 1, -1 do table.insert(CAT.items, 1, favs[i]) end
-end
-
-
-
-
-
--- The brand: STARLIGHT in its script neon (a painted label, like any other).
-ST.BRAND, ST.C, ST.ACCENT = "Starlight", 0xffd36b, 0x6ef0c8
-function ST.draw(x, y, px, alpha, sc, align, width)
-  D.face = "script"
-  D.neon_draw(ST.BRAND, x or 0, y, px, ST.C, 1.5, align or "center", width or W, alpha, sc)
-  D.face = "round"
-end
-function ST.img(px)
-  D.face = "script"
-  local e = D.neon_img(ST.BRAND, px, ST.C, 1.5)
-  D.face = "round"
-  return e
-end
-
-local play = sound.play
+-- cards.lua (HOME_REFACTOR.md CP4)
+require("cards")({CAT = CAT, D = D, ST = ST, W = W,
+  shelf = shelf})
 
 -- ------------------------------------------------------------------ input
 
@@ -520,89 +452,13 @@ function love.quit()
   return false
 end
 
--- The song for what is on the screen (songs.lua; the night has one for each of its scenes), and its volume.
-local NIGHT_SONG = {dusk = "dusk", quiet = "quiet", rest = "none", dawn = "dawn"}
-local music_vol
-local function music_tick()
-  if ST.scene == "intro" then return end
-  local want, vol, fade = "menu", 0.32, 1.2
-  if ST.scene == "night" then
-    local sc = night.scene_at(ST.night_t * ST.NIGHT_SPEED)
-    want, vol, fade = NIGHT_SONG[sc] or sc, 0.26, 3
-  elseif ST.scene == "show" and ST.cur_show then
-    -- (behind the curtain, before the show has started, it isn't asked: silence until it has)
-    if ST.curtain and ST.curtain.phase == "cover" then return end
-    want, vol, fade = ST.cur_show.music(), 0.42, 2
-    if ST.TRACE then
-      if ST.cur_show.clock then HS.trace("t", ST.cur_show.clock()) end
-      if want ~= ST.trace_seen.music then ST.trace_seen.music = want HS.trace("music", want) end
-      local act = ST.cur_show.act and ST.cur_show.act()
-      if act ~= ST.trace_seen.act then ST.trace_seen.act = act HS.trace("act", act) end
-    end
-  elseif ST.scene == "tv" or ST.scene == "shelf" then want = "tv"
-  elseif ST.scene == "attract" then want = "attract" end
-  -- (headless tests choose the song too, so a show that can't say which is caught on the PC, but play nothing)
-  if headless then return end
-  if vol ~= music_vol then music_vol = vol music.volume(vol, 1.5) end
-  music.play(want, fade)
-end
+-- ------------------------------------------------------------------ the ticks
 
--- The TV guide, attract, and the idle shows (night sky, Freedom Show), with their music. (Out of love.update:
--- LuaJIT allows a function 60 upvalues.)
-local cards_t = 0
-local function update_idle(dt)
-  cards_t = cards_t - dt
-  if cards_t <= 0 then cards_t = 30 IDLE.update_cards() end
-  if ST.scene == "tv" then
-    ST.idle = 0
-    if tv.update(dt) == "exit" then ST.scene = "menu" end
-  end
-  if ST.scene == "shelf" then
-    ST.idle = 0
-    if shelf.update(dt) == "exit" then ST.shelf_close() end
-  end
-  if ST.scene == "initials" then
-    ST.idle = 0
-    if ST.initials.update(dt) == "done" then ST.scene = "menu" end
-  end
-  if ST.scene == "hall" then
-    ST.idle = 0
-    if ST.hall.update(dt) == "exit" then ST.scene = "menu" ST.near_sel = nil end
-  end
-  ST.idle = ST.idle + dt
-  if ST.scene == "menu" and ST.idle > ST.IDLE_ATTRACT then ST.scene = "attract" ST.attract_t = 0 ST.attract_sel = ST.sel end
-  if ST.scene == "attract" then
-    ST.attract_t = ST.attract_t + dt
-    if ST.attract_t > 3.5 then ST.attract_t = 0 ST.sel = ST.sel % #CAT.items + 1 end
-    if ST.idle > ST.IDLE_NIGHT then IDLE.start_show() end
-  end
-  if ST.scene == "night" then
-    ST.night_t = ST.night_t + dt
-    ST.auto_night_t = ST.auto_night_t + dt
-    -- AUTO: the night sky has had its half hour (or the Longhorns kick off): the calendar's show.
-    if ST.show_mode == "auto" and not ST.demo and (ST.auto_night_t > ST.AUTO_NIGHT_BLOCK or ST.game_now.window) then
-      local id = shows.pick(os.time(), ST.game_now, ST.auto_rot)
-      if id ~= "night" then ST.auto_rot = ST.auto_rot + 1 IDLE.play_show(id) else ST.auto_night_t = 0 end
-    end
-  end
-  if ST.scene == "show" and ST.cur_show then
-    ST.idle = 0
-    if HS.curtain_step(dt) and ST.cur_show.update(dt) then
-      if os.getenv("HOME_SHOW_ONCE") then love.event.quit(0) return end   -- (tools/show_lint.py)
-      -- The show is over: its tiles again (watching one), the same show (one show only), or the night sky's
-      -- turn (AUTO; the Longhorns go on while the game is on).
-      if ST.demo then IDLE.open_tiles(ST.demo)
-      elseif ST.show_mode ~= "auto" then IDLE.play_show(ST.show_mode)
-      elseif ST.cur_show_id == "longhorns" and ST.game_now.window then IDLE.play_show("longhorns")
-      else IDLE.play_show("night") end
-    end
-  end
-  if ST.scene == "shows" then
-    shows.update(dt)
-    if ST.idle > ST.IDLE_NIGHT then shows.close() IDLE.start_show() end
-  end
-  music_tick()
-end
+-- ticks.lua (HOME_REFACTOR.md CP4)
+local TICK = require("ticks")({CAT = CAT, HS = HS, IDLE = IDLE, ST = ST,
+  headless = headless, music = music, night = night, shelf = shelf, shows = shows, tv = tv})
+
+-- ------------------------------------------------------------------ the frame
 
 local fps_t, fps_n = 0, 0
 local last_letters = 0
@@ -710,7 +566,7 @@ function love.update(dt)
     if letters > last_letters then last_letters = letters play("tick") end
     if ST.intro_t > MENU.INTRO_LEN then ST.scene = "menu" ST.menu_in = 0.45 end
   end
-  update_idle(dt)
+  TICK.update_idle(dt)
   fx.update(dt, ST.scene == "menu" or ST.scene == "attract" or ST.scene == "night")
   if ST.vol_t > 0 then ST.vol_t = ST.vol_t - dt end
   if ST.menu_in > 0 then ST.menu_in = math.max(0, ST.menu_in - dt) end
