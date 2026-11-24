@@ -156,6 +156,11 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
 (Each checkpoint: date, commits, metrics before and after, gates passed, cabinet numbers.)
 
 * **CP0, 2026-11-24:** locals 192/200, slots 202/250, upvalues 54/60 (love.load). Tour 50 steps, golden saved.
+* **CP3 state, 2026-11-24:** 35 state locals into ST in two groups: locals 167 -> 137, slots 176 -> 141, most
+  upvalues 47 -> 37 (love.update had 53). Gates: tour 50/50 after each group, Home tests 31/31, full suite 250/250,
+  cabinet bench identical (warm startup 0.81 s, menu 59 fps, attract 57.7 fps, no errors). Two slips, both in the
+  renaming of multi-target assignments, caught by the new globals gate, not by pixels: a reminder that the tour
+  only proves what it visits. Remaining in CP3: the head's paths and flags into ST.
 * **CP2 done, 2026-11-24:** pictures.lua out too: locals 192 -> 167, slots 202 -> 176, upvalues 54 -> 47 overall.
   G4 249/249, G5 identical to baseline.
 * **CP2 (part), 2026-11-24:** draw.lua and input.lua out: locals 192 -> 172, slots 202 -> 181, most upvalues

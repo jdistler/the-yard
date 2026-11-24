@@ -227,8 +227,8 @@ Ticked as each lands, with the commit.
 
 **H. Home refactor: the plan, gates and checkpoints are in [HOME_REFACTOR.md](HOME_REFACTOR.md)**
 - [x] H0. Safety net (CP0) and cabinet baseline (CP1).
-- [ ] H1. CP2 the leaves (drawing helpers, input, pictures).
-- [ ] H2. CP3 one context table.
+- [x] H1. CP2 the leaves (drawing helpers, input, pictures).
+- [ ] H2. CP3 one context table (state done: 35 names into ST; the head's paths and flags remain).
 - [ ] H3. CP4 the big consumers (catalog, actions, idle, menu).
 - [ ] H4. CP5 scenes; CP6 docs and soak.
 
