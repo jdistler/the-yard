@@ -596,6 +596,10 @@ local function run(cart, resume_title)
       audio.update(STEP)
       frame = frame + 1
       if stats and frame % 300 == 0 then
+        -- (YARD_STATS_COLLECT=1, the endurance test: let-go layers are collected before counting, so "images" is
+        -- what is alive, not what waits for the once-a-second collection; at ~1000 fps headless that wait spans
+        -- hundreds of frames and made the count wobble between runs)
+        if os.getenv("YARD_STATS_COLLECT") then collectgarbage() gfx.collect() end
         local now = love.timer.getTime()
         log(string.format("stats %s frame %d update %.2fms draw %.2fms present %.2fms (%.1f fps drawn, %.1f steps/s, %d behind) lua %dKB images %dKB gpu %dKB",
           cart.id, frame, t_up / 300 * 1000, t_draw / math.max(1, draws) * 1000, t_pres / math.max(1, draws) * 1000,

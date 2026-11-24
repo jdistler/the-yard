@@ -1314,7 +1314,8 @@ def endurance():
     yl = os.path.join(d, "yard.love")
     subprocess.run([os.path.join(HERE, "cart"), "love-pack", "--out", yl], check=True, capture_output=True)
     lenv = {"YARD_CARTS": os.path.join(HERE, "carts"), "SDL_AUDIODRIVER": "dummy", "YARD_HEADLESS": "1",
-            "SDL_VIDEODRIVER": "offscreen", "ALSOFT_DRIVERS": "null", "CAB_AUTOPLAY": "1", "YARD_STATS": "1"}
+            "SDL_VIDEODRIVER": "offscreen", "ALSOFT_DRIVERS": "null", "CAB_AUTOPLAY": "1", "YARD_STATS": "1",
+            "YARD_STATS_COLLECT": "1"}
     for cid, title in LOVE_CARTS.items():
         w = tmpdir()
         _, err = run("love", w, script(title, "7200 quit"), lenv, args=(yl, cid), timeout=600, binary=LOVE_RUN)
