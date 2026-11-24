@@ -137,8 +137,12 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
 
 **CP4. The big consumers.**
 - [ ] `catalog.lua`: the cards and the state file.
-- [ ] `actions.lua`.
-- [ ] `idle.lua`: attract, night, the shows' curtain and schedule.
+- [x] `actions.lua` (tools/home_move.py; speed and smooth lifted into ST first): locals 118 -> 110.
+- [x] `idle.lua`: attract, night, the shows' curtain and schedule (356 lines): locals 110 -> 96, upvalues 32 -> 30.
+      The mover now refuses an export the section reassigns (it caught auto_rot, game_now, menu_freed, demo: main
+      would have kept stale copies), syncs the frame clock t (`--sync t`: main hands each new value over), and
+      runs the section's top-level statements after its names are filled (the first try failed at load). The
+      globals gate caught shows_ctx (a declaration with a trailing comment the mover had not parsed).
 - [ ] `menu.lua`: the menu scene's drawing.
 - [ ] Milestone: G4, G5.
 

@@ -52,9 +52,10 @@ def code_only(text):
 
 
 def top_level_names(lines):
-    """{name: line index} of `local` declarations at column 0 (and `local function`)."""
+    """{name: line index} of `local` declarations at column 0 (and `local function`); comments ignored."""
     names = {}
     for i, l in enumerate(lines):
+        l = split_comment(l)[0].rstrip()
         m = re.match(r"^local function (\w+)", l)
         if m:
             names[m.group(1)] = i
@@ -68,7 +69,9 @@ def top_level_names(lines):
 
 
 def main():
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    argv = sys.argv[1:]
+    sync = [argv[i + 1] for i, a in enumerate(argv) if a == "--sync"]
+    args = [a for i, a in enumerate(argv) if not a.startswith("--") and (i == 0 or argv[i - 1] != "--sync")]
     check_only = "--check" in sys.argv
     section, modname, prefix = args
     src = open(MAIN).read()
@@ -109,44 +112,55 @@ def main():
     for n in imports:
         if assigns(n, body_code):
             problems.append(f"{n}: the section assigns to it (lift it into ST first)")
-        if assigns(n, after_code):
-            problems.append(f"{n}: main assigns to it after the section (lift it into ST first)")
+        if assigns(n, after_code) and n not in sync:
+            problems.append(f"{n}: main assigns to it after the section (lift it into ST first, or --sync it)")
+        if n in sync and assigns(n, body_code):
+            problems.append(f"{n}: --sync only works for a name the section reads, and it assigns to it")
         if re.match(rf"^local ([\w, ]*[ ,])?{n}\s*$", before[above[n]]) or \
                 re.match(rf"^local [\w, ]+$", before[above[n]]):
             problems.append(f"{n}: only declared above the section, no value yet (lift it into ST first)")
-    print(f"section '{section}': {len(body)} lines; imports {imports}; exports {exports}")
+    for n in exports:
+        decl_line = sec_names[n]
+        rest = "\n".join(l for i, l in enumerate(code_only("\n".join(body)).split("\n")) if i != decl_line)
+        if not re.match(rf"^local function {n}\b", body[decl_line]) and assigns(n, rest):
+            problems.append(f"{n}: exported, and the section reassigns it (main would keep a stale copy): lift it into ST first")
+        if assigns(n, after_code):
+            problems.append(f"{n}: exported, and main assigns to it after the section: lift it into ST first")
+    print(f"section '{section}': {len(body)} lines; imports {imports}; exports {exports}; synced {sync}")
     if problems:
         sys.exit("refused:\n  " + "\n  ".join(problems))
     if check_only:
         return
     # the module
     mod = [f"-- {modname}.lua: main.lua's \"{section}\" section, moved verbatim (HOME_REFACTOR.md CP4, tools/home_move.py).",
-           "-- Main's names it uses are mirrored here as locals of the same names, filled by M.init(ctx).",
+           "-- Main's names it uses are mirrored here as locals of the same names. main.lua calls the function this",
+           "-- returns with them, where the section was: it fills the mirrors, then runs the section's text, so its",
+           "-- top-level statements run in the same order as before.",
            "local M = {}"]
     if imports:
         mod.append("local " + ", ".join(imports))
-        mod.append("function M.init(c)")
-        for i in range(0, len(imports), 6):
-            chunk = imports[i:i + 6]
-            mod.append("  " + ", ".join(chunk) + " = " + ", ".join(f"c.{n}" for n in chunk))
-        mod.append("end")
+    for n in sync:
+        mod.append(f"function M.sync_{n}(v) {n} = v end   -- (main assigns {n}; it hands the new value over)")
+    mod.append("")
+    mod.append("return function(c)")
+    for i in range(0, len(imports), 6):
+        chunk = imports[i:i + 6]
+        mod.append(", ".join(chunk) + " = " + ", ".join(f"c.{n}" for n in chunk))
     mod.append("")
     mod.extend(body)
     mod.append("")
     for n in exports:
         mod.append(f"M.{n} = {n}")
-    mod.append("")
     mod.append("return M")
+    mod.append("end")
     open(os.path.join(os.path.dirname(MAIN), modname + ".lua"), "w").write("\n".join(mod) + "\n")
     # main: the section becomes the require and the init, and the exports' uses become PREFIX.name
-    init = []
-    if imports:
-        pairs = [f"{n} = {n}" for n in imports]
-        init = [f"{prefix}.init({{" + ", ".join(pairs[:5]) + ("," if len(pairs) > 5 else "")]
-        for i in range(5, len(pairs), 6):
-            init.append("        " + ", ".join(pairs[i:i + 6]) + ("," if i + 6 < len(pairs) else ""))
-        init[-1] += "})"
-    new_sec = [lines[start], "", f"-- {modname}.lua (HOME_REFACTOR.md CP4)", f"local {prefix} = require(\"{modname}\")"] + init + [""]
+    pairs = [f"{n} = {n}" for n in imports]
+    call = [f"local {prefix} = require(\"{modname}\")({{" + ", ".join(pairs[:4]) + ("," if len(pairs) > 4 else "")]
+    for i in range(4, len(pairs), 6):
+        call.append("  " + ", ".join(pairs[i:i + 6]) + ("," if i + 6 < len(pairs) else ""))
+    call[-1] += "})"
+    new_sec = [lines[start], "", f"-- {modname}.lua (HOME_REFACTOR.md CP4)"] + call + [""]
     pat = re.compile(r"(?<![\w.])(" + "|".join(map(re.escape, exports)) + r")(?![\w])") if exports else None
     out_after = []
     stack = []
@@ -186,6 +200,10 @@ def main():
             elif ch in ")}]" and stack:
                 stack.pop()
         out_after.append(code + com)
+        for n in sync:
+            if assigns(n, code_only(line)):
+                ind = re.match(r"^\s*", line).group(0)
+                out_after.append(f"{ind}{prefix}.sync_{n}({n})")
         prev = line
     open(MAIN, "w").write("\n".join(before + new_sec + out_after))
     print(f"moved to {modname}.lua; main uses {prefix}.x for {exports}")

@@ -39,7 +39,7 @@ def main():
     lines = src.split("\n")
     bad = []
     for n in names:
-        tops = [i for i, l in enumerate(lines) if re.match(rf"^local ([\w, ]*[ ,])?{n}( |,|$)", l)]
+        tops = [i for i, l in enumerate(lines) if re.match(rf"^local ([\w, ]*[ ,])?{n}( |,|$)", split_comment(l)[0].rstrip())]
         if len(tops) != 1:
             bad.append(f"{n}: {len(tops)} top-level declarations")
             continue
@@ -47,7 +47,8 @@ def main():
         declared = [x.strip() for x in decl.group(1).split(",")] if decl else []
         if any(x not in names for x in declared):
             bad.append(f"{n}: declared with {declared}: split it by hand")
-        shadow = [i + 1 for i, l in enumerate(lines) if i != tops[0] and (
+        codes = [split_comment(l)[0] for l in lines]   # (a comment saying "for party mode" is not a loop)
+        shadow = [i + 1 for i, l in enumerate(codes) if i != tops[0] and (
             re.match(rf"^\s+local ([\w, ]*[ ,])?{n}( |,|=|$)", l) or
             re.search(rf"function[^(]*\(([^)]*[ ,])?{n}[,)]", l) or re.search(rf"\bfor ([\w, ]*[ ,])?{n}( |,)", l))]
         if shadow:

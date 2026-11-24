@@ -1219,9 +1219,9 @@ def home():
     import json
     mt = json.loads(subprocess.run([sys.executable, os.path.join(HERE, "..", "tools", "home_metrics.py"), "--json"],
                                    capture_output=True, text=True).stdout)
-    check(mt["main_locals"] <= 110 and mt["max_upvalues"] <= 32 and mt["main_slots"] <= 114,
-          f"Home: main.lua within its refactor ceilings (locals {mt['main_locals']}/110, upvalues "
-          f"{mt['max_upvalues']}/32, slots {mt['main_slots']}/114)")
+    check(mt["main_locals"] <= 96 and mt["max_upvalues"] <= 30 and mt["main_slots"] <= 98,
+          f"Home: main.lua within its refactor ceilings (locals {mt['main_locals']}/96, upvalues "
+          f"{mt['max_upvalues']}/30, slots {mt['main_slots']}/98)")
     check(not mt["module_globals"],
           f"Home: the refactor's modules use no name they were not given (a missed mirror): {mt['module_globals']}")
     check(mt["globals"] == ["home_note"],
