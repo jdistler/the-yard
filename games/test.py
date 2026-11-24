@@ -1219,9 +1219,9 @@ def home():
     import json
     mt = json.loads(subprocess.run([sys.executable, os.path.join(HERE, "..", "tools", "home_metrics.py"), "--json"],
                                    capture_output=True, text=True).stdout)
-    check(mt["main_locals"] <= 137 and mt["max_upvalues"] <= 37 and mt["main_slots"] <= 141,
-          f"Home: main.lua within its refactor ceilings (locals {mt['main_locals']}/137, upvalues "
-          f"{mt['max_upvalues']}/37, slots {mt['main_slots']}/141)")
+    check(mt["main_locals"] <= 118 and mt["max_upvalues"] <= 32 and mt["main_slots"] <= 122,
+          f"Home: main.lua within its refactor ceilings (locals {mt['main_locals']}/118, upvalues "
+          f"{mt['max_upvalues']}/32, slots {mt['main_slots']}/122)")
     check(mt["globals"] == ["home_note"],
           f"Home: main.lua writes no global by accident (a local that lost its declaration): {mt['globals']}")
     # Home's Yard cards come from the carts' own info.lua (cartinfo.lua): one per cart, the cart's title, and its

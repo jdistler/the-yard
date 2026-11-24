@@ -121,8 +121,8 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
       `home_note`. Found its reason the first time: the first lift left `pos`, `launch_item`, `note_t` as
       accidental globals in multi-target assignments (`ST.sel, pos = ...`), which the tour did not see because
       the code happens to assign them before reading. Fixed, and the tool now tracks brackets across lines.
-- [ ] `app` created in main; the head's paths, flags and modules move into it (callers use `app.X`; hot loops keep
-      aliases).
+- [x] The head's paths and flags into ST (19 names; ST's creation moved to the top so it exists first). Kept as
+      locals on purpose: W and H (constants in nearly every draw call), the module handles, log.
 - [ ] The state section moves into `app` one group at a time, a commit each:
   - [x] selection and scene, scene timers, note, launch (15 names): locals 167 -> 153, upvalues 47 -> 44.
   - [x] volume, the show playing and its curtain, returning and celebration, the code buffer, last played, labels,
@@ -132,7 +132,8 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
         have shown. Fixed; the tool now needs the previous line to end in `{` or `,` for a line-start key.
   - [ ] Left as locals on purpose: `t` (the frame clock, shadowed 16 times, hot), `party` (shadowed once).
         The state section's functions move with their modules in CP4.
-- [ ] Milestone: G4, G5. Expected: top-level locals under 110, the loop's upvalues under 30.
+- [ ] Milestone: G4, G5. Expected: top-level locals under 110, the loop's upvalues under 30. (Now 118 and 32:
+      the rest are functions, which move with their modules in CP4.)
 
 **CP4. The big consumers.**
 - [ ] `catalog.lua`: the cards and the state file.
@@ -156,6 +157,8 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
 (Each checkpoint: date, commits, metrics before and after, gates passed, cabinet numbers.)
 
 * **CP0, 2026-11-24:** locals 192/200, slots 202/250, upvalues 54/60 (love.load). Tour 50 steps, golden saved.
+* **CP3 head, 2026-11-24:** 19 paths and flags into ST: locals 137 -> 118, upvalues 37 -> 32; tour 50/50, Home
+  tests 31/31, globals clean.
 * **CP3 state, 2026-11-24:** 35 state locals into ST in two groups: locals 167 -> 137, slots 176 -> 141, most
   upvalues 47 -> 37 (love.update had 53). Gates: tour 50/50 after each group, Home tests 31/31, full suite 250/250,
   cabinet bench identical (warm startup 0.81 s, menu 59 fps, attract 57.7 fps, no errors). Two slips, both in the
