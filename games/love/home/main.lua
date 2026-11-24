@@ -503,9 +503,14 @@ function love.update(dt)
       elseif c[2] == "quit" then love.event.quit(0) end
     end
   end
+  local h0 = love.timer.getTime()
   for _, n in ipairs(I.pressed_q) do IDLE.handle(n) end
   I.pressed_q = {}
+  DIAG.slow("input", h0)
+  ST.wake_step(dt)
+  h0 = love.timer.getTime()
   if not ST.menu_freed then HS.manage_labels(false) end
+  DIAG.slow("card labels", h0)
   if CAT.PREVIEW and I.down["1p"] and I.down["2p"] and not ST.launch_item then
     I.hold_t = I.hold_t + dt
     ST.idle = 0
@@ -535,7 +540,9 @@ function love.update(dt)
     if ST.vol_read <= 0 then ST.vol_read = nil A.read_volume() end
   end
   ST.pos = ST.pos + (ST.sel - ST.pos) * math.min(1, dt * 11)
+  h0 = love.timer.getTime()
   if ST.scene ~= "hall" then ST.near_shots() end
+  DIAG.slow("card pictures", h0)
   if ST.note then ST.note_t = ST.note_t - dt if ST.note_t <= 0 then ST.note = nil end end
   if ST.launch_item then
     ST.launch_t = ST.launch_t + dt
@@ -553,8 +560,9 @@ local first_drawn = false
 function love.draw()
   local d0 = love.timer.getTime()
   D.painted = 0
-  -- Labels still to paint: two a frame, before anything is drawn on the screen.
-  for _ = 1, 2 do
+  -- Labels still to paint: two a frame, before anything is drawn on the screen
+  -- (three behind the waking cover, where a long frame shows nothing moving)
+  for _ = 1, ST.wake and ST.wake.phase == "cover" and 3 or 2 do
     local job = table.remove(D.label_jobs, 1)
     if job then job() lg.setCanvas() end
   end

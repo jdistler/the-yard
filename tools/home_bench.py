@@ -3,6 +3,7 @@
 
     tools/home_bench.py            run, compare with captures/home_tour/cabinet_baseline.tsv
     tools/home_bench.py --save     run and store the result as the baseline
+    tools/home_bench.py --wake     a show, then a press: how waking to the menu runs (SYSTEM_AUDIT.md G3)
 
 Home is stopped (and the sound muted, tools/cab_quiet.sh), then started directly, twice: cold (the kernel's file
 cache dropped first, as after power-on) and warm (as after a game). A script drives it through every section,
@@ -30,13 +31,14 @@ SCRIPT = "\n".join(
     ["4300 quit"]) + "\n"
 
 RUN = r'''mode=$1
+HB_EXTRA=$2
 cp /data/home/state /tmp/hb.state 2>/dev/null; cp /mnt/sdcard/partycade/stats.tsv /tmp/hb.stats 2>/dev/null
 rm -f /tmp/hb.log /tmp/hb.req
 [ "$mode" = cold ] && { sync; echo 3 > /proc/sys/vm/drop_caches; }
 cd /data/home
 TZ=CST6CDT,M3.2.0,M11.1.0 HOME_SCRIPT=/tmp/hb.script HOME_LOG=/tmp/hb.log HOME_STATE=/tmp/hb.state \
   HOME_STATS=/tmp/hb.stats HOME_REQ=/tmp/hb.req HOME_ART=/data/home/art HOME_GAMES=/data/Games HOME_SKIP_INTRO=1 \
-  HOME_IDLE=6 HOME_NIGHT=20 HOME_FPS_EVERY=120 /data/love/run.sh /data/home/home.love >/dev/null 2>&1 &
+  HOME_IDLE=6 HOME_NIGHT=20 HOME_FPS_EVERY=120 $HB_EXTRA /data/love/run.sh /data/home/home.love >/dev/null 2>&1 &
 pid=$!
 rss=0
 while kill -0 $pid 2>/dev/null; do
@@ -75,6 +77,24 @@ def measure(mode):
             "errors": len(re.findall(r"ERROR", out))}
 
 
+# The wake: a show plays 15 s, a press wakes it, the menu for 6 s. Every frame over 45 ms after the press, by the
+# wake's phase: under the cover (dark, nothing moving: unseen) or not (a stutter you can see).
+WAKE_SCRIPT = "900 press low\n1300 quit\n"
+
+
+def measure_wake():
+    ssh("cat > /tmp/hb.script", stdin=WAKE_SCRIPT)
+    out = ssh("sh -s warm 'env HOME_SHOW=freedom HOME_SHOW_ONCE=1 HOME_IDLE=600'", stdin=RUN, timeout=240).stdout
+    seen, covered = [], []
+    for line in out.splitlines():
+        m = re.search(r"hitch (\d+) ms, scene menu", line)
+        if m:
+            (covered if "waking cover" in line else seen).append(int(m.group(1)))
+            print("  " + line[:260])
+    print(f"wake: under the cover {covered} ms; seen {seen} ms; errors {len(re.findall('ERROR', out))}")
+    return not seen or max(seen) < 100
+
+
 COLS = ["mode", "startup_s", "menu_fps", "attract_fps", "night_fps", "textures_kb", "hitches_100ms",
         "worst_hitch_ms", "rss_mb", "errors"]
 
@@ -83,6 +103,12 @@ def main():
     if subprocess.run([CAB, "host"], capture_output=True).returncode != 0:
         sys.exit("home_bench: the cabinet is not on the network")
     subprocess.run([QUIET, "on"], check=False)
+    if "--wake" in sys.argv:
+        try:
+            ok = measure_wake()
+        finally:
+            subprocess.run([QUIET, "off"], check=False)
+        sys.exit(0 if ok else 1)
     res = []
     try:
         for mode in ("cold", "warm"):

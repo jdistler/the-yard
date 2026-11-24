@@ -613,6 +613,12 @@ local function draw_intro()
 end
 
 local function draw_scene()
+  -- Waking: dark while the menu's pictures come back; once its labels are painted, the menu is drawn under the
+  -- (opaque) cover, so whatever it still paints on first use is painted where nothing can be seen.
+  if ST.wake and ST.wake.phase == "cover" and (ST.wake.n <= 2 or #D.label_jobs > 0) then
+    lg.clear(0.02, 0.01, 0.05, 1)
+    return
+  end
   if ST.scene == "hall" then
     ST.hall.draw()
     draw_volume()
@@ -678,6 +684,10 @@ local function draw_scene()
     -- After the intro: the menu comes up under the sign.
     lg.setColor(0.02, 0.0, 0.05, ST.menu_in / 0.45 * 0.8)
     lg.rectangle("fill", 0, 178, W, H - 178)
+  end
+  if ST.wake then
+    lg.setColor(0.02, 0.01, 0.05, math.max(0, 1 - ST.wake.f / ST.WAKE_FADE))
+    lg.rectangle("fill", 0, 0, W, H)
   end
   draw_volume()
   draw_celebration()

@@ -18,6 +18,7 @@ D.trace_font = nil           -- (HOME_TRACE: a new font made; set once the trace
 D.neon_cache = {}
 D.label_jobs = {}
 D.painted = 0
+D.PAINT_LOG = os.getenv("HOME_PAINT_LOG") == "1"
 
 function D.init(w) W = w end
 
@@ -95,6 +96,7 @@ function D.neon_img(s, px, c, glow)
     D.neon_cache[old_k].img:release()
     D.neon_cache[old_k] = nil
   end
+  if D.PAINT_LOG then print("PAINT", love.timer.getTime(), key) end   -- (HOME_PAINT_LOG=1: each label painted)
   D.painted = D.painted + 1   -- (labels painted, for the hitch notes: main.lua's love.draw)
   local f = D.face == "script" and D.script_font(px) or D.font(px)
   local pad = 10
@@ -108,7 +110,8 @@ function D.neon_img(s, px, c, glow)
   D.neon(s, pad, pad, px, c, glow, "left", cw)
   lg.pop()
   cv:setFilter("linear", "linear")
-  e = {img = cv, w = cw, h = ch, pad = pad, used = now}
+  -- (args: to paint it again on waking from a show, idle.lua's restore_menu_pictures)
+  e = {img = cv, w = cw, h = ch, pad = pad, used = now, args = {s, px, c, glow, D.face}}
   D.neon_cache[key] = e
   return e
 end

@@ -96,6 +96,11 @@ def show_tour(w):
     return ["60 shot show_a", "600 shot show_b", "1500 shot show_c", "1510 quit"]
 
 
+def wake_tour(w):
+    # A press during a show: dark at once (the menu's pictures come back behind it), then the menu fades in.
+    return ["300 press low", "302 shot wake_cover", "460 shot wake_menu", "470 quit"]
+
+
 def launch_classic(w):
     return ["40 shot before_launch", "50 press low", "200 quit"]
 
@@ -134,6 +139,7 @@ TOUR = [
     ("shows", shows_tiles_tour, {}),
     ("idle", idle_tour, {"HOME_IDLE": "2"}),
     ("show_freedom", show_tour, {"HOME_SHOW": "freedom", "HOME_SHOW_ONCE": "1"}),
+    ("wake", wake_tour, {"HOME_SHOW": "freedom", "HOME_SHOW_ONCE": "1"}),
     ("launch_classic", launch_classic, {}),
     ("launch_cart", launch_cart, {}),
 ]

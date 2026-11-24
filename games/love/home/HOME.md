@@ -53,6 +53,19 @@ so their code reads exactly as it did in `main.lua`. The rule that keeps mirrors
 assigned, by the module or by main, after the call (the mover refuses a move that would break it; such names live
 in `ST`). A function is shared by reference; so is a table, as long as nobody replaces it.
 
+## Labels, pictures and waking
+
+* Neon labels are painted once into pictures (`draw.lua`, at most 32 kept). A card's 64 px title is painted for
+  the cards within 3 of the chosen one, the 44 px info-panel title only for the chosen card, and the cards a
+  left/right press lands on ahead of time, through `D.label_jobs` (two a frame). Painting in `love.draw` on a
+  cache miss works but costs a hitch: queue it instead.
+* Pictures are decoded on the worker (`worker.lua`) and uploaded by `HS.drain_worker`, two a frame. Don't call
+  `lg.newImage` on a file in a frame the player can see.
+* A show frees the menu's pictures (GPU memory). Waking goes through `ST.wake` (idle.lua): dark at once, the
+  pictures come back behind it, then a fade. A show's start goes through `ST.curtain` (homestate.lua) the same way.
+* To find a hitch: the `hitch` lines in the log name what ran (`did ...`); `tools/home_bench.py [--wake]`
+  measures it on the cabinet; `HOME_PAINT_LOG=1` prints every label painted.
+
 ## Adding things
 
 * **A Yard game:** a cart in `games/carts/<id>/` with its `info.lua` (title, tint, blurb, band, `stat`). Home's

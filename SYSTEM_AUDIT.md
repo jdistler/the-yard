@@ -185,6 +185,10 @@ Ticked as each lands, with the commit.
       `/tmp`; a stall writes the ring to the SD card log beside Home's.
 - [x] B2. Home logs, with each big hitch, what it was loading that frame.
 - [ ] B3. After a week of records: name the cause in this file and fix it (swap, cache sizes, I/O). *(needs data)*
+      2026-11-24: vm.log has 17,235 samples (~9.5 h) with no gap over 6 s; MemAvailable never under 17 MB. The only
+      multi-second stall in Home's logs predates the recorder: waking from the night, a 16.7 s frame, then Home
+      killed (exit 137): memory at the wake, most likely (the menu's pictures loading over the night's). That wake
+      path is now behind G3's cover with a collection first; watch for a repeat.
 
 **C. Last known good (P1)**
 - [x] C1. After a Home run over 120 s, `homeloop` keeps that `home.love` on the SD card (only when it changed).
@@ -214,32 +218,39 @@ Ticked as each lands, with the commit.
       block cloned, counts fixed); a second check is clean; every file but the logs matches the backup.
 - [x] F3. Fewer writes to `/userdata`: Wi-Fi's own log (written all the time) and the per-boot dmesg copy go to
       RAM (`yardnet.sh`); the failure-path dmesg copy stays, for a Wi-Fi start that fails.
-- [ ] F4. A periodic `/userdata` check: it can only be checked read-only, with Wi-Fi down and a reboot after, so
-      not at every boot. Recommendation: the same detached script monthly, or when Home's log shows a save that
-      failed to write.
+- [x] F4. `/userdata` checked at boot by `homeloop`, every 30th boot (counted on the card) or when
+      `partycade/userdata.check` is on the card: after Wi-Fi's start, before Home; remount read-only, `e2fsck -fn`;
+      clean -> read-write again; errors (rc 4 only) -> repaired while read-only, logged, reboot; anything else ->
+      logged, no repair. Verified on the cabinet 2026-11-24 (forced by the flag, after a reboot): "userdata check
+      (asked): clean in 0 s", read-write after, Wi-Fi's log in `/tmp` (the reboot also brought up F3's yardnet).
 
 **G. Performance (P2)**
 - [x] G1. Garden: characters and flower poses kept as pictures on the GPU runtime: 37 -> 47 fps on the cabinet.
 - [x] G2. Band: the same: 42 -> 46 fps. (Shape draws per frame 885 -> 291 and 745 -> 190; images ~2.6 MB, flat.)
 - [x] G4. Checked: LuaJIT's JIT is on in Home (`sound.lua`) and in the GPU yard (since 2026-10-24, measured
       3.4 x then); LÖVE turns it off on ARM, both turn it back on. No gain left there.
-- [ ] G3. Home: move show and Shelf art loads off the main thread where a hitch shows in B2.
-      First named by B2's notes (2026-11-24): a show starting reads its art from the card on the main thread, 226 ms
-      ("did show start art:thanksgiving/open art:thanksgiving/parade ..."). Preload through the worker.
-      **Waking from a show, measured on the cabinet (2026-11-24, per-step timings now in the hitch notes):** one 240 ms
-      frame: update 102 ms (a full collection 35, the cards' labels 37, the rest small) and draw 134 ms (5 neon labels
-      painted from scratch, ~25 ms each: the label cache is emptied for a show's memory); then ~0.4 s of 50 ms frames
-      while the worker's card pictures upload, two a frame with mipmaps. Done: the menu's world picture is read and
-      decoded in the worker now (it was read on the frame). Options for the rest, to choose: a short fade-in on
-      waking while labels paint a few a frame (the show start's curtain, mirrored); keeping the menu's chrome labels
-      (tabs, footer, panel) through shows (GPU memory: the reason they are freed, 2026-11-01); one upload a frame.
+- [x] G3. Home's visible hitches, named by B2's notes and fixed (2026-11-24, all measured on the cabinet with
+      `tools/home_bench.py` and its new `--wake` mode; hitch lines now say which part of the frame took the time):
+      * **Section changes** (the most common): 92-240 ms -> 45-73 ms. The Yard cards' pictures were decoded on the
+        main thread (up to 151 ms): now on the worker, like the arcade boards'. The info panel's 44 px title was
+        painted for 7 cards but only drawn for the chosen one: now only for it. The cards a left/right press lands
+        on are painted ahead, in quiet frames.
+      * **Waking from a show, the night or the browser:** one 240 ms frame and 0.4 s of 50 ms frames -> nothing
+        visible. The screen goes dark at the press; the menu's pictures and labels come back behind it (the ones
+        on screen when the show began are remembered and repainted), the menu is drawn once under the cover so
+        any label it still paints is painted unseen, then a 0.3 s fade in.
+      * **A show starting:** the menu's pictures are given back after the curtain is on screen (the attract stood
+        still 105 ms first). The show's own start (art reads, ~400 ms) is behind the opaque curtain.
+      * Hitches over 100 ms in the bench run: 5-7 -> 1 (the show start, unseen). Menu fps unchanged (57-58).
+      * The wake is in the pixel tour (`wake`: the cover, the menu after).
 
 **H. Home refactor: the plan, gates and checkpoints are in [HOME_REFACTOR.md](HOME_REFACTOR.md)**
 - [x] H0. Safety net (CP0) and cabinet baseline (CP1).
 - [x] H1. CP2 the leaves (drawing helpers, input, pictures).
 - [x] H2. CP3 one context table (ST).
 - [x] H3. CP4 the big consumers (catalog, actions, idle, menu, homestate, cards, ticks).
-- [x] H4. CP5 (ST.go; scene objects deferred, with reasons) and CP6 (HOME.md). Open: the cabinet soak.
+- [x] H4. CP5 (ST.go; scene objects deferred, with reasons) and CP6 (HOME.md). Open: the cabinet soak (in progress
+      since 2026-11-24; no ERROR lines and no stalls in the first ~9 h).
 
 **J. Sound (P2)**
 - [x] J1. Loudness measured for every game (E2); spread 7.3 dB -> 5.5 dB (Chomp down, Bake and Band up).
@@ -265,3 +276,13 @@ Ticked as each lands, with the commit.
 * **Saves:** the bot's progress from on-cabinet runs removed (backup on the card); the bench protects saves.
 * **Open:** B3 (read a week of vm.log and hitch notes, then fix the freezes), F1 (reformat the card, the user's
   part), F2 (needs approval), G3 and H (Home refactor, behind the Home tests).
+
+**2026-11-24, second pass** (Home's hitches and /userdata; verified on the cabinet):
+
+* **Home feels smoother:** section changes 92-240 ms -> 45-73 ms; waking from a show has no visible hitch (dark
+  cover, then a fade); a show's start no longer freezes the attract first. Bench: hitches over 100 ms 5-7 -> 1.
+* **Tools:** `tools/home_bench.py --wake`; hitch lines name the update's parts (input, card labels, card
+  pictures) and the wake's phase; `HOME_PAINT_LOG=1` lists every label painted; `HOME_SLOW_MS` lowers the
+  threshold of the notes. The pixel tour has 53 steps (the wake added).
+* **Storage:** `/userdata` gets a boot-time check every 30th boot (F4), verified clean.
+* **Open:** B3 (no stall recorded yet), the Home soak.

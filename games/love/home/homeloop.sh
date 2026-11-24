@@ -67,6 +67,59 @@ if [ "$MODE" = boot ] && [ -z "$HOMELOOP_CARD" ] && [ ! -e $T/card.checked ] && 
     fi
   fi
 fi
+# /userdata's check (SYSTEM_AUDIT.md F4): the stock data partition, ext2 with no journal, power cut while written
+# (2026-11-24 it was found damaged: two logs sharing a block, wrong bitmap). It can only be checked read-only, so:
+# every 30th boot (counted on the card; the clock isn't set this early), or when partycade/userdata.check is on the
+# card, before Home starts (it writes its state there): wait for Wi-Fi's start (yardnet writes its files there),
+# remount read-only, e2fsck -fn. Clean: read-write again. Damaged: repaired while still read-only, then a reboot
+# (the kernel's view of a filesystem repaired under it is stale; F2's procedure). Busy: skipped, tried next boot.
+UD_NOTE=
+UD_COUNT=$CARD/partycade/userdata.boots
+if [ "$MODE" = boot ] && [ -z "$HOMELOOP_CARD" ] && [ ! -e $T/userdata.checked ] && card_in && mkdir -p $CARD/partycade 2>/dev/null; then
+  touch $T/userdata.checked
+  nb=$(( $(cat "$UD_COUNT" 2>/dev/null || echo 0) + 1 ))
+  echo $nb > "$UD_COUNT"
+  why=
+  [ $nb -ge 30 ] && why="boot $nb"
+  [ -e $CARD/partycade/userdata.check ] && why=asked
+  udev=$(awk '$2 == "/userdata" { print $1 }' /proc/mounts)
+  if [ -n "$why" ] && [ -n "$udev" ]; then
+    n=0
+    while pidof yardnet >/dev/null && [ ! -e $T/yardnet.wifi.done ] && [ $n -lt 30 ]; do sleep 1; n=$((n + 1)); done
+    sync
+    n=0
+    until mount -o remount,ro /userdata 2>/dev/null; do
+      n=$((n + 1)); [ $n -ge 3 ] && break; sleep 1
+    done
+    if grep -q " /userdata ext2 ro" /proc/mounts; then
+      t0=$(cut -d. -f1 /proc/uptime)
+      e2fsck -fn "$udev" > $T/userdata.fsck 2>&1
+      rc=$?
+      cp $T/userdata.fsck $CARD/partycade/logs/userdata.fsck 2>/dev/null
+      if [ $rc -eq 0 ]; then
+        mount -o remount,rw /userdata
+        echo 0 > "$UD_COUNT"; rm -f $CARD/partycade/userdata.check
+        UD_NOTE="userdata check ($why): clean in $(( $(cut -d. -f1 /proc/uptime) - t0 )) s"
+      elif [ $rc -ne 4 ]; then
+        # (not "errors found": e2fsck itself failed; nothing is repaired on that, and no reboot)
+        mount -o remount,rw /userdata
+        UD_NOTE="userdata check ($why): e2fsck rc $rc, not a verdict: $(tail -n 1 $T/userdata.fsck)"
+      else
+        e2fsck -fy "$udev" > $T/userdata.fix 2>&1
+        frc=$?
+        mkdir -p $CARD/partycade/logs
+        cp $T/userdata.fix $CARD/partycade/logs/userdata.fix 2>/dev/null
+        echo "$(cut -d' ' -f1 /proc/uptime) userdata check ($why): damaged (e2fsck -n rc $rc), repaired (e2fsck -y rc $frc), rebooting" >> $CARD/partycade/logs/home.log
+        echo 0 > "$UD_COUNT"; rm -f $CARD/partycade/userdata.check
+        sync
+        reboot -f
+      fi
+    else
+      mount -o remount,rw /userdata 2>/dev/null
+      UD_NOTE="userdata check ($why): busy, skipped (tried again next boot)"
+    fi
+  fi
+fi
 # Every other log goes beside it, or to /tmp (RAM), never to /data: the Yard's log grew there unbounded, 112 KB
 # of the partition's last 861 KB (SYSTEM_AUDIT.md A1).
 LOGDIR=$T
@@ -93,6 +146,7 @@ INTRO=0
 [ "$MODE" = boot ] && INTRO=1
 log() { echo "$(cut -d' ' -f1 /proc/uptime) $*" >> "$LOG"; }
 [ -n "$CARD_NOTE" ] && log "$CARD_NOTE"
+[ -n "$UD_NOTE" ] && log "$UD_NOTE"
 # The machine's memory and I/O every 2 s, written to the card in batches (SYSTEM_AUDIT.md B1): Home's log has
 # stalls of 5 to 46 s and nothing said what the machine was doing. A line: uptime, MemAvailable and Cached (kB),
 # major faults and swap-ins since boot, the card's and the flash's I/O time (ms) and requests in flight, tasks

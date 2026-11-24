@@ -103,6 +103,12 @@ local function curtain_step(dt)
   if not cu then return true end
   cu.n = cu.n + 1
   if cu.phase == "cover" then
+    -- (the menu's pictures are given back once the dark is on screen: freed in the frame that started the show,
+    -- the attract stood still 105 ms first, 2026-11-24)
+    if cu.free then
+      if cu.drawn then cu.free() cu.free, cu.n = nil, 0 end
+      return false
+    end
     if cu.n >= 2 then home_note("show start") ST.cur_show.start(cu.seed, cu.at) cu.phase, cu.n = "settle", 0 end
     return false
   elseif cu.phase == "settle" then
@@ -121,6 +127,7 @@ end
 local function curtain_draw()
   local cu = ST.curtain
   if not cu then return end
+  cu.drawn = true
   local a = cu.phase == "fade" and math.max(0, 1 - cu.f / 0.6) or 1
   lg.setColor(0.02, 0.01, 0.05, a)
   lg.rectangle("fill", 0, 0, W, H)
@@ -150,32 +157,82 @@ ST.code_buf = {}
 local CODE = {"up", "up", "down", "down", "left", "right", "left", "right", "tl", "low"}
 -- (ST.last_played) -- the card of the last game played (state file)
 
--- The cards' neon titles (two pictures each, ~0.2 MB of GPU memory per card): painted for the cards near the
--- chosen one, given back for the far ones (all of them painted, Home's labels alone were most of its 12 MB of
--- pictures, and GPU memory is what this cabinet runs out of).
-ST.labels_for, ST.labels_sel = {}, nil
-local function title_labels(it)
-  D.neon_img(it.title, 64, it.tint, 1.2)
-  D.neon_img(it.title, 44, it.tint, 0.9)
-end
+-- The cards' neon titles: painted for the cards near the chosen one, given back for the far ones (all of them
+-- painted, Home's labels alone were most of its 12 MB of pictures, and GPU memory is what this cabinet runs out
+-- of). Each card's 64 px title; the info panel's 44 px one only for the chosen card (it is the only one drawn).
+-- The cards a left or right press lands on are painted ahead, in quiet frames: a section change painted 14
+-- labels in its frame, 92-240 ms on the cabinet (2026-11-24, SYSTEM_AUDIT.md G3).
+ST.labels_for, ST.labels_sel, ST.labels_pre = {}, nil, {}
+local function big_label(it) D.neon_img(it.title, 64, it.tint, 1.2) end
+local function info_label(it) D.neon_img(it.title, 44, it.tint, 0.9) end
 local function neon_release(s, px, c, glow)
   local key = s .. "|" .. px .. "|" .. c .. "|" .. (glow or 1) .. (D.face == "script" and "|s" or "")
   local e = D.neon_cache[key]
   if e then e.img:release() D.neon_cache[key] = nil end
 end
+local function release_title(it)
+  neon_release(it.title, 64, it.tint, 1.2)
+  neon_release(it.title, 44, it.tint, 0.9)
+end
+-- The card a section change from sel lands on (actions.lua's jump_section), in direction d
+local function landing(d)
+  local want = CAT.items[ST.sel].section + d
+  while want >= 1 and want <= #CAT.SECTIONS do
+    for i, it in ipairs(CAT.items) do
+      if it.section == want then return i end
+    end
+    want = want + d
+  end
+end
+-- (all_now: true paints them all now; "queue" paints none now, all a few a frame; else the nearest now)
 local function manage_labels(all_now)
   if ST.labels_sel == ST.sel then return end
+  local was = ST.labels_sel and CAT.items[ST.labels_sel]
   ST.labels_sel = ST.sel
   for k, it in ipairs(CAT.items) do
     local d = math.abs(k - ST.sel)
     if d <= 3 and not ST.labels_for[k] then
       ST.labels_for[k] = true
-      if all_now or d <= 1 then title_labels(it)
-      else D.label_jobs[#D.label_jobs + 1] = function() if ST.labels_for[k] then title_labels(it) end end end
+      if all_now == true or (all_now ~= "queue" and d <= 1) then big_label(it)
+      else D.label_jobs[#D.label_jobs + 1] = function() if ST.labels_for[k] then big_label(it) end end end
     elseif d > 5 and ST.labels_for[k] then
       ST.labels_for[k] = nil
-      neon_release(it.title, 64, it.tint, 1.2)
-      neon_release(it.title, 44, it.tint, 0.9)
+      if not ST.labels_pre[k] then release_title(it) end
+    end
+  end
+  local cur = CAT.items[ST.sel]
+  if was and was ~= cur then neon_release(was.title, 44, was.tint, 0.9) end
+  if all_now == "queue" then
+    D.label_jobs[#D.label_jobs + 1] = function() if CAT.items[ST.sel] == cur then info_label(cur) end end
+  else
+    info_label(cur)
+  end
+  -- ahead: the landing cards (big and info titles) and their neighbours (big), each side
+  local pre = {}
+  for _, d in ipairs({-1, 1}) do
+    local k = landing(d)
+    if k then
+      pre[k] = "both"
+      for _, j in ipairs({k - 1, k + 1}) do
+        if CAT.items[j] and not pre[j] then pre[j] = "big" end
+      end
+    end
+  end
+  for k, kind in pairs(ST.labels_pre) do
+    local it = CAT.items[k]
+    if not pre[k] then
+      if not ST.labels_for[k] then release_title(it)
+      elseif kind == "both" and k ~= ST.sel then neon_release(it.title, 44, it.tint, 0.9) end
+    end
+  end
+  ST.labels_pre = pre
+  for k, kind in pairs(pre) do
+    local it = CAT.items[k]
+    if not ST.labels_for[k] then
+      D.label_jobs[#D.label_jobs + 1] = function() if ST.labels_pre[k] then big_label(it) end end
+    end
+    if kind == "both" and k ~= ST.sel then
+      D.label_jobs[#D.label_jobs + 1] = function() if ST.labels_pre[k] == "both" then info_label(it) end end
     end
   end
 end
@@ -283,6 +340,16 @@ local function drain_worker()
       if msg[3] then pcall(function() msg[3]:release() end) end
     elseif msg[1] == "art" and type(msg[2]) == "string" and msg[2]:sub(1, 6) == "shelf:" then
       if msg[3] then shelf.art_ready(msg[2], msg[3]) else shelf.art_failed(msg[2]) end
+    elseif msg[1] == "art" and type(msg[2]) == "string" and msg[2]:sub(1, 5) == "shot:" then
+      -- one of our games' cards: a frame of the game (idle.lua's ST.near_shots)
+      local k = tonumber(msg[2]:sub(6))
+      local it = CAT.items[k]
+      if msg[3] and it and it.asked and not ST.menu_freed and math.abs(k - ST.sel) <= 5 then
+        if it.shot then it.shot:release() end
+        local ok, img = pcall(lg.newImage, msg[3])
+        if ok then img:setFilter("linear", "linear") it.shot = img end
+      end
+      if msg[3] then pcall(function() msg[3]:release() end) end
     elseif msg[1] == "art" and type(msg[2]) == "string" then
       if msg[3] then shows.thumb_ready(msg[2], msg[3]) end
     elseif msg[1] == "art" and msg[3] then

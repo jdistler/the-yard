@@ -35,10 +35,16 @@ local function free_menu_pictures()
     if it.shot then it.shot:release() it.shot = nil end
     it.asked = nil
   end
+  -- (the labels on screen, the tabs and the footer among them, are remembered to be painted again on waking)
+  local now = love.timer.getTime()
+  ST.wake_labels = {}
+  for _, e in pairs(D.neon_cache) do
+    if e.args and now - (e.used or 0) < 1 then ST.wake_labels[#ST.wake_labels + 1] = e.args end
+  end
   for k, e in pairs(D.neon_cache) do e.img:release() D.neon_cache[k] = nil end
   if ST.world then ST.world:release() ST.world = nil ST.world_name = nil end
   for i = #D.label_jobs, 1, -1 do D.label_jobs[i] = nil end
-  ST.labels_for, ST.labels_sel, ST.near_sel = {}, nil, nil
+  ST.labels_for, ST.labels_sel, ST.labels_pre, ST.near_sel = {}, nil, {}, nil
   collectgarbage()
 end
 -- (ST.demo) -- started from a show's tiles: its id (back to them at the end)
@@ -67,21 +73,30 @@ function ST.near_shots(all)
         it.shot, it.asked = nil, nil
       end
     elseif it.id and love.filesystem.getInfo("art/" .. it.id .. ".png") then
+      -- (decoded on the worker too: on the main thread a section change stalled up to 151 ms, 2026-11-24)
       local d = math.abs(k - ST.sel)
-      if d <= 3 and not it.shot then
-        it.shot = lg.newImage("art/" .. it.id .. ".png")
-        it.shot:setFilter("linear", "linear")
-      elseif d > 5 and it.shot and not all then
-        it.shot:release()
-        it.shot = nil
+      if d <= 3 and not it.shot and not it.asked then
+        if ST.worker then
+          it.asked = true
+          love.thread.getChannel("home_work"):push({"art", "shot:" .. k, "art/" .. it.id .. ".png", "love"})
+        else
+          it.shot = lg.newImage("art/" .. it.id .. ".png")
+          it.shot:setFilter("linear", "linear")
+        end
+      elseif d > 5 and (it.shot or it.asked) and not all then
+        if it.shot then it.shot:release() end
+        it.shot, it.asked = nil, nil
       end
     end
   end
 end
 
-local function restore_menu_pictures()
-  -- (each step's time goes into the hitch notes: waking cost 252 ms on the cabinet, 2026-11-24, and the notes
-  -- named only what ran, not what took the time)
+-- Waking (from a show, the night, the browser): the screen goes dark at the press, the menu's pictures and labels
+-- come back behind it, a few a frame, and the menu fades in once frames come smoothly. (Done at once it was one
+-- 240 ms frame, then half a second of 50 ms ones while pictures uploaded: waking stuttered, 2026-11-24,
+-- SYSTEM_AUDIT.md G3.)
+local function restore_now()
+  -- (each step's time goes into the hitch notes)
   local clock = love.timer.getTime
   local t0 = clock()
   local function lap(what)
@@ -89,9 +104,6 @@ local function restore_menu_pictures()
     home_note(string.format("%s %dms", what, (now - t0) * 1000))
     t0 = now
   end
-  stop_show()
-  lap("stop")
-  if not ST.menu_freed then return end
   ST.menu_freed = false
   for k, e in pairs(D.neon_cache) do e.img:release() D.neon_cache[k] = nil end
   -- Reclaim show/night textures before allocating menu art so Mali doesn't peak over 118 MB on wakeup.
@@ -103,10 +115,42 @@ local function restore_menu_pictures()
   ST.img(96)
   lap("brand")
   ST.labels_for, ST.labels_sel = {}, nil
-  manage_labels(false)
-  lap("labels")
+  manage_labels("queue")
+  for _, a in ipairs(ST.wake_labels or {}) do
+    D.label_jobs[#D.label_jobs + 1] = function()
+      local face = D.face
+      D.face = a[5] or "round"
+      D.neon_img(a[1], a[2], a[3], a[4])
+      D.face = face
+    end
+  end
+  ST.wake_labels = nil
   D.label_jobs[#D.label_jobs + 1] = function() D.neon_img("PRESS ANY BUTTON", 44, 0xffd23f, 1) end
   lg.setCanvas()
+end
+local function restore_menu_pictures()
+  stop_show()
+  if not ST.menu_freed then return end
+  ST.wake = {phase = "cover", n = 0, good = 0, held = 0, f = 0}
+end
+-- The wake's step (main.lua's love.update, every frame): the cover, then the fade.
+ST.WAKE_FADE = 0.3
+function ST.wake_step(dt)
+  local w = ST.wake
+  if not w then return end
+  w.n = w.n + 1
+  if w.phase == "cover" then
+    if w.n == 2 then restore_now() end            -- (the frame after the press: the dark is on screen first)
+    if w.n <= 2 then return end
+    w.held = w.held + dt
+    w.good = dt < 0.025 and w.good + 1 or 0
+    local busy = #D.label_jobs > 0 or ST.world_pending
+      or love.thread.getChannel("home_work"):getCount() > 0 or love.thread.getChannel("home_done"):getCount() > 0
+    if (not busy and w.good >= 3) or w.held > 1.5 then w.phase = "fade" end
+  else
+    w.f = w.f + dt
+    if w.f >= ST.WAKE_FADE then ST.wake = nil end
+  end
 end
 
 -- The games browser takes the menu's pictures' memory while it's open (2026-11-07: both at once, with its box
@@ -124,7 +168,8 @@ end
 
 -- Play a show (from its segment seg, if given; demo: from its tiles).
 local function play_show(id, seg, from_demo)
-  free_menu_pictures()
+  local free_later = not ST.menu_freed and id ~= "night" and shows.module(id)
+  if not free_later then free_menu_pictures() end
   stop_show()
   ST.demo = from_demo and id or nil
   ST.cur_show_id = id
@@ -141,7 +186,8 @@ local function play_show(id, seg, from_demo)
     if not ST.cur_show then ST.go("menu") restore_menu_pictures() return end
     ST.go("show")
     ST.curtain = {phase = "cover", n = 0, good = 0, f = 0, seed = os.time() + math.random(1, 1e6), at = sg and sg[1] or nil,
-               card = (not from_demo and not os.getenv("HOME_SHOW")) and id or nil}
+               card = (not from_demo and not os.getenv("HOME_SHOW")) and id or nil,
+               free = free_later and free_menu_pictures or nil}
   end
   log("show " .. id .. (sg and (": " .. sg[2]) or ""))
 end
