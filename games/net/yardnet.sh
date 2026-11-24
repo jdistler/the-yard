@@ -157,11 +157,14 @@ wifi() {
   done
   t=0; w=""
   while [ $t -lt 15 ] && [ -z "$w" ]; do sleep 1; t=$((t + 1)); w=$(wlan); done
-  dmesg | tail -80 > "$NET/wifi-dmesg.txt"; sync
+  dmesg | tail -80 > "$T/wifi-dmesg.txt"
+  [ -n "$w" ] || dmesg | tail -80 > "$NET/wifi-dmesg.txt"
   [ -n "$w" ] || { log "wifi: no Wi-Fi interface appeared (see net/wifi-dmesg.txt)"; touch $T/yardnet.wifi.done; return; }
   ifconfig "$w" up
   mkdir -p /var/run/wpa_supplicant
-  "$WDIR/wpa_supplicant" -B -i "$w" -D nl80211 -c "$WCONF" -P $T/wpa_supplicant.pid -f "$NET/wpa.log" -t
+  # (its log in RAM: it writes all the time, and on /data it was one of the two files a power cut left sharing a
+  # block, found and repaired 2026-11-24, SYSTEM_AUDIT.md F2)
+  "$WDIR/wpa_supplicant" -B -i "$w" -D nl80211 -c "$WCONF" -P $T/wpa_supplicant.pid -f "$T/wpa.log" -t
   log "wifi: $w up, wpa_supplicant started (rc $?)"
   echo "$(cut -d' ' -f1 $PROC/uptime)" > $T/yardnet.wifi.since
   touch $T/yardnet.wifi.done
@@ -172,7 +175,7 @@ wifi_watch() {
   [ -f "$NET/wifi.trying" ] || return
   w=$(wlan); s=$(cut -d. -f1 $T/yardnet.wifi.since 2>/dev/null); now=$(cut -d. -f1 $PROC/uptime)
   if { [ -n "$w" ] && ip -4 addr show dev "$w" 2>/dev/null | grep -q "inet "; } || [ $((now - ${s:-0})) -gt 90 ]; then
-    rm -f "$NET/wifi.trying" "$NET/wifi.crashes"; dmesg | tail -80 > "$NET/wifi-dmesg.txt"; sync
+    rm -f "$NET/wifi.trying" "$NET/wifi.crashes"; dmesg | tail -80 > "$T/wifi-dmesg.txt"; sync
     log "wifi: start finished cleanly"
   fi
 }

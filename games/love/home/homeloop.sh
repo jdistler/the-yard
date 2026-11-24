@@ -33,6 +33,40 @@ LOG_MAX=131072
 # (at power-on the card may still be mounting: a few seconds' grace when it is there but not yet mounted)
 n=0
 while [ -z "$HOMELOOP_CARD" ] && [ -b /dev/mmcblk0p1 ] && ! card_in && [ $n -lt 8 ]; do sleep 1; n=$((n + 1)); done
+MODE=${1:-boot}
+# The card's check (SYSTEM_AUDIT.md F1): its ext2 has no journal and the cabinet is switched off with power on, so
+# it is never unmounted cleanly. Once a boot, before anything uses it: a full e2fsck when the card has errors
+# recorded, or every 5th mount (the check sets the count back to 0). Reformatted 2026-11-24 with 68,544 inodes
+# (was 1.9 million), a full check takes 4.7 s on the cabinet (was about 30). A 60 s watchdog; the card is mounted
+# again as udev mounts it. HOMELOOP_CARD_CHECK=1 forces one (on the cabinet, by hand).
+CARD_NOTE=
+if [ "$MODE" = boot ] && [ -z "$HOMELOOP_CARD" ] && [ ! -e $T/card.checked ] && card_in; then
+  touch $T/card.checked
+  dev=$(awk -v c="$CARD" '$2 == c { print $1 }' /proc/mounts)
+  info=$(tune2fs -l "$dev" 2>/dev/null)
+  mc=$(echo "$info" | awk -F: '/^Mount count/ { gsub(/ /, "", $2); print $2 }')
+  why=
+  case "$info" in *"with errors"*) why=errors ;; esac
+  [ -z "$why" ] && [ "${mc:-0}" -ge 5 ] && why="mount $mc"
+  [ -z "$why" ] && [ -n "$HOMELOOP_CARD_CHECK" ] && why=asked
+  if [ -n "$why" ] && [ -n "$dev" ]; then
+    sync
+    if umount "$CARD" 2>/dev/null; then
+      t0=$(cut -d. -f1 /proc/uptime)
+      e2fsck -f -p "$dev" > $T/card.fsck 2>&1 &
+      fp=$!
+      n=0
+      while kill -0 $fp 2>/dev/null && [ $n -lt 60 ]; do sleep 1; n=$((n + 1)); done
+      kill $fp 2>/dev/null
+      wait $fp
+      rc=$?
+      mount -t ext2 -o users,exec,noatime "$dev" "$CARD"
+      CARD_NOTE="card check ($why): e2fsck rc $rc in $(( $(cut -d. -f1 /proc/uptime) - t0 )) s: $(tail -n 1 $T/card.fsck)"
+    else
+      CARD_NOTE="card check ($why): the card is busy, skipped"
+    fi
+  fi
+fi
 # Every other log goes beside it, or to /tmp (RAM), never to /data: the Yard's log grew there unbounded, 112 KB
 # of the partition's last 861 KB (SYSTEM_AUDIT.md A1).
 LOGDIR=$T
@@ -48,7 +82,6 @@ YLOG=$LOGDIR/love-yard.log
 trim "$YLOG" 1048576
 mkdir -p "$H"
 [ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt $LOG_MAX ] && mv "$LOG" "$LOG.1"
-MODE=${1:-boot}
 # Local time for Home's clock and TV guide: /data/tv/tz (a POSIX TZ string) or US Central.
 TZ=$(cat /data/tv/tz 2>/dev/null || echo CST6CDT,M3.2.0,M11.1.0)
 export TZ
@@ -59,6 +92,7 @@ USED_GOOD=0
 INTRO=0
 [ "$MODE" = boot ] && INTRO=1
 log() { echo "$(cut -d' ' -f1 /proc/uptime) $*" >> "$LOG"; }
+[ -n "$CARD_NOTE" ] && log "$CARD_NOTE"
 # The machine's memory and I/O every 2 s, written to the card in batches (SYSTEM_AUDIT.md B1): Home's log has
 # stalls of 5 to 46 s and nothing said what the machine was doing. A line: uptime, MemAvailable and Cached (kB),
 # major faults and swap-ins since boot, the card's and the flash's I/O time (ms) and requests in flight, tasks

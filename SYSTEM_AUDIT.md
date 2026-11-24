@@ -202,14 +202,21 @@ Ticked as each lands, with the commit.
 - [x] E3. `tools/cab_bench.sh`: every game on the cabinet, quiet mode, fps/memory/errors against a stored baseline.
 
 **F. Filesystem safety**
-- [ ] F1. SD card check. **Measured 2026-11-24:** the card's ext2 has 1,949,696 inodes (476 MB of inode tables)
-      and uses 872; its state is "not clean", 33 mounts unchecked since Oct 24. `e2fsck` reads every inode table,
-      so a boot-time check would cost about 30 s per boot at the card's ~15 MB/s: not acceptable. Plan (needs the
-      card out of the cabinet, the user's job): copy its files to the PC, `mke2fs -t ext2 -N 65536 -L PARTYCADE`
-      (16 MB of inode tables), copy back, then add `e2fsck -p` before the card mounts (about 2 s, only when
-      not clean). Until then: the card holds only things that can be re-made from the PC (library, art, logs,
-      the last good Home), never the only copy of anything; saves live on /userdata.
-- [ ] F2. `/userdata` check: **needs the user's written approval** (flash write). Recommendation only.
+- [x] F1. SD card, done over the network 2026-11-24 (no need to take it out): backed up to the PC
+      (`~/partycade-dumps/sdcard-2026-11-24/`, 745 files verified by md5), unmounted, reformatted on the cabinet
+      (`mke2fs -t ext2 -b 4096 -N 65536 -m 1 -L PARTYCADE`: 68,544 inodes, was 1,949,696), restored and verified
+      file by file, swap file re-made. A full check now takes 4.7 s on the cabinet (was about 30). homeloop checks
+      it at boot, before anything uses it, when errors are recorded or every 5th mount (watchdog 60 s); verified.
+- [x] F2. `/userdata`, user-approved 2026-11-24: backed up to the PC (`~/partycade-dumps/userdata-2026-11-24/`),
+      then, detached on the cabinet (Wi-Fi's log was the only writer, so Wi-Fi went down): remount read-only, check,
+      reboot. **It was damaged:** `Games/net/wpa.log` and `Games/net.log` shared block 16748, and the block bitmap
+      and two groups' free counts were wrong (a power cut mid-write). Repaired with `e2fsck -f -y` (the shared
+      block cloned, counts fixed); a second check is clean; every file but the logs matches the backup.
+- [x] F3. Fewer writes to `/userdata`: Wi-Fi's own log (written all the time) and the per-boot dmesg copy go to
+      RAM (`yardnet.sh`); the failure-path dmesg copy stays, for a Wi-Fi start that fails.
+- [ ] F4. A periodic `/userdata` check: it can only be checked read-only, with Wi-Fi down and a reboot after, so
+      not at every boot. Recommendation: the same detached script monthly, or when Home's log shows a save that
+      failed to write.
 
 **G. Performance (P2)**
 - [x] G1. Garden: characters and flower poses kept as pictures on the GPU runtime: 37 -> 47 fps on the cabinet.
