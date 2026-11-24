@@ -94,11 +94,17 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
 - [x] A bug the tour found, fixed first: the stick stopped at an empty section (ARCADE with no card).
 
 **CP1. The cabinet's baseline.**
-- [ ] `tools/home_bench.py`: on the cabinet in quiet mode, Home started cold and from a game; scripted key presses
-      through the sections; read home.log's startup marks, frames lines, hitches and textures, and RSS. Stored as
-      `captures/home_tour/cabinet_baseline.tsv`.
-- [ ] Experiment: the cost of a module call versus an upvalue call in a hot draw loop on the A7 (a micro-benchmark
-      in Home's own LÖVE on the cabinet), to set rule 3's threshold with a number, not a guess.
+- [x] `tools/home_bench.py`: on the cabinet, sound muted, Home started cold (file cache dropped) and warm, driven
+      by a script through the sections, the attract (state, stats and log are /tmp copies). Baseline in
+      `captures/home_tour/cabinet_baseline.tsv`: startup 1.05 s cold / 0.82 s warm, menu 58 fps, attract 58 fps,
+      textures 12.2 MB, RSS 39 MB, no errors. A repeat run is within 0.05 s and 0.8 fps (the gate's margins are
+      0.3 s and 3 fps). The night scene comes only at night: not measured.
+- [x] Experiment, a call on the cabinet (LÖVE's LuaJIT, its JIT off, see below): local/upvalue function 302 ns,
+      module field `M.f` 356 ns (+18 %), nested `app.M.f` 390 ns (+29 %), an alias made before the loop 286 ns.
+      So rule 3: a module call costs ~0.05 us; alias only in loops of more than ~1,000 calls a frame (0.05 ms).
+- [x] Found on the way: **LuaJIT's JIT is off on the cabinet.** LÖVE's `jitsetup.lua` turns it off on ARM
+      (code-allocation range limits there can make compiling slow and unreliable). Turned on, the same call takes
+      9.3 ns (32 x faster). A separate experiment (SYSTEM_AUDIT.md G4), not part of this refactor.
 
 **CP2. The leaves.** One commit each; G1-G3 each.
 - [ ] `draw.lua` from "colors and drawing" (11 names -> 1).
@@ -135,3 +141,4 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
 (Each checkpoint: date, commits, metrics before and after, gates passed, cabinet numbers.)
 
 * **CP0, 2026-11-24:** locals 192/200, slots 202/250, upvalues 54/60 (love.load). Tour 50 steps, golden saved.
+* **CP1, 2026-11-24:** cabinet baseline saved; call-cost experiment done (numbers above).
