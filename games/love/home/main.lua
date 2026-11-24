@@ -145,23 +145,8 @@ local CLASSICS = {
   {title = "DIG DUG II", year = 1985, tint = 0x9ad65a, blurb = "Sink the island under the monsters."},
   {title = "ROMPERS", year = 1989, tint = 0xff6a7a, blurb = "Push the walls down on the monsters."},
 }
--- stat: the save key The Yard shows, and how (games/carts/*/info.lua).
-local OURS = {
-  {id = "keep", title = "KEEP", tint = 0xff7a59, blurb = "Catch the falling fruit.", stat = {"best", "BEST %d"}},
-  {id = "lamp", title = "LAMP", tint = 0xffc94a, blurb = "Wake the sleeping stars.", stat = {"best", "%d NIGHTS", "1 NIGHT"}},
-  {id = "orb", title = "ORB", tint = 0xa98bff, blurb = "Dive down the glowing well.", native = "orb", stat = {"best", "BEST %d"}},
-  {id = "tea", title = "TEA", tint = 0xff9ccf, blurb = "Tea with the cats.", stat = {"visits", "%d VISITS", "1 VISIT"}},
-  {id = "chest", title = "CHEST", tint = 0x7fd6a0, blurb = "Zam, Pika, and the chest.", stat = {"gems", "%d GEMS", "1 GEM"}},
-  {id = "dig", title = "DIG", tint = 0xffa84c, blurb = "Dig tunnels, pop foes, find gems.", stat = {"hi", "BEST %d"}},
-  {id = "chomp", title = "CHOMP", tint = 0xffdc36, blurb = "Gobble dots, grab Power Pellets, outsmart ghosts.", stat = {"hi", "BEST %d"}},
-  {id = "kart", title = "STAR KART", tint = 0xff5a6e, blurb = "Race rivals, grab item boxes.", stat = {"best", "BEST %d"}},
-  {id = "safari", title = "SAFARI", tint = 0x58d68d, blurb = "Befriend meadow monsters.", stat = {"caught", "%d/8 FRIENDS", "1/8 FRIENDS"}},
-  {id = "tower", title = "TOWER", tint = 0xe86b9a, blurb = "Climb ladders, hop barrels.", stat = {"best", "BEST %d"}},
-  {id = "garden", title = "GARDEN", tint = 0xffa0d4, blurb = "Grow magic flowers.", stat = {"blooms", "%d BLOOMS", "1 BLOOM"}},
-  {id = "bake", title = "BAKE", tint = 0xffb878, blurb = "Bake treats for the cats.", stat = {"treats", "%d TREATS", "1 TREAT"}},
-  {id = "band", title = "BAND", tint = 0xb998f0, blurb = "Play music with friends.", stat = {"songs", "%d ENCORES", "1 ENCORE"}},
-  {id = "rocket", title = "STARSHIP", tint = 0x7fe8ff, blurb = "Co-op space rescue.", stat = {"best", "BEST %d"}},
-}
+-- The Yard games, from their own info.lua (cartinfo.lua): title, tint, blurb, stat line, as The Yard shows them.
+local OURS = require("cartinfo").list(log)
 local SECTIONS = {
   {name = "FAVORITES", tint = 0xff7ab8},
   {name = "CLASSICS", tint = 0xffd23f},
@@ -221,7 +206,7 @@ do
 end
 for _, g in ipairs(OURS) do
   items[#items + 1] = {kind = g.native and "native" or "cart", id = g.id, native = g.native, section = YARD_SECTION,
-                       title = g.title, sub = "THE YARD", blurb = g.blurb, tint = g.tint, statdef = g.stat}
+                       title = g.title, sub = "THE YARD", blurb = g.blurb, tint = g.tint, statdef = g}
 end
 -- Live TV (tv.lua): one card, which opens the guide in Home itself.
 items[#items + 1] = {kind = "tv", section = TV_SECTION, title = "LIVE TV", sub = "CHANNEL GUIDE",
@@ -2252,9 +2237,10 @@ function love.load()
   -- Our games: their save's number, as The Yard shows it.
   for _, it in ipairs(items) do
     local d = it.statdef
-    local sv = d and read_file(GAMES .. "/" .. it.id .. ".sav")
-    local n = sv and tonumber(sv:match(d[1] .. " (%d+)"))
-    if n and n > 0 then it.stat = (n == 1 and d[3]) or string.format(d[2], n) end
+    if d then
+      it.stat = require("cartinfo").stat(d, read_file(GAMES .. "/" .. d.save .. ".sav"))
+      log("yard card " .. it.id .. ": " .. it.title .. (it.stat and (" / " .. it.stat) or ""))
+    end
   end
   -- Back from a game: a soft welcome (the celebration has its own fanfare).
   if returning and not celebrate then play("back") end

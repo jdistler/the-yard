@@ -1211,6 +1211,30 @@ def home():
     check(r.returncode == 0 and "SAFE MODE" in (read(w2, "log") or "") and req.startswith("classic 0"),
           f"Home in safe mode starts and plays a classic ({req!r})")
     homeloop_checks()
+    # Home's Yard cards come from the carts' own info.lua (cartinfo.lua): one per cart, the cart's title, and its
+    # stat line from its save as The Yard shows it.
+    w3 = tmpdir()
+    g3 = os.path.join(w3, "games")
+    os.makedirs(g3)
+    open(os.path.join(g3, "tea.sav"), "w").write("visits 3\n")
+    open(os.path.join(g3, "garden.sav"), "w").write("blooms 1\n")
+    sc3 = os.path.join(w3, "script")
+    open(sc3, "w").write("30 quit\n")
+    env3 = dict(env, HOME_SCRIPT=sc3, HOME_REQ=os.path.join(w3, "req"), HOME_STATE=os.path.join(w3, "state"),
+                HOME_LOG=os.path.join(w3, "log"), HOME_STATS=os.path.join(w3, "stats.tsv"), HOME_GAMES=g3)
+    subprocess.run([LOVE_RUN, hl], cwd=w3, env=env3, capture_output=True, text=True, timeout=120)
+    lg3 = read(w3, "log") or ""
+    want = []
+    for cid in sorted(os.listdir(os.path.join(HERE, "carts"))):
+        info = read(os.path.join(HERE, "carts", cid), "info.lua") or ""
+        m = re.search(r'title\s*=\s*"([^"]+)"', info)
+        if m and "system = true" not in info:
+            want.append(f"yard card {cid}: {m.group(1).upper()}")
+    missing = [x for x in want if x not in lg3]
+    check(want and not missing and "skipped" not in lg3,
+          f"Home: a Yard card for each of the {len(want)} carts, titled from its info.lua (missing {missing})")
+    check("yard card tea: TEA / 3 VISITS" in lg3 and "yard card garden: GARDEN / 1 BLOOM" in lg3,
+          "Home: a Yard card's stat line is the cart's own info.stat on its save")
 
 
 def homeloop_checks():

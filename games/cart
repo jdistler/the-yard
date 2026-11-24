@@ -432,6 +432,12 @@ def home_pack(out=None):
     files = [(os.path.join(src, f), f) for f in os.listdir(src) if f.endswith(".lua")]
     files.append((os.path.join(HERE, "engine", "fonts", "Fredoka-SemiBold.ttf"), "fonts/Fredoka-SemiBold.ttf"))
     files.append((os.path.join(HERE, "engine", "fonts", "Pacifico-Starlight.ttf"), "fonts/Pacifico-Starlight.ttf"))
+    # every cart's label (info.lua): Home's Yard cards come from these (love/home/cartinfo.lua)
+    cdir = os.path.join(HERE, "carts")
+    for cid in sorted(os.listdir(cdir)):
+        info = os.path.join(cdir, cid, "info.lua")
+        if os.path.isfile(info):
+            files.append((info, f"carts/{cid}.lua"))
     # the SHOWS section's tiles (tools/show_thumbs.py) are on the SD card (cart push), not in home.love: /data is
     # ~96% full and an install needs room for the new package beside the old one
     for cid, shot in HOME_SHOTS.items():
