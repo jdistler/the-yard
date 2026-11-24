@@ -40,6 +40,12 @@ local utgame = require("utgame")
 -- main.lua reached Lua's 200 locals)
 local ST = {world_want = "base", L = require("showlib"), initials = require("initials"),
             hall = require("hall")}
+-- Every change of scene goes through here (HOME_REFACTOR.md CP5): one place for what a scene needs on entering
+-- or leaving; for now it notes the change for the hitch log (home_note).
+function ST.go(name)
+  if ST.scene ~= name and home_note then home_note("scene:" .. name) end
+  ST.scene = name
+end
 
 local W, H = 768, 1024                       -- the upright picture; the panel shows the framebuffer turned
 local headless = os.getenv("HOME_HEADLESS") == "1"
@@ -216,11 +222,11 @@ local function shelf_setup()
                     if it.kind == "arcade" then
                       it.table = shelf.arcade_table(it.id)
                       out[#out + 1] = {title = it.title, tint = it.tint, item = it, rows = it.table,
-                                       launch = function() ST.sel, ST.pos = k, k ST.scene = "menu" ST.launch_item = it ST.launch_t = 0 end}
+                                       launch = function() ST.sel, ST.pos = k, k ST.go("menu") ST.launch_item = it ST.launch_t = 0 end}
                     elseif it.kind == "classic" and it.score then
                       out[#out + 1] = {title = it.title, tint = it.tint, item = it, classic = true,
                                        rows = {{tonumber(it.score) or 0, "", false}},
-                                       launch = function() ST.sel, ST.pos = k, k ST.scene = "menu" ST.launch_item = it ST.launch_t = 0 end}
+                                       launch = function() ST.sel, ST.pos = k, k ST.go("menu") ST.launch_item = it ST.launch_t = 0 end}
                     end
                   end
                   return out
@@ -247,7 +253,7 @@ local function shelf_setup()
           if t[1][2] == "" then
             -- The board asked for no initials: Home does (initials.lua), then celebrates.
             ST.initials.start(it, t[1][1])
-            ST.scene = "initials"
+            ST.go("initials")
           else
             ST.celebrate = {score = shelf.commas(t[1][1]), title = it.title .. "   ·   " .. t[1][2], tint = it.tint, t = 0}
           end
@@ -350,7 +356,7 @@ function love.load()
     end
   end
   if os.getenv("HOME_INTRO") ~= "1" and (os.getenv("HOME_SKIP_INTRO") == "1" or (ST.STATE and read_file(ST.STATE))) then
-    ST.scene = "menu"       -- the intro is for power-on; coming back from a game goes straight to the menu
+    ST.go("menu")       -- the intro is for power-on; coming back from a game goes straight to the menu
     ST.returning = ST.STATE ~= nil and read_file(ST.STATE) ~= nil and os.getenv("HOME_INTRO") ~= "1"
   else
     play("intro")
@@ -375,10 +381,10 @@ function love.load()
     if rc then
       for k, it in ipairs(CAT.items) do if it.kind == "tv" then ST.sel, ST.pos = k, k end end
       if rc ~= 10 then
-        ST.scene = "tv"
+        ST.go("tv")
         tv.enter(rc, idx)
       else
-        ST.scene = "menu"
+        ST.go("menu")
       end
       ST.returning = true
     end
@@ -511,7 +517,7 @@ function love.update(dt)
     if ST.intro_t > 0.9 and not ST.stung then ST.stung = true music.sfx("sting", 0.9) end
     local letters = math.floor(math.min(1, ST.intro_t / 1.2) * 9 + 0.001)
     if letters > last_letters then last_letters = letters play("tick") end
-    if ST.intro_t > MENU.INTRO_LEN then ST.scene = "menu" ST.menu_in = 0.45 end
+    if ST.intro_t > MENU.INTRO_LEN then ST.go("menu") ST.menu_in = 0.45 end
   end
   TICK.update_idle(dt)
   fx.update(dt, ST.scene == "menu" or ST.scene == "attract" or ST.scene == "night")

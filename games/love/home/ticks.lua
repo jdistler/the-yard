@@ -45,7 +45,7 @@ local function update_idle(dt)
   if cards_t <= 0 then cards_t = 30 IDLE.update_cards() end
   if ST.scene == "tv" then
     ST.idle = 0
-    if tv.update(dt) == "exit" then ST.scene = "menu" end
+    if tv.update(dt) == "exit" then ST.go("menu") end
   end
   if ST.scene == "shelf" then
     ST.idle = 0
@@ -53,14 +53,14 @@ local function update_idle(dt)
   end
   if ST.scene == "initials" then
     ST.idle = 0
-    if ST.initials.update(dt) == "done" then ST.scene = "menu" end
+    if ST.initials.update(dt) == "done" then ST.go("menu") end
   end
   if ST.scene == "hall" then
     ST.idle = 0
-    if ST.hall.update(dt) == "exit" then ST.scene = "menu" ST.near_sel = nil end
+    if ST.hall.update(dt) == "exit" then ST.go("menu") ST.near_sel = nil end
   end
   ST.idle = ST.idle + dt
-  if ST.scene == "menu" and ST.idle > ST.IDLE_ATTRACT then ST.scene = "attract" ST.attract_t = 0 ST.attract_sel = ST.sel end
+  if ST.scene == "menu" and ST.idle > ST.IDLE_ATTRACT then ST.go("attract") ST.attract_t = 0 ST.attract_sel = ST.sel end
   if ST.scene == "attract" then
     ST.attract_t = ST.attract_t + dt
     if ST.attract_t > 3.5 then ST.attract_t = 0 ST.sel = ST.sel % #CAT.items + 1 end

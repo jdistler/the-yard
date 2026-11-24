@@ -99,12 +99,12 @@ end
 -- art, ran Home out of memory), and gives it back on the way out.
 function ST.shelf_open(row, file, failed)
   free_menu_pictures()
-  ST.scene = "shelf"
+  ST.go("shelf")
   if file then shelf.enter_at(row, file, failed) else shelf.enter(row) end
 end
 function ST.shelf_close()
   shelf.quit()
-  ST.scene = "menu"
+  ST.go("menu")
   restore_menu_pictures()
 end
 
@@ -118,14 +118,14 @@ local function play_show(id, seg, from_demo)
   if id == "night" then
     -- the night sky is the menu's world, darkened: its painting stays (384 KB)
     ST.world_load(ST.world_want)
-    ST.scene = "night"
+    ST.go("night")
     ST.auto_night_t = 0
     night.set_only(sg and sg[3] or nil)
     ST.night_t = (sg and not sg[3]) and sg[1] / ST.NIGHT_SPEED or 0
   else
     ST.cur_show = shows.module(id)
-    if not ST.cur_show then ST.scene = "menu" restore_menu_pictures() return end
-    ST.scene = "show"
+    if not ST.cur_show then ST.go("menu") restore_menu_pictures() return end
+    ST.go("show")
     ST.curtain = {phase = "cover", n = 0, good = 0, f = 0, seed = os.time() + math.random(1, 1e6), at = sg and sg[1] or nil,
                card = (not from_demo and not os.getenv("HOME_SHOW")) and id or nil}
   end
@@ -233,7 +233,7 @@ local function open_tiles(id)
   stop_show()
   ST.demo = nil
   shows.open(ST.shows_ctx, id)
-  ST.scene = "shows"
+  ST.go("shows")
 end
 
 local function handle(name)
@@ -246,12 +246,12 @@ local function handle(name)
   end
   ST.idle = 0
   if ST.scene == "intro" then
-    ST.scene = "menu"
+    ST.go("menu")
     ST.menu_in = 0.3
     return
   end
   if ST.scene == "attract" then
-    ST.scene = "menu"
+    ST.go("menu")
     if ST.attract_sel then ST.sel = ST.attract_sel end
     return
   end
@@ -260,7 +260,7 @@ local function handle(name)
     if ST.demo then
       open_tiles(ST.demo)
     else
-      ST.scene = "menu"
+      ST.go("menu")
       if ST.attract_sel then ST.sel, ST.pos = ST.attract_sel, ST.attract_sel end
       restore_menu_pictures()
     end
@@ -271,7 +271,7 @@ local function handle(name)
     local r = shows.handle(name)
     if r == "back" then
       shows.close()
-      ST.scene = "menu"
+      ST.go("menu")
       restore_menu_pictures()
       play("back")
     elseif type(r) == "table" then
@@ -282,7 +282,7 @@ local function handle(name)
     return
   end
   if ST.scene == "tv" then
-    if tv.handle(name) == "exit" then ST.scene = "menu" end
+    if tv.handle(name) == "exit" then ST.go("menu") end
     return
   end
   if ST.scene == "shelf" then
@@ -294,7 +294,7 @@ local function handle(name)
     return
   end
   if ST.scene == "hall" then
-    if ST.hall.handle(name) == "exit" then ST.scene = "menu" ST.near_sel = nil end
+    if ST.hall.handle(name) == "exit" then ST.go("menu") ST.near_sel = nil end
     return
   end
   if ST.launch_item then return end
@@ -345,7 +345,7 @@ local function handle(name)
     -- The empty FAVORITES card: nothing to start (a launch here would have been the original menu).
     play("back")
   elseif (name == "low" or name == "1p") and it.kind == "hall" then
-    ST.scene = "hall"
+    ST.go("hall")
     ST.near_shots(true)   -- (its rows show every board's title screen)
     ST.hall.enter()
     play("launch")
@@ -357,7 +357,7 @@ local function handle(name)
     end
   elseif (name == "low" or name == "1p") and it.kind == "tv" then
     -- The guide opens in Home itself: no program to start.
-    ST.scene = "tv"
+    ST.go("tv")
     tv.enter()
     play("launch")
   elseif name == "low" or name == "1p" then
