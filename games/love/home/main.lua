@@ -479,11 +479,6 @@ function home_note(s)
   local n = ST.notes
   if #n < 10 then n[#n + 1] = s end
 end
--- (update and draw each note their own time when over 30 ms: a hitch's notes then say where the frame went)
-local function slow(what, t0)
-  local ms = (love.timer.getTime() - t0) * 1000
-  if ms > 30 then home_note(string.format("%s %dms", what, ms)) end
-end
 function love.update(dt)
   local u0 = love.timer.getTime()
   if FIXED_DT then dt = FIXED_DT end
@@ -551,7 +546,7 @@ function love.update(dt)
       A.request(s, it)
     end
   end
-  slow("update", u0)
+  DIAG.slow("update", u0)
 end
 
 local first_drawn = false
@@ -599,5 +594,5 @@ function love.draw()
     lg.translate(-W / 2, -H / 2)
     MENU.draw_scene()
   end
-  if D.painted > 0 then slow("draw (" .. D.painted .. " labels painted)", d0) else slow("draw", d0) end
+  if D.painted > 0 then DIAG.slow("draw (" .. D.painted .. " labels painted)", d0) else DIAG.slow("draw", d0) end
 end

@@ -35,4 +35,10 @@ function M.frame(dt)
   end
 end
 
+-- update and draw each note their own time when over 30 ms: a hitch's notes then say where the frame went
+function M.slow(what, t0)
+  local ms = (love.timer.getTime() - t0) * 1000
+  if ms > 30 then home_note(string.format("%s %dms", what, ms)) end
+end
+
 return M
