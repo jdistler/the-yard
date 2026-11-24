@@ -1,53 +1,61 @@
--- Tower: a kid-friendly ladder-and-barrels rescue (5+). Walk-up band (CONTROLS.md).
+-- Tower: a kid-friendly ladder-and-barrels rescue (5+). Walk-up band (CONTROLS.md). See DESIGN.md.
 -- The stick walks, and up/down climbs a ladder you stand at (4-way, magnet-snap). LOW, TL and TR all do
 -- the one verb: jump. A Star Swatter on the way smashes barrels for a few seconds, no button needed.
 -- Three towers make one run: a run scores from 0, three hearts per tower, a new floor mends a heart,
 -- and losing the hearts restarts the same tower. After tower 3 the run ends and the next player starts at
 -- tower 1 on a score of 0. tower.sav keeps "best N" (best run) and "rescues N"; quit() saves too.
+--
+-- The story: Big Grumble is only sleepy; the friends' giggling kept him up, so he locked them in the towers.
+-- Each rescue, the friend sings him a lullaby and he falls asleep smiling; the friends fill a gallery, and
+-- every few rescues bring him a gift. The climb is a song: each floor brings a layer in, the top is the climax.
+--
+-- Rules for the code: game logic counts game.frame and never reads music.step() (it is used for drawing and
+-- to pick the pitch of a music.cue). Chance is only the seeded rnd (this cart needs none). Nothing in
+-- pictures.lua uses the music clock.
 
-local C = {
-  CREAM = 0xfff6ea, INK = 0x3a2a44, GOLD = 0xffd84a, RED = 0xe84855,
-  BLUE = 0x4a82cc, CYAN = 0x7fe8ff, BROWN = 0xa86438, WOOD = 0xc8844c,
-  PURPLE = 0x8a5cf5, ROSE = 0xe86b9a, SKIN = 0xf4c7a1, WHITE = 0xfffcf8,
-  GREEN = 0x62cc6a,
-}
+local pics = import("pictures")
+local songs = import("songs")
 
--- 4 horizontal floors + top rescue perch!
-local FLOORS = {442, 348, 254, 160}
-local LADDERS = {
-  {x = 304, bot = 1, top = 2},
-  {x = 84, bot = 2, top = 3},
-  {x = 296, bot = 3, top = 4},
-}
-local TOWER_THEMES = {
-  {name = "Girder Tower", bg1 = 0x241c44, bg2 = 0x3c2860, beam = 0xe84855, lad = 0x7fe8ff},
-  {name = "Vine Treehouse", bg1 = 0x2a5444, bg2 = 0x1c3a32, beam = 0xc8844c, lad = 0x78e080},
-  {name = "Castle Sky Spire", bg1 = 0x3a2c6e, bg2 = 0x6048a0, beam = 0xf2c14e, lad = 0xfff6ea},
-}
+local FLOORS, LADDERS, TH = pics.FLOORS, pics.LADDERS, pics.TH
+local NTOWERS = #TH
+local GIFTS = pics.GIFTS
 
-local climb_bed = {bpm = 132, steps = 4,
-  {"C5 . D5 . E5 . G5 . E5 . D5 . C5 . . . G4 . A4 . B4 . D5 . C5 . B4 . G4 . . . ",
-   wave = "square", vol = 0.11, release = 0.05, attack = 0.004, duty = 0.25, pan = -0.2},
-  {"C3 . G2 . C3 . G2 . A2 . E2 . A2 . E2 . F2 . C3 . G2 . D3 . C3 . G2 . C3 . . . ",
-   wave = "tri", vol = 0.24, release = 0.06, attack = 0.004},
-  {"K . H . S . H . K . H . S . H . ", wave = "noise", vol = 0.09, release = 0.04, pan = 0.2}}
-local win_bed = {bpm = 132, steps = 2,
-  {"C5 . E5 . G5 . C6 - A5 . G5 . E5 . C6 - ", wave = "tri", vol = 0.20, release = 0.22, attack = 0.008},
-  {"C3 - G2 - A2 - E2 - F2 - C3 - G2 - C3 - ", wave = "sine", vol = 0.22, release = 0.24, attack = 0.01}}
-
-local NTOWERS = #TOWER_THEMES
+local STORY_MIN, STORY_END, STORY_SHORT = 24, 372, 250   -- a returning player sees the story from the cages on
+local WIN_MIN, WIN_AUTO = 215, 520
 
 local S = {
-  phase = "play", level = 1, best = 0, rescues = 0, score = 0, hurts = 0, hurt_cool = 0,
-  px = 68, py = FLOORS[1], vy = 0, floor_i = 1, on_ground = true, climbing = false,
+  phase = "story", level = 1, tw = 1, fi = 1, best = 0, rescues = 0, score = 0, hurts = 0, hurt_cool = 0,
+  px = 68, py = FLOORS[1], vy = 0, floor_i = 1, floor_max = 1, on_ground = true, climbing = false,
   face = 1, walk_t = 0, swat_t = 0,
   barrels = {}, swatter = nil, barrel_cool = 90,
-  win_t = 0, restart_t = 0, saw_release = false, react = "", react_left = 0, goodbye = false,
+  stars = {}, nstars = 0, got = 0,
+  g = {0, 0, 0}, pf = {0, 0, 0}, stars_total = 0, visits = 0, hops = 0, soft = 0,
+  t = 0, age = 0, win_t = 0, restart_t = 0, saw_release = false, react = "", react_left = 0, goodbye = false,
+  idle_t = 0, whew_t = 0, cheer_t = 0, throw_t = 0, laugh_t = 0, danger_t = 0,
+  hop_run = 0, last_hop = -9999, jump_n = 0, last_jump = -9999, climax = false,
+  gift_new = 0, perfect_now = false, next_level = 1,
 }
+pics.bind(S)
+
+-- Stars to catch on each tower: a ground star and a hop star on a floor. {floor, x, y above the floor}
+local STAR_MAP = {
+  {{1, 150, 20}, {1, 232, 60}, {2, 262, 20}, {2, 120, 60}, {3, 160, 20}, {3, 236, 60}, {4, 220, 20}},
+  {{1, 120, 20}, {1, 196, 60}, {2, 236, 20}, {2, 140, 60}, {3, 214, 20}, {3, 150, 60}, {4, 200, 20}},
+  {{1, 220, 20}, {1, 140, 60}, {2, 270, 20}, {2, 150, 60}, {3, 128, 20}, {3, 210, 60}, {4, 190, 20}, {4, 250, 60}},
+}
+
+local function clamp_save(k, def, hi) return clamp(save.get(k, def), 0, hi) end
 
 local function save_all()
   save.set("best", floor(S.best))
   save.set("rescues", floor(S.rescues))
+  for i = 1, 3 do
+    save.set("g" .. i, floor(S.g[i]))
+    save.set("pf" .. i, floor(S.pf[i]))
+  end
+  save.set("stars", floor(S.stars_total))
+  save.set("hops", floor(S.hops))
+  save.set("visits", floor(S.visits))
   save.write()
 end
 
@@ -56,18 +64,83 @@ local function add_score(n)
   S.score = min(S.score + n, 999999)
   if S.score > S.best then S.best = S.score end
 end
+local function soft_for(r) return (r >= 3 and 1 or 0) + (r >= 12 and 1 or 0) end
+
+-- ------------------------------------------------------------------ the music
+
+local LV = {1, 1, 1, 1, 1, 1}   -- the track levels asked of the song, so music.track is only called on a change
+local function set_level(i, v)
+  if LV[i] ~= v then
+    LV[i] = v
+    music.track(i, v)
+  end
+end
+local function play_song(song)
+  music.play(song)
+  for i = 1, 6 do LV[i] = 1 end
+end
+
+-- The layers follow the climb: floor 1 is bass and pad, floor 2 brings the drums, floor 3 the counter and the
+-- bells, the top floor is the climax section. A barrel close brings the drums in early; the Star Swatter lifts
+-- the lead and the bells; a hurt lets the lead drop away, gently.
+local function update_mix()
+  local f = S.floor_i
+  local lead = (f <= 1 and 0.55) or (f == 2 and 0.8) or (f == 3 and 1) or 1.15
+  local counter = (f >= 4 and 1) or (f == 3 and 0.9) or 0
+  local drums = (f >= 2 and 1) or (S.danger_t > 0 and 0.7) or 0
+  local spark = (f >= 4 and 1) or (f == 3 and 0.6) or 0
+  if S.swat_t > 0 then lead = lead + 0.3 spark = max(spark, 1.2) end
+  if S.hurt_cool > 0 then lead = 0.2 drums = drums * 0.5 end
+  set_level(1, lead) set_level(2, counter) set_level(3, 1) set_level(4, drums) set_level(5, 1) set_level(6, spark)
+end
+
+-- A note from the chord under the step it will land on (sound only: nothing reads it back).
+local function ladder_note(n, up) return songs.ladder(S.tw, music.step() + 1, n) + (up or 0) end
+local function cue_chord(vol, up)
+  local root, t3 = songs.chord(S.tw, music.step() + 1)
+  root = root + (up or 0)
+  music.cue{wave = "square", duty = 0.25, note = root, dur = 0.42, vol = vol, release = 0.38}
+  music.cue{wave = "square", duty = 0.25, note = root + t3, dur = 0.42, vol = vol * 0.8, release = 0.38}
+  music.cue{wave = "tri", note = root + 7, dur = 0.42, vol = vol, release = 0.38}
+  music.cue{wave = "sine", note = root + 12, dur = 0.5, vol = vol * 0.9, release = 0.45}
+end
+
+-- ------------------------------------------------------------------ story and towers
+
+local function begin_story()
+  local full = S.rescues == 0 and S.best == 0
+  S.phase, S.t, S.age = "story", full and 0 or STORY_SHORT, 0
+  S.px, S.py, S.floor_i, S.barrels, S.swatter = 68, FLOORS[1], 1, {}, nil
+  S.swat_t, S.hurt_cool, S.hurts, S.climbing, S.on_ground = 0, 0, 0, false, true
+  S.react_left = 0
+  S.soft = soft_for(S.rescues)
+  log("tower story " .. (full and "full" or "short"))
+  play_song(songs.story())
+  set_level(1, full and 0.7 or 0.4)
+  set_level(2, full and 0 or 1) set_level(3, full and 0 or 1)
+  set_level(4, 0) set_level(5, 0)
+end
 
 local function setup_tower(lvl)
   S.phase, S.level, S.hurts, S.hurt_cool = "play", lvl, 0, 0
+  S.tw = (lvl - 1) % NTOWERS + 1
+  S.fi = S.tw
   S.px, S.py, S.vy, S.floor_i, S.on_ground, S.climbing, S.face = 68, FLOORS[1], 0, 1, true, false, 1
+  S.floor_max, S.climax = 1, false
   S.swat_t, S.barrels, S.barrel_cool = 0, {}, 170
   S.saw_release = false
   S.swatter = {x = 188, y = FLOORS[2] - 26, gone = false}
+  S.stars, S.got = {}, 0
+  for i, m in ipairs(STAR_MAP[S.tw]) do S.stars[i] = {x = m[2], y = FLOORS[m[1]] - m[3], got = false} end
+  S.nstars = #S.stars
   S.win_t, S.restart_t = 0, 0
+  S.idle_t, S.whew_t, S.cheer_t, S.throw_t, S.laugh_t, S.danger_t = 0, 0, 0, 0, 0, 0
+  S.hop_run, S.jump_n = 0, 0
+  S.gift_new, S.perfect_now = 0, false
+  S.soft = soft_for(S.rescues)
   log("tower level " .. lvl)
-  music.play(climb_bed)
-  local th = TOWER_THEMES[(lvl - 1) % #TOWER_THEMES + 1]
-  react_to(th.name .. "! Climb up and rescue your friend!")
+  play_song(songs.song(S.tw, false))
+  react_to(TH[S.tw].name .. "! Climb up and free " .. pics.FRIENDS[S.fi].name .. "!")
 end
 
 local function near_ladder()
@@ -83,10 +156,12 @@ local function hurt_hero()
   if S.hurt_cool > 0 or S.phase ~= "play" then return end
   S.hurts = S.hurts + 1
   S.hurt_cool = 90
+  S.laugh_t = 50
+  S.hop_run = 0
   log("tower hurt " .. S.hurts)
   sfx.slide("tri", 320, 120, 0.25, 0.34)
   gfx.shake(4)
-  particles.burst(S.px, S.py - 12, 14, 2.5, 26, 3, C.PURPLE, "ring")
+  particles.burst(S.px, S.py - 12, 14, 2.5, 26, 3, 0x8a5cf5, "ring")
   if S.hurts >= 3 then
     S.phase, S.restart_t = "restart", 0
     save_all()
@@ -96,9 +171,58 @@ local function hurt_hero()
   end
 end
 
+local function reach_floor(f)
+  S.cheer_t = 40
+  if f > S.floor_max then
+    S.floor_max = f
+    log("tower floor " .. f)
+    cue_chord(0.16, 0)
+    if f == 2 then react_to("Floor 2! The drums join in!")
+    elseif f == 3 then react_to(pics.FRIENDS[S.fi].name .. " is cheering! Keep going!")
+    elseif f == 4 then react_to("Top floor! Free " .. pics.FRIENDS[S.fi].name .. "!") end
+  end
+  local top = f >= 4
+  if top ~= S.climax then
+    S.climax = top
+    music.play(songs.song(S.tw, top, true))   -- keep: the same step, the same layers, a new section
+  end
+end
+
+local function win_tower()
+  S.phase, S.win_t = "win", 0
+  S.rescues = S.rescues + 1
+  S.g[S.fi] = min(S.g[S.fi] + 1, 100000)
+  S.soft = soft_for(S.rescues)
+  add_score(500)
+  S.gift_new = 0
+  for k = 1, 3 do if S.rescues == GIFTS[k] then S.gift_new = k end end
+  S.perfect_now = S.got >= S.nstars
+  if S.perfect_now then
+    add_score(300)
+    S.pf[S.fi] = 1
+    log("tower perfect " .. S.level)
+  end
+  save_all()
+  log("tower rescue " .. S.level)
+  if S.gift_new > 0 then log("tower gift " .. S.gift_new) end
+  play_song(songs.fanfare(S.tw))
+  sfx.arp("tri", {72, 76, 79, 84, 88, 96}, 0.08, 0.36)
+  for i = 1, 30 do
+    particles.spawn(W / 2 + rnd(-110, 110), 160, rnd(-3, 3), rnd(-5, -1), 85, rnd(3, 5),
+      i % 3 == 0 and 0xffd84a or i % 3 == 1 and 0xe86b9a or 0x7fe8ff, "heart", 0.1, 0.99, 0.1)
+  end
+  react_to(S.level >= NTOWERS and "ALL THREE TOWERS! What a hero!" or ("YOU FREED " .. pics.FRIENDS[S.fi].name .. "! Yay!"))
+end
+
+local function alive(b) return not b.gone end
+
 function bot()
+  if S.phase == "story" then
+    if S.age >= STORY_MIN + 6 and game.frame % 4 == 0 then input.bot("low") end
+    return
+  end
   if S.phase == "win" then
-    if S.win_t > 80 and game.frame % 4 == 0 then input.bot("low") end
+    if S.win_t > WIN_MIN + 8 and game.frame % 4 == 0 then input.bot("low") end
     return
   end
   if S.phase ~= "play" then return end
@@ -124,14 +248,61 @@ end
 function init()
   sfx.master(0.32)
   sfx.limit(8000)
-  S.best = clamp(save.get("best", 0), 0, 999999)
-  S.rescues = clamp(save.get("rescues", 0), 0, 100000)
+  S.best = clamp_save("best", 0, 999999)
+  S.rescues = clamp_save("rescues", 0, 100000)
+  for i = 1, 3 do
+    S.g[i] = clamp_save("g" .. i, 0, 100000)
+    S.pf[i] = clamp_save("pf" .. i, 0, 1)
+  end
+  S.stars_total = clamp_save("stars", 0, 1000000)
+  S.hops = clamp_save("hops", 0, 1000000)
+  S.visits = clamp_save("visits", 0, 100000) + 1
+  S.soft = soft_for(S.rescues)
   log("tower best " .. S.best)
-  setup_tower(1)
+  S.level, S.tw, S.fi = 1, 1, 1
+  begin_story()
 end
 
--- Leaving (1P+2P): keep the best score and the rescues.
+-- Leaving (1P+2P): keep the best score, the rescues and the gallery.
 function quit() save_all() end
+
+local function step_win(pressed)
+  S.win_t = S.win_t + 1
+  local wt = S.win_t
+  if wt == 62 then react_to(pics.FRIENDS[S.fi].name .. " sings Big Grumble a lullaby.") end
+  if wt == 100 then play_song(songs.lullaby(S.tw)) end
+  if wt >= 100 and wt < 190 and wt % 22 == 0 then
+    music.cue{wave = "sine", note = ladder_note(idiv(wt - 100, 22) + 1, 12), dur = 0.3, vol = 0.14, release = 0.3}
+  end
+  if wt == 150 then react_to("Big Grumble is so sleepy...") end
+  if wt == 190 then
+    log("tower sleep " .. S.level)
+    react_to("Big Grumble is asleep. Sweet dreams!")
+    sfx.arp("sine", {84, 88, 91, 96}, 0.12, 0.2)
+    for i = 1, 6 do
+      particles.spawn(pics.GRUMBLE_X + rnd(-20, 40), FLOORS[4] - 90, rnd(-0.6, 0.6), rnd(-1.6, -0.6), 80, rnd(3, 5), 0xe86b9a, "heart", 0, 0.99, 0.1)
+    end
+  end
+  if wt == 196 and S.gift_new > 0 then
+    react_to("Big Grumble got " .. pics.GIFT_NAMES[S.gift_new] .. "!")
+    sfx.arp("tri", {72, 79, 84, 91, 96}, 0.07, 0.28)
+    particles.burst(pics.GRUMBLE_X, FLOORS[4] - 80, 22, 2.8, 30, 3, 0xffd84a, "star")
+  end
+  if wt > 100 and wt % 30 == 0 and wt < 480 then
+    particles.spawn(rnd(40, W - 40), 100, rnd(-0.5, 0.5), rnd(0.4, 1.2), 90, rnd(3, 4.5),
+      wt % 60 == 0 and 0xffd84a or 0xe86b9a, "star", 0.02, 0.99, 0.1)
+  end
+  if (pressed and S.saw_release and wt >= WIN_MIN) or wt >= WIN_AUTO then
+    snd.ok()
+    if S.level >= NTOWERS then
+      S.score = 0                 -- the run is over: the next player starts fresh at tower 1
+      S.level = 1
+      begin_story()
+    else
+      setup_tower(S.level + 1)
+    end
+  end
+end
 
 function update()
   local pressed, held = input.action(), input.action_down()
@@ -140,8 +311,28 @@ function update()
   if S.hurt_cool > 0 then S.hurt_cool = S.hurt_cool - 1 end
   if S.swat_t > 0 then S.swat_t = S.swat_t - 1 end
   if S.react_left > 0 then S.react_left = S.react_left - 1 end
+  if S.whew_t > 0 then S.whew_t = S.whew_t - 1 end
+  if S.cheer_t > 0 then S.cheer_t = S.cheer_t - 1 end
+  if S.throw_t > 0 then S.throw_t = S.throw_t - 1 end
+  if S.laugh_t > 0 then S.laugh_t = S.laugh_t - 1 end
+  if S.danger_t > 0 then S.danger_t = S.danger_t - 1 end
+  S.age = S.age + 1
+  if mx == 0 and my == 0 and not held then S.idle_t = S.idle_t + 1 else S.idle_t = 0 end
 
-  if S.phase == "play" then
+  if S.phase == "story" then
+    S.t = S.t + 1
+    local t = S.t
+    if t == 95 then set_level(2, 1) set_level(3, 1) sfx.slide("tri", 300, 700, 0.14, 0.2) end
+    if t == 172 then gfx.shake(5) sfx.noise(0.2, 0.2, 400) end
+    if t == 235 then sfx.noise(0.12, 0.2, 900) sfx.tone("tri", 200, 0.1, 0.2) end
+    if t == 262 then set_level(4, 1) set_level(5, 1) sfx.arp("tri", {72, 76, 79}, 0.06, 0.24) end
+    local skip = pressed and S.saw_release and S.age >= STORY_MIN
+    if skip or t >= STORY_END then
+      snd.ok()
+      log("tower story done")
+      setup_tower(S.level)
+    end
+  elseif S.phase == "play" then
     local lad = near_ladder()
     if lad and my ~= 0 and (S.on_ground or S.climbing) then
       S.climbing = true
@@ -155,10 +346,12 @@ function update()
         add_score(50)
         if S.hurts > 0 then
           S.hurts = S.hurts - 1
-          particles.burst(S.px, S.py - 20, 8, 1.8, 24, 3, C.ROSE, "heart")
+          particles.burst(S.px, S.py - 20, 8, 1.8, 24, 3, 0xe86b9a, "heart")
         end
+        reach_floor(S.floor_i)
       elseif S.py >= FLOORS[lad.bot] - 2 and my > 0 then
         S.py, S.floor_i, S.climbing, S.on_ground = FLOORS[lad.bot], lad.bot, false, true
+        reach_floor(S.floor_i)
       end
     else
       if S.climbing and mx ~= 0 and (abs(S.py - FLOORS[S.floor_i]) < 12) then
@@ -174,7 +367,12 @@ function update()
           S.vy = -7.2
           S.on_ground = false
           log("tower jump")
-          sfx.slide("sine", 360, 740, 0.14, 0.22)
+          sfx.slide("sine", 360, 740, 0.08, 0.2)
+          -- a jump is a note on the beat, rising through a string of jumps
+          if game.frame - S.last_jump > 150 then S.jump_n = 0 end
+          S.last_jump = game.frame
+          music.cue{wave = "sine", note = ladder_note(S.jump_n, 0), dur = 0.2, vol = 0.2, release = 0.16}
+          S.jump_n = S.jump_n + 1
         end
         if not S.on_ground then
           S.vy = S.vy + 0.34
@@ -191,16 +389,36 @@ function update()
       S.swatter.gone = true
       S.swat_t = 360
       add_score(150)
+      log("tower swatter")
       sfx.arp("tri", {72, 76, 79, 84, 88}, 0.05, 0.3)
-      particles.burst(S.swatter.x, S.swatter.y, 20, 3, 28, 3, C.GOLD, "star")
+      cue_chord(0.2, 0)
+      particles.burst(S.swatter.x, S.swatter.y, 20, 3, 28, 3, 0xffd84a, "star")
       react_to("STAR SWATTER! Smash the barrels!")
     end
 
-    -- Spawn rolling barrels from the goofy giant ape at top-left!
+    -- little stars: each one the next note of the song's chord ladder
+    for i = 1, S.nstars do
+      local st = S.stars[i]
+      if not st.got and dist(S.px, S.py - 16, st.x, st.y) < 24 then
+        st.got = true
+        S.got = S.got + 1
+        S.stars_total = S.stars_total + 1
+        add_score(25)
+        log("tower star " .. S.got)
+        sfx.tone("sine", 1400, 0.05, 0.1)
+        music.cue{wave = "tri", note = ladder_note(S.got - 1, 12), dur = 0.24, vol = 0.22, release = 0.2}
+        music.cue{wave = "sine", note = ladder_note(S.got - 1, 24), dur = 0.16, vol = 0.09, release = 0.14}
+        particles.burst(st.x, st.y, 8, 2, 22, 2.6, 0xffd84a, "star")
+        if S.got == S.nstars then react_to("EVERY STAR! Wow!") end
+      end
+    end
+
+    -- Spawn rolling barrels from Big Grumble at top-left, after a little wind-up he shows
     S.barrel_cool = S.barrel_cool - 1
     if S.barrel_cool <= 0 then
       S.barrel_cool = max(100, 190 - S.level * 28)
       S.barrels[#S.barrels + 1] = {x = 124, y = FLOORS[4], fl = 4, dir = 1, spd = 1.5 + S.level * 0.25, jumped = false}
+      S.throw_t = 16
       sfx.tone("tri", 240, 0.09, 0.16)
     end
 
@@ -212,56 +430,55 @@ function update()
       elseif b.dir < 0 and b.x < 26 then
         if b.fl > 1 then b.fl, b.y, b.dir = b.fl - 1, FLOORS[b.fl - 1], 1 else b.gone = true end
       end
+      if b.fl == S.floor_i and abs(b.x - S.px) < 120 then S.danger_t = 60 end
       -- Reward jumping over a barrel!
       if not b.jumped and b.fl == S.floor_i and not S.on_ground and abs(b.x - S.px) < 16 and S.py < b.y - 12 then
         b.jumped = true
         add_score(100)
+        if game.frame - S.last_hop > 420 then S.hop_run = 0 end
+        S.last_hop = game.frame
+        S.hop_run = S.hop_run + 1
+        S.hops = S.hops + 1
+        S.cheer_t = 36
+        log("tower hop " .. S.hop_run)
         sfx.note("sine", 88, 0.1, 0.2)
-        particles.text(S.px, S.py - 32, C.GOLD, "+100")
+        music.cue{wave = "square", duty = 0.25, note = ladder_note(S.hop_run + 1, 0), dur = 0.2, vol = 0.18, release = 0.16}
+        music.cue{wave = "sine", note = ladder_note(S.hop_run + 1, 12), dur = 0.3, vol = 0.14, release = 0.28}
+        particles.text(S.px, S.py - 50, 0xffd84a, S.hop_run >= 3 and ("+100 x" .. S.hop_run) or "+100")
+        if S.hop_run == 3 then react_to("Hop streak! The music is dancing!") end
+      end
+      local d = dist(b.x, b.y - 10, S.px, S.py - 12)
+      -- a barrel that rolls close past and misses: whew!
+      if not b.whew and d < 34 and d >= (S.swat_t > 0 and 30 or 19) and S.hurt_cool == 0 then
+        b.whew = true
+        S.whew_t = 40
+        log("tower whew")
       end
       -- Hit check (Star Swatter smashes barrels into stars!).
-      if dist(b.x, b.y - 10, S.px, S.py - 12) < (S.swat_t > 0 and 30 or 19) then
+      if d < (S.swat_t > 0 and 30 or 19) then
         if S.swat_t > 0 then
           b.gone = true
           add_score(200)
+          log("tower smash")
           sfx.arp("tri", {79, 88}, 0.05, 0.3)
+          cue_chord(0.16, 0)
           gfx.shake(3)
-          particles.burst(b.x, b.y - 10, 20, 3, 28, 3, C.GOLD, "star")
-          particles.text(b.x, b.y - 24, C.GOLD, "SMASH!")
+          S.cheer_t = 30
+          particles.burst(b.x, b.y - 10, 20, 3, 28, 3, 0xffd84a, "star")
+          particles.text(b.x, b.y - 24, 0xffd84a, "SMASH!")
         else
           b.gone = true
           hurt_hero()
         end
       end
     end
-    sweep(S.barrels, function(b) return not b.gone end)
+    sweep(S.barrels, alive)
+    update_mix()
 
     -- Reach the friend at top-left!
-    if S.floor_i == 4 and S.px < 146 then
-      S.phase, S.win_t = "win", 0
-      S.rescues = S.rescues + 1
-      add_score(500)
-      save_all()
-      log("tower rescue " .. S.level)
-      music.play(win_bed)
-      sfx.arp("tri", {72, 76, 79, 84, 88, 96}, 0.08, 0.36)
-      for i = 1, 34 do
-        particles.spawn(W / 2 + rnd(-110, 110), 160, rnd(-3, 3), rnd(-5, -1), 85, rnd(3, 5),
-          i % 3 == 0 and C.GOLD or i % 3 == 1 and C.ROSE or C.CYAN, "heart", 0.1, 0.99, 0.1)
-      end
-      react_to(S.level >= NTOWERS and "ALL THREE TOWERS! What a hero!" or "YOU RESCUED YOUR FRIEND! Yay!")
-    end
+    if S.floor_i == 4 and S.px < 146 then win_tower() end
   elseif S.phase == "win" then
-    S.win_t = S.win_t + 1
-    if (pressed and S.saw_release and S.win_t > 70) or S.win_t > 240 then
-      snd.ok()
-      if S.level >= NTOWERS then
-        S.score = 0                 -- the run is over: the next player starts fresh at tower 1
-        setup_tower(1)
-      else
-        setup_tower(S.level + 1)
-      end
-    end
+    step_win(pressed)
   elseif S.phase == "restart" then
     S.restart_t = S.restart_t + 1
     if S.restart_t >= 65 then setup_tower(S.level) end
@@ -273,92 +490,21 @@ function update()
   end
 end
 
-local function paint_tower(th)
-  gfx.vgrad(0, 0, W, H - 32, th.bg1, th.bg2)
-  -- Girders / platforms.
-  for _, y in ipairs(FLOORS) do
-    gfx.rrect_o(12, y, W - 24, 14, 4, th.beam, C.INK, 2)
-    for x = 24, W - 36, 28 do gfx.line(x, y + 2, x + 14, y + 12, 1.5, alpha(C.INK, 120)) end
-  end
-  -- Ladders.
-  for _, l in ipairs(LADDERS) do
-    local y1, y2 = FLOORS[l.top], FLOORS[l.bot]
-    gfx.line(l.x - 10, y1, l.x - 10, y2, 3.5, th.lad)
-    gfx.line(l.x + 10, y1, l.x + 10, y2, 3.5, th.lad)
-    for y = y1 + 10, y2 - 6, 14 do gfx.line(l.x - 10, y, l.x + 10, y, 2.5, th.lad) end
-  end
-end
-
 function draw()
-  local th = TOWER_THEMES[(S.level - 1) % #TOWER_THEMES + 1]
-  backdrop("tower_bg" .. ((S.level - 1) % NTOWERS + 1), function() paint_tower(th) end)
-
-  -- Big Grumble at top-left (waves when rescued!) + trapped fairy friend!
-  local ay = FLOORS[4] - 26 + sin(game.frame * 0.1) * 3
-  toon(function()
-    toon.ellipse(76, ay, 24, 22, C.BROWN)
-    toon.circle(76, ay - 18, 16, C.BROWN)
-    toon.ellipse(76, ay - 15, 11, 8, C.SKIN)
-  end, 2.2, C.INK)
-  gfx.circle(71, ay - 18, 2.2, C.INK)
-  gfx.circle(81, ay - 18, 2.2, C.INK)
-  -- Friend to rescue!
-  local fy = FLOORS[4] - 22 - abs(sin(game.frame * 0.14)) * (S.phase == "win" and 10 or 3)
-  gfx.glow(128, fy, 22, alpha(C.GOLD, 130))
-  toon(function() toon.circle(128, fy, 11, C.GOLD) end, 2, C.INK)
-  gfx.circle(125, fy - 2, 1.8, C.INK)
-  gfx.circle(131, fy - 2, 1.8, C.INK)
-
-  -- Star Swatter pickup.
-  if S.swatter and not S.swatter.gone then
-    local hy = S.swatter.y + sin(game.frame * 0.12) * 3
-    gfx.glow(S.swatter.x, hy, 22, alpha(C.GOLD, 140))
-    gfx.line(S.swatter.x, hy + 10, S.swatter.x, hy - 6, 4, C.WOOD)
-    gfx.rrect_o(S.swatter.x - 11, hy - 14, 22, 12, 4, C.GOLD, C.INK, 2)
+  if S.phase == "story" then
+    pics.story(S.t)
+  else
+    pics.draw_play()
+    if S.phase == "win" then pics.win_panel() end
   end
-
-  -- Rolling barrels.
-  for _, b in ipairs(S.barrels) do
-    gfx.circle_o(b.x, b.y - 11, 11, C.WOOD, C.INK, 2)
-    gfx.circle(b.x + cos(game.frame * 0.25 * b.dir) * 4, b.y - 11 + sin(game.frame * 0.25 * b.dir) * 4, 2.5, C.GOLD)
-  end
-
-  -- Hero!
-  if not (S.hurt_cool > 0 and idiv(S.hurt_cool, 4) % 2 == 1) then
-    local x, y = S.px, S.py - 16
-    toon(function()
-      toon.rrect(x - 9, y, 18, 16, 6, C.BLUE)
-      toon.circle(x, y - 8, 10, C.SKIN)
-      toon.ellipse(x, y - 14, 12, 6, C.RED)
-    end, 2.2, C.INK)
-    gfx.circle(x - 3 + S.face * 2, y - 8, 1.8, C.INK)
-    gfx.circle(x + 3 + S.face * 2, y - 8, 1.8, C.INK)
-    if S.swat_t > 0 then
-      local sw = sin(game.frame * 0.5) * 12
-      gfx.rrect_o(x + S.face * 16 - 9, y - 12 + sw, 18, 10, 3, C.GOLD, C.INK, 2)
-    end
-  end
-
-  -- HUD.
-  gfx.rrect_o(8, 8, 106, 26, 9, C.CREAM, C.INK, 2)
-  gfx.text("TOWER " .. S.level, 61, 12, 14, C.INK, "center")
-  for i = 1, 3 do
-    local hx = W / 2 - 26 + (i - 1) * 26
-    gfx.heart(hx, 22, 10, C.INK)
-    gfx.heart(hx, 22, 8, i <= (3 - S.hurts) and C.ROSE or 0x9aa4b8)
-  end
-  gfx.rrect_o(W - 110, 8, 102, 26, 9, C.CREAM, C.INK, 2)
-  gfx.text(tostring(S.score), W - 59, 12, 14, C.INK, "center")
-
-  if S.phase == "win" then
-    gfx.rrect_o(44, 204, W - 88, 96, 14, C.CREAM, C.INK, 3)
-    gfx.text(S.level >= NTOWERS and "ALL CLEAR!" or "TOWER CLEAR!", W / 2, 218, 28, C.GOLD, "center", C.INK)
-    gfx.text("SCORE: " .. S.score .. "   BEST: " .. S.best, W / 2, 258, 14, C.PURPLE, "center")
-    if S.level >= NTOWERS then gfx.text("Next hero starts a new run!", W / 2, 278, 12, C.INK, "center") end
-  end
-
   particles.draw()
-  local line = S.react_left > 0 and S.react or (S.swat_t > 0 and "SMASH the barrels!" or "Climb the ladders and hop the barrels!")
-  if input.down("1p") and input.down("2p") then line = "Your best score will stay!" end
+  local line
+  if S.phase == "story" then
+    line = pics.story_line(S.t)
+  else
+    line = S.react_left > 0 and S.react or (S.swat_t > 0 and "SMASH the barrels!" or "Climb the ladders and hop the barrels!")
+    if S.phase == "win" and S.win_t > 62 then line = S.react end
+  end
+  if input.down("1p") and input.down("2p") then line = "Your friends will stay!" end
   ui.band(line)
 end
