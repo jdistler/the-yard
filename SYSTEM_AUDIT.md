@@ -224,13 +224,15 @@ Ticked as each lands, with the commit.
 - [x] G4. Checked: LuaJIT's JIT is on in Home (`sound.lua`) and in the GPU yard (since 2026-10-24, measured
       3.4 x then); LÖVE turns it off on ARM, both turn it back on. No gain left there.
 - [ ] G3. Home: move show and Shelf art loads off the main thread where a hitch shows in B2.
+      First named by B2's notes (2026-11-24): a show starting reads its art from the card on the main thread, 226 ms
+      ("did show start art:thanksgiving/open art:thanksgiving/parade ..."). Preload through the worker.
 
 **H. Home refactor: the plan, gates and checkpoints are in [HOME_REFACTOR.md](HOME_REFACTOR.md)**
 - [x] H0. Safety net (CP0) and cabinet baseline (CP1).
 - [x] H1. CP2 the leaves (drawing helpers, input, pictures).
-- [ ] H2. CP3 one context table (state done: 35 names into ST; the head's paths and flags remain).
-- [ ] H3. CP4 the big consumers (catalog, actions, idle, menu).
-- [ ] H4. CP5 scenes; CP6 docs and soak.
+- [x] H2. CP3 one context table (ST).
+- [x] H3. CP4 the big consumers (catalog, actions, idle, menu, homestate, cards, ticks).
+- [x] H4. CP5 (ST.go; scene objects deferred, with reasons) and CP6 (HOME.md). Open: the cabinet soak.
 
 **J. Sound (P2)**
 - [x] J1. Loudness measured for every game (E2); spread 7.3 dB -> 5.5 dB (Chomp down, Bake and Band up).

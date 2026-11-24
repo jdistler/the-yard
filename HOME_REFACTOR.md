@@ -153,20 +153,37 @@ the tour identical; Home's startup, frame rate and memory on the cabinet no wors
       D and play moved to the head). `ticks.lua`: the music and idle ticks. main.lua 784 -> 640 lines, locals 38.
 
 **CP5. Scenes.**
-- [ ] A scene table and dispatcher in main: `love.update/draw/handle` call the current scene; intro, menu, attract,
-      night, show, shows, tv, shelf, hall each a scene object (hall, shelf and tv already nearly are).
-- [ ] Milestone: G4, G5, and the targets in section 2.
+- [x] `diag.lua` (the hitch and frames lines) and the art worker's drain (into `homestate.lua`) out of
+      `love.update`: main.lua 640 -> 587 lines. The three targets are met: under 600 lines, 35 locals (< 80), most
+      upvalues 24 (< 35).
+- [x] Every scene change goes through `ST.go(name)` (25 assignments in four modules): one place for entering and
+      leaving a scene.
+- [ ] Decided against full scene objects for now. The scenes that need their own logic already are modules (tv,
+      shelf, hall, initials); the inline ones (intro, menu, attract, night, show, shows) are dispatched in three
+      places (`idle.lua` handle, `menu.lua` draw_scene, `ticks.lua` update_idle). Turning them into objects would
+      restructure behaviour in four files for no capability the cabinet lacks; `ST.go` is where it would start.
+      Revisit when a scene needs enter/exit behaviour.
 
 **CP6. Done.**
-- [ ] A short HOME.md: the modules, the app table's fields, how to add a card, a scene, a section.
-- [ ] Cabinet soak: a day of normal use with vm.log and hitch notes; no new ERROR, no new hitch class.
-- [ ] SYSTEM_AUDIT.md H ticked.
+- [x] `games/love/home/HOME.md`: the modules, `ST` and `ST.go`, how a moved module is shaped, how to add a game,
+      card, section, show, scene or state, and the checks before calling a change done.
+- [x] Final gates: full suite 251/251; on the cabinet (two runs) no regression: startup 0.95/0.83 s, menu 57-58 fps,
+      attract 57.5 fps, textures 12.2 MB, RSS 38 MB, no errors. Hitches over 100 ms 6 (baseline 3): the extra ones
+      are an idle show starting inside the bench's window this time ("did show start art:thanksgiving/open ...",
+      226 ms reading show art from the card on the main thread): SYSTEM_AUDIT.md G3, not the refactor.
+- [ ] Cabinet soak: a day of normal use with vm.log and the hitch notes; no new ERROR, no new hitch class.
+- [x] SYSTEM_AUDIT.md H ticked.
 
 ## 5. Log
 
 (Each checkpoint: date, commits, metrics before and after, gates passed, cabinet numbers.)
 
 * **CP0, 2026-11-24:** locals 192/200, slots 202/250, upvalues 54/60 (love.load). Tour 50 steps, golden saved.
+* **CP4-CP6, 2026-11-24:** actions, idle, menu, catalog, homestate, cards, ticks, diag moved out (tools/home_move.py,
+  verbatim); ST.go for scenes; HOME.md. main.lua 2,538 -> 593 lines, locals 192 -> 35, most upvalues 54 -> 24.
+  The mover's checks and the globals gate caught, before any reached the cabinet: four stale-copy exports, one
+  declaration it misparsed, top-level statements run before their names existed, a missing mirror. Tour 50/50
+  after every move; full suite 251/251; cabinet bench at CP4 no regression.
 * **CP3 head, 2026-11-24:** 19 paths and flags into ST: locals 137 -> 118, upvalues 37 -> 32; tour 50/50, Home
   tests 31/31, globals clean.
 * **CP3 state, 2026-11-24:** 35 state locals into ST in two groups: locals 167 -> 137, slots 176 -> 141, most
