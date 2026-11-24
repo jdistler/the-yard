@@ -1,80 +1,171 @@
--- Star Kart: a Mario-Kart-inspired arcade racer for 5+!
--- Walk-up band (CONTROLS.md). Stick steers left/right; LOW/TL/TR fires your Item Box power-up!
--- Race Pika-Kart, Zam-Kart, Char-Kart, and Pip-Kart across 3 vibrant tracks to the Grand Podium!
--- kart.sav keeps "best N" (high score) and "cups N" (cups won).
+-- Star Kart: a kid-friendly kart racer with a cup. A comet dropped the golden Star Cup and four rivals of our
+-- own (Ember the fox, Bibi the bee, Moss the frog, Pebble the penguin) want it too. Race three tracks, a map
+-- between them, a podium at the end, trophies and kart paint that keep across visits. See DESIGN.md.
+-- Walk-up band (CONTROLS.md). The stick steers left/right; LOW/TL/TR uses your item. Nothing else.
+--
+-- Rules for the code: game logic counts game.frame and never reads music.step() (that is for drawing and for the
+-- pitch of a music.cue); chance is only the seeded rnd; nothing here draws.
+-- kart.sav keeps "best N" (high score) and "cups N" (cups won), and, new, the shelf (see DESIGN.md).
 
-local C = {
-  CREAM = 0xfff6ea, INK = 0x3a2a44, GOLD = 0xffd84a, ROSE = 0xe86b9a,
-  RED = 0xe84855, BLUE = 0x4a90e2, GREEN = 0x58c860, PURPLE = 0x8a5cf5,
-  CYAN = 0x7fe8ff, PIKA = 0xffd838, ZAM = 0xf2c14e, CHAR = 0xf28c38, WHITE = 0xfffcf8,
-}
+local pics = import("pictures")
+local songs = import("songs")
+local C = pics.C
+local TRACKS, RIVALS, PAINTS = pics.TRACKS, pics.RIVALS, pics.PAINTS
+local NRIV, NTRACK = #RIVALS, #TRACKS
+local ST = pics.STORY
 
-local TRACKS = {
-  {name = "Meadow Circuit", sky1 = 0x66c2ff, sky2 = 0xbef0ff, grass1 = 0x62c462, grass2 = 0x52b052,
-   road = 0x6e7282, kerb1 = 0xe84855, kerb2 = 0xfff6ea, rainbow = false, len = 3600},
-  {name = "Beach Boardwalk", sky1 = 0x4ab8ff, sky2 = 0xffe8b0, grass1 = 0xf4d28a, grass2 = 0xe8c070,
-   road = 0xb88652, kerb1 = 0x4ac8ff, kerb2 = 0xfff6ea, rainbow = false, len = 4200},
-  {name = "Rainbow Skyway", sky1 = 0x1a1438, sky2 = 0x382068, grass1 = 0x241848, grass2 = 0x1c123a,
-   road = 0x4a3a7a, kerb1 = 0xffd84a, kerb2 = 0x7fe8ff, rainbow = true, len = 4800},
-}
-
-local RIVALS_DEF = {
-  {name = "Pika", col = C.PIKA, trim = C.RED, ear = C.INK, base_spd = 4.65},
-  {name = "Zam", col = C.ZAM, trim = C.PURPLE, ear = C.ZAM, base_spd = 4.50},
-  {name = "Char", col = C.CHAR, trim = C.GOLD, ear = C.CHAR, base_spd = 4.35},
-  {name = "Pip", col = 0xf29a3a, trim = C.CREAM, ear = 0xf29a3a, base_spd = 4.20},
-}
-
-local ITEMS = {"star", "shell", "shield", "zap"}
-local ITEM_NAMES = {star = "Turbo Star!", shell = "Green Shell!", shield = "Bubble Shield!", zap = "Lightning Zap!"}
-
-local race_bed = {bpm = 144, steps = 4,
-  {"C5 . E5 . G5 . C6 . B5 . G5 . E5 . . . A5 . G5 . F5 . E5 . D5 . E5 . G5 . . . ",
-   wave = "square", vol = 0.12, release = 0.05, attack = 0.004, duty = 0.25, pan = -0.2},
-  {"C3 . C3 . G2 . G2 . A2 . A2 . E2 . E2 . F2 . F2 . C3 . C3 . G2 . G2 . G2 . . . ",
-   wave = "tri", vol = 0.24, release = 0.06, attack = 0.004},
-  {"K . H H S . H . K K H . S . H H ", wave = "noise", vol = 0.10, release = 0.04, pan = 0.2}}
-local win_bed = {bpm = 132, steps = 2,
-  {"C5 . E5 . G5 . C6 - A5 . G5 . E5 . C6 - ", wave = "tri", vol = 0.20, release = 0.22, attack = 0.008},
-  {"C3 - G2 - A2 - E2 - F2 - C3 - G2 - C3 - ", wave = "sine", vol = 0.22, release = 0.24, attack = 0.01}}
+local ITEMS = {"comet", "seeker", "bubble", "wobble"}
+local ITEM_NAMES = {comet = "Comet Dash!", seeker = "Seeker Spark!", bubble = "Bubble Shield!", wobble = "Wobble Wave!"}
+local PTS = {500, 350, 250, 150, 150}
+local ORD = {"1st", "2nd", "3rd", "4th", "5th"}
+local FINAL_AT = 0.72
+local GRID_END = 84
 
 local S = {
-  phase = "race", track = 1, best = 0, cups = 0, score = 0, cup_pts = 0,
+  phase = "story", pt = 0, t = 0, saw_release = false, goodbye = false,
+  track = 1, next = 1, score = 0, cup_pts = 0, best = 0, cups = 0,
+  visits = 1, races = 0, wins = 0, gold = 0, silver = 0, bronze = 0, paint = 1,
+  med = {0, 0, 0}, cplace = {0, 0, 0}, beat = {0, 0, 0, 0}, rcup = {0, 0, 0, 0}, rpts = {0, 0, 0, 0},
+  order = {0, 1, 2, 3, 4}, rord = {0, 1, 2, 3, 4}, rank = 1, cup_done = false,
   px = 0, py = 384, dist = 0, spd = 0, lean = 0,
   item = nil, item_spin = 0, star_t = 0, boost_t = 0, shield = false, zap_t = 0, spin_t = 0,
   rivals = {}, boxes = {}, pads = {}, shells = {},
-  saw_release = false, t = 0, finish_t = 0, place = 1,
-  react = "", react_left = 0, goodbye = false,
+  place = 1, mplace = 1, mplace_t = 0, final = false, final_t = 0, go_t = 0,
+  run = 0, run_t = 0, pmood = "", pmood_t = 0,
+  bub_i = 0, bub_mood = "", bub_word = "", bub_t = 0, bub_cool = 0,
+  react = "", react_left = 0, new_paint = 0, new_t = 0, fresh = 0, idle_t = 0,
+  mx_prev = 0, pass_n = 0, story_from = 0,
+}
+pics.S = S
+
+local function react_to(s) S.react, S.react_left = s, 110 end
+
+-- ---------------------------------------------------------------- the shelf (kart.sav)
+
+local function paint_open(k)
+  if k == 1 then return true end
+  if k == 2 then return S.races >= 1 end
+  if k == 3 then return S.races >= 3 end
+  if k == 4 then return S.races >= 6 end
+  if k == 5 then return S.cups >= 1 end
+  if k == 6 then return S.gold >= 1 end
+  return S.wins >= 10
+end
+pics.open = paint_open
+
+local function save_all()
+  save.set("best", S.best)
+  save.set("cups", S.cups)
+  save.set("visits", S.visits)
+  save.set("races", S.races)
+  save.set("wins", S.wins)
+  save.set("gold", S.gold)
+  save.set("silver", S.silver)
+  save.set("bronze", S.bronze)
+  save.set("paint", S.paint)
+  for i = 1, NTRACK do save.set("m" .. i, S.med[i]) end
+  for i = 1, NRIV do save.set("b" .. i, S.beat[i]) end
+  save.write()
+end
+
+local function check_unlocks(before)
+  for k = 2, #PAINTS do
+    if paint_open(k) and not before[k] then
+      S.new_paint, S.new_t = k, 0
+      log("kart paint " .. k)
+      return true
+    end
+  end
+  return false
+end
+
+local function snapshot_open()
+  local t = {}
+  for k = 1, #PAINTS do t[k] = paint_open(k) end
+  return t
+end
+
+-- ---------------------------------------------------------------- the music
+
+local LV = {1, 1, 1, 1, 1, 1}
+local function play_song(song)
+  music.play(song)
+  if not song.keep then
+    for i = 1, 6 do LV[i] = 1 end
+    music.tempo(1)
+  end
+end
+local function lvl(i, v)
+  if LV[i] ~= v then LV[i] = v music.track(i, v) end
+end
+local function cue(note, wave, vol, at, dur)
+  music.cue{wave = wave or "square", duty = 0.25, note = note, dur = dur or 0.18, vol = vol or 0.2,
+    release = 0.12, at = at or "step"}
+end
+local function chord_wi() return S.phase == "race" and S.track or 0 end
+local function chord_now() return songs.chord(chord_wi(), music.step() + 1) end   -- sound only
+local function run_note(n) return songs.ladder(chord_wi(), music.step() + 1, n) end   -- sound only
+local function bump_run()
+  if S.run_t > 0 then S.run = S.run + 1 else S.run = 1 end
+  S.run_t = 170
+  return S.run
+end
+local function stinger(vol, at)   -- the chord under the song, as a bell of three
+  local root, t3 = chord_now()
+  cue(root + 12, "square", vol, at, 0.3)
+  cue(root + 12 + t3, "tri", vol * 0.8, at, 0.3)
+  cue(root + 19, "sine", vol * 0.9, at, 0.35)
+end
+
+-- The layers follow where you are: leading brings the lead and the shimmer, chasing brings the drums and the
+-- stabs, a boost brings everything. Calls music.track only when a level changes.
+local function race_levels()
+  local p, boost = S.mplace, (S.star_t > 0 or S.boost_t > 0)
+  local lead = p == 1 and 1.15 or p == 2 and 1.0 or p == 3 and 0.85 or p == 4 and 0.65 or 0.5
+  local stab = (p >= 4) and 1 or (p == 3 and 0.7 or 0)
+  local drum = p <= 2 and 0.8 or 1
+  local shim = p == 1 and 1 or (p == 2 and 0.7 or 0)
+  if boost then lead, stab, drum, shim = max(lead, 1.15), 1, 1.3, 1.2 end
+  if S.final then stab, drum = max(stab, 0.8), max(drum, 1) end
+  lvl(1, lead) lvl(2, stab) lvl(3, 1) lvl(4, drum) lvl(5, shim) lvl(6, 0.9)
+end
+
+-- ---------------------------------------------------------------- the rivals' faces
+
+local function mood(r, m, n)
+  r.mood, r.mood_t = m, n
+end
+
+local VOICE = {
+  function() sfx.slide("tri", 640, 980, 0.12, 0.18) end,                       -- Ember: a sly rising "heh"
+  function() sfx.arp("sine", {88, 91, 95}, 0.05, 0.18) end,                    -- Bibi: a buzzy trill
+  function() sfx.slide("square", 210, 150, 0.16, 0.14) sfx.slide("square", 230, 170, 0.1, 0.1) end,  -- Moss: ribbit
+  function() sfx.slide("saw", 330, 250, 0.16, 0.1) end,                        -- Pebble: a gruff "hmph"
 }
 
-local function react_to(s) S.react, S.react_left = s, 100 end
-
-local function road_curve(d)
-  return sin(d * 0.0045) * 44 + sin(d * 0.0019 + S.track) * 24
+local function say(i, m, word)
+  if S.bub_cool > 0 and m ~= "cheer" then return end
+  S.bub_i, S.bub_mood, S.bub_word, S.bub_t, S.bub_cool = i, m, word, 110, 40
+  VOICE[i]()
 end
 
-local function world_to_screen(wx, wd)
-  local rel = wd - S.dist
-  if rel < -60 or rel > 460 then return nil end
-  local k = clamp(1 - rel / 460, 0, 1)
-  local sy = lerp(128, 396, k ^ 1.35)
-  local halfw = lerp(42, 152, k ^ 1.25)
-  local cx = W / 2 + (road_curve(wd) - road_curve(S.dist)) * (1 - k)
-  local sx = cx + wx * halfw
-  return sx, sy, lerp(0.32, 1.05, k ^ 1.2)
-end
+-- ---------------------------------------------------------------- races
+
+local function world_to_screen(wx, wd) return pics.project(wx, wd) end
 
 local function setup_race(tr)
-  S.phase, S.track, S.dist, S.px, S.spd, S.lean = "race", tr, 0, 0, 2.5, 0
+  S.track, S.dist, S.px, S.spd, S.lean = tr, 0, 0, 0, 0
   S.item, S.item_spin, S.star_t, S.boost_t, S.shield, S.zap_t, S.spin_t = nil, 0, 0, 0, false, 0, 0
   S.rivals, S.boxes, S.pads, S.shells = {}, {}, {}, {}
-  S.finish_t, S.place = 0, 1
+  S.place, S.mplace, S.mplace_t, S.final, S.final_t, S.go_t = 5, 5, 0, false, 0, 0
+  S.run, S.run_t, S.pmood, S.pmood_t, S.bub_t, S.bub_cool, S.pass_n = 0, 0, "", 0, 0, 0, 0
   local T = TRACKS[tr]
-  for i, r in ipairs(RIVALS_DEF) do
+  local assist = (S.races < 3) and 0.97 or 1
+  for i, d in ipairs(RIVALS) do
     S.rivals[i] = {
-      name = r.name, col = r.col, trim = r.trim, ear = r.ear,
-      x = -0.65 + (i - 1) * 0.42, d = 110 + i * 75, spd = r.base_spd + (tr - 1) * 0.22,
-      spin = 0, phase = i * 1.4,
+      def = d, name = d.name, x = -0.65 + (i - 1) * 0.42, d = 60 + i * 55,
+      spd = d.spd * assist + (tr - 1) * 0.22, spin = 0, phase = d.phase,
+      ahead = true, cool = 0, mood = "", mood_t = 0, look = 0, lookn = 0, sp = 0, cd = 260 + i * 70,
     }
   end
   for d = 300, T.len - 260, 400 do
@@ -85,9 +176,11 @@ local function setup_race(tr)
   for d = 220, T.len - 220, 450 do
     S.pads[#S.pads + 1] = {x = ((floor(d / 450)) % 2 == 0 and -0.42 or 0.42), d = d}
   end
+  S.phase, S.pt, S.saw_release = "grid", 0, false
   log("kart race " .. tr)
-  music.play(race_bed)
-  react_to(T.name .. "! Go! Go! Go!")
+  play_song(songs.song(tr, false))
+  lvl(1, 0) lvl(2, 0) lvl(3, 0.7) lvl(4, 0) lvl(5, 0.6) lvl(6, 1)
+  react_to(T.name .. "! Get ready!")
 end
 
 local function calc_place()
@@ -104,13 +197,15 @@ local function use_item()
   local it = S.item
   S.item = nil
   log("kart item " .. it)
-  if it == "star" then
+  S.pmood, S.pmood_t = "happy", 70
+  if it == "comet" then
     S.star_t = 220
     S.score = S.score + 150
     sfx.arp("tri", {72, 76, 79, 84, 88}, 0.05, 0.32)
+    cue(run_note(bump_run()) + 12, "square", 0.22, "beat", 0.4)
     particles.burst(W / 2 + S.px * 145, S.py, 22, 3.2, 30, 3, C.GOLD, "star")
-    react_to("TURBO STAR! Zoom past everyone!")
-  elseif it == "shell" then
+    react_to("COMET DASH! Zoom past everyone!")
+  elseif it == "seeker" then
     -- Auto-aim at the nearest rival ahead!
     local tgt, bd = nil, 1e9
     for _, r in ipairs(S.rivals) do
@@ -118,60 +213,151 @@ local function use_item()
     end
     S.shells[#S.shells + 1] = {x = S.px, d = S.dist + 20, tgt = tgt, life = 130}
     sfx.slide("square", 600, 1200, 0.14, 0.22)
-    react_to("Green Shell! Watch out!")
-  elseif it == "shield" then
+    cue(run_note(bump_run()), "tri", 0.2, "beat")
+    react_to("Seeker Spark! Watch out!")
+  elseif it == "bubble" then
     S.shield = true
     S.score = S.score + 100
     sfx.arp("sine", {76, 84}, 0.07, 0.26)
+    cue(run_note(bump_run()), "sine", 0.22, "beat", 0.3)
     particles.burst(W / 2 + S.px * 145, S.py, 16, 2.5, 24, 3, C.CYAN, "dot")
     react_to("Bubble Shield on!")
-  elseif it == "zap" then
+  else
     S.zap_t = 180
     S.score = S.score + 150
     sfx.noise(0.18, 0.25, 3400)
     sfx.slide("square", 1200, 260, 0.22, 0.22)
+    stinger(0.2, "beat")
     gfx.shake(4)
-    for _, r in ipairs(S.rivals) do r.spin = 50 end
-    react_to("LIGHTNING ZAP! Everyone shrunk!")
+    for i, r in ipairs(S.rivals) do
+      r.spin = 50
+      mood(r, "wow", 70)
+    end
+    say(1 + (S.t % NRIV), "wow", "Wheee!")
+    react_to("WOBBLE WAVE! Everyone is wobbly!")
   end
 end
 
+-- who is ahead of whom: S.rord holds ids (0 you, 1..4 rivals) from first to last
+local function race_order()
+  local ids, prog = S.rord, S.rprog
+  if not prog then prog = {0, 0, 0, 0, 0} S.rprog = prog end
+  ids[1], prog[1] = 0, S.dist
+  for i = 1, NRIV do ids[i + 1], prog[i + 1] = i, S.rivals[i].d end
+  for i = 2, NRIV + 1 do   -- insertion sort, longest first; you win ties
+    local id, pr = ids[i], prog[i]
+    local j = i - 1
+    while j >= 1 and prog[j] < pr do ids[j + 1], prog[j + 1] = ids[j], prog[j] j = j - 1 end
+    ids[j + 1], prog[j + 1] = id, pr
+  end
+  for i = 1, NRIV + 1 do if ids[i] == 0 then return i end end
+  return NRIV + 1
+end
+
+-- The cup table: the five racers by cup points, you first on ties
+local function standings()
+  local ids, pts = S.order, S.rprog or {0, 0, 0, 0, 0}
+  S.rprog = pts
+  ids[1], pts[1] = 0, S.cup_pts
+  for i = 1, NRIV do ids[i + 1], pts[i + 1] = i, S.rcup[i] end
+  for i = 2, NRIV + 1 do
+    local id, pr = ids[i], pts[i]
+    local j = i - 1
+    while j >= 1 and pts[j] < pr do ids[j + 1], pts[j + 1] = ids[j], pts[j] j = j - 1 end
+    ids[j + 1], pts[j + 1] = id, pr
+  end
+  for i = 1, NRIV + 1 do if ids[i] == 0 then return i end end
+  return NRIV + 1
+end
+
 local function finish_race()
-  local p = calc_place()
-  local pts = p == 1 and 500 or p == 2 and 350 or p == 3 and 250 or 150
+  local before = snapshot_open()
+  local p = race_order()
+  S.place = p
+  local pts = PTS[p]
   S.score = S.score + pts
   S.cup_pts = S.cup_pts + pts
   if S.score > S.best then S.best = S.score end
-  if S.track == #TRACKS then
-    S.phase, S.finish_t = "podium", 0
-    if p <= 3 then S.cups = S.cups + 1 end
-    save.set("best", S.best)
-    save.set("cups", S.cups)
-    save.write()
-    log("kart podium " .. p)
-    log("kart best " .. S.best)
-    music.play(win_bed)
-    sfx.arp("tri", {72, 76, 79, 84, 88, 96}, 0.08, 0.36)
-    react_to("You finished " .. (p == 1 and "1st!" or p == 2 and "2nd!" or p == 3 and "3rd!" or p .. "th!") .. " Trophy time!")
-  else
-    S.phase, S.finish_t = "clear", 0
-    save.set("best", S.best)
-    save.write()
-    log("kart finish " .. S.track .. " " .. p)
-    sfx.arp("tri", {72, 76, 79, 84}, 0.08, 0.34)
-    react_to("Race " .. S.track .. " done! " .. (p == 1 and "1st place!" or p .. " place!"))
+  S.races = S.races + 1
+  S.cplace[S.track] = p
+  if p == 1 then S.wins = S.wins + 1 end
+  if S.med[S.track] == 0 or p < S.med[S.track] then S.med[S.track] = p end
+  for rk = 1, NRIV + 1 do
+    local id = S.rord[rk]
+    if id > 0 then
+      S.rpts[id] = PTS[rk]
+      S.rcup[id] = S.rcup[id] + PTS[rk]
+      local r = S.rivals[id]
+      if rk > p then
+        S.beat[id] = min(S.beat[id] + 1, 100000)
+        local m = r.def.lose
+        mood(r, m, 200)
+      else
+        mood(r, rk == 1 and "cheer" or "taunt", 200)
+      end
+    end
   end
-  for i = 1, 32 do
+  S.phase, S.pt, S.saw_release = "finish", 0, false
+  S.pmood, S.pmood_t = p <= 3 and "happy" or "ok", 200
+  log("kart finish " .. S.track .. " " .. p)
+  check_unlocks(before)
+  save.set("best", S.best)
+  save_all()
+  play_song(songs.fanfare(S.track, p))
+  sfx.arp("tri", {72, 76, 79, 84, 88, 96}, 0.08, 0.3)
+  local rr = S.rord[1]
+  react_to(p == 1 and "FIRST! You win the race!" or
+    ("You finished " .. ORD[p] .. "! " .. (rr > 0 and (S.rivals[rr].name .. " won.") or "")))
+  for i = 1, 24 do
     particles.spawn(W / 2 + rnd(-120, 120), 200, rnd(-3, 3), rnd(-5, -1), 80, rnd(3, 5),
       i % 3 == 0 and C.GOLD or i % 3 == 1 and C.ROSE or C.CYAN, "star", 0.12, 0.99, 0.1)
   end
 end
 
+local function start_podium()
+  local before = snapshot_open()
+  local rank = standings()
+  S.rank, S.phase, S.pt, S.saw_release = rank, "podium", 0, false
+  if rank <= 3 then
+    S.cups = S.cups + 1
+    if rank == 1 then S.gold = S.gold + 1 elseif rank == 2 then S.silver = S.silver + 1 else S.bronze = S.bronze + 1 end
+    S.fresh = rank
+  else
+    S.fresh = 0
+  end
+  log("kart podium " .. rank)
+  log("kart best " .. S.best)
+  check_unlocks(before)
+  save_all()
+  play_song(songs.podium())
+  lvl(1, 0) lvl(2, 0) lvl(3, 0) lvl(4, 0) lvl(5, 0) lvl(6, 1)
+  react_to(rank == 1 and "You won the Star Cup!" or rank <= 3 and ("You are " .. ORD[rank] .. " in the cup!") or "Good racing! Try again?")
+end
+
+local function enter_garage()
+  S.phase, S.pt, S.saw_release = "garage", 0, false
+  S.cup_pts, S.score, S.rcup, S.cplace = 0, 0, {0, 0, 0, 0}, {0, 0, 0}
+  S.next = 1
+  particles.clear()
+  play_song(songs.story())
+  log("kart garage")
+end
+
+local function enter_map()
+  S.phase, S.pt, S.saw_release = "map", 0, false
+  play_song(songs.map())
+  lvl(5, 0.35 + 0.25 * (S.next - 1))
+  standings()
+  react_to(S.next == 1 and "Three races to the Star Cup!" or ("Next: " .. TRACKS[S.next].name))
+end
+
 function bot()
-  if S.phase == "clear" or S.phase == "podium" then
-    if S.finish_t > 80 and game.frame % 4 == 0 then input.bot("low") end
+  local ph = S.phase
+  if ph == "story" or ph == "garage" or ph == "map" or ph == "finish" or ph == "podium" then
+    if S.pt > 30 and game.frame % 4 == 0 then input.bot("low") end
     return
   end
+  if ph == "grid" then return end
   -- Steer toward boost pads or item boxes ahead, else center!
   local tx = 0
   if not S.item then
@@ -193,29 +379,221 @@ function init()
   sfx.limit(8000)
   S.best = clamp(save.get("best", 0), 0, 999999)
   S.cups = clamp(save.get("cups", 0), 0, 100000)
+  S.visits = clamp(save.get("visits", 0), 0, 100000) + 1
+  S.races = clamp(save.get("races", 0), 0, 100000)
+  S.wins = clamp(save.get("wins", 0), 0, 100000)
+  S.gold = clamp(save.get("gold", 0), 0, 100000)
+  S.silver = clamp(save.get("silver", 0), 0, 100000)
+  S.bronze = clamp(save.get("bronze", 0), 0, 100000)
+  S.paint = clamp(save.get("paint", 1), 1, #PAINTS)
+  for i = 1, NTRACK do S.med[i] = clamp(save.get("m" .. i, 0), 0, 5) end
+  for i = 1, NRIV do S.beat[i] = clamp(save.get("b" .. i, 0), 0, 100000) end
+  if not paint_open(S.paint) then S.paint = 1 end
   log("kart best " .. S.best)
-  setup_race(1)
+  log("kart visit " .. S.visits)
+  S.story_from = (S.visits > 1 and S.races > 0) and ST.kart - 10 or 0
+  S.phase, S.pt = "story", S.story_from
+  log("kart story")
+  play_song(songs.story())
+  lvl(3, 0) lvl(4, 0)
+  react_to(S.story_from > 0 and "Welcome back! Race for the Star Cup!" or "A comet dropped the golden Star Cup!")
 end
 
 function quit()
-  save.set("best", S.best)
-  save.set("cups", S.cups)
-  save.write()
+  save_all()
+end
+
+-- The rivals drive (a little rubber band keeps every race close). Used while racing and after the line.
+local function move_rivals(racing)
+  for i, r in ipairs(S.rivals) do
+    local d = r.def
+    -- now and then one that is just behind you sprints (a dash of speed that never lasts), so rivals really do
+    -- come past, and the race is a chase
+    local burst = 0
+    if r.sp > 0 then
+      r.sp = r.sp - 1
+      burst = 0.85
+    elseif racing then
+      r.cd = r.cd - 1
+      local back = S.dist - r.d
+      if r.cd <= 0 and back > 30 and back < 260 then r.sp, r.cd = 55, 420 end
+    end
+    if r.spin > 0 then
+      r.spin = r.spin - 1
+      r.d = r.d + 1.5
+    else
+      local rubber = clamp((S.dist - r.d) * 0.0025, -0.45, 0.55)
+      local z = S.zap_t > 0 and 0.65 or 1
+      r.d = r.d + (r.spd + rubber + burst) * z
+    end
+    r.x = approach(r.x, clamp(sin(S.t * d.lane + r.phase) * d.amp, -0.78, 0.78), 0.1)
+    if r.mood_t > 0 then r.mood_t = r.mood_t - 1 if r.mood_t == 0 then r.mood = "" end end
+    if r.cool > 0 then r.cool = r.cool - 1 end
+    local gap = r.d - S.dist
+    r.look = (gap > 8 and gap < 110 and abs(r.x - S.px) < 0.5) and 1 or 0
+    if racing then
+      -- one that stays just ahead glances back, and has something to say about it
+      if r.look == 1 then r.lookn = r.lookn + 1 else r.lookn = 0 end
+      if r.lookn == 45 and r.cool == 0 and S.bub_cool == 0 then
+        r.cool = 220
+        mood(r, "taunt", 80)
+        say(i, "taunt", d.words.taunt)
+        log("kart taunt " .. r.name)
+      end
+      -- Overtaking (and being overtaken) is a moment: the rival taunts or sulks, in its own way.
+      local ahead = r.d > S.dist
+      if ahead ~= r.ahead then
+        r.ahead = ahead
+        if r.cool == 0 and S.spin_t == 0 then
+          r.cool = 150
+          if ahead then
+            mood(r, "taunt", 90)
+            say(i, "taunt", d.words.taunt)
+            log("kart taunt " .. r.name)
+          else
+            S.pass_n = S.pass_n + 1
+            mood(r, d.lose, 90)
+            say(i, d.lose, d.words.lose)
+            sfx.note("tri", 84, 0.06, 0.18)
+            cue(run_note(bump_run()), "tri", 0.18, "step", 0.15)
+            log("kart pass " .. r.name)
+          end
+        end
+      end
+      -- Bumping a rival: harmless bounce!
+      if abs(r.d - S.dist) < 22 and abs(r.x - S.px) < 0.25 then
+        if S.star_t > 0 then
+          r.spin = 65
+          S.score = S.score + 100
+          sfx.note("tri", 88, 0.12, 0.26)
+          mood(r, "wow", 80)
+          cue(run_note(bump_run()) + 7, "square", 0.2, "beat")
+        elseif S.shield then
+          S.shield = false
+          r.spin = 45
+          sfx.tone("sine", 780, 0.12, 0.24)
+          mood(r, "wow", 70)
+        else
+          S.px = clamp(S.px + (S.px < r.x and -0.15 or 0.15), -0.9, 0.9)
+          sfx.tone("sine", 320, 0.08, 0.16)
+          S.pmood, S.pmood_t = "ouch", 40
+          if r.cool == 0 then
+            r.cool = 90
+            mood(r, "bump", 60)
+            say(i, "bump", d.words.bump)
+          end
+        end
+      end
+    end
+  end
 end
 
 function update()
   local pressed, held = input.action(), input.action_down()
   local mx, my = input.dir()
   if not held then S.saw_release = true end
+  local tap = pressed and S.saw_release
   S.t = S.t + 1
+  S.pt = S.pt + 1
   if S.react_left > 0 then S.react_left = S.react_left - 1 end
+  if S.bub_t > 0 then S.bub_t = S.bub_t - 1 end
+  if S.bub_cool > 0 then S.bub_cool = S.bub_cool - 1 end
+  if S.pmood_t > 0 then S.pmood_t = S.pmood_t - 1 if S.pmood_t == 0 then S.pmood = "" end end
+  local ph = S.phase
 
-  if S.phase == "race" then
+  if ph == "story" then
+    -- the comet falls; the rivals roll in one by one; you roll in last
+    if S.pt == ST.comet then sfx.slide("sine", 1800, 300, 0.5, 0.2) end
+    if S.pt == ST.hit then
+      gfx.flash(0xfff6c0, 8)
+      stinger(0.2, "step")
+      react_to("A comet dropped the golden Star Cup!")
+    end
+    for i = 1, NRIV do
+      if S.pt == ST.riv + (i - 1) * ST.gap + 30 then
+        VOICE[i]()
+        cue(songs.ladder(0, 1, i * 2 - 1), "tri", 0.18, "step")
+        if i == 1 then react_to("Ember, Bibi, Moss and Pebble want it too!") end
+      end
+    end
+    if S.pt == ST.kart + 40 then
+      sfx.arp("tri", {72, 76, 79, 84}, 0.06, 0.26)
+      react_to("Race three tracks to win the Star Cup!")
+    end
+    if S.pt >= ST.kart then lvl(3, 1) lvl(4, 1) end
+    if (tap and S.pt > S.story_from + 12) or S.pt > ST["end"] then
+      S.phase, S.pt, S.saw_release = "garage", 0, false
+      snd.ok()
+      lvl(3, 1) lvl(4, 1)
+      log("kart garage")
+      react_to("Pick your paint! Press to race.")
+    end
+
+  elseif ph == "garage" then
+    S.new_t = S.new_t + 1
+    if mx ~= 0 and S.mx_prev == 0 then
+      local k = S.paint
+      for _ = 1, #PAINTS do
+        k = (k - 1 + mx) % #PAINTS + 1
+        if paint_open(k) then break end
+      end
+      if k ~= S.paint then
+        S.paint = k
+        sfx.note("tri", 76 + k, 0.08, 0.2)
+        cue(songs.ladder(0, 1, k), "sine", 0.16, "step")
+        log("kart pick " .. k)
+        react_to("Looking good! " .. PAINTS[k].name .. "!")
+      end
+    end
+    S.mx_prev = mx
+    if tap and S.pt > 14 then
+      snd.ok()
+      save_all()
+      enter_map()
+    end
+
+  elseif ph == "map" then
+    if S.pt == pics.MAPMOVE then
+      sfx.slide("sine", 400, 900, 0.3, 0.18)
+      cue(songs.ladder(0, 1, S.next * 2), "tri", 0.2, "beat")
+    end
+    if (tap and S.pt > 30) or S.pt > 230 then
+      snd.ok()
+      setup_race(S.next)
+    end
+
+  elseif ph == "grid" then
+    -- three lights and GO; the engines rev
+    local g = S.pt
+    if g == 12 or g == 34 or g == 56 then
+      sfx.tone("square", 330, 0.12, 0.2)
+      sfx.noise(0.08, 0.1, 900)
+    end
+    if g == 12 then react_to("Three...") elseif g == 34 then react_to("Two...") elseif g == 56 then react_to("One...") end
+    if g == 76 then
+      sfx.tone("square", 660, 0.4, 0.24)
+      stinger(0.22, "step")
+      S.phase = "race"
+      S.go_t = 0
+      S.spd = 2.5
+      S.saw_release = false
+      react_to("GO! " .. TRACKS[S.track].name .. "!")
+      race_levels()
+      local r1 = S.rivals[1 + (S.track - 1) % NRIV]
+      mood(r1, "taunt", 70)
+      say(r1.def.id, "taunt", r1.def.words.taunt)
+    end
+    for _, r in ipairs(S.rivals) do r.x = approach(r.x, -0.65 + (r.def.id - 1) * 0.42, 0.1) end
+
+  elseif ph == "race" then
     local T = TRACKS[S.track]
+    S.go_t = S.go_t + 1
     if S.star_t > 0 then S.star_t = S.star_t - 1 end
     if S.boost_t > 0 then S.boost_t = S.boost_t - 1 end
     if S.zap_t > 0 then S.zap_t = S.zap_t - 1 end
     if S.spin_t > 0 then S.spin_t = S.spin_t - 1 end
+    if S.run_t > 0 then S.run_t = S.run_t - 1 end
+    if S.final_t > 0 then S.final_t = S.final_t - 1 end
     if S.item_spin > 0 then
       S.item_spin = S.item_spin - 1
       if S.item_spin % 5 == 0 then sfx.tone("sine", 600 + (30 - S.item_spin) * 18, 0.04, 0.14) end
@@ -225,7 +603,7 @@ function update()
       end
     end
 
-    -- Smooth Mario-Kart steering with gentle road-edge rails (never get stuck!).
+    -- Smooth steering with gentle road-edge rails (never get stuck!).
     local steer = mx * 0.036
     S.px = clamp(S.px + steer, -0.92, 0.92)
     S.lean = approach(S.lean, mx, 0.2)
@@ -242,37 +620,45 @@ function update()
         S.boost_t = 70
         S.score = S.score + 75
         sfx.slide("sine", 520, 1280, 0.18, 0.24)
+        cue(run_note(bump_run()) + 12, "square", 0.2, "beat", 0.3)
+        S.pmood, S.pmood_t = "wow", 50
         particles.burst(W / 2 + S.px * 145, S.py + 12, 14, 2.8, 22, 3, C.CYAN, "star")
         react_to("WHOOSH! Rainbow Boost!")
       end
     end
 
-    -- Item boxes.
+    -- Item boxes (a box is left for later while your hands are full).
     for _, b in ipairs(S.boxes) do
-      -- (a box is left for later while his hands are full)
       if not b.gone and not S.item and abs(b.d - S.dist) < 24 and abs(b.x - S.px) < 0.28 then
         b.gone = true
         S.score = S.score + 50
         particles.burst(W / 2 + S.px * 145, S.py, 14, 2.4, 22, 3, C.GOLD, "star")
+        cue(run_note(bump_run()), "square", 0.2, "step", 0.14)
         S.item = ITEMS[rndi(1, #ITEMS)]
         S.item_spin = 26
+        S.pmood, S.pmood_t = "happy", 40
       end
     end
 
-    -- Shells auto-steer toward the rival ahead!
+    -- Seekers aim themselves at the rival ahead!
     for _, sh in ipairs(S.shells) do
       sh.d = sh.d + 9.5
       sh.life = sh.life - 1
       if sh.tgt then sh.x = approach(sh.x, sh.tgt.x, 0.18) end
-      for _, r in ipairs(S.rivals) do
+      for i, r in ipairs(S.rivals) do
         if abs(r.d - sh.d) < 30 and abs(r.x - sh.x) < 0.32 then
           r.spin = 70
           sh.gone = true
           S.score = S.score + 150
           sfx.arp("tri", {79, 88}, 0.05, 0.3)
+          stinger(0.2, "beat")
           local sx, sy = world_to_screen(r.x, r.d)
-          if sx then particles.burst(sx, sy, 18, 3, 26, 3, C.GREEN, "star") end
-          react_to("BONK! Hit " .. r.name .. "-Kart!")
+          if sx then particles.burst(sx, sy, 14, 3, 26, 3, C.GOLD, "star") end
+          mood(r, r.def.lose == "cheer" and "sulk" or r.def.lose, 100)
+          say(i, "sulk", r.def.words.sulk)
+          log("kart bonk " .. r.name)
+          gfx.shake(3)
+          react_to("BONK! Hit " .. r.name .. "!")
           break
         end
       end
@@ -280,197 +666,115 @@ function update()
     end
     sweep(S.shells, function(sh) return not sh.gone end)
 
-    -- Rivals race with gentle rubber-banding so every race stays exciting!
-    for _, r in ipairs(S.rivals) do
-      if r.spin > 0 then
-        r.spin = r.spin - 1
-        r.d = r.d + 1.5
-      else
-        local rubber = clamp((S.dist - r.d) * 0.0025, -0.45, 0.55)
-        local z = S.zap_t > 0 and 0.65 or 1
-        r.d = r.d + (r.spd + rubber) * z
-      end
-      r.x = clamp(sin(S.t * 0.018 + r.phase) * 0.65, -0.78, 0.78)
-      -- Bumping a rival: harmless bounce!
-      if abs(r.d - S.dist) < 22 and abs(r.x - S.px) < 0.25 then
-        if S.star_t > 0 then
-          r.spin = 65
-          S.score = S.score + 100
-          sfx.note("tri", 88, 0.12, 0.26)
-        elseif S.shield then
-          S.shield = false
-          r.spin = 45
-          sfx.tone("sine", 780, 0.12, 0.24)
-        else
-          S.px = clamp(S.px + (S.px < r.x and -0.15 or 0.15), -0.9, 0.9)
-          sfx.tone("sine", 320, 0.08, 0.16)
-        end
-      end
-    end
+    move_rivals(true)
 
-    if pressed and S.saw_release then
+    if tap then
       if S.item and S.item_spin == 0 then
         use_item()
       else
-        -- Mini turbo hop on button press even without an item!
+        -- A little hop on button press even without an item!
         sfx.slide("sine", 480, 720, 0.08, 0.14)
         particles.burst(W / 2 + S.px * 145, S.py + 16, 6, 1.6, 14, 2, C.GOLD, "dot")
       end
     end
     calc_place()
+    if S.place == S.mplace then S.mplace_t = 0
+    else
+      S.mplace_t = S.mplace_t + 1
+      if S.mplace_t >= 30 then S.mplace, S.mplace_t = S.place, 0 end
+    end
+    -- the last stretch: the song turns without a restart
+    if not S.final and S.dist >= T.len * FINAL_AT then
+      S.final, S.final_t = true, 130
+      play_song(songs.song(S.track, true, true))
+      music.tempo(1.05)
+      stinger(0.22, "beat")
+      sfx.arp("square", {79, 84, 88, 91}, 0.05, 0.18)
+      log("kart final " .. S.track)
+      local rf = S.rivals[1 + (S.track + 1) % NRIV]
+      mood(rf, "wow", 70)
+      say(rf.def.id, "wow", rf.def.words.cheer)
+      react_to("LAST STRETCH! Go go go!")
+    end
+    race_levels()
     if S.dist >= T.len then finish_race() end
-  elseif S.phase == "clear" then
-    S.finish_t = S.finish_t + 1
-    if (pressed and S.saw_release and S.finish_t > 55) or S.finish_t > 180 then
-      snd.ok()
-      setup_race(S.track + 1)
+
+  elseif ph == "finish" then
+    -- everyone coasts over the line; the table of this race appears
+    S.spd = approach(S.spd, 3.2, 0.05)
+    S.dist = S.dist + S.spd
+    S.zap_t = 0
+    move_rivals(false)
+    if S.pt % 9 == 0 and S.pt < 80 then
+      particles.spawn(rnd(40, W - 40), 60, rnd(-1.5, 1.5), rnd(0.5, 2), 70, rnd(3, 5),
+        S.pt % 18 == 0 and C.GOLD or C.ROSE, "star", 0.05, 0.99, 0.1)
     end
-  elseif S.phase == "podium" then
-    S.finish_t = S.finish_t + 1
-    if S.finish_t % 14 == 0 then
+    if S.new_paint > 0 and S.pt == 40 then
+      sfx.arp("sine", {84, 88, 91, 96}, 0.07, 0.24)
+      react_to("New kart paint: " .. PAINTS[S.new_paint].name .. "!")
+    end
+    if (tap and S.pt > 70) or S.pt > 230 then
+      snd.ok()
+      S.new_paint = 0
+      if S.track == NTRACK then
+        start_podium()
+      else
+        S.next = S.track + 1
+        enter_map()
+      end
+    end
+
+  elseif ph == "podium" then
+    if S.pt % 14 == 0 then
       particles.spawn(rnd(40, W - 40), 70, rnd(-1.5, 1.5), rnd(0.5, 2), 80, rnd(3, 5),
-        S.finish_t % 28 == 0 and C.GOLD or C.ROSE, "star", 0.05, 0.99, 0.1)
+        S.pt % 28 == 0 and C.GOLD or C.ROSE, "star", 0.05, 0.99, 0.1)
     end
-    if (pressed and S.saw_release and S.finish_t > 80) or S.finish_t > 280 then
+    -- the table fills in from the bottom: each step arrives on a note of the march
+    for k = 5, 1, -1 do
+      if S.pt == 24 + (5 - k) * 22 then
+        local id = S.order[k]
+        if id > 0 then VOICE[id]() end
+        cue(songs.ladder(0, 1, 6 - k), k == 1 and "square" or "tri", 0.22, "step", 0.3)
+        if k == 4 then lvl(3, 1) elseif k == 3 then lvl(4, 1)
+        elseif k == 2 then lvl(2, 1) lvl(5, 1)
+        elseif k == 1 then lvl(1, 1) gfx.flash(0xfff6c0, 6) end
+      end
+    end
+    if S.new_paint > 0 and S.pt == 170 then
+      sfx.arp("sine", {84, 88, 91, 96}, 0.07, 0.24)
+      react_to("New kart paint: " .. PAINTS[S.new_paint].name .. "!")
+    end
+    if (tap and S.pt > 150) or S.pt > 420 then
       snd.ok()
-      S.cup_pts, S.score = 0, 0
-      setup_race(1)
+      S.new_paint = 0
+      enter_garage()
     end
   end
 
   if input.down("1p") and input.down("2p") and not S.goodbye then
     snd.bye()
     S.goodbye = true
+    save_all()
   end
-end
-
-local function draw_kart(x, y, s, col, trim, lean, spin, star)
-  local body = star and hsv((game.frame * 0.06) % 1, 0.7, 1) or col
-  local jx = spin and spin > 0 and sin(game.frame * 0.8) * 6 * s or 0
-  x = x + jx
-  gfx.ellipse(x, y + 16 * s, 22 * s, 6 * s, alpha(0x1a1428, 100))
-  toon(function()
-    toon.rrect(x - 20 * s, y + 2 * s, 8 * s, 14 * s, 3, C.INK)
-    toon.rrect(x + 12 * s, y + 2 * s, 8 * s, 14 * s, 3, C.INK)
-    toon.rrect(x - 16 * s, y - 8 * s, 32 * s, 20 * s, 7, body)
-    toon.circle(x + lean * 3 * s, y - 14 * s, 11 * s, trim)
-  end, 2 * s, C.INK)
-  gfx.rrect(x - 10 * s, y - 2 * s, 20 * s, 5 * s, 2, trim)
-  gfx.circle(x - 3 * s + lean * 3 * s, y - 16 * s, 1.8 * s, C.WHITE)
-  gfx.circle(x + 3 * s + lean * 3 * s, y - 16 * s, 1.8 * s, C.WHITE)
 end
 
 function draw()
-  local T = TRACKS[S.track]
-  local HY = 128
-  -- Sky + ground.
-  gfx.blit(bake("sky" .. S.track, W, HY, function() gfx.vgrad(0, 0, W, HY, T.sky1, T.sky2) end), 0, 0)
-  gfx.rect(0, HY, W, H - 32 - HY, T.grass1)
-  if T.rainbow then
-    for i = 1, 20 do
-      local sx = (i * 53 + S.t * 0.2) % W
-      local sy = (i * 29) % (HY - 16)
-      gfx.circle(sx, sy, (i % 2) + 1, alpha(C.WHITE, 180))
+  local ph = S.phase
+  local line
+  if ph == "story" then pics.story(S) line = S.react_left > 0 and S.react or "Race for the Star Cup!"
+  elseif ph == "garage" then pics.garage(S) line = S.react_left > 0 and S.react or "Pick your paint. Press to race!"
+  elseif ph == "map" then pics.map(S) line = S.react_left > 0 and S.react or "Press to go!"
+  elseif ph == "podium" then pics.podium(S) line = S.react
+  else
+    pics.race(S)
+    local T = TRACKS[S.track]
+    if ph == "race" and S.react_left == 0 then
+      line = S.item and ("Press to use " .. ITEM_NAMES[S.item]) or (T.name .. "! Grab a ? box!")
+    else
+      line = S.react
     end
   end
-
-  -- Scrolling perspective road strips (fast & super smooth!).
-  local strips = 24
-  for i = 0, strips - 1 do
-    local k0, k1 = i / strips, (i + 1) / strips
-    local y0, y1 = lerp(HY, H - 32, k0 ^ 1.35), lerp(HY, H - 32, k1 ^ 1.35)
-    local d0 = S.dist + (1 - k0) * 460
-    local cx = W / 2 + (road_curve(d0) - road_curve(S.dist)) * (1 - k0)
-    local hw = lerp(42, 152, k0 ^ 1.25)
-    local band = floor(d0 / 48) % 2 == 0
-    if band then gfx.rect(0, y0, W, y1 - y0 + 1, T.grass2) end
-    local rcol = T.rainbow and hsv(((d0 * 0.002) % 1), 0.55, 0.88) or T.road
-    gfx.rect(cx - hw - 10 * k0 - 2, y0, (hw + 10 * k0 + 2) * 2, y1 - y0 + 1, band and T.kerb1 or T.kerb2)
-    gfx.rect(cx - hw, y0, hw * 2, y1 - y0 + 1, rcol)
-    if band then gfx.rect(cx - 2 - k0 * 2, y0, 4 + k0 * 4, y1 - y0 + 1, alpha(C.CREAM, 170)) end
-  end
-
-  -- Finish line checkerboard if visible!
-  local fx, fy, fs = world_to_screen(0, T.len)
-  if fx then
-    local hw = 148 * fs
-    for i = 0, 7 do
-      gfx.rect(fx - hw + i * (hw / 4), fy - 5 * fs, hw / 4, 10 * fs, i % 2 == 0 and C.WHITE or C.INK)
-    end
-  end
-
-  -- Boost pads.
-  for _, p in ipairs(S.pads) do
-    local sx, sy, sc = world_to_screen(p.x, p.d)
-    if sx then
-      gfx.rrect_o(sx - 22 * sc, sy - 6 * sc, 44 * sc, 12 * sc, 4, hsv((game.frame * 0.04) % 1, 0.8, 1), C.INK, 1.5)
-    end
-  end
-
-  -- Item boxes.
-  for _, b in ipairs(S.boxes) do
-    if not b.gone then
-      local sx, sy, sc = world_to_screen(b.x, b.d)
-      if sx then
-        local bob = sin(game.frame * 0.14 + b.d) * 3 * sc
-        gfx.rrect_o(sx - 12 * sc, sy - 12 * sc + bob, 24 * sc, 24 * sc, 5, C.GOLD, C.INK, 2 * sc)
-        gfx.text("?", sx, sy - 10 * sc + bob, max(10, floor(18 * sc)), C.INK, "center")
-      end
-    end
-  end
-
-  -- Rivals (drawn back-to-front by distance).
-  for _, r in ipairs(S.rivals) do
-    local sx, sy, sc = world_to_screen(r.x, r.d)
-    if sx then draw_kart(sx, sy, sc * (S.zap_t > 0 and 0.65 or 1), r.col, r.trim, 0, r.spin, false) end
-  end
-
-  -- Shells.
-  for _, sh in ipairs(S.shells) do
-    local sx, sy, sc = world_to_screen(sh.x, sh.d)
-    if sx then gfx.circle_o(sx, sy, 10 * sc, C.GREEN, C.INK, 2 * sc) end
-  end
-
-  -- Player kart!
-  local px_scr = W / 2 + S.px * 145
-  if S.boost_t > 0 or S.star_t > 0 then
-    gfx.glow(px_scr, S.py + 12, 34, alpha(C.CYAN, 150))
-  end
-  draw_kart(px_scr, S.py, 1.15, C.RED, C.BLUE, S.lean, S.spin_t, S.star_t > 0)
-  if S.shield then soap(px_scr, S.py - 2, 34, C.CYAN) end
-
-  -- HUD: Place, Item Box slot, Score & Progress bar!
-  gfx.rrect_o(10, 10, 82, 34, 10, C.CREAM, C.INK, 2)
-  local pl = S.place == 1 and "1ST" or S.place == 2 and "2ND" or S.place == 3 and "3RD" or (S.place .. "TH")
-  gfx.text(pl, 51, 14, 20, S.place == 1 and C.GOLD or C.PURPLE, "center", C.INK)
-  -- Item box slot in center.
-  gfx.rrect_o(W / 2 - 30, 8, 60, 44, 10, C.CREAM, C.INK, 2.5)
-  if S.item then
-    local shown = S.item_spin > 0 and ITEMS[(floor(S.item_spin / 3) % #ITEMS) + 1] or S.item
-    if shown == "star" then gfx.star(W / 2, 30, 14, game.frame * 0.1, C.GOLD)
-    elseif shown == "shell" then gfx.circle_o(W / 2, 30, 12, C.GREEN, C.INK, 2)
-    elseif shown == "shield" then soap(W / 2, 30, 13, C.CYAN)
-    else gfx.text("!", W / 2, 16, 26, C.PIKA, "center", C.INK) end
-  end
-  gfx.rrect_o(W - 116, 10, 106, 34, 10, C.CREAM, C.INK, 2)
-  gfx.text(tostring(S.score), W - 63, 16, 17, C.INK, "center")
-  -- Track progress bar.
-  meter(72, 60, W - 144, 10, clamp(S.dist / T.len, 0, 1), C.GOLD)
-
-  -- Race Clear / Grand Podium Banner!
-  if S.phase == "clear" or S.phase == "podium" then
-    local bw, bh = 316, 118
-    local bx, by = (W - bw) / 2, 186
-    gfx.rrect_o(bx, by, bw, bh, 14, C.CREAM, C.INK, 3)
-    gfx.text(S.phase == "podium" and "GRAND PODIUM!" or ("FINISH! " .. pl), W / 2, by + 12, 28, C.GOLD, "center", C.INK)
-    gfx.text("SCORE: " .. S.score .. "   CUPS: " .. S.cups, W / 2, by + 56, 15, C.PURPLE, "center")
-    if S.finish_t > 60 and blink(40, 26) then
-      gfx.text("PRESS TO RACE AGAIN!", W / 2, by + 84, 15, C.INK, "center")
-    end
-  end
-
   particles.draw()
-  local line = S.react_left > 0 and S.react or (S.item and ("Press to use " .. ITEM_NAMES[S.item]) or (T.name .. "! Grab a ? box!"))
   if input.down("1p") and input.down("2p") then line = "Your cups and best score will stay!" end
   ui.band(line)
 end
