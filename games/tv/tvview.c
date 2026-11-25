@@ -11,8 +11,8 @@
  * Stick left/right: FIT (the whole picture) or ZOOM (cropped to 4:3: 768 x 576, a third bigger). Lower button:
  * the bands' text on or off. Both are remembered (TVPLAY_VIEW).
  *
- * The blur: a 36 x 48 colour image of the picture made by the CPU from the decoded frame (ambient_update),
- * stretched over the bands by the GPU.
+ * The glow: each band a smooth gradient, dark at the screen's edge, at the picture's edge the colour of that edge of
+ * the picture (ambient_update), easing over ~1.5 s.
  * Text: a glyph sheet of Home's font made by games/tv/mkfont.py (TVPLAY_FONT, gzipped).
  *
  * Environment (from tvloop): TVPLAY_NAME, TVPLAY_SUB (the line under the name), TVPLAY_LOGO (Home's logo file:
@@ -394,10 +394,7 @@ static const char *view_path;
 static double hint_until;
 static GLuint amb;
 static int amb_have;
-#define AW_ 36                                    /* the backdrop's colours: 36 x 48, from the decoded frame */
-#define AH_ 48
-static float amb_acc[AH_][AW_][3];
-static unsigned char amb_px[AH_][AW_][4];
+static float amb_top[3], amb_bot[3];              /* the picture's top and bottom edge colours, eased */
 #define CORAL 1.0f, 0.42f, 0.42f
 
 static void logo_load(const char *path)
@@ -469,7 +466,7 @@ static void view_init(void)
     glEnableVertexAttribArray_(1);
     glBlendFunc_(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    amb = new_texture(AW_, AH_, GL_RGBA, NULL);
+    amb = new_texture(1, 4, GL_RGBA, NULL);
 
     const char *e;
     font_load((e = getenv("TVPLAY_FONT")) ? e : "/data/tv/tvfont.gz");
@@ -575,83 +572,78 @@ static void draw_bands(float ph)
     glDisable_(GL_BLEND);
 }
 
-/* The ambient backdrop, refreshed from the decoded picture by the CPU: 2 x 2 points of each of 36 x 48 cells of
-   the picture zoomed to cover the screen (NV12 -> RGB, BT.709), each refresh blended over the last at 35 % so it
-   does not flicker. The GPU route (the picture drawn into small textures and blurred) cost 10 ms a frame on the
-   single Mali-400 core and half a 720p60 channel's frames (2026-11-01); this is ~7000 reads every 4th frame. */
+/* The glow in the bands. Until 2026-11-25 a 36 x 48 colour image of the picture, blurred and stretched: even
+   blurred, its cells showed as soft blocks moving right beside the picture, which drew the eye away from it (the
+   user: "distracting... not a smooth blur but a blocky one"). Now each band is one gradient: Home's dark at the
+   screen's edge, and at the picture's edge the average colour of that edge of the picture, darkened and eased over
+   ~1.5 s. A 1 x 4 texture stretched (bilinear between two texels is a straight ramp: nothing to see but colour);
+   ~130 reads of the decoded frame every 4th frame, one quad a band. */
+#define DARK_R 0.045f
+#define DARK_G 0.02f
+#define DARK_B 0.085f
+static void edge_colour(const unsigned char *Y, const unsigned char *UV, int w, int h, int hs, int y0, int y1, float out[3])
+{
+    float r = 0, g = 0, bl = 0;
+    int n = 0;
+    for (int sy = 0; sy < 4; sy++)
+        for (int sx = 0; sx < 16; sx++) {
+            int x = (int)((sx + 0.5) * w / 16), y = y0 + (int)((sy + 0.5) * (y1 - y0) / 4);
+            if (x >= w) x = w - 1;
+            if (y >= h) y = h - 1;
+            float yy = 1.164f * (Y[(size_t)y * hs + x] - 16);
+            const unsigned char *uv = UV + (size_t)(y / 2) * hs + (x & ~1);
+            float u = uv[0] - 128.0f, v = uv[1] - 128.0f;
+            r += yy + 1.793f * v;
+            g += yy - 0.213f * u - 0.533f * v;
+            bl += yy + 2.112f * u;
+            n++;
+        }
+    out[0] = r / n / 255; out[1] = g / n / 255; out[2] = bl / n / 255;
+}
+
+static unsigned char to8(float v) { v = v < 0 ? 0 : v > 1 ? 1 : v; return (unsigned char)(v * 255 + 0.5f); }
+
 static void ambient_update(MppFrame f, double dar)
 {
+    (void)dar;
     MppBuffer b = mpp_frame_get_buffer(f);
     const unsigned char *Y = b ? mpp_buffer_get_ptr(b) : NULL;
     if (!Y) return;
     int w = mpp_frame_get_width(f), h = mpp_frame_get_height(f);
     int hs = mpp_frame_get_hor_stride(f), vs = mpp_frame_get_ver_stride(f);
     const unsigned char *UV = Y + (size_t)hs * vs;
-    double c = (double)VW / VH / dar / 1.12, tv = 1 / 1.12;   /* cover the screen, 12 % closer */
-    if (c > 1) c = 1;
-    double x0 = w * (0.5 - c / 2), cw = w * c / AW_, y0 = h * (0.5 - tv / 2), ch = h * tv / AH_;
-    float k = amb_have ? 0.35f : 1;
-    for (int gy = 0; gy < AH_; gy++)
-        for (int gx = 0; gx < AW_; gx++) {
-            float r = 0, g = 0, bl = 0;
-            for (int sy = 0; sy < 2; sy++)
-                for (int sx = 0; sx < 2; sx++) {
-                    int x = (int)(x0 + cw * (gx + 0.25 + 0.5 * sx)), y = (int)(y0 + ch * (gy + 0.25 + 0.5 * sy));
-                    if (x >= w) x = w - 1;
-                    if (y >= h) y = h - 1;
-                    float yy = 1.164f * (Y[(size_t)y * hs + x] - 16);
-                    const unsigned char *uv = UV + (size_t)(y / 2) * hs + (x & ~1);
-                    float u = uv[0] - 128.0f, v = uv[1] - 128.0f;
-                    r += yy + 1.793f * v;
-                    g += yy - 0.213f * u - 0.533f * v;
-                    bl += yy + 2.112f * u;
-                }
-            float *a = amb_acc[gy][gx];
-            a[0] += k * (r / 4 - a[0]);
-            a[1] += k * (g / 4 - a[1]);
-            a[2] += k * (bl / 4 - a[2]);
-        }
-    /* Blurred before it is stretched: the GPU's bilinear stretch of 36 x 48 cells over 768 x 1024 left each cell's
-       edges visible, a grid of soft rectangles behind the bands (2026-11-25, on the cabinet's screen). Three passes
-       of [1 2 1] each way (~a Gaussian of 1.2 cells) here cost ~0.2 ms; the same on the GPU cost frames. */
-    static float t1[AH_][AW_][3], t2[AH_][AW_][3];
-    memcpy(t1, amb_acc, sizeof t1);
-    for (int pass = 0; pass < 3; pass++) {
-        for (int y = 0; y < AH_; y++)
-            for (int x = 0; x < AW_; x++) {
-                int xl = x > 0 ? x - 1 : x, xr = x < AW_ - 1 ? x + 1 : x;
-                for (int i = 0; i < 3; i++) t2[y][x][i] = (t1[y][xl][i] + 2 * t1[y][x][i] + t1[y][xr][i]) * 0.25f;
-            }
-        for (int y = 0; y < AH_; y++)
-            for (int x = 0; x < AW_; x++) {
-                int yu = y > 0 ? y - 1 : y, yd = y < AH_ - 1 ? y + 1 : y;
-                for (int i = 0; i < 3; i++) t1[y][x][i] = (t2[yu][x][i] + 2 * t2[y][x][i] + t2[yd][x][i]) * 0.25f;
-            }
+    float top[3], bot[3];
+    edge_colour(Y, UV, w, h, hs, 0, h * 15 / 100, top);
+    edge_colour(Y, UV, w, h, hs, h * 85 / 100, h, bot);
+    float k = amb_have ? 0.1f : 1;                /* (every 4th frame: ~1.5 s to settle at 60 fps) */
+    for (int i = 0; i < 3; i++) {
+        amb_top[i] += k * (top[i] - amb_top[i]);
+        amb_bot[i] += k * (bot[i] - amb_bot[i]);
     }
-    for (int y = 0; y < AH_; y++)
-        for (int x = 0; x < AW_; x++) {
-            for (int i = 0; i < 3; i++) {
-                float v = t1[y][x][i];
-                amb_px[y][x][i] = v < 0 ? 0 : v > 255 ? 255 : (unsigned char)(v + 0.5f);
-            }
-            amb_px[y][x][3] = 255;
-        }
+    /* Darkened, and a little of Home's dark mixed in, so text over it stays easy to read and the colours calm. */
+    const float dk[3] = {DARK_R, DARK_G, DARK_B};
+    unsigned char px[4][4];
+    for (int i = 0; i < 3; i++) {
+        px[0][i] = px[3][i] = to8(dk[i] * 0.8f);
+        px[1][i] = to8(amb_top[i] * 0.38f + dk[i] * 0.5f);
+        px[2][i] = to8(amb_bot[i] * 0.38f + dk[i] * 0.5f);
+    }
+    for (int j = 0; j < 4; j++) px[j][3] = 255;
     bind2d(amb);
     glActiveTexture_(GL_TEXTURE1);
-    glTexSubImage2D_(GL_TEXTURE_2D, 0, 0, 0, AW_, AH_, GL_RGBA, GL_UNSIGNED_BYTE, amb_px);
+    glTexSubImage2D_(GL_TEXTURE_2D, 0, 0, 0, 1, 4, GL_RGBA, GL_UNSIGNED_BYTE, px);
     glActiveTexture_(GL_TEXTURE0);
     amb_have = 1;
 }
 
-/* Only the bands, one bilinear tap a pixel: the GPU is a single Mali-400 core, and the whole screen with four
-   taps cost a 720p60 channel half its frames (2026-11-01: 25 shown a second of 60). */
+/* The two bands: texel centres at v = 1/8 (the screen's edge), 3/8 (the top colour), 5/8 (the bottom), 7/8. */
 static void ambient_draw(float y0, float ph)
 {
     if (!amb_have || plain) return;
     bind2d(amb);
-    use(&P_TEX, 0.42f, 0.40f, 0.46f, 1);
-    quad(0, 0, VW, y0, 0, 0, 1, y0 / VH);
-    quad(0, y0 + ph, VW, VH, 0, (y0 + ph) / VH, 1, 1);
+    use(&P_TEX, 1, 1, 1, 1);
+    quad(0, 0, VW, y0, 0, 0.125f, 1, 0.375f);
+    quad(0, y0 + ph, VW, VH, 0, 0.625f, 1, 0.875f);
 }
 
 static long frames_drawn;
@@ -701,11 +693,7 @@ static void draw_tuning(double since, const char *what)
     target_screen();
     glClearColor_(0.055f, 0.02f, 0.10f, 1);
     glClear_(GL_COLOR_BUFFER_BIT);
-    if (amb_have && !plain) {
-        bind2d(amb);
-        use(&P_TEX, 0.30f, 0.28f, 0.34f, 1);
-        quad(0, 0, VW, VH, 0, 0, 1, 1);
-    }
+    ambient_draw(y0, ph);                         /* (after a channel: its glow stays while the next tunes) */
     glEnable_(GL_BLEND);
     rect(0, y0, VW, y0 + ph, 0, 0, 0, 0.45f);
     rect(0, y0, VW, y0 + 2, CORAL, 0.5f);

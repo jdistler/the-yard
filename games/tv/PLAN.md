@@ -23,7 +23,9 @@ each measured with the player's own log (`tvplay.log`, now on the SD card) and `
 * **HEVC skipping could corrupt**: sub-layer non-reference pictures are only safe to drop from the highest
   temporal layer. Now only those.
 * **Decoder buffers handed back while the GPU might still read them**: now two flips later.
-* **The backdrop's 36 x 48 cells showed as soft blocks**: now blurred on the CPU before the stretch.
+* **The backdrop's 36 x 48 cells showed as soft blocks** (still, blurred: "distracting", the user): replaced by a
+  calm glow, each band one gradient from Home's dark to the colour of that edge of the picture, eased over ~1.5 s
+  (a 1 x 4 texture; ~130 reads every 4th frame; no banding on the cabinet's screen).
 * **Changing channel** quit the player and showed Home's "changing channel" picture between two programs. Now
   tvplay plays the whole row (`TVPLAY_LIST`), flips in place: the next channel's bands at once over the last
   one's colours, its picture in 1.7-2.7 s. It reads the address from account.conf itself (the password was on
