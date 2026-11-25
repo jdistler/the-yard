@@ -244,6 +244,17 @@ Ticked as each lands, with the commit.
       * Hitches over 100 ms in the bench run: 5-7 -> 1 (the show start, unseen). Menu fps unchanged (57-58).
       * The wake is in the pixel tour (`wake`: the cover, the menu after).
 
+- [x] G5. Home OOM-killed tuning a TV channel (2026-11-23, dmesg: love.bin killed, order-1 allocation, 2.7 MB
+      free). Cause: the TV guide kept the menu's pictures (textures 12 MB with the guide's), and the tune paints up
+      to three full-screen pictures (two canvases, a 3 MB ImageData and a 3 MB string each). Home does quit before
+      tvplay starts (homeloop runs them in turn). Fixed: the guide frees the menu's pictures like a show (back
+      through the wake cover), the guide's logos but the chosen one are released before the tune pictures, a
+      collection between them. Measured on the cabinet, a tune with nothing playing (request redirected): lowest
+      MemAvailable 20.9 MB -> 34.7-37.3 MB; guide textures 10.4 MB -> 0.6 MB. Logging: each launch logs
+      MemAvailable and Home's RSS; tvloop logs MemAvailable at play and after tvplay; a Home killed (137) gets the
+      kernel's OOM lines in Home's log. (tvplay's HTTP status and first-byte time: not added, it is a C binary
+      outside this pass.)
+
 **H. Home refactor: the plan, gates and checkpoints are in [HOME_REFACTOR.md](HOME_REFACTOR.md)**
 - [x] H0. Safety net (CP0) and cabinet baseline (CP1).
 - [x] H1. CP2 the leaves (drawing helpers, input, pictures).

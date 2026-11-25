@@ -521,7 +521,13 @@ local function play_chosen()
   write_file(TMP .. "/play.tsv", table.concat(lines, "\n") .. "\n")
   write_file(TMP .. "/guide.pos", r.key .. "\n")
   save_recent(ch)
-  if not read_file(TMP .. "/zap.fb.gz") then ctx.save_picture(TMP .. "/zap.fb.gz", picture_zap) end
+  -- (the pictures below are full-screen renders, ~10 MB at their peak: the guide's logos go first, but the
+  -- chosen channel's, which the tuning picture shows)
+  for k, v in pairs(logos) do
+    if k ~= ch.key and type(v) == "userdata" then v:release() logos[k] = nil end
+  end
+  collectgarbage()
+  if not read_file(TMP .. "/zap.fb.gz") then ctx.save_picture(TMP .. "/zap.fb.gz", picture_zap) collectgarbage() end
   ctx.play("launch")
   ctx.request("tv", function() picture_tune(ch, r) end)
 end

@@ -166,6 +166,18 @@ function ST.shelf_close()
   restore_menu_pictures()
 end
 
+-- The TV guide the same (2026-11-23: tuning a channel from the guide, with the menu's 12 MB of pictures still
+-- held, ran Home out of memory: the kernel killed it while it painted the "tuning in" picture).
+function ST.tv_open(rc, idx)
+  free_menu_pictures()
+  ST.go("tv")
+  tv.enter(rc, idx)
+end
+function ST.tv_close()
+  ST.go("menu")
+  restore_menu_pictures()
+end
+
 -- Play a show (from its segment seg, if given; demo: from its tiles).
 local function play_show(id, seg, from_demo)
   local free_later = not ST.menu_freed and id ~= "night" and shows.module(id)
@@ -342,7 +354,7 @@ local function handle(name)
     return
   end
   if ST.scene == "tv" then
-    if tv.handle(name) == "exit" then ST.go("menu") end
+    if tv.handle(name) == "exit" then ST.tv_close() end
     return
   end
   if ST.scene == "shelf" then
@@ -417,8 +429,7 @@ local function handle(name)
     end
   elseif (name == "low" or name == "1p") and it.kind == "tv" then
     -- The guide opens in Home itself: no program to start.
-    ST.go("tv")
-    tv.enter()
+    ST.tv_open()
     play("launch")
   elseif name == "low" or name == "1p" then
     ST.launch_item = it

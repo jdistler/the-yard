@@ -9,16 +9,28 @@ function M.init(c)
 end
 
 
+-- Free memory and Home's own resident size, for the log at each launch (a launch is when Home was OOM-killed)
+local function mem_note()
+  local function grab(path, key)
+    local f = io.open(path)
+    local t = f and f:read("*a") or ""
+    if f then f:close() end
+    return t:match(key .. ":%s*(%d+)") or "?"
+  end
+  return "available " .. grab("/proc/meminfo", "MemAvailable") .. " kB, rss " .. grab("/proc/self/status", "VmRSS") .. " kB"
+end
 local function request(s, it, picture, gamekey)
   if picture and (not headless or os.getenv("HOME_FB")) then
     local ok, bytes = pcall(splash.render, picture)
     if ok then splash.show(bytes) end
+    bytes = nil
+    collectgarbage()
     if ST.BACK and not P.file_exists(ST.BACK) then
       local ok2, back = pcall(splash.render, P.picture_back)
       if ok2 then splash.save(back, ST.BACK) end
     end
   elseif it and (not headless or os.getenv("HOME_FB")) then P.pictures_for(it) end
-  log("launch " .. s)
+  log("launch " .. s .. " (" .. mem_note() .. ")")
   -- The classic's high score as it was: on the way back, a higher one is celebrated.
   local played = nil
   if it and it.kind ~= "stock" then played = ST.sel end

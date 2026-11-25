@@ -286,6 +286,8 @@ while :; do
     if [ $RAN -gt 120 ]; then FAILS=0; SAFE=0; USED_GOOD=0; keep_good; fi
     FAILS=$((FAILS + 1))
     log "Home quit without a choice (code $CODE) after ${RAN} s, $FAILS time(s)"
+    # (killed: the kernel's word on why, if it was the out-of-memory killer)
+    [ "$CODE" = 137 ] && [ -z "$HOMELOOP_H" ] && dmesg | grep -i -A2 "oom-killer\|killed process" | tail -n 6 | while read -r l; do log "  kernel: $l"; done
     [ "$MODE" = preview ] && exit 0
     # Failing as it starts: once, try again (a passing hiccup); twice, the last Home that worked, when this one
     # differs (a broken push); then safe mode (HOME_SAFE=1: Home without the Longhorns' data, the TV guide and

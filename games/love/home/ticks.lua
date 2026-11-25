@@ -45,7 +45,7 @@ local function update_idle(dt)
   if cards_t <= 0 then cards_t = 30 IDLE.update_cards() end
   if ST.scene == "tv" then
     ST.idle = 0
-    if tv.update(dt) == "exit" then ST.go("menu") end
+    if tv.update(dt) == "exit" then ST.tv_close() end
   end
   if ST.scene == "shelf" then
     ST.idle = 0

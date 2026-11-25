@@ -381,8 +381,7 @@ function love.load()
     if rc then
       for k, it in ipairs(CAT.items) do if it.kind == "tv" then ST.sel, ST.pos = k, k end end
       if rc ~= 10 then
-        ST.go("tv")
-        tv.enter(rc, idx)
+        ST.tv_open(rc, idx)
       else
         ST.go("menu")
       end

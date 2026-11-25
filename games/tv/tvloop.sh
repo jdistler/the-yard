@@ -37,7 +37,7 @@ while :; do
   NAME=$(echo "$LINE" | cut -f3)
   EPGID=$(echo "$LINE" | cut -f4)
   KEY=$(echo "$LINE" | cut -f5)
-  log "play $IDX/$N $NAME"
+  log "play $IDX/$N $NAME (available $(awk '/MemAvailable/ {print $2}' /proc/meminfo) kB)"
   [ -n "$URL" ] || { RC=30; break; }
   T0=$(cut -d. -f1 /proc/uptime)
   LD_LIBRARY_PATH=/data/love/lib SDL_VIDEODRIVER=kmsdrm SDL_KMSDRM_PIPELINE=1 ALSA_CONFIG_PATH=/data/home/alsa.conf \
@@ -48,7 +48,7 @@ while :; do
   RC=$?
   HINT=0
   TUNING=
-  log "tvplay $RC"
+  log "tvplay $RC (available $(awk '/MemAvailable/ {print $2}' /proc/meminfo) kB)"
   STEP=1
   # A channel that played a good while before stalling gets its three tries again.
   [ $(($(cut -d. -f1 /proc/uptime) - T0)) -gt 90 ] && RETUNES=0
