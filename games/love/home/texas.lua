@@ -2772,7 +2772,7 @@ local ART_OF = {open = {"open"}, coast = {"coast_dawn", "coast_day"}, hills = {"
                 riverwalk = {"riverwalk"}, bbq = {"bbq"}, panhandle = {"panhandle"}, bats = {"bats_dusk", "bats_night"},
                 bigbend = {"bigbend_dusk", "bigbend"}, finale = {"finale"}}
 -- keep scene k's pictures (and k + 1's, with_next), let the rest go
-art_for = function(k, with_next)
+art_for = function(k, with_next, async)
   local want = {}
   for _, n in ipairs(ART_OF[SCENES[k][2]] or {}) do want[n] = true end
   if with_next and SCENES[k + 1] then for _, n in ipairs(ART_OF[SCENES[k + 1][2]] or {}) do want[n] = true end end
@@ -2783,7 +2783,18 @@ art_for = function(k, with_next)
     end
   end
   for n in pairs(want) do
-    if S.art[n] == nil then S.art[n] = G:art("texas", n) or false end
+    if S.art[n] == nil then
+      if async then
+        -- (false while it comes: the scene draws itself live until then; it is asked for 2 s before it is needed)
+        S.art[n] = false
+        local s0 = S
+        G:art_async("texas", n, function(img)
+          if S == s0 and S.art[n] == false then S.art[n] = img or false elseif img then img:release() end
+        end)
+      else
+        S.art[n] = G:art("texas", n) or false
+      end
+    end
   end
 end
 
@@ -2903,8 +2914,8 @@ function T.update(dt)
   local sc, lt, len, k = scene_at(S.t)
   cues(sc[2], lt, dt)
   -- the pictures: the next scene's loaded in the last moment of the fade to black, the last one's let go
-  if k ~= S.art_k then S.art_k = k art_for(k, false) S.art_next = nil end
-  if lt > len - 0.3 and not S.art_next then S.art_next = true art_for(k, true) end
+  if k ~= S.art_k then S.art_k = k art_for(k, false, true) S.art_next = nil end
+  if lt > len - 2 and not S.art_next then S.art_next = true art_for(k, true, true) end
   -- the finale's fireworks: Texas red, white and blue
   if sc[2] == "finale" and lt > 18 and lt < 33 then
     S.fw = (S.fw or 0) - dt

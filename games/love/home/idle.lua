@@ -169,6 +169,7 @@ end
 -- The TV guide the same (2026-11-23: tuning a channel from the guide, with the menu's 12 MB of pictures still
 -- held, ran Home out of memory: the kernel killed it while it painted the "tuning in" picture).
 function ST.tv_open(rc, idx)
+  ST.tv_cover = {n = 0, f = 0}
   free_menu_pictures()
   ST.go("tv")
   tv.enter(rc, idx)

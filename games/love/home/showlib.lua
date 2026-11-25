@@ -93,6 +93,7 @@ end
 
 -- The shared pictures: a soft dot (sparks, smoke), a white pixel (debris, confetti), the sky's mesh.
 function G:begin(seed)
+  self.gen = (self.gen or 0) + 1                  -- (pictures still on their way from a show before: not wanted)
   self.R = love.math.newRandomGenerator(seed or os.time())
   self.t, self.prev = 0, -1
   self.glow, self.debris, self.smoke, self.rockets, self.later = {}, {}, {}, {}, {}
@@ -121,6 +122,7 @@ function G:use(text, px, colour)
 end
 
 function G:finish()
+  self.gen = (self.gen or 0) + 1
   for _, o in ipairs(self.made) do o:release() end
   self.made = {}
   self.glow, self.debris, self.smoke, self.rockets = {}, {}, {}, {}
@@ -155,6 +157,36 @@ function G:art(show, name)
   end
   img:setFilter("linear", "linear")
   return self:track(img)
+end
+
+-- A painted picture read and decoded by Home's worker (C.request_pkm), for a show that loads pictures while it
+-- plays: G:art on a scene change stalled the picture 100-170 ms in the fade (Longhorns, Texas, 2026-11-25). cb(img)
+-- comes a few frames later with the picture (nil: none), from Home's frame (homestate.lua's drain_worker), only if
+-- this show is still the one playing. With no worker, at once.
+local PENDING, serial = {}, 0
+function G:art_async(show, name, cb)
+  serial = serial + 1
+  local key = "pkm:" .. serial
+  PENDING[key] = {g = self, gen = self.gen, cb = cb}
+  if not (self.C.request_pkm and self.C.request_pkm(key, ART .. "/" .. show .. "/" .. name .. ".pkm")) then
+    PENDING[key] = nil
+    cb(self:art(show, name))
+  end
+end
+function L.pkm_ready(key, cd)
+  local p = PENDING[key]
+  PENDING[key] = nil
+  if not p or p.g.gen ~= p.gen then
+    if cd then pcall(function() cd:release() end) end
+    return
+  end
+  local img
+  if cd then
+    local ok, im = pcall(lg.newImage, cd)
+    pcall(function() cd:release() end)
+    if ok then im:setFilter("linear", "linear") img = p.g:track(im) end
+  end
+  p.cb(img)
 end
 
 -- Whether a painted picture is there to load (without loading it: for a show that loads its pictures a scene at a

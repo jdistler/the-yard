@@ -263,6 +263,17 @@ Ticked as each lands, with the commit.
 - [x] H4. CP5 (ST.go; scene objects deferred, with reasons) and CP6 (HOME.md). Open: the cabinet soak (in progress
       since 2026-11-24; no ERROR lines and no stalls in the first ~9 h).
 
+**K. TV and the network (2026-11-25, the user's "blocky video"; details in games/tv/PLAN.md)**
+- [x] K1. Wi-Fi roams: bgscan in wpa_supplicant, wpa_cli shipped, the link logged (it sat on a -76 dBm AP for 15 h).
+- [x] K2. tvplay: skip rule (45 -> 60 fps on 720p60), smoothed clock (no judder), keyframe starts, safe HEVC skips,
+      late buffer release, blurred backdrop, in-place channel changes, no password on the command line, logs on
+      the SD card, start cushion 1.5 s. Press-to-picture 4.6 -> 3.0 s; flip 2.5 -> 1.6-2.0 s.
+- [x] K3. Home: the guide frees the menu's pictures (OOM at tune), opens under a fade, logos 3 a frame.
+- [x] K4. Shows: Longhorns and Texas load their painted pictures on Home's worker (100-170 ms hitches at cuts gone).
+- [ ] K5. The gate's join (~1 s of the 3 s to picture) is server-side (tivi-remote): a warm line would halve it.
+- [ ] K6. The cabinet still fails the office AP's 5 GHz at boot (authentication times out) and uses 2.4 GHz; fine at
+      26 Mbit/s, but 5 GHz would leave more room. Needs a look at the AP's 5 GHz settings or the antenna.
+
 **J. Sound (P2)**
 - [x] J1. Loudness measured for every game (E2); spread 7.3 dB -> 5.5 dB (Chomp down, Bake and Band up).
 

@@ -2137,7 +2137,7 @@ local ART_OF = {open = {"open"}, campus = {"campus_dawn", "campus_day"}, season 
                 band = {"stadium_day", "field_long"}, smokey = {"stadium_day"}, hookem = {"crowd_close"}, drive = {"field_long"},
                 legends = {"legends_wall", "rosebowl", "crowd_close"}, redriver = {"fair"}, hex = {"tower_dark", "tower_win"},
                 tower = {"tower_dark", "tower_win", "tower_one"}}
-art_for = function(k, with_next)
+art_for = function(k, with_next, async)
   local want = {}
   for _, n in ipairs(ART_OF[SCENES[k][2]] or {}) do want[n] = true end
   if with_next and SCENES[k + 1] then for _, n in ipairs(ART_OF[SCENES[k + 1][2]] or {}) do want[n] = true end end
@@ -2148,7 +2148,18 @@ art_for = function(k, with_next)
     end
   end
   for n in pairs(want) do
-    if S.art[n] == nil then S.art[n] = G:art("longhorns", n) or false end
+    if S.art[n] == nil then
+      if async then
+        -- (false while it comes: the scene draws itself live until then; it is asked for 2 s before it is needed)
+        S.art[n] = false
+        local s0 = S
+        G:art_async("longhorns", n, function(img)
+          if S == s0 and S.art[n] == false then S.art[n] = img or false elseif img then img:release() end
+        end)
+      else
+        S.art[n] = G:art("longhorns", n) or false
+      end
+    end
   end
 end
 
@@ -2336,8 +2347,8 @@ function M.update(dt)
   local sc, lt, len, k = scene_at(S.t)
   cues(sc[2], lt, dt)
   -- the pictures: the next scene's loaded in the last moment of the fade to black, the last one's let go
-  if k ~= S.art_k then S.art_k = k art_for(k, false) S.art_next = nil end
-  if lt > len - 0.3 and not S.art_next then S.art_next = true art_for(k, true) end
+  if k ~= S.art_k then S.art_k = k art_for(k, false, true) S.art_next = nil end
+  if lt > len - 2 and not S.art_next then S.art_next = true art_for(k, true, true) end
   -- Smokey fires every ten seconds in its scene; the drive's touchdown; the tower's fireworks
   -- what the season knows, every two seconds (for the board, the hex, the tower)
   S.refresh = (S.refresh or 0) - dt

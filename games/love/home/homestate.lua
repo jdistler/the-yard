@@ -327,7 +327,9 @@ local function drain_worker()
     if not msg then break end
     n_up = n_up + 1
     home_note("upload:" .. tostring(msg[2]))
-    if msg[1] == "world" then
+    if msg[1] == "pkm" then
+      require("showlib").pkm_ready(msg[2], msg[3])
+    elseif msg[1] == "world" then
       if ST.world_pending == msg[2] then ST.world_pending = nil end
       if msg[3] and msg[2] == ST.world_name then
         local ok, img = pcall(lg.newImage, msg[3])

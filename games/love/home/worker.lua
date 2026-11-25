@@ -23,6 +23,21 @@ while true do
     local ok, data = false, nil
     if bytes then ok, data = pcall(love.image.newImageData, love.filesystem.newFileData(bytes, "a.png")) end
     done:push({"art", job[2], ok and data or nil})
+  elseif job[1] == "pkm" then
+    -- {"pkm", key, path}: a show's painted picture (ETC1 .pkm) as CompressedData (showlib.lua's G:art_async)
+    local f = io.open(job[3], "rb")
+    local bytes = f and f:read("*a")
+    if f then f:close() end
+    local ok, cd = false, nil
+    if bytes then
+      ok, cd = pcall(function()
+        local fd = love.filesystem.newFileData(bytes, "a.pkm")
+        local c = love.image.newCompressedData(fd)
+        fd:release()
+        return c
+      end)
+    end
+    done:push({"pkm", job[2], ok and cd or nil})
   elseif job[1] == "world" then
     -- {"world", name, path, fallback}: the menu's world picture (ETC1 .pkm) as CompressedData, for the main thread
     -- to upload (homestate.lua's ST.world_load)

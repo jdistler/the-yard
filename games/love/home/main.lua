@@ -298,7 +298,13 @@ function love.load()
   local show_ctx = {W = W, H = H, font = D.font, neon_draw = D.neon_draw, neon_img = D.neon_img, neon_release = HS.neon_release,
                     brand_draw = function(y, px, a) ST.draw(0, y, px, a) end,
                     fx = fx, sfx = music.sfx,
-                    log = log, rgb = D.rgb}
+                    log = log, rgb = D.rgb,
+                    -- (true when the worker took it: the worker starts after this table is made)
+                    request_pkm = function(key, path)
+                      if not ST.worker then return false end
+                      love.thread.getChannel("home_work"):push({"pkm", key, path})
+                      return true
+                    end}
   if ST.TRACE then
     D.trace_font = function(px) HS.trace("font", px) end
     show_ctx.trace = HS.trace

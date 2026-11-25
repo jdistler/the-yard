@@ -631,8 +631,21 @@ local function draw_scene()
     return
   end
   if ST.scene == "tv" then
+    -- Opening the guide: a dark frame at once, the guide's first (heavy) draw under an opaque cover, then a fade
+    -- in (that first draw, fonts and thirty tiles, froze the menu 150-350 ms, 2026-11-25).
+    local c = ST.tv_cover
+    if c and c.n == 0 then
+      c.n = 1
+      lg.clear(0.02, 0.01, 0.05, 1)
+      return
+    end
     -- The guide draws its own quiet backdrop (Home's sky under it cost ~15 fps: two extra full-screen passes).
     tv.draw()
+    if c then
+      c.n = c.n + 1
+      lg.setColor(0.02, 0.01, 0.05, c.n == 2 and 1 or math.max(0, 1 - c.f / 0.25))
+      lg.rectangle("fill", 0, 0, W, H)
+    end
     draw_volume()
     draw_note()
     return

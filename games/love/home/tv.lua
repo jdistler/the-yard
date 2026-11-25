@@ -312,9 +312,11 @@ end
 
 -- ------------------------------------------------------------------ logos
 
+-- (returns false when there is no file yet: the logo is then fetched)
 local function load_logo(key)
   local s = read_file(LOGOS .. "/" .. key .. ".rgba")
-  if not s or #s < 8 or s:sub(1, 4) ~= "RGBA" then logos[key] = false return end
+  if not s then return false end
+  if #s < 8 or s:sub(1, 4) ~= "RGBA" then logos[key] = false return true end
   local w = s:byte(5) + s:byte(6) * 256
   local h = s:byte(7) + s:byte(8) * 256
   if #s < 8 + w * h * 4 then logos[key] = false return end
@@ -325,7 +327,11 @@ local function load_logo(key)
   data:release()
   logos[key] = img
   logo_count = logo_count + 1
+  return true
 end
+-- Logos read from the card a few a frame: the guide's first frame read all twenty in view (each twice), a 350 ms
+-- freeze opening the guide (2026-11-25); the rest come over the next frames, the name shown until then.
+local logo_budget = 3
 
 -- The logo for a channel: drawn if decoded, asked for once otherwise (fetched in the order rows are seen).
 local function logo_of(ch)
@@ -333,7 +339,9 @@ local function logo_of(ch)
   ch.key = ch.key or url_key(ch.logo)
   local v = logos[ch.key]
   if v == nil then
-    if love.filesystem and read_file(LOGOS .. "/" .. ch.key .. ".rgba") then load_logo(ch.key) v = logos[ch.key]
+    if logo_budget <= 0 then return nil end
+    logo_budget = logo_budget - 1
+    if love.filesystem and load_logo(ch.key) then v = logos[ch.key]
     else logos[ch.key] = "want" end
   end
   return type(v) == "userdata" and v or nil
@@ -474,6 +482,7 @@ local function picture_tune(ch, r)
   ctx.backdrop()
   local rr, gg, bb = ctx.rgb(r.tint)
   ctx.fx.glow(W / 2, 400, 360, 200, rr, gg, bb, 0.3)
+  logo_budget = math.max(logo_budget, 1)          -- (the chosen channel's logo, whatever this frame has used)
   local img = logo_of(ch)
   if img then
     local iw, ih = img:getDimensions()
@@ -595,7 +604,7 @@ local function poll_worker()
         end
       end
     elseif msg[1] == "logo" then
-      if msg[3] == "ok" or msg[3] == "have" then load_logo(msg[2]) else logos[msg[2]] = false end
+      if not ((msg[3] == "ok" or msg[3] == "have") and load_logo(msg[2])) then logos[msg[2]] = false end
     elseif msg[1] == "logosdone" then
       logo_busy = false
     elseif msg[1] == "nowdone" then
@@ -638,6 +647,7 @@ function T.tick()
 end
 
 function T.update(dt)
+  logo_budget = 3
   t = t + dt
   if worker and t - now_asked > NOW_EVERY then
     now_asked = t

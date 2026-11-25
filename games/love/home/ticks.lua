@@ -45,6 +45,11 @@ local function update_idle(dt)
   if cards_t <= 0 then cards_t = 30 IDLE.update_cards() end
   if ST.scene == "tv" then
     ST.idle = 0
+    local c = ST.tv_cover
+    if c and c.n >= 2 then
+      c.f = c.f + dt
+      if c.f >= 0.25 then ST.tv_cover = nil end
+    end
     if tv.update(dt) == "exit" then ST.tv_close() end
   end
   if ST.scene == "shelf" then
