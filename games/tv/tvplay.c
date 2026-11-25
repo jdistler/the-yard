@@ -119,6 +119,7 @@ static void say(const char *fmt, ...)
     va_list ap;
     if (!logf_) return;
     va_start(ap, fmt);
+    fprintf(logf_, "%.2f ", now());               /* (the monotonic clock: /proc/uptime's, as Home's log) */
     vfprintf(logf_, fmt, ap);
     va_end(ap);
     fputc('\n', logf_);
@@ -316,7 +317,10 @@ static SDL_AudioDeviceID adev;                    /* opened once, kept across ch
 #define OUT_RATE 44100
 #define WAIT_MAX 4                                /* decoded frames waiting for their time */
 #define KEEP_SHOWN 2                              /* pictures already replaced on the screen, kept two flips more */
-#define PREBUFFER_S 3.0                           /* stream in hand before the picture starts (Skywave: 3 s) */
+/* Stream in hand before the picture starts. 3 s until 2026-11-25 (Skywave's); but the gate sends its backlog in
+   a burst and the queue goes on filling to its 6 MB (~8 s) within a second of starting, so 1.5 s costs no
+   cushion and starts every channel ~0.4 s sooner. */
+#define PREBUFFER_S 1.5
 #define REBUFFER_S 2.0                            /* and after running dry */
 #define OUT_BYTES_PER_SEC (OUT_RATE * 4)
 
@@ -667,10 +671,14 @@ static int play_channel(const char *url, const char *tuning)
     av_dict_set(&o, "user_agent", "Partycade/1.0", 0);
     /* Options by name only: the cabinet's libavformat is Rockchip's FFmpeg 4.1 build, and writing fields of its
        structs from vanilla 4.1.11 headers (probesize, interrupt_callback) crashed find_stream_info. */
-    av_dict_set(&o, "probesize", "600000", 0);
-    av_dict_set(&o, "analyzeduration", "800000", 0);
+    {
+        const char *ps = getenv("TVPLAY_PROBESIZE"), *ad = getenv("TVPLAY_ANALYZE");
+        av_dict_set(&o, "probesize", ps ? ps : "600000", 0);
+        av_dict_set(&o, "analyzeduration", ad ? ad : "800000", 0);
+    }
     int r = avformat_open_input(&s->fmt, url, NULL, &o);
     av_dict_free(&o);
+    double t_opened = now();
     if (r < 0) {
         char e[128];
         av_strerror(r, e, sizeof e);
@@ -681,6 +689,7 @@ static int play_channel(const char *url, const char *tuning)
     /* (input while it connects: a flip or going back is not held up by a slow channel) */
     if ((code = handle_input()) >= 0) { session_release(s); return code; }
     if (avformat_find_stream_info(s->fmt, NULL) < 0) { say("no stream info"); session_release(s); return 30; }
+    double t_probed = now();
     AVCodec *vdec = NULL, *adec = NULL;
     s->vidx = av_find_best_stream(s->fmt, AVMEDIA_TYPE_VIDEO, -1, -1, &vdec, 0);
     s->aidx = av_find_best_stream(s->fmt, AVMEDIA_TYPE_AUDIO, -1, s->vidx, &adec, 0);
@@ -694,8 +703,8 @@ static int play_channel(const char *url, const char *tuning)
     else { say("video %s: not for the VPU", avcodec_get_name(vp->codec_id)); session_release(s); return 32; }
     s->vtb = av_q2d(s->fmt->streams[s->vidx]->time_base);
     double sar = 1;                               /* from the decoder's frames (the parameters' layout differs) */
-    say("open %.1f s: video %s, audio %s", now() - t_start, avcodec_get_name(vp->codec_id),
-        s->aidx >= 0 && adec ? adec->name : "none");
+    say("open %.2f s (connect %.2f, probe %.2f): video %s, audio %s", now() - t_start, t_opened - t_start,
+        t_probed - t_opened, avcodec_get_name(vp->codec_id), s->aidx >= 0 && adec ? adec->name : "none");
     if (s->aidx >= 0) {
         AVCodecParameters *ap = adec ? stream_par(s->fmt->streams[s->aidx], adec->id) : NULL;
         AVCodec *ac = ap ? avcodec_find_decoder(ap->codec_id) : NULL;
@@ -948,6 +957,7 @@ int main(int argc, char **argv)
     const char *list = getenv("TVPLAY_LIST");
     if (argc < 2 && !list) { fprintf(stderr, "usage: tvplay URL, or TVPLAY_LIST=play.tsv tvplay\n"); return 2; }
     if (list && !list_load(list)) { say("no channels in %s", list); return 30; }
+    say("tvplay started");
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) != 0) { say("SDL: %s", SDL_GetError()); return 30; }
     for (int i = 0; i < SDL_NumJoysticks(); i++) SDL_JoystickOpen(i);
@@ -962,6 +972,7 @@ int main(int argc, char **argv)
     gl_setup();
     if (list) show_channel(chan_idx);
     draw_tuning(0, NULL);
+    say("screen up");
     {
         SDL_DisplayMode dm;
         if (SDL_GetCurrentDisplayMode(0, &dm) == 0) say("display %dx%d at %d Hz", dm.w, dm.h, dm.refresh_rate);

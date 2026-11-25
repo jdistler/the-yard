@@ -17,9 +17,14 @@ local function mem_note()
     if f then f:close() end
     return t:match(key .. ":%s*(%d+)") or "?"
   end
-  return "available " .. grab("/proc/meminfo", "MemAvailable") .. " kB, rss " .. grab("/proc/self/status", "VmRSS") .. " kB"
+  local f = io.open("/proc/uptime")
+  local up = f and f:read("*l"):match("^(%S+)") or "?"
+  if f then f:close() end
+  return "available " .. grab("/proc/meminfo", "MemAvailable") .. " kB, rss " .. grab("/proc/self/status", "VmRSS") ..
+         " kB, at " .. up .. " s"
 end
 local function request(s, it, picture, gamekey)
+  local t0 = love.timer.getTime()
   if picture and (not headless or os.getenv("HOME_FB")) then
     local ok, bytes = pcall(splash.render, picture)
     if ok then splash.show(bytes) end
@@ -30,7 +35,7 @@ local function request(s, it, picture, gamekey)
       if ok2 then splash.save(back, ST.BACK) end
     end
   elseif it and (not headless or os.getenv("HOME_FB")) then P.pictures_for(it) end
-  log("launch " .. s .. " (" .. mem_note() .. ")")
+  log("launch " .. s .. " (" .. mem_note() .. "; pictures " .. math.floor((love.timer.getTime() - t0) * 1000) .. " ms)")
   -- The classic's high score as it was: on the way back, a higher one is celebrated.
   local played = nil
   if it and it.kind ~= "stock" then played = ST.sel end
