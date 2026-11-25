@@ -169,7 +169,12 @@ wifi() {
   # office AP was at -54. bgscan scans every 30 s below -65 dBm (every 300 s above) and moves to a better one.
   # It runs from a copy in RAM with the line added (wifi.conf is the user's file); if that will not start, as is.
   RCONF=$T/wpa.run.conf
-  if ! grep -q bgscan "$WCONF" && sed 's/^network={$/network={\n\tbgscan="simple:30:-65:300"/' "$WCONF" > "$RCONF" &&
+  # 2.4 GHz only (freq_list): the driver gives bgscan no signal monitoring, so it scans on a timer and wpa_supplicant
+  # rates any 5 GHz AP above the office's 2.4 GHz one; from the cabinet's corner they fail or barely work (office
+  # 5 GHz: authentication times out; outdoor: -74 dBm), and it hopped band five times an hour, a disconnect each,
+  # one in the middle of a football game on TV (2026-11-25). Every AP has a 2.4 GHz radio; the office's gives
+  # 26 Mbit/s here (a channel needs 4-8).
+  if ! grep -q bgscan "$WCONF" && sed 's/^network={$/network={\n\tbgscan="simple:30:-65:300"\n\tfreq_list=2412 2417 2422 2427 2432 2437 2442 2447 2452 2457 2462/' "$WCONF" > "$RCONF" &&
       chmod 600 "$RCONF" && grep -q bgscan "$RCONF"; then :; else RCONF=$WCONF; fi
   "$WDIR/wpa_supplicant" -B -i "$w" -D nl80211 -c "$RCONF" -P $T/wpa_supplicant.pid -f "$T/wpa.log" -t
   rc=$?

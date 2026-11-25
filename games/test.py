@@ -899,8 +899,8 @@ def yardnet_checks(rootfs=None):
           f"{tag}: with a wifi.conf it loads cfg80211, then 8821au, then starts wpa_supplicant on wlan0")
     rc = read(tmp, "wpa.run.conf") or ""
     check("-c " + os.path.join(tmp, "wpa.run.conf") in c and 'bgscan="simple:30:-65:300"' in rc and 'ssid="home"' in rc
-          and "psk=00" in rc,
-          f"{tag}: wpa_supplicant runs with background scanning added to a copy of wifi.conf (roams to a better AP)")
+          and "psk=00" in rc and "freq_list=2412 " in rc and "2462" in rc,
+          f"{tag}: wpa_supplicant runs with background scanning and 2.4 GHz only added to a copy of wifi.conf")
     check(read(os.path.join(proc, "sys", "kernel"), "panic_on_oops") == "0\n" and os.path.exists(os.path.join(games, "net", "wifi.trying")),
           f"{tag}: an oops is not made a panic, and the guard file is set during the start")
     # The stick stays in: it is read once per insertion, not every pass.
