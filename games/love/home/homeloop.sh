@@ -274,8 +274,10 @@ while :; do
   rm -f "$REQ"
   log "home: starting LOVE"
   STARTED=$(cut -d. -f1 /proc/uptime)
+  # (Home: SDL's own scanout buffers off: they cost ~10 MB, and Home with a show ran out of memory with them,
+  # 2026-11-25; the games, which run alone, have them from /data/love/run.sh: no tearing)
   HOME_SAFE=$SAFE HOME_INTRO=$INTRO HOME_REQ=$REQ HOME_BACK=$BACK HOME_STATE=$H/state HOME_LOG=$LOG HOME_LOG_MAX=$LOG_MAX HOME_ART=$H/art HOME_GAMES=$GAMES HOME_MODE=$MODE \
-    $RUN $HOMEL
+    SDL_KMSDRM_TRIPLE=0 $RUN $HOMEL
   CODE=$?
   INTRO=0
   if [ ! -s "$REQ" ]; then

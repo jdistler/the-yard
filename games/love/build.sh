@@ -56,7 +56,16 @@ fetch https://github.com/madler/zlib.git zlib v1.3.1
 #   one (Lamp 30 -> 55 fps, Chest 37 -> 59, 2026-10-26), and SDL_KMSDRM_TIMING=1 times the swap.
 for p in "$HERE"/patches/sdl-*.patch; do
   if git -C "$SRC/SDL" apply --check "$p" 2>/dev/null; then
-    git -C "$SRC/SDL" apply "$p" && rm -f "$W/build-$T/SDL.done" && echo "applied $(basename "$p")"
+    git -C "$SRC/SDL" apply "$p" && rm -f "$W/build-$T/SDL.done
+#   love-screen-fbo.patch: with SDL_KMSDRM_TRIPLE, LÖVE's screen is SDL's scanout buffer of the moment, drawn
+#   upright like a canvas (no tearing at full speed, 2026-11-25).
+for p in "$HERE"/patches/love-*.patch; do
+  if git -C "$SRC/love" apply --check "$p" 2>/dev/null; then
+    git -C "$SRC/love" apply "$p" && rm -f "$W/build-$T/love.done" && echo "applied $(basename "$p")"
+  elif ! git -C "$SRC/love" apply --reverse --check "$p" 2>/dev/null; then
+    echo "$(basename "$p") does not apply to $SRC/love" >&2; exit 1
+  fi
+done" && echo "applied $(basename "$p")"
   elif ! git -C "$SRC/SDL" apply --reverse --check "$p" 2>/dev/null; then
     echo "$(basename "$p") does not apply to $SRC/SDL" >&2; exit 1
   fi
@@ -237,7 +246,15 @@ D=$(cd "$(dirname "$0")" && pwd)
 export LD_LIBRARY_PATH="$D/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export SDL_VIDEODRIVER=${SDL_VIDEODRIVER:-kmsdrm}
 # The CPU builds the next frame while the GPU draws this one (patches/sdl-kmsdrm-pipeline.patch).
+# (1: the pipelined swap. It lets the GPU draw into the picture shown, so fast motion can tear (found with test
+# patterns on the cabinet 2026-11-25); the tear-free modes are chosen per program: SDL_KMSDRM_SAFE (tvplay),
+# SDL_KMSDRM_TRIPLE (the games, which run alone and have the memory), PIPELINE=4 (two buffers, no tearing, but
+# a GPU frame must fit one refresh: the games fell to ~30 fps).)
 export SDL_KMSDRM_PIPELINE=${SDL_KMSDRM_PIPELINE:-1}
+# Four scanout buffers of SDL's own (games/love/patches): the GPU never draws into the picture shown, and the
+# games keep their speed (chest 46.8, band 47.8, safari 51 fps on the cabinet). ~12 MB: fine for a game, which runs
+# alone; Home turns it off (homeloop: SDL_KMSDRM_TRIPLE=0).
+export SDL_KMSDRM_TRIPLE=${SDL_KMSDRM_TRIPLE:-4}
 export LOVE_GRAPHICS_USE_OPENGLES=1
 export ALSOFT_CONF=${ALSOFT_CONF:-$D/alsoft.conf}
 exec "$D/love.bin" "$@"

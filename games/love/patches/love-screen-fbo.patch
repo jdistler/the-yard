@@ -1,0 +1,146 @@
+diff --git a/src/modules/graphics/Graphics.cpp b/src/modules/graphics/Graphics.cpp
+index 9cf72a6..c95945c 100644
+--- a/src/modules/graphics/Graphics.cpp
++++ b/src/modules/graphics/Graphics.cpp
+@@ -757,6 +757,13 @@ Graphics::RenderTargets Graphics::getCanvas() const
+ 	return rts;
+ }
+ 
++// Partycade: the screen drawn like a canvas (top row first in memory, as the display reads it) when it is one of
++// SDL's own scanout buffers (OpenGL::getDefaultFBO not 0).
++bool Graphics::isScreenFlipped() const
++{
++	return screenFlipped;
++}
++
+ bool Graphics::isCanvasActive() const
+ {
+ 	const auto &rts = states.back().renderTargets;
+diff --git a/src/modules/graphics/Graphics.h b/src/modules/graphics/Graphics.h
+index b56d77f..3fe6234 100644
+--- a/src/modules/graphics/Graphics.h
++++ b/src/modules/graphics/Graphics.h
+@@ -593,6 +593,8 @@ class Graphics : public Module
+ 
+ 	RenderTargets getCanvas() const;
+ 	bool isCanvasActive() const;
++	bool isScreenFlipped() const;
++	bool screenFlipped = false;
+ 	bool isCanvasActive(Canvas *canvas) const;
+ 	bool isCanvasActive(Canvas *canvas, int slice) const;
+ 
+diff --git a/src/modules/graphics/opengl/Graphics.cpp b/src/modules/graphics/opengl/Graphics.cpp
+index 2c108f9..a38a5dc 100644
+--- a/src/modules/graphics/opengl/Graphics.cpp
++++ b/src/modules/graphics/opengl/Graphics.cpp
+@@ -144,7 +144,11 @@ void Graphics::setViewportSize(int width, int height, int pixelwidth, int pixelh
+ 			setScissor(states.back().scissorRect);
+ 
+ 		// Set up the projection matrix
+-		projectionMatrix = Matrix4::ortho(0.0, (float) width, (float) height, 0.0, -10.0f, 10.0f);
++		screenFlipped = gl.getDefaultFBO() != 0;
++		if (screenFlipped)
++			projectionMatrix = Matrix4::ortho(0.0, (float) width, 0.0, (float) height, -10.0f, 10.0f);
++		else
++			projectionMatrix = Matrix4::ortho(0.0, (float) width, (float) height, 0.0, -10.0f, 10.0f);
+ 	}
+ }
+ 
+@@ -492,7 +496,14 @@ void Graphics::setCanvasInternal(const RenderTargets &rts, int w, int h, int pix
+ 
+ 		// The projection matrix is flipped compared to rendering to a canvas, due
+ 		// to OpenGL considering (0,0) bottom-left instead of top-left.
+-		projectionMatrix = Matrix4::ortho(0.0, (float) w, (float) h, 0.0, -10.0f, 10.0f);
++		screenFlipped = gl.getDefaultFBO() != 0;
++		if (screenFlipped)
++		{
++			projectionMatrix = Matrix4::ortho(0.0, (float) w, 0.0, (float) h, -10.0f, 10.0f);
++			vertexwinding = vertexwinding == vertex::WINDING_CW ? vertex::WINDING_CCW : vertex::WINDING_CW;
++		}
++		else
++			projectionMatrix = Matrix4::ortho(0.0, (float) w, (float) h, 0.0, -10.0f, 10.0f);
+ 	}
+ 	else
+ 	{
+@@ -1014,6 +1025,19 @@ void Graphics::present(void *screenshotCallbackData)
+ 	if (window != nullptr)
+ 		window->swapBuffers();
+ 
++	// Partycade: with SDL_KMSDRM_TRIPLE the swap moved the screen to another of SDL's buffers (and bound it): keep
++	// the bound framebuffer cache in step, and the screen's projection and winding (flipped from the first frame
++	// SDL's buffers are used on).
++	{
++		GLuint fbo = gl.getDefaultFBO();
++		gl.bindFramebuffer(OpenGL::FRAMEBUFFER_ALL, fbo);
++		if ((fbo != 0) != screenFlipped)
++		{
++			setViewportSize(width, height, pixelWidth, pixelHeight);
++			setFrontFaceWinding(states.back().winding);
++		}
++	}
++
+ 	// Reset the per-frame stat counts.
+ 	drawCalls = 0;
+ 	gl.stats.shaderSwitches = 0;
+@@ -1052,7 +1076,7 @@ void Graphics::setScissor(const Rect &rect)
+ 	glrect.h = (int) (rect.h * dpiscale);
+ 
+ 	// OpenGL's reversed y-coordinate is compensated for in OpenGL::setScissor.
+-	gl.setScissor(glrect, isCanvasActive());
++	gl.setScissor(glrect, isCanvasActive() || screenFlipped);
+ 
+ 	state.scissor = true;
+ 	state.scissorRect = rect;
+@@ -1205,7 +1229,7 @@ void Graphics::setFrontFaceWinding(vertex::Winding winding)
+ 
+ 	state.winding = winding;
+ 
+-	if (isCanvasActive())
++	if (isCanvasActive() || screenFlipped)
+ 		winding = winding == vertex::WINDING_CW ? vertex::WINDING_CCW : vertex::WINDING_CW;
+ 
+ 	glFrontFace(winding == vertex::WINDING_CW ? GL_CW : GL_CCW);
+diff --git a/src/modules/graphics/opengl/OpenGL.cpp b/src/modules/graphics/opengl/OpenGL.cpp
+index 6bf80f3..a194f25 100644
+--- a/src/modules/graphics/opengl/OpenGL.cpp
++++ b/src/modules/graphics/opengl/OpenGL.cpp
+@@ -19,6 +19,7 @@
+  **/
+ 
+ // LOVE
++#include <dlfcn.h>
+ #include "common/config.h"
+ #include "OpenGL.h"
+ 
+@@ -989,7 +990,17 @@ GLuint OpenGL::getDefaultFBO() const
+ 	SDL_GetWindowWMInfo(SDL_GL_GetCurrentWindow(), &info);
+ 	return info.info.uikit.framebuffer;
+ #else
+-	return 0;
++	// Partycade: with SDL_KMSDRM_TRIPLE, the screen is one of SDL's three scanout buffers, the one to draw into
++	// now (games/love/patches/sdl-kmsdrm-pipeline.patch); it changes at every swap. 0 otherwise.
++	static unsigned int *partycade_fbo = nullptr;
++	static bool looked = false;
++	if (!looked)
++	{
++		looked = true;
++		void *self = dlopen(nullptr, RTLD_LAZY);
++		partycade_fbo = self ? (unsigned int *) dlsym(self, "partycade_kmsdrm_fbo") : nullptr;
++	}
++	return partycade_fbo ? *partycade_fbo : 0;
+ #endif
+ }
+ 
+diff --git a/src/modules/graphics/opengl/Shader.cpp b/src/modules/graphics/opengl/Shader.cpp
+index ef16655..b64b197 100644
+--- a/src/modules/graphics/opengl/Shader.cpp
++++ b/src/modules/graphics/opengl/Shader.cpp
+@@ -706,7 +706,7 @@ void Shader::updateScreenParams()
+ 	Rect view = gl.getViewport();
+ 
+ 	auto gfx = Module::getInstance<Graphics>(Module::M_GRAPHICS);
+-	bool canvasActive = gfx->isCanvasActive();
++	bool canvasActive = gfx->isCanvasActive() || gfx->isScreenFlipped();
+ 
+ 	if ((view == lastViewport && canvasWasActive == canvasActive) || current != this)
+ 		return;

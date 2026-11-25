@@ -277,9 +277,17 @@ Ticked as each lands, with the commit.
 - [x] K7a. TV tearing: SDL_KMSDRM_SAFE=1 for tvplay (the Mali drew into the shown picture; proven with test
       patterns and fliptest on the cabinet; 60 fps kept). New libSDL2 on the cabinet (/data/love/lib; the old one
       at /mnt/sdcard/partycade/libSDL2-2.0.so.0.before-safe); with SAFE unset it behaves as before.
-- [ ] K7b. Home and games: the same tearing with the pipelined swap. SAFE halves Home (29 fps), PIPELINE=2 gives 34.
-      Next: SDL keeps three scanout buffers of its own (GBM bos as EGLImage render targets, or a third offscreen
-      buffer), so the GPU never gets the shown one and CPU/GPU still overlap.
+- [x] K7b. Games: SDL's own scanout buffers (SDL_KMSDRM_TRIPLE=4, the default in /data/love/run.sh; LÖVE patched
+      to draw its screen into them upright, games/love/patches/love-screen-fbo.patch). The Mali's surface has two
+      buffers (counted), so the pipelined swap drew into the shown one; ours: four display-driver buffers imported
+      as GL render targets (RGBA8888, scanned out as XBGR8888: the VOP's free red/blue swap), a fence each, a
+      presenter thread that flips when the GPU is done, the stencil discarded each frame (written back it cost 6.7
+      ms of GPU a frame). Test patterns on the cabinet: no tearing even with the GPU forced to draw early. All 13
+      games at or above their baselines (lamp 58.5, tea 53.8, chest 46.5, kart 56, band 47.8). ~12 MB: fine for a
+      game, which runs alone.
+- [ ] K7c. Home: still the pipelined swap (homeloop sets SDL_KMSDRM_TRIPLE=0). Own buffers cost ~10 MB and Home
+      with a show was OOM-killed; PIPELINE=4 (two buffers, tear-free) gives 52 fps. To get both: cut Home's GPU
+      frame (~15 ms, peaks 18-19) under ~14 ms, then PIPELINE=4; or free ~10 MB elsewhere.
 - [ ] K8. 5 GHz: the cabinet associates with the office AP's 5 GHz and the handshake times out (it can't be heard?):
       try a USB extension for the AC600 / the AP's 5 GHz settings. 2.4 GHz is pinned meanwhile (26 Mbit/s).
 

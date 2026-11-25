@@ -47,8 +47,8 @@ each measured with the player's own log (`tvplay.log`, now on the SD card) and `
   tore mid-screen. `SDL_KMSDRM_SAFE=1` (games/love/patches: each flip waited for, the old buffer given back at
   once) was clean in the worst case and keeps the TV at 60 fps; tvloop uses it. It halves Home (58 -> 29 fps:
   Home overlaps CPU and GPU), and a pipelined variant (=2) reached only 34: the Mali surface's buffer accounting
-  contradicts itself. Home and the games still use the pipelined swap and can tear the same way; the fix there is
-  SDL's own three scanout buffers (open, SYSTEM_AUDIT.md K7).
+  contradicts itself. The games now draw into four scanout buffers of SDL's own (tear-free at full speed); Home still
+  uses the pipelined swap (SYSTEM_AUDIT.md K7b, K7c).
 * Tearing was suspected from seams in screen grabs; a grab takes ~70 ms (four refreshes), and grabs taken with
   the picture held still (`TVPLAY_HOLD`) show none. Not a defect of the player.
 
