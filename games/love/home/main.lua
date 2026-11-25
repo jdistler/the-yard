@@ -264,12 +264,7 @@ local function shelf_setup()
   -- Live TV: the guide's lists, and coming back from a channel (tvloop wrote how it ended).
   tv.load({W = W, H = H, font = D.font, neon_draw = D.neon_draw, rgb = D.rgb, rrect = D.rrect, fx = fx, play = play,
            log = log, down = I.down, backdrop = P.backdrop,
-           request = function(s, picture) A.request(s, nil, picture) end,
-           save_picture = function(path, picture)
-             if headless and not os.getenv("HOME_FB") then return end
-             local ok, bytes = pcall(splash.render, picture)
-             if ok then splash.save(bytes, path, true) end
-           end})
+           request = function(s, picture) A.request(s, nil, picture) end})
   shelf.load({W = W, H = H, font = D.font, neon_draw = D.neon_draw, rgb = D.rgb, rrect = D.rrect, fx = fx, play = play,
               log = log, down = I.down, backdrop = P.backdrop,
               request_art = ST.worker and function(key, path) love.thread.getChannel("home_work"):push({"art", key, path}) end,

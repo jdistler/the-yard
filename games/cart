@@ -656,6 +656,11 @@ def cmd_push(a):
     for n in ("loveyard", "loveprobe"):
         files[f"/data/Games/{n}"] = (os.path.join(HERE, "love", "loveprobe.sh"), False)
     files["/data/Games/yardnet"] = (os.path.join(HERE, "net", "yardnet.sh"), False)
+    # The Wi-Fi bundle yardnet unpacks at boot (games/net/wifi/build.sh; not rebuilt here: it needs the kernel
+    # tree). A new one takes effect at the next boot.
+    wtgz = os.path.join(HERE, "out", "wifi", "wifi.tar.gz")
+    if os.path.exists(wtgz):
+        files["/data/Games/wifi.tar.gz"] = (wtgz, False)
     # Partycade Home: the app, its loop, the Yard's preview row, and the classics' logo cards (cut from the stock
     # menu's pictures on the PC by tools/home_art.py from the rootfs dump; they never go into git).
     files["/data/home/home.love"] = (home_pack(os.path.join(stage, "home.love")), False)

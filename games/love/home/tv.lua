@@ -496,15 +496,6 @@ local function picture_tune(ch, r)
             "2-PLAYER   back to the guide\nHOLD 1-PLAYER + 2-PLAYER   Home", 60, 756, W - 120, "center")
 end
 
--- Between channels (stick up/down while watching), tvloop puts this up while the next one connects.
-local function picture_zap()
-  ctx.backdrop()
-  ctx.neon_draw("CHANGING CHANNEL...", 0, 420, 44, 0xff6b6b, 1, "center", W)
-  lg.setFont(ctx.font(24))
-  lg.setColor(0.92, 0.9, 1, 0.9)
-  lg.printf("2-PLAYER   back to the guide", 0, 520, W, "center")
-end
-
 local function play_chosen()
   local r = rows[sel]
   if not r or #r.channels == 0 then return end
@@ -527,7 +518,7 @@ local function play_chosen()
     if k ~= ch.key and type(v) == "userdata" then v:release() logos[k] = nil end
   end
   collectgarbage()
-  if not read_file(TMP .. "/zap.fb.gz") then ctx.save_picture(TMP .. "/zap.fb.gz", picture_zap) collectgarbage() end
+  -- (no "changing channel" picture any more: since 2026-11-25 tvplay changes channel itself, in its own bands)
   ctx.play("launch")
   ctx.request("tv", function() picture_tune(ch, r) end)
 end

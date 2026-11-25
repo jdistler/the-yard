@@ -125,7 +125,11 @@ static void say(const char *fmt, ...)
     fflush(logf_);
 }
 
-/* ------------------------------------------------------------------ packet queues */
+/* ------------------------------------------------------------------ a channel's stream: the session */
+/* Everything one channel's stream needs lives in a Session, shared by its threads. Changing channel starts a new
+ * one in the same process (the screen, the GPU and the sound card stay open: no black between channels). The old
+ * one's reader may be stuck in a network read for a while: it finishes on its own and the last of the two (the
+ * player or its reader) frees the session. */
 typedef struct PNode { AVPacket *pkt; struct PNode *next; } PNode;
 typedef struct {
     PNode *first, *last;
@@ -135,7 +139,23 @@ typedef struct {
     SDL_cond *cv;
 } PQueue;
 
-static volatile int quitting, demux_done;
+typedef struct Session {
+    AVFormatContext *fmt;
+    int vidx, aidx;
+    double vtb, atb;                              /* time bases in seconds */
+    PQueue vq, aq;
+    volatile int quitting, demux_done;
+    volatile double aq_newest;                    /* stream time of the newest audio packet read */
+    volatile double demux_slowest;
+    volatile long long demux_bytes, demux_pkts;
+    volatile long corrupt_pkts, pts_jumps;        /* damaged packets (the demuxer's flag); video time jumps */
+    volatile int restart_video;                   /* a jump in the stream: the decoder starts again at a keyframe */
+    AVCodecContext *actx;
+    SwrContext *swr;
+    volatile double audio_end_pts;                /* stream time of the end of what is queued */
+    volatile int audio_started, rebuffers;
+    SDL_atomic_t refs;
+} Session;
 
 static void pq_init(PQueue *q) { memset(q, 0, sizeof *q); q->mu = SDL_CreateMutex(); q->cv = SDL_CreateCond(); }
 
@@ -154,11 +174,11 @@ static void pq_put(PQueue *q, AVPacket *pkt)
 }
 
 /* wait_ms < 0: wait until a packet or the end. Returns NULL when there is none. */
-static AVPacket *pq_get(PQueue *q, int wait_ms)
+static AVPacket *pq_get(Session *s, PQueue *q, int wait_ms)
 {
     AVPacket *p = NULL;
     SDL_LockMutex(q->mu);
-    while (!q->first && !quitting && !demux_done && wait_ms != 0) {
+    while (!q->first && !s->quitting && !s->demux_done && wait_ms != 0) {
         if (wait_ms < 0) SDL_CondWait(q->cv, q->mu);
         else { SDL_CondWaitTimeout(q->cv, q->mu, wait_ms); break; }
     }
@@ -184,7 +204,39 @@ static AVPacket *pq_peek(PQueue *q)
     return p;
 }
 
-/* ------------------------------------------------------------------ the stream */
+static void pq_free(PQueue *q)
+{
+    while (q->first) {
+        PNode *n = q->first;
+        q->first = n->next;
+        av_packet_free(&n->pkt);
+        free(n);
+    }
+    SDL_DestroyCond(q->cv);
+    SDL_DestroyMutex(q->mu);
+}
+
+static Session *session_new(void)
+{
+    Session *s = calloc(1, sizeof *s);
+    s->vidx = s->aidx = -1;
+    s->aq_newest = s->audio_end_pts = -1;
+    pq_init(&s->vq);
+    pq_init(&s->aq);
+    SDL_AtomicSet(&s->refs, 1);
+    return s;
+}
+
+static void session_release(Session *s)
+{
+    if (!SDL_AtomicDecRef(&s->refs)) return;
+    pq_free(&s->vq);
+    pq_free(&s->aq);
+    if (s->fmt) avformat_close_input(&s->fmt);
+    if (s->actx) avcodec_free_context(&s->actx);
+    if (s->swr) swr_free(&s->swr);
+    free(s);
+}
 
 /* The cabinet's libavformat is Rockchip's build of FFmpeg 4.1.3, and its AVStream is not the vanilla layout:
  * codecpar is 8 bytes further on (184, not 176; measured 2026-10-27 with games/tv/proto/avprobe.c). So the
@@ -210,131 +262,149 @@ static AVCodecParameters *stream_par(AVStream *st, enum AVCodecID want)
     }
     return NULL;
 }
-static AVFormatContext *fmt;
-static int vidx = -1, aidx = -1;
-static PQueue vq, aq;
-static double vtb, atb;                          /* time bases in seconds */
 
-
-static volatile double aq_newest = -1;            /* stream time of the newest audio packet read */
-static volatile double demux_slowest;
-static volatile long long demux_bytes, demux_pkts;
 static int demux_thread(void *arg)
 {
-    (void)arg;
+    Session *s = arg;
+    int logged = 0;
+    double last_v = -1;
     for (;;) {
-        if (quitting) break;
+        if (s->quitting) break;
         /* Back-pressure: a few seconds of stream is plenty (and RAM is short). */
-        if (vq.bytes + aq.bytes > 6 * 1024 * 1024) { SDL_Delay(10); continue; }
+        if (s->vq.bytes + s->aq.bytes > 6 * 1024 * 1024) { SDL_Delay(10); continue; }
         AVPacket *pkt = av_packet_alloc();
         double tr = now();
-        int r = av_read_frame(fmt, pkt);
+        int r = av_read_frame(s->fmt, pkt);
         tr = now() - tr;
-        if (tr > demux_slowest) demux_slowest = tr;
-        if (r >= 0) { demux_bytes += pkt->size; demux_pkts++; }
+        if (tr > s->demux_slowest) s->demux_slowest = tr;
         if (r < 0) {
             av_packet_free(&pkt);
-            say("demux: end of stream (%d)", r);
+            if (!s->quitting) say("demux: end of stream (%d)", r);
             break;
         }
-        static int logged;
+        s->demux_bytes += pkt->size;
+        s->demux_pkts++;
         if (logged < 3) {
             logged++;
             say("packet: stream %d size %d pts %lld dts %lld", pkt->stream_index, pkt->size, (long long)pkt->pts,
                 (long long)pkt->dts);
         }
-        if (pkt->stream_index == vidx) pq_put(&vq, pkt);
-        else if (pkt->stream_index == aidx) {
-            if (pkt->pts != AV_NOPTS_VALUE) aq_newest = pkt->pts * atb;
-            pq_put(&aq, pkt);
-        }
-        else av_packet_free(&pkt);
+        if (pkt->flags & AV_PKT_FLAG_CORRUPT) s->corrupt_pkts++;
+        if (pkt->stream_index == s->vidx) {
+            double t = pkt->dts != AV_NOPTS_VALUE ? pkt->dts * s->vtb : -1;
+            if (t >= 0 && last_v >= 0 && (t < last_v - 0.5 || t > last_v + 1.0)) {
+                s->pts_jumps++;
+                s->restart_video = 1;
+                say("video time jumps %.2f -> %.2f s: starting again at the next keyframe", last_v, t);
+            }
+            if (t >= 0) last_v = t;
+            pq_put(&s->vq, pkt);
+        } else if (pkt->stream_index == s->aidx) {
+            if (pkt->pts != AV_NOPTS_VALUE) s->aq_newest = pkt->pts * s->atb;
+            pq_put(&s->aq, pkt);
+        } else av_packet_free(&pkt);
     }
-    demux_done = 1;
-    SDL_CondBroadcast(vq.cv);
-    SDL_CondBroadcast(aq.cv);
+    s->demux_done = 1;
+    SDL_CondBroadcast(s->vq.cv);
+    SDL_CondBroadcast(s->aq.cv);
+    session_release(s);
     return 0;
 }
 
 /* ------------------------------------------------------------------ audio: the clock */
-static SDL_AudioDeviceID adev;
-static AVCodecContext *actx;
-static SwrContext *swr;
-static volatile double audio_end_pts = -1;       /* stream time of the end of what is queued */
-static volatile int audio_started;
+static SDL_AudioDeviceID adev;                    /* opened once, kept across channels */
 #define OUT_RATE 44100
 #define WAIT_MAX 4                                /* decoded frames waiting for their time */
+#define KEEP_SHOWN 2                              /* pictures already replaced on the screen, kept two flips more */
 #define PREBUFFER_S 3.0                           /* stream in hand before the picture starts (Skywave: 3 s) */
 #define REBUFFER_S 2.0                            /* and after running dry */
-static volatile int rebuffers;
 #define OUT_BYTES_PER_SEC (OUT_RATE * 4)
 
-static double audio_clock(void)
+static double audio_clock(Session *s)
 {
-    if (!adev || audio_end_pts < 0) return -1;
-    if (!audio_started && !rebuffers) return -1;      /* before the first start; when refilling, the clock holds */
+    if (!adev || s->audio_end_pts < 0) return -1;
+    if (!s->audio_started && !s->rebuffers) return -1;  /* before the first start; when refilling, the clock holds */
     double queued = (double)SDL_GetQueuedAudioSize(adev) / OUT_BYTES_PER_SEC;
-    return audio_end_pts - queued - 0.09;          /* ~ALSA dmix and SDL buffers still to play */
+    return s->audio_end_pts - queued - 0.09;       /* ~ALSA dmix and SDL buffers still to play */
+}
+
+/* The clock the pictures follow: the audio position, smoothed. The audio position moves in steps (it is read
+   from what is still queued, which drains a sound-card period at a time, ~23 ms), and pictures timed by it on
+   a 60 Hz screen came 1, 3, 2, 2, 1, 3 refreshes apart instead of 2, 2, 2 for a 30 fps channel (judder,
+   measured 2026-11-25). Here the clock runs on the monotonic timer and is steered gently toward the audio
+   (2 % of the difference each frame); a difference over 80 ms (a jump, a refill) resets it. */
+static double sm_pts = -1, sm_wall;
+static double picture_clock(Session *s)
+{
+    double raw = audio_clock(s);
+    if (raw < 0 || !s->audio_started) { sm_pts = -1; return raw; }   /* before playing, or refilling: as is */
+    double t = now();
+    if (sm_pts < 0) { sm_pts = raw; sm_wall = t; return raw; }
+    double c = sm_pts + (t - sm_wall);
+    double d = raw - c;
+    if (d > 0.08 || d < -0.08) { sm_pts = raw; sm_wall = t; return raw; }
+    sm_pts += d * 0.02;
+    return sm_pts + (t - sm_wall);
 }
 
 /* Start (and restart after running dry) only with enough stream in hand: live channels arrive at about their
    own rate, so without a cushion every network hiccup stalls the picture (2026-10-27: 36 fps shown of 60, the
    queues always empty). */
-static void maybe_start(void)
+static void maybe_start(Session *s)
 {
-    if (audio_started) return;
-    double ahead = audio_end_pts >= 0 && aq_newest >= 0 ? aq_newest - audio_end_pts : 0;
+    if (s->audio_started || s->quitting) return;
+    double ahead = s->audio_end_pts >= 0 && s->aq_newest >= 0 ? s->aq_newest - s->audio_end_pts : 0;
     ahead += (double)SDL_GetQueuedAudioSize(adev) / OUT_BYTES_PER_SEC;
-    if (ahead >= (rebuffers ? REBUFFER_S : PREBUFFER_S) || (demux_done && !aq.first)) {
+    if (ahead >= (s->rebuffers ? REBUFFER_S : PREBUFFER_S) || (s->demux_done && !s->aq.first)) {
         SDL_PauseAudioDevice(adev, 0);
-        audio_started = 1;
-        say("playing with %.1f s in hand%s", ahead, rebuffers ? " (after running dry)" : "");
+        s->audio_started = 1;
+        say("playing with %.1f s in hand%s", ahead, s->rebuffers ? " (after running dry)" : "");
     }
 }
 
 static int audio_thread(void *arg)
 {
-    (void)arg;
+    Session *s = arg;
     AVFrame *fr = av_frame_alloc();
     uint8_t *out = NULL;
     int out_cap = 0;
-    while (!quitting) {
+    while (!s->quitting) {
         /* Ran dry (nothing queued, nothing read): stop the clock and fill up again. */
-        if (audio_started && SDL_GetQueuedAudioSize(adev) == 0 && !aq.first && !demux_done) {
+        if (s->audio_started && SDL_GetQueuedAudioSize(adev) == 0 && !s->aq.first && !s->demux_done) {
             SDL_PauseAudioDevice(adev, 1);
-            audio_started = 0;
-            rebuffers++;
-            say("ran dry: filling up again (%d)", rebuffers);
+            s->audio_started = 0;
+            s->rebuffers++;
+            say("ran dry: filling up again (%d)", s->rebuffers);
         }
         /* Keep about half a second queued to the sound card; the rest waits as packets (the cushion). */
-        if (adev && SDL_GetQueuedAudioSize(adev) > OUT_BYTES_PER_SEC / 2) { maybe_start(); SDL_Delay(10); continue; }
-        AVPacket *pkt = pq_get(&aq, 50);
-        if (!pkt) { if (demux_done && !aq.first) break; continue; }
-        if (avcodec_send_packet(actx, pkt) == 0) {
-            while (avcodec_receive_frame(actx, fr) == 0) {
-                if (!swr) {
+        if (SDL_GetQueuedAudioSize(adev) > OUT_BYTES_PER_SEC / 2) { maybe_start(s); SDL_Delay(10); continue; }
+        AVPacket *pkt = pq_get(s, &s->aq, 50);
+        if (!pkt) { if (s->demux_done && !s->aq.first) break; continue; }
+        if (avcodec_send_packet(s->actx, pkt) == 0) {
+            while (avcodec_receive_frame(s->actx, fr) == 0) {
+                if (!s->swr) {
                     say("audio frame: %d Hz, %d channels, format %d, %d samples, pts %lld", fr->sample_rate, fr->channels,
                         fr->format, fr->nb_samples, (long long)fr->pts);
-                    swr = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, OUT_RATE,
-                                             fr->channel_layout ? (int64_t)fr->channel_layout
-                                                                : av_get_default_channel_layout(fr->channels),
-                                             fr->format, fr->sample_rate, 0, NULL);
-                    if (!swr || swr_init(swr) < 0) { say("audio: no resampler"); swr = NULL; break; }
+                    s->swr = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, OUT_RATE,
+                                                fr->channel_layout ? (int64_t)fr->channel_layout
+                                                                   : av_get_default_channel_layout(fr->channels),
+                                                fr->format, fr->sample_rate, 0, NULL);
+                    if (!s->swr || swr_init(s->swr) < 0) { say("audio: no resampler"); if (s->swr) swr_free(&s->swr); break; }
                 }
-                int want = (int)av_rescale_rnd(swr_get_delay(swr, fr->sample_rate) + fr->nb_samples, OUT_RATE,
+                int want = (int)av_rescale_rnd(swr_get_delay(s->swr, fr->sample_rate) + fr->nb_samples, OUT_RATE,
                                                fr->sample_rate, AV_ROUND_UP);
                 if (want * 4 > out_cap) { out_cap = want * 4; out = realloc(out, out_cap); }
                 uint8_t *planes[1] = {out};
-                int got = swr_convert(swr, planes, want, (const uint8_t **)fr->extended_data, fr->nb_samples);
-                if (got > 0) {
+                int got = swr_convert(s->swr, planes, want, (const uint8_t **)fr->extended_data, fr->nb_samples);
+                if (got > 0 && !s->quitting) {
                     SDL_QueueAudio(adev, out, got * 4);
                     if (fr->pts != AV_NOPTS_VALUE)
-                        audio_end_pts = fr->pts * atb + (double)fr->nb_samples / fr->sample_rate;
+                        s->audio_end_pts = fr->pts * s->atb + (double)fr->nb_samples / fr->sample_rate;
                 }
             }
         }
         av_packet_free(&pkt);
-        maybe_start();
+        maybe_start(s);
     }
     av_frame_free(&fr);
     free(out);
@@ -395,7 +465,12 @@ static GLuint texture_for(MppFrame f)
     return images[nimages++].tex;
 }
 
-/* Non-reference picture? (the first slice's NAL header in an Annex-B access unit) */
+/* May this picture go undecoded without harm to any other? (the first slice's NAL header in an Annex-B access
+ * unit). H.264: nal_ref_idc 0. HEVC: a sub-layer non-reference picture (TRAIL_N, TSA_N, STSA_N, RADL_N, RASL_N)
+ * is safe only in the highest temporal sub-layer: a lower one's can still be referenced by the pictures of the
+ * layers above it (dropping those broke the picture into blocks until the next keyframe). So HEVC pictures are
+ * dropped only once 60 have been seen (to know the highest layer) and only from that layer. */
+static int hevc_max_tid = -1, hevc_seen;
 static int nonref(const uint8_t *p, int n)
 {
     for (int i = 0; i + 4 < n; i++) {
@@ -406,7 +481,12 @@ static int nonref(const uint8_t *p, int n)
                 if (t == 1 || t == 5) return ((b >> 5) & 3) == 0;
             } else {
                 int t = (b >> 1) & 63;
-                if (t <= 21) return t <= 14 && t % 2 == 0;
+                if (t <= 21) {
+                    int tid = (p[i + 4] & 7) - 1;
+                    if (tid > hevc_max_tid) hevc_max_tid = tid;
+                    hevc_seen++;
+                    return hevc_seen > 60 && t <= 14 && t % 2 == 0 && tid == hevc_max_tid;
+                }
             }
         }
     }
@@ -475,33 +555,110 @@ static int handle_input(void)
     return -1;
 }
 
-/* ------------------------------------------------------------------ main */
-int main(int argc, char **argv)
+/* ------------------------------------------------------------------ the channel list */
+/* TVPLAY_LIST (Home's play.tsv): "index<TAB>row name<TAB>logo directory", then a line per channel: "playlist<TAB>
+ * stream id<TAB>name<TAB>guide id<TAB>logo key". The address comes from TVPLAY_ACCOUNT (account.conf: name, server,
+ * user, password, tab-separated): the password stays in that file and this process, never on a command line. */
+typedef struct { char pl[64], sid[32], name[160], epgid[160], key[160]; } Channel;
+static Channel *chans;
+static int nchans, chan_idx;                      /* 0-based */
+static char group_name[160], logos_dir[512];
+
+static void cut_tab(char *line, char **f, int nf)
 {
-    if (argc < 2) { fprintf(stderr, "usage: tvplay URL\n"); return 2; }
-    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: main\n");
-    const char *lp = getenv("TVPLAY_LOG");
-    logf_ = lp ? fopen(lp, "a") : stderr;
+    for (int i = 0; i < nf; i++) f[i] = (char *)"";
+    char *p = line;
+    for (int i = 0; i < nf && p; i++) {
+        f[i] = p;
+        p = strchr(p, '\t');
+        if (p) *p++ = 0;
+    }
+    for (int i = 0; i < nf; i++) { char *e = strpbrk(f[i], "\r\n"); if (e) *e = 0; }
+}
+
+static int list_load(const char *path)
+{
+    FILE *f = fopen(path, "r");
+    if (!f) return 0;
+    char *line = NULL;
+    size_t cap = 0;
+    int first = 1, start = 1;
+    while (getline(&line, &cap, f) > 0) {
+        char *fl[5];
+        cut_tab(line, fl, 5);
+        if (first) {
+            first = 0;
+            start = atoi(fl[0]);
+            snprintf(group_name, sizeof group_name, "%s", fl[1]);
+            snprintf(logos_dir, sizeof logos_dir, "%s", fl[2]);
+            continue;
+        }
+        if (!*fl[0] || !*fl[1]) continue;
+        chans = realloc(chans, (nchans + 1) * sizeof *chans);
+        Channel *c = &chans[nchans++];
+        snprintf(c->pl, sizeof c->pl, "%s", fl[0]);
+        snprintf(c->sid, sizeof c->sid, "%s", fl[1]);
+        snprintf(c->name, sizeof c->name, "%s", fl[2]);
+        snprintf(c->epgid, sizeof c->epgid, "%s", fl[3]);
+        snprintf(c->key, sizeof c->key, "%s", fl[4]);
+    }
+    free(line);
+    fclose(f);
+    chan_idx = start >= 1 && start <= nchans ? start - 1 : 0;
+    return nchans;
+}
+
+static int channel_url(const Channel *c, char *url, size_t n)
+{
+    const char *path = getenv("TVPLAY_ACCOUNT");
+    FILE *f = fopen(path ? path : "/data/tv/account.conf", "r");
+    if (!f) return 0;
+    char *line = NULL;
+    size_t cap = 0;
+    int ok = 0;
+    while (!ok && getline(&line, &cap, f) > 0) {
+        if (line[0] == '#') continue;
+        char *fl[4];
+        cut_tab(line, fl, 4);
+        if (!strcmp(fl[0], c->pl) && *fl[1]) {
+            snprintf(url, n, "%s/live/%s/%s/%s.ts", fl[1], fl[2], fl[3], c->sid);
+            ok = 1;
+        }
+    }
+    free(line);
+    fclose(f);
+    return ok;
+}
+
+/* The bands for channel i: name, the line under it, logo, guide. */
+static void show_channel(int i)
+{
+    const Channel *c = &chans[i];
+    char sub[400], logo[700], epg[700], pl[64];
+    snprintf(pl, sizeof pl, "%s", c->pl);
+    for (char *p = pl; *p; p++) if (*p == '_') *p = ' ';
+    snprintf(sub, sizeof sub, "%s \xc2\xb7 %s%s%d of %d", pl, group_name, *group_name ? " \xc2\xb7 " : "", i + 1, nchans);
+    snprintf(logo, sizeof logo, "%s/%s.rgba", logos_dir, c->key);
+    const char *ed = getenv("TVPLAY_EPGDIR");
+    snprintf(epg, sizeof epg, "%s/%s/epg.tsv", ed ? ed : "/tmp/tv", c->pl);
+    view_set_channel(c->name, sub, *c->key ? logo : NULL, epg, c->epgid);
+}
+
+/* ------------------------------------------------------------------ one channel, played */
+static MppFrame shown_ring[KEEP_SHOWN], on_screen;
+
+/* Plays url until the viewer or the stream ends it. Returns the exit code (see the top of the file). */
+static int play_channel(const char *url, const char *tuning)
+{
     double t_start = now();
+    Session *s = session_new();
+    hevc = 0;
+    hevc_max_tid = -1;
+    hevc_seen = 0;
+    sm_pts = -1;
+    int code = -1;
+    draw_tuning(0, tuning);
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) != 0) { say("SDL: %s", SDL_GetError()); return 30; }
-    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "for (int i = 0; i < SDL_NumJoy");
-    for (int i = 0; i < SDL_NumJoysticks(); i++) SDL_JoystickOpen(i);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    /* The screen first: the channel's bands and "TUNING IN..." are up before the stream is asked for. */
-    win = SDL_CreateWindow("tv", 0, 0, 1024, 768, SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN_DESKTOP);
-    SDL_GLContext glc = win ? SDL_GL_CreateContext(win) : NULL;
-    if (!glc) { say("GL: %s", SDL_GetError()); return 30; }
-    SDL_GL_SetSwapInterval(1);
-    SDL_GL_GetDrawableSize(win, &ww, &wh);
-    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "gl_setup();");
-    gl_setup();
-    draw_tuning(0);
-
-    /* Open the stream. */
-    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "avformat_network_init();");
-    avformat_network_init();
     AVDictionary *o = NULL;
     av_dict_set(&o, "rw_timeout", "8000000", 0);
     av_dict_set(&o, "reconnect", "1", 0);
@@ -512,72 +669,72 @@ int main(int argc, char **argv)
        structs from vanilla 4.1.11 headers (probesize, interrupt_callback) crashed find_stream_info. */
     av_dict_set(&o, "probesize", "600000", 0);
     av_dict_set(&o, "analyzeduration", "800000", 0);
-    fmt = NULL;
-    if (avformat_open_input(&fmt, argv[1], NULL, &o) < 0) { say("could not open the stream"); return 30; }
+    int r = avformat_open_input(&s->fmt, url, NULL, &o);
     av_dict_free(&o);
-    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "if (avformat_find_stream_info(");
-    if (avformat_find_stream_info(fmt, NULL) < 0) { say("no stream info"); return 30; }
-    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "AVCodec *vdec = NULL, *adec ");
+    if (r < 0) {
+        char e[128];
+        av_strerror(r, e, sizeof e);
+        say("could not open the stream: %s", e);
+        session_release(s);
+        return 30;
+    }
+    /* (input while it connects: a flip or going back is not held up by a slow channel) */
+    if ((code = handle_input()) >= 0) { session_release(s); return code; }
+    if (avformat_find_stream_info(s->fmt, NULL) < 0) { say("no stream info"); session_release(s); return 30; }
     AVCodec *vdec = NULL, *adec = NULL;
-    vidx = av_find_best_stream(fmt, AVMEDIA_TYPE_VIDEO, -1, -1, &vdec, 0);
-    aidx = av_find_best_stream(fmt, AVMEDIA_TYPE_AUDIO, -1, vidx, &adec, 0);
-    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "if (vidx < 0 || !vdec)");
-    if (vidx < 0 || !vdec) { say("no video"); return 30; }
-    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "AVCodecParameters *vp = stre");
-    AVCodecParameters *vp = stream_par(fmt->streams[vidx], vdec->id);
-    if (!vp) { say("video parameters not found (library layout)"); return 32; }
-    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "MppCodingType coding;");
+    s->vidx = av_find_best_stream(s->fmt, AVMEDIA_TYPE_VIDEO, -1, -1, &vdec, 0);
+    s->aidx = av_find_best_stream(s->fmt, AVMEDIA_TYPE_AUDIO, -1, s->vidx, &adec, 0);
+    if (s->vidx < 0 || !vdec) { say("no video"); session_release(s); return 30; }
+    AVCodecParameters *vp = stream_par(s->fmt->streams[s->vidx], vdec->id);
+    if (!vp) { say("video parameters not found (library layout)"); session_release(s); return 32; }
     MppCodingType coding;
     if (vp->codec_id == AV_CODEC_ID_H264) coding = MPP_VIDEO_CodingAVC;
     else if (vp->codec_id == AV_CODEC_ID_HEVC) coding = MPP_VIDEO_CodingHEVC, hevc = 1;
     else if (vp->codec_id == AV_CODEC_ID_MPEG2VIDEO) coding = MPP_VIDEO_CodingMPEG2;
-    else { say("video %s: not for the VPU", avcodec_get_name(vp->codec_id)); return 32; }
-    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "vtb = av_q2d(");
-    vtb = av_q2d(fmt->streams[vidx]->time_base);
-    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "double sar =");
+    else { say("video %s: not for the VPU", avcodec_get_name(vp->codec_id)); session_release(s); return 32; }
+    s->vtb = av_q2d(s->fmt->streams[s->vidx]->time_base);
     double sar = 1;                               /* from the decoder's frames (the parameters' layout differs) */
-    if (getenv("TVPLAY_TRACE")) fprintf(stderr, "trace: before %s\n", "say(open .1f s");
     say("open %.1f s: video %s, audio %s", now() - t_start, avcodec_get_name(vp->codec_id),
-        aidx >= 0 && adec ? adec->name : "none");
-
-
-    if (aidx >= 0) {
-        AVCodecParameters *ap = adec ? stream_par(fmt->streams[aidx], adec->id) : NULL;
+        s->aidx >= 0 && adec ? adec->name : "none");
+    if (s->aidx >= 0) {
+        AVCodecParameters *ap = adec ? stream_par(s->fmt->streams[s->aidx], adec->id) : NULL;
         AVCodec *ac = ap ? avcodec_find_decoder(ap->codec_id) : NULL;
-        actx = ac ? avcodec_alloc_context3(ac) : NULL;
-        if (!actx || avcodec_parameters_to_context(actx, ap) < 0 || avcodec_open2(actx, ac, NULL) < 0) {
+        s->actx = ac ? avcodec_alloc_context3(ac) : NULL;
+        if (!adev || !s->actx || avcodec_parameters_to_context(s->actx, ap) < 0 || avcodec_open2(s->actx, ac, NULL) < 0) {
             say("audio decoder failed: playing without sound");
-            aidx = -1;
+            s->aidx = -1;
         } else {
-            atb = av_q2d(fmt->streams[aidx]->time_base);
-            SDL_AudioSpec want = {0}, have;
-            want.freq = OUT_RATE;
-            want.format = AUDIO_S16SYS;
-            want.channels = 2;
-            want.samples = 1024;
-            adev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
-            if (!adev) { say("audio device: %s: playing without sound", SDL_GetError()); aidx = -1; }
+            s->atb = av_q2d(s->fmt->streams[s->aidx]->time_base);
         }
     }
+    if (mpp_create(&mctx, &mpi) || mpp_init(mctx, MPP_CTX_DEC, coding)) { say("MPP init failed"); session_release(s); return 32; }
+    grp = NULL;
 
-    if (mpp_create(&mctx, &mpi) || mpp_init(mctx, MPP_CTX_DEC, coding)) { say("MPP init failed"); return 32; }
-
-    pq_init(&vq);
-    pq_init(&aq);
-    SDL_Thread *dt = SDL_CreateThread(demux_thread, "demux", NULL);
-    SDL_Thread *at = aidx >= 0 ? SDL_CreateThread(audio_thread, "audio", NULL) : NULL;
+    SDL_AtomicIncRef(&s->refs);                   /* the reader's */
+    SDL_Thread *dt = SDL_CreateThread(demux_thread, "demux", s);
+    SDL_Thread *at = s->aidx >= 0 ? SDL_CreateThread(audio_thread, "audio", s) : NULL;
 
     /* The display queue: decoded frames waiting for their time, and the one on the screen (the GPU reads it). */
     MppFrame waiting[WAIT_MAX];
     int nwait = 0;
-    MppFrame on_screen = NULL;
     double wall0 = -1, pts0 = 0;                  /* no audio: the clock is the wall clock from the first picture */
-    long shown = 0, skipped = 0, late = 0, sent = 0;
-    double lead = 0.0;                            /* see the decoder feed below */
-    int on_time = 0;
+    long shown = 0, skipped = 0, late = 0, sent = 0, err_frames = 0, discard_frames = 0;
+    long gap_hist[8] = {0};
+    double prev_pic = 0;
+    /* Skipping: only while the decoder is really behind. Before 2026-11-25 a "lead" grew with every late frame
+       and shrank only after 90 on time; on a 720p60 channel that the VPU decodes at 100 fps it reached 0.4 s and
+       threw away a quarter of the pictures (45 shown a second; 60 with no skipping, measured on the cabinet). */
+    double behind_until = 0;                      /* late frames recently: skip what would be late anyway */
+    int late_recent = 0;
+    double late_window = 0;
+    static int noskip = -1;
+    if (noskip < 0) noskip = getenv("TVPLAY_NOSKIP") != NULL;
+    /* Start at a keyframe (the gate joins the stream mid-picture-group: what comes before the first keyframe
+       decodes into blocks), and again after a jump in the stream. Bounded: a stream that never marks one plays. */
+    int need_key = 1;
+    long key_wait_pkts = 0, key_waits = 0, key_dropped = 0;
     double last_report = now(), first_pic = -1, last_tuning = 0, last_shown = 0, draw_sum = 0, draw_max = 0;
     long shown_at_report = 0;
-    int code = -1;
     struct rusage ru0;
     getrusage(RUSAGE_SELF, &ru0);
 
@@ -585,19 +742,40 @@ int main(int argc, char **argv)
         code = handle_input();
         if (code >= 0) break;
         double clock;
-        if (aidx >= 0) clock = audio_clock();
+        if (s->aidx >= 0) clock = picture_clock(s);
         else clock = wall0 < 0 ? -1 : pts0 + (now() - wall0);
 
-        /* Feed the decoder: a picture whose time has passed (the decoder is behind) is skipped if nothing refers to it. */
-        for (int fed = 0; fed < 4; fed++) {
-            AVPacket *pkt = pq_peek(&vq);
+        if (s->restart_video) {
+            s->restart_video = 0;
+            mpi->reset(mctx);                     /* (its references are from before the jump) */
+            for (int i = 0; i < nwait; i++) mpp_frame_deinit(&waiting[i]);
+            nwait = 0;
+            need_key = 1;
+            key_waits++;
+        }
+        /* Feed the decoder. */
+        for (int fed = 0; fed < 8; fed++) {
+            AVPacket *pkt = pq_peek(&s->vq);
             if (!pkt) break;
-            double pts = pkt->pts != AV_NOPTS_VALUE ? pkt->pts * vtb : (pkt->dts != AV_NOPTS_VALUE ? pkt->dts * vtb : -1);
-            /* "lead": how far ahead of the clock a picture must be to be worth decoding. It grows when decoded
-               frames come out too late to show (the decoder's own latency, ~100 ms at 1080p) and eases off when
-               all is on time, so the decoder's time goes to pictures that will be seen. */
-            if (clock >= 0 && pts >= 0 && pts < clock + lead && nonref(pkt->data, pkt->size)) {
-                pkt = pq_get(&vq, 0);
+            double pts = pkt->pts != AV_NOPTS_VALUE ? pkt->pts * s->vtb : (pkt->dts != AV_NOPTS_VALUE ? pkt->dts * s->vtb : -1);
+            if (need_key) {
+                if (pkt->flags & AV_PKT_FLAG_KEY || ++key_wait_pkts > 600) {
+                    if (key_wait_pkts > 600) say("no keyframe in 600 pictures: playing on");
+                    else if (key_dropped) say("started at a keyframe (%ld pictures before it dropped)", key_dropped);
+                    need_key = 0;
+                    key_wait_pkts = 0;
+                } else {
+                    pkt = pq_get(s, &s->vq, 0);
+                    av_packet_free(&pkt);
+                    key_dropped++;
+                    continue;
+                }
+            }
+            /* A picture that cannot be on time is not decoded if nothing refers to it: always when its time has
+               passed, and up to 120 ms ahead while frames have been coming out late (the decoder behind). */
+            double ahead = now() < behind_until ? 0.12 : 0.0;
+            if (!noskip && clock >= 0 && pts >= 0 && pts < clock + ahead && nonref(pkt->data, pkt->size)) {
+                pkt = pq_get(s, &s->vq, 0);
                 av_packet_free(&pkt);
                 skipped++;
                 continue;
@@ -605,10 +783,10 @@ int main(int argc, char **argv)
             MppPacket mp;
             mpp_packet_init(&mp, pkt->data, pkt->size);
             mpp_packet_set_pts(mp, pts >= 0 ? (RK_S64)(pts * 1e6) : -1);
-            MPP_RET r = mpi->decode_put_packet(mctx, mp);
+            MPP_RET mr = mpi->decode_put_packet(mctx, mp);
             mpp_packet_deinit(&mp);
-            if (r != MPP_OK) break;               /* full: try again after taking frames */
-            pkt = pq_get(&vq, 0);
+            if (mr != MPP_OK) break;              /* full: try again after taking frames */
+            pkt = pq_get(s, &s->vq, 0);
             av_packet_free(&pkt);
             sent++;
         }
@@ -619,21 +797,20 @@ int main(int argc, char **argv)
             if (mpi->decode_get_frame(mctx, &f) != MPP_OK || !f) break;
             if (mpp_frame_get_info_change(f)) {
                 if (!grp) mpp_buffer_group_get_internal(&grp, MPP_BUFFER_TYPE_DRM);
-                /* Enough for the reference pictures plus a few waiting: the buffers are RAM (118 MB in all). */
                 int size = mpp_frame_get_buf_size(f);
                 /* Reference pictures (H.264 level 4 at 1080p: 4; HEVC: 6) + those waiting + the one on the
-                   screen + the one being decoded. At 1080p each is ~4 MB, and the cabinet has 118 MB in all. */
-                mpp_buffer_group_limit_config(grp, size, (hevc ? 6 : 5) + WAIT_MAX + 2);
+                   screen + the one being decoded + the two kept after the screen. At 1080p each is ~4 MB, and
+                   the cabinet has 118 MB in all. */
+                mpp_buffer_group_limit_config(grp, size, (hevc ? 6 : 5) + WAIT_MAX + 2 + KEEP_SHOWN);
                 mpi->control(mctx, MPP_DEC_SET_EXT_BUF_GROUP, grp);
                 mpi->control(mctx, MPP_DEC_SET_INFO_CHANGE_READY, NULL);
-                forget_images();
                 if (mpp_frame_get_width(f) > 1920 || mpp_frame_get_height(f) > 1088) {
                     say("video %dx%d: beyond the VPU", mpp_frame_get_width(f), mpp_frame_get_height(f));
                     code = 32;
                 }
                 {
-                    MppFrameRational r = mpp_frame_get_sar(f);
-                    sar = r.num > 0 && r.den > 0 ? (double)r.num / r.den : 1;
+                    MppFrameRational sr = mpp_frame_get_sar(f);
+                    sar = sr.num > 0 && sr.den > 0 ? (double)sr.num / sr.den : 1;
                 }
                 say("stream %dx%d (stride %d x %d), frame buffers %d KB each", mpp_frame_get_width(f),
                     mpp_frame_get_height(f), mpp_frame_get_hor_stride(f), mpp_frame_get_ver_stride(f), size / 1024);
@@ -641,6 +818,8 @@ int main(int argc, char **argv)
             } else if (mpp_frame_get_buffer(f) && !mpp_frame_get_errinfo(f) && !mpp_frame_get_discard(f)) {
                 waiting[nwait++] = f;
             } else {
+                if (mpp_frame_get_errinfo(f)) err_frames++;
+                else if (mpp_frame_get_discard(f)) discard_frames++;
                 mpp_frame_deinit(&f);
             }
         }
@@ -655,32 +834,39 @@ int main(int argc, char **argv)
                 memmove(waiting, waiting + 1, (nwait - 1) * sizeof waiting[0]);
                 nwait--;
                 late++;
-                lead = lead + 0.02 > 0.4 ? 0.4 : lead + 0.02;
-                on_time = 0;
+                /* three late frames within a second: the decoder is behind; skip for the next two seconds */
+                if (now() - late_window > 1) { late_window = now(); late_recent = 0; }
+                if (++late_recent >= 3) behind_until = now() + 2;
             }
             if (nwait > 0 && mpp_frame_get_pts(waiting[0]) / 1e6 <= clock + 0.008) show = 0;
-        } else if (shown == 0 && aidx < 0 && nwait > 0) {
+        } else if (shown == 0 && s->aidx < 0 && nwait > 0) {
             show = 0;                             /* no sound: the first picture starts the clock */
         }
+        if (show >= 0 && holding()) show = -1;   /* (a still picture for a screenshot; frames wait or go late) */
         if (show >= 0) {
-            for (int i = 0; i < show; i++) { mpp_frame_deinit(&waiting[i]); late++; }
-            MppFrame f = waiting[show];
+            MppFrame f = waiting[0];
             if (wall0 < 0) { wall0 = now(); pts0 = mpp_frame_get_pts(f) / 1e6; }
             double td = now();
             draw(f, sar);
             td = now() - td;
+            double tn = now();
+            if (prev_pic > 0) { int b = (int)((tn - prev_pic) * 1000 / 8.33); if (b > 7) b = 7; gap_hist[b]++; }
+            prev_pic = tn;
             draw_sum += td;
             if (td > draw_max) draw_max = td;
-            if (++on_time >= 90) { on_time = 0; lead = lead - 0.01 < -0.04 ? -0.04 : lead - 0.01; }
             last_shown = now();
             if (first_pic < 0) { first_pic = now(); view_first_picture(); say("first picture %.1f s after start", first_pic - t_start); }
-            if (on_screen) mpp_frame_deinit(&on_screen);
+            /* The picture replaced goes back to the decoder two flips later: the GPU draws a frame or more behind
+               the CPU, and a buffer handed back at once could be decoded into while still being read. */
+            if (shown_ring[KEEP_SHOWN - 1]) mpp_frame_deinit(&shown_ring[KEEP_SHOWN - 1]);
+            memmove(shown_ring + 1, shown_ring, (KEEP_SHOWN - 1) * sizeof shown_ring[0]);
+            shown_ring[0] = on_screen;
             on_screen = f;
             shown++;
-            memmove(waiting, waiting + show + 1, (nwait - show - 1) * sizeof waiting[0]);
-            nwait -= show + 1;
+            memmove(waiting, waiting + 1, (nwait - 1) * sizeof waiting[0]);
+            nwait--;
         } else {
-            if (first_pic < 0 && now() - last_tuning >= 0.05) { last_tuning = now(); draw_tuning(now() - t_start); }
+            if (first_pic < 0 && now() - last_tuning >= 0.05 && !holding()) { last_tuning = now(); draw_tuning(now() - t_start, tuning); }
             else SDL_Delay(2);
         }
 
@@ -689,20 +875,25 @@ int main(int argc, char **argv)
         /* Stalled: the panel stopped sending, or came back with timestamps that no longer meet the sound's
            (2026-11-01: ESPN ran dry, then sat 30 s with A/V +22 s and 6 MB queued, showing nothing). */
         if (first_pic >= 0 && now() - last_shown > 10) { say("stalled: no picture for 10 s"); code = 33; }
-        if (demux_done && !vq.first && nwait == 0 && first_pic >= 0) { say("the stream ended"); code = 31; }
+        if (s->demux_done && !s->vq.first && nwait == 0 && first_pic >= 0) { say("the stream ended"); code = 31; }
         if (now() - last_report >= 5) {
             last_report = now();
-            say("t %.0f: shown %ld skipped %ld late %ld sent %ld lead %.2f; A/V %+.2f s; queues video %d (%lld KB) audio %d;"
+            say("t %.0f: shown %ld skipped %ld late %ld sent %ld%s; decoder errors %ld discards %ld,"
+                " damaged packets %ld, time jumps %ld; A/V %+.2f s; queues video %d (%lld KB) audio %d;"
                 " read %lld KB in %lld packets, slowest read %.0f ms; audio queued %.2f s; draw %.1f ms (max %.0f)",
-                now() - t_start, shown, skipped, late, sent, lead,
-                nwait && clock >= 0 ? mpp_frame_get_pts(waiting[0]) / 1e6 - clock : 0.0, vq.n,
-                (long long)vq.bytes / 1024, aq.n, demux_bytes / 1024, demux_pkts, demux_slowest * 1000,
+                now() - t_start, shown, skipped, late, sent, now() < behind_until ? " (behind)" : "", err_frames,
+                discard_frames, s->corrupt_pkts, s->pts_jumps,
+                nwait && clock >= 0 ? mpp_frame_get_pts(waiting[0]) / 1e6 - clock : 0.0, s->vq.n,
+                (long long)s->vq.bytes / 1024, s->aq.n, s->demux_bytes / 1024, s->demux_pkts, s->demux_slowest * 1000,
                 adev ? (double)SDL_GetQueuedAudioSize(adev) / OUT_BYTES_PER_SEC : 0.0,
                 shown > shown_at_report ? 1000 * draw_sum / (shown - shown_at_report) : 0.0, 1000 * draw_max);
+            say("  gaps between pictures (ms): <8 %ld, 8-17 %ld, 17-25 %ld, 25-33 %ld, 33-42 %ld, 42-50 %ld, 50-58 %ld, 58+ %ld",
+                gap_hist[0], gap_hist[1], gap_hist[2], gap_hist[3], gap_hist[4], gap_hist[5], gap_hist[6], gap_hist[7]);
+            memset(gap_hist, 0, sizeof gap_hist);
             shown_at_report = shown;
             draw_sum = draw_max = 0;
-            demux_bytes = demux_pkts = 0;
-            demux_slowest = 0;
+            s->demux_bytes = s->demux_pkts = 0;
+            s->demux_slowest = 0;
         }
     }
 
@@ -711,14 +902,121 @@ int main(int argc, char **argv)
     double el = now() - t_start;
     double cpu = (ru1.ru_utime.tv_sec - ru0.ru_utime.tv_sec) + (ru1.ru_utime.tv_usec - ru0.ru_utime.tv_usec) / 1e6 +
                  (ru1.ru_stime.tv_sec - ru0.ru_stime.tv_sec) + (ru1.ru_stime.tv_usec - ru0.ru_stime.tv_usec) / 1e6;
-    say("exit %d after %.0f s: shown %ld (%.1f/s), skipped %ld, late %ld; CPU %.0f%% of a core", code, el, shown,
-        shown / (el > 0 ? el : 1), skipped, late, 100 * cpu / (el > 0 ? el : 1));
-    quitting = 1;
-    SDL_CondBroadcast(vq.cv);
-    SDL_CondBroadcast(aq.cv);
-    if (adev) SDL_PauseAudioDevice(adev, 1);
-    /* Leave quickly: the next program wants the screen; the kernel frees the rest. */
-    (void)dt; (void)at;
+    say("exit %d after %.0f s: shown %ld (%.1f/s), skipped %ld, late %ld, restarts at a keyframe %ld; decoder errors %ld,"
+        " damaged packets %ld; CPU %.0f%% of a core", code, el, shown, shown / (el > 0 ? el : 1), skipped, late,
+        key_waits, err_frames, s->corrupt_pkts, 100 * cpu / (el > 0 ? el : 1));
+
+    /* Wind the channel down: silence at once, the threads stopped, the decoder's pictures given back. The screen
+       moves off the last picture before its buffer is freed (the caller draws the next channel's bands first, or
+       the process ends). */
+    s->quitting = 1;
+    SDL_PauseAudioDevice(adev, 1);
+    SDL_ClearQueuedAudio(adev);
+    SDL_CondBroadcast(s->vq.cv);
+    SDL_CondBroadcast(s->aq.cv);
+    if (at) SDL_WaitThread(at, NULL);
+    SDL_DetachThread(dt);                         /* (it may sit in a network read: it ends by itself) */
+    for (int i = 0; i < nwait; i++) mpp_frame_deinit(&waiting[i]);
+    session_release(s);
+    return code;
+}
+
+/* The last channel's pictures and its decoder, released once nothing on the screen uses them. */
+static void decoder_release(void)
+{
+    for (int i = 0; i < KEEP_SHOWN; i++) if (shown_ring[i]) mpp_frame_deinit(&shown_ring[i]);
+    if (on_screen) mpp_frame_deinit(&on_screen);
+    forget_images();
+    if (mctx) { mpi->reset(mctx); mpp_destroy(mctx); mctx = NULL; mpi = NULL; }
+    if (grp) { mpp_buffer_group_put(grp); grp = NULL; }
+}
+
+/* ------------------------------------------------------------------ main */
+static void write_return(int code)
+{
+    const char *p = getenv("TVPLAY_RETURN");
+    if (!p) return;
+    FILE *f = fopen(p, "w");
+    if (f) { fprintf(f, "%d %d\n", code, chan_idx + 1); fclose(f); }
+}
+
+int main(int argc, char **argv)
+{
+    const char *lp = getenv("TVPLAY_LOG");
+    logf_ = lp ? fopen(lp, "a") : stderr;
+    if (!logf_) logf_ = stderr;
+    const char *list = getenv("TVPLAY_LIST");
+    if (argc < 2 && !list) { fprintf(stderr, "usage: tvplay URL, or TVPLAY_LIST=play.tsv tvplay\n"); return 2; }
+    if (list && !list_load(list)) { say("no channels in %s", list); return 30; }
+
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) != 0) { say("SDL: %s", SDL_GetError()); return 30; }
+    for (int i = 0; i < SDL_NumJoysticks(); i++) SDL_JoystickOpen(i);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    /* The screen first: the channel's bands and "TUNING IN..." are up before the stream is asked for. */
+    win = SDL_CreateWindow("tv", 0, 0, 1024, 768, SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN_DESKTOP);
+    SDL_GLContext glc = win ? SDL_GL_CreateContext(win) : NULL;
+    if (!glc) { say("GL: %s", SDL_GetError()); return 30; }
+    SDL_GL_SetSwapInterval(1);
+    SDL_GL_GetDrawableSize(win, &ww, &wh);
+    gl_setup();
+    if (list) show_channel(chan_idx);
+    draw_tuning(0, NULL);
+    {
+        SDL_DisplayMode dm;
+        if (SDL_GetCurrentDisplayMode(0, &dm) == 0) say("display %dx%d at %d Hz", dm.w, dm.h, dm.refresh_rate);
+    }
+    SDL_AudioSpec want = {0}, have;
+    want.freq = OUT_RATE;
+    want.format = AUDIO_S16SYS;
+    want.channels = 2;
+    want.samples = 1024;
+    adev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
+    if (!adev) say("audio device: %s: playing without sound", SDL_GetError());
+    avformat_network_init();
+
+    if (!list) {                                  /* one address, as before (tests) */
+        int code = play_channel(argv[1], getenv("TVPLAY_TUNING"));
+        fflush(logf_);
+        _exit(code);
+    }
+
+    /* The channels: up/down flips here, in this process; a channel that will not open is passed over while
+       flipping (up to 6 in a row); a stall is tuned again (up to 3 times, the count reset after 90 s playing). */
+    int dir = 0, skips = 0, retunes = 0, code;
+    const char *tuning = getenv("TVPLAY_TUNING");
+    for (;;) {
+        char url[1024];
+        say("channel %d/%d %s", chan_idx + 1, nchans, chans[chan_idx].name);
+        double t0 = now();
+        code = channel_url(&chans[chan_idx], url, sizeof url) ? play_channel(url, tuning) : 30;
+        tuning = NULL;
+        if (now() - t0 > 90) retunes = 0;
+        int next = chan_idx;
+        if (code == 20 || code == 21) {
+            dir = code == 20 ? 1 : -1;
+            skips = 0;
+            retunes = 0;
+            next = (chan_idx + dir + nchans) % nchans;
+        } else if (code == 33 && retunes < 3) {
+            retunes++;
+            tuning = "RECONNECTING\xe2\x80\xa6";
+        } else if ((code == 30 || code == 31 || code == 32) && dir != 0 && skips < 6) {
+            skips++;
+            next = (chan_idx + dir + nchans) % nchans;
+        } else {
+            if (code == 33) code = 31;
+            break;
+        }
+        chan_idx = next;
+        /* The next channel's bands at once, over the last one's colours; then the old pictures can go. */
+        show_channel(chan_idx);
+        draw_tuning(0, tuning);
+        draw_tuning(0, tuning);
+        decoder_release();
+    }
+    write_return(code);
+    say("leaving: %d at channel %d", code, chan_idx + 1);
     fflush(logf_);
     _exit(code);
 }

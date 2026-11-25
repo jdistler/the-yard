@@ -44,6 +44,28 @@ static void (*glUniform2f_)(GLint, GLfloat, GLfloat);
 static void (*glUniform4f_)(GLint, GLfloat, GLfloat, GLfloat, GLfloat);
 static void (*glPixelStorei_)(GLenum, GLint);
 
+/* TVPLAY_HOLD=dir: when dir/hold.req appears, the picture is held still for 0.6 s (no draws, no flips) and the
+   request removed, so tools/cab.sh shot can copy the screen whole (a copy slower than two refreshes, while the
+   screen flips 60 times a second, could join two frames that used the same buffer). */
+static double hold_until;
+static int holding(void)
+{
+    static const char *dir;
+    static int checked;
+    static double last;
+    if (!checked) { checked = 1; dir = getenv("TVPLAY_HOLD"); }
+    if (now() < hold_until) return 1;
+    if (!dir || now() - last < 0.1) return 0;
+    last = now();
+    char req[512];
+    snprintf(req, sizeof req, "%s/hold.req", dir);
+    if (access(req, F_OK) != 0) return 0;
+    unlink(req);
+    hold_until = now() + 0.6;
+    say("holding the picture 0.6 s");
+    return 1;
+}
+
 #define VW 768                                    /* the upright screen */
 #define VH 1024
 
@@ -399,6 +421,17 @@ static void logo_load(const char *path)
     fclose(f);
 }
 
+/* Another channel's bands (flipping happens in this process now): its name, the line under it, logo, guide. */
+static void view_set_channel(const char *name, const char *sub, const char *logo, const char *epg, const char *epgid)
+{
+    clean_text(name ? name : "", ch_name, sizeof ch_name);
+    clean_text(sub ? sub : "", ch_sub, sizeof ch_sub);
+    if (logo_tex) { glDeleteTextures_(1, &logo_tex); logo_tex = 0; logo_w = logo_h = 0; }
+    logo_load(logo);
+    nshows = 0;
+    epg_load(epg, epgid);
+}
+
 static void view_save(void)
 {
     if (!view_path) return;
@@ -577,8 +610,31 @@ static void ambient_update(MppFrame f, double dar)
             a[0] += k * (r / 4 - a[0]);
             a[1] += k * (g / 4 - a[1]);
             a[2] += k * (bl / 4 - a[2]);
-            for (int i = 0; i < 3; i++) amb_px[gy][gx][i] = a[i] < 0 ? 0 : a[i] > 255 ? 255 : (unsigned char)a[i];
-            amb_px[gy][gx][3] = 255;
+        }
+    /* Blurred before it is stretched: the GPU's bilinear stretch of 36 x 48 cells over 768 x 1024 left each cell's
+       edges visible, a grid of soft rectangles behind the bands (2026-11-25, on the cabinet's screen). Three passes
+       of [1 2 1] each way (~a Gaussian of 1.2 cells) here cost ~0.2 ms; the same on the GPU cost frames. */
+    static float t1[AH_][AW_][3], t2[AH_][AW_][3];
+    memcpy(t1, amb_acc, sizeof t1);
+    for (int pass = 0; pass < 3; pass++) {
+        for (int y = 0; y < AH_; y++)
+            for (int x = 0; x < AW_; x++) {
+                int xl = x > 0 ? x - 1 : x, xr = x < AW_ - 1 ? x + 1 : x;
+                for (int i = 0; i < 3; i++) t2[y][x][i] = (t1[y][xl][i] + 2 * t1[y][x][i] + t1[y][xr][i]) * 0.25f;
+            }
+        for (int y = 0; y < AH_; y++)
+            for (int x = 0; x < AW_; x++) {
+                int yu = y > 0 ? y - 1 : y, yd = y < AH_ - 1 ? y + 1 : y;
+                for (int i = 0; i < 3; i++) t1[y][x][i] = (t2[yu][x][i] + 2 * t2[y][x][i] + t2[yd][x][i]) * 0.25f;
+            }
+    }
+    for (int y = 0; y < AH_; y++)
+        for (int x = 0; x < AW_; x++) {
+            for (int i = 0; i < 3; i++) {
+                float v = t1[y][x][i];
+                amb_px[y][x][i] = v < 0 ? 0 : v > 255 ? 255 : (unsigned char)(v + 0.5f);
+            }
+            amb_px[y][x][3] = 255;
         }
     bind2d(amb);
     glActiveTexture_(GL_TEXTURE1);
@@ -636,21 +692,26 @@ static void draw(MppFrame f, double sar)
     SDL_GL_SwapWindow(win);
 }
 
-/* Before the first picture: the bands around "TUNING IN...", on Home's colours. */
-static void draw_tuning(double since)
+/* Before the first picture: the bands around "TUNING IN..." (or what), on Home's colours; after a channel, over
+   that channel's colours, dimmed, so changing channel stays in the same room. */
+static void draw_tuning(double since, const char *what)
 {
     float ph = picture_height(16.0 / 9);
     float y0 = (VH - ph) / 2;
     target_screen();
     glClearColor_(0.055f, 0.02f, 0.10f, 1);
     glClear_(GL_COLOR_BUFFER_BIT);
+    if (amb_have && !plain) {
+        bind2d(amb);
+        use(&P_TEX, 0.30f, 0.28f, 0.34f, 1);
+        quad(0, 0, VW, VH, 0, 0, 1, 1);
+    }
     glEnable_(GL_BLEND);
     rect(0, y0, VW, y0 + ph, 0, 0, 0, 0.45f);
     rect(0, y0, VW, y0 + 2, CORAL, 0.5f);
     rect(0, y0 + ph - 2, VW, y0 + ph, CORAL, 0.5f);
     float pulse = 0.6f + 0.4f * (float)(0.5 + 0.5 * sin(since * 5));
     Font *mid = font(34);
-    const char *what = getenv("TVPLAY_TUNING");
     text_center(mid, VW / 2, y0 + ph / 2 - 24, what && *what ? what : "TUNING IN\xe2\x80\xa6", CORAL, pulse);
     glDisable_(GL_BLEND);
     draw_bands(ph);

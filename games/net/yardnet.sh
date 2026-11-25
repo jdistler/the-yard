@@ -117,7 +117,7 @@ wifi_unpack() {
   rm -rf "$WDIR" && mkdir -p "$WDIR" || return 1
   # The stock busybox tar has no -z (round 2, 2026-10-26).
   if out=$(gzip -dc "$WTGZ" 2>&1 | tar -xf - -C "$WDIR" 2>&1) && [ -f "$WDIR/8821au.ko" ]; then
-    chmod 755 "$WDIR/wpa_supplicant"; echo "$h" > "$WDIR/.sha256"
+    chmod 755 "$WDIR/wpa_supplicant"; chmod 755 "$WDIR/wpa_cli" 2>/dev/null; echo "$h" > "$WDIR/.sha256"
     log "wifi: unpacked $WTGZ ($h) into $WDIR"
     return 0
   fi
@@ -164,13 +164,39 @@ wifi() {
   mkdir -p /var/run/wpa_supplicant
   # (its log in RAM: it writes all the time, and on /data it was one of the two files a power cut left sharing a
   # block, found and repaired 2026-11-24, SYSTEM_AUDIT.md F2)
-  "$WDIR/wpa_supplicant" -B -i "$w" -D nl80211 -c "$WCONF" -P $T/wpa_supplicant.pid -f "$T/wpa.log" -t
-  log "wifi: $w up, wpa_supplicant started (rc $?)"
+  # Roaming: with no background scan, wpa_supplicant keeps the first access point that let it in. 2026-11-25 the
+  # cabinet sat 15 h on the outdoor AP at -76 dBm (5.5 Mbps, 70 % of pings lost: TV came in blocks) while the
+  # office AP was at -54. bgscan scans every 30 s below -65 dBm (every 300 s above) and moves to a better one.
+  # It runs from a copy in RAM with the line added (wifi.conf is the user's file); if that will not start, as is.
+  RCONF=$T/wpa.run.conf
+  if ! grep -q bgscan "$WCONF" && sed 's/^network={$/network={\n\tbgscan="simple:30:-65:300"/' "$WCONF" > "$RCONF" &&
+      chmod 600 "$RCONF" && grep -q bgscan "$RCONF"; then :; else RCONF=$WCONF; fi
+  "$WDIR/wpa_supplicant" -B -i "$w" -D nl80211 -c "$RCONF" -P $T/wpa_supplicant.pid -f "$T/wpa.log" -t
+  rc=$?
+  if [ $rc -ne 0 ] && [ "$RCONF" != "$WCONF" ]; then
+    log "wifi: wpa_supplicant would not start with bgscan (rc $rc): without it"
+    "$WDIR/wpa_supplicant" -B -i "$w" -D nl80211 -c "$WCONF" -P $T/wpa_supplicant.pid -f "$T/wpa.log" -t
+    rc=$?
+  fi
+  log "wifi: $w up, wpa_supplicant started (rc $rc)"
   echo "$(cut -d' ' -f1 $PROC/uptime)" > $T/yardnet.wifi.since
   touch $T/yardnet.wifi.done
 }
 
 wifi_watch() {
+  # The link, once a minute, in RAM (for tvloop's log and for looking): the access point, band, signal, speed.
+  # A move between access points goes in net.log.
+  if [ -x "$WDIR/wpa_cli" ]; then
+    lt=$(cut -d. -f1 $PROC/uptime)
+    if [ $((lt - ${WLINK_T:-0})) -ge 60 ]; then
+      WLINK_T=$lt
+      st=$("$WDIR/wpa_cli" -i "$(wlan)" status 2>/dev/null); sp=$("$WDIR/wpa_cli" -i "$(wlan)" signal_poll 2>/dev/null)
+      b=$(echo "$st" | sed -n 's/^bssid=//p')
+      echo "$lt bssid=$b $(echo "$sp" | grep -E '^(RSSI|LINKSPEED|FREQUENCY)=' | tr '\n' ' ')" > $T/wifi.link
+      [ -n "$b" ] && [ -n "$WLINK_B" ] && [ "$b" != "$WLINK_B" ] && log "wifi: moved to $(cat $T/wifi.link)"
+      [ -n "$b" ] && WLINK_B=$b
+    fi
+  fi
   # The guard file stays until Wi-Fi has an address, or 90 s have passed without the cabinet freezing.
   [ -f "$NET/wifi.trying" ] || return
   w=$(wlan); s=$(cut -d. -f1 $T/yardnet.wifi.since 2>/dev/null); now=$(cut -d. -f1 $PROC/uptime)

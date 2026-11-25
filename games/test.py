@@ -789,7 +789,35 @@ def system():
         yardnet_checks(rootfs)
     else:
         say("  skip: yardnet with the cabinet's busybox (no rootfs dump or qemu-arm-static)")
+    tvloop_checks()
     shutil.rmtree(shelf, ignore_errors=True)
+
+
+def tvloop_checks():
+    """games/tv/tvloop.sh starts tvplay once on the row (it flips channels itself since 2026-11-25), never with
+    the address on its command line, and always leaves Home an answer in TV_TMP/return."""
+    d = tmpdir()
+    tmp, bind = os.path.join(d, "tmp"), os.path.join(d, "bin")
+    os.makedirs(tmp)
+    os.makedirs(bind)
+    open(os.path.join(tmp, "play.tsv"), "w").write(
+        "2\tFavorites\t/logos\nPINK_TV\t1\tESPN\tESPN.us\tk1\nPINK_TV\t2\tSEC\tSEC.us\tk2\n")
+    open(os.path.join(d, "account.conf"), "w").write("PINK_TV\thttp://gate\tu\tsecret\n")
+    def run(fake):
+        open(os.path.join(bind, "tvplay"), "w").write("#!/bin/sh\n" + fake)
+        os.chmod(os.path.join(bind, "tvplay"), 0o755)
+        subprocess.run(["sh", os.path.join(HERE, "tv", "tvloop.sh")], env=dict(os.environ, TV_DIR=d, TV_TMP=tmp, TV_BIN=bind),
+                       capture_output=True, timeout=20)
+        return read(tmp, "return"), read(tmp, "tvloop.log") or "", read(tmp, "args") or ""
+    ret, log, args = run('echo "$# $TVPLAY_LIST $TVPLAY_ACCOUNT $TVPLAY_RETURN" > "$(dirname "$TVPLAY_LIST")/args"\n'
+                         'echo "0 1" > "$TVPLAY_RETURN"\nexit 0\n')
+    check(args.startswith("0 ") and "play.tsv" in args and "account.conf" in args and "secret" not in args,
+          "tvloop: tvplay gets the row and the account file, and no address (no password) on its command line")
+    check(ret == "0 1\n" and "play from 2: SEC" in log and "tvplay 0: 0 1" in log,
+          "tvloop: tvplay's answer (code, channel) is what Home reads, and the log says what played")
+    ret, log, _ = run("kill -SEGV $$\n")
+    check(ret == "30 2\n", "tvloop: a tvplay that dies without answering still leaves Home an answer (back to the guide)")
+    shutil.rmtree(d, ignore_errors=True)
 
 
 def yardnet_checks(rootfs=None):
@@ -869,6 +897,10 @@ def yardnet_checks(rootfs=None):
           f"{tag}: the stick's run.sh runs, and the logs and done.txt are written back to it")
     check("insmod" in c and c.index("cfg80211.ko") < c.index("8821au.ko") and "wpa -B -i wlan0 -D nl80211" in c,
           f"{tag}: with a wifi.conf it loads cfg80211, then 8821au, then starts wpa_supplicant on wlan0")
+    rc = read(tmp, "wpa.run.conf") or ""
+    check("-c " + os.path.join(tmp, "wpa.run.conf") in c and 'bgscan="simple:30:-65:300"' in rc and 'ssid="home"' in rc
+          and "psk=00" in rc,
+          f"{tag}: wpa_supplicant runs with background scanning added to a copy of wifi.conf (roams to a better AP)")
     check(read(os.path.join(proc, "sys", "kernel"), "panic_on_oops") == "0\n" and os.path.exists(os.path.join(games, "net", "wifi.trying")),
           f"{tag}: an oops is not made a panic, and the guard file is set during the start")
     # The stick stays in: it is read once per insertion, not every pass.

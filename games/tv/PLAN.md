@@ -1,4 +1,35 @@
-# Partycade TV: the plan (2026-10-27; status 2026-11-01 and 2026-11-22 below)
+# Partycade TV: the plan (2026-10-27; status 2026-11-01, 2026-11-22 and 2026-11-25 below)
+
+## Status 2026-11-25: the player rebuilt for smoothness (measured on the cabinet)
+
+"Blocky video, hard edges of rectangles through transitioning frames" (the user, 2026-11-24). What was found,
+each measured with the player's own log (`tvplay.log`, now on the SD card) and `tools/cab.sh shot`:
+
+* **The cause of the blocks: the Wi-Fi.** The cabinet had joined the outdoor access point at boot (-76 dBm,
+  2.4 GHz, 5.5 Mbps, 70 % of pings lost) and stayed 15 h, though the office AP was at -54 dBm: wpa_supplicant had
+  no background scan. The stream starved and reconnected, and a decoder fed a broken stream draws blocks until the
+  next keyframe. Now: wpa_supplicant built with bgscan (`simple:30:-65:300`, added by yardnet to a RAM copy of
+  wifi.conf), wpa_cli in the bundle, the link logged a minute at a time to /tmp/wifi.link. After: 0 % loss, 7 ms,
+  26 Mbit/s to the cabinet (a channel is 4-8).
+* **Only 45 of 60 pictures a second on 720p60, worse the longer it played**, on a perfect link: the skip rule's
+  "lead" grew with every late frame and hardly shrank, until a quarter of the pictures were thrown away. The VPU
+  decodes 720p at 100 fps: with no skipping it showed 60.0. Now pictures are skipped only while frames really
+  come out late (three in a second), for two seconds.
+* **Judder on 30 fps channels**: pictures 1, 3, 2, 2 refreshes apart instead of 2, 2, 2 (the audio position,
+  the clock, moves in 23 ms steps). Now the pictures follow a smoothed clock (the monotonic timer steered 2 % a
+  frame toward the audio): 95 % of gaps at two refreshes, A/V within 20 ms.
+* **Garbage at the start of a channel**: the gate joins a stream mid-picture-group. Now decoding starts at a
+  keyframe, and again after a jump in the stream (the decoder reset).
+* **HEVC skipping could corrupt**: sub-layer non-reference pictures are only safe to drop from the highest
+  temporal layer. Now only those.
+* **Decoder buffers handed back while the GPU might still read them**: now two flips later.
+* **The backdrop's 36 x 48 cells showed as soft blocks**: now blurred on the CPU before the stretch.
+* **Changing channel** quit the player and showed Home's "changing channel" picture between two programs. Now
+  tvplay plays the whole row (`TVPLAY_LIST`), flips in place: the next channel's bands at once over the last
+  one's colours, its picture in 1.7-2.7 s. It reads the address from account.conf itself (the password was on
+  its command line, visible in `ps`). tvloop is a launcher; `games/test.py system` checks it.
+* Tearing was suspected from seams in screen grabs; a grab takes ~70 ms (four refreshes), and grabs taken with
+  the picture held still (`TVPLAY_HOLD`) show none. Not a defect of the player.
 
 ## Status 2026-11-22: the Pink TV household (verified on the cabinet)
 

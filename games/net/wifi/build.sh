@@ -61,14 +61,14 @@ cp /w/cabinet.symvers Module.symvers
 make -s \$X M=net/wireless modules
 cd /w/8821au && make -s -C /w/kernel M=/w/8821au \$X KBUILD_EXTRA_SYMBOLS=/w/kernel/net/wireless/Module.symvers CONFIG_RTL8821AU=m -j\$(nproc) modules
 cd /w/$NL && { [ -f /w/sysroot/lib/libnl-genl-3.a ] || { ./configure -q --host=arm-linux-gnueabihf --prefix=/w/sysroot --enable-static --disable-shared --disable-cli --disable-debug && make -s -j\$(nproc) && make -s install; }; }
-cd /w/$WPA/wpa_supplicant && CC=arm-linux-gnueabihf-gcc PKG_CONFIG=false CFLAGS='-Os -I/w/sysroot/include/libnl3' LDFLAGS='-static -L/w/sysroot/lib' make -s -j\$(nproc) LIBS='-lnl-genl-3 -lnl-3 -lpthread -lm' wpa_supplicant
+cd /w/$WPA/wpa_supplicant && CC=arm-linux-gnueabihf-gcc PKG_CONFIG=false CFLAGS='-Os -I/w/sysroot/include/libnl3' LDFLAGS='-static -L/w/sysroot/lib' make -s -j\$(nproc) LIBS='-lnl-genl-3 -lnl-3 -lpthread -lm' wpa_supplicant wpa_cli
 " 2>&1 | grep -v -E "warning: Using '(getgrnam|getaddrinfo|getproto)" || true
-for f in kernel/net/wireless/cfg80211.ko 8821au/8821au.ko "$WPA/wpa_supplicant/wpa_supplicant"; do
+for f in kernel/net/wireless/cfg80211.ko 8821au/8821au.ko "$WPA/wpa_supplicant/wpa_supplicant" "$WPA/wpa_supplicant/wpa_cli"; do
   [ -f "$W/$f" ] || { echo "missing $W/$f" >&2; exit 1; }
   cp "$W/$f" "$OUT/"
 done
 "$W/gcc63/bin/arm-linux-gnueabihf-strip" --strip-debug "$OUT/cfg80211.ko" "$OUT/8821au.ko"
-"$W/gcc63/bin/arm-linux-gnueabihf-strip" "$OUT/wpa_supplicant"
+"$W/gcc63/bin/arm-linux-gnueabihf-strip" "$OUT/wpa_supplicant" "$OUT/wpa_cli"
 # Every symbol a module needs must be one the cabinet exports, or cfg80211's own.
 for m in cfg80211 8821au; do
   if "$W/gcc63/bin/arm-linux-gnueabihf-nm" -u "$OUT/$m.ko" | awk '{print $2}' \
@@ -78,6 +78,6 @@ for m in cfg80211 8821au; do
 done
 strings "$OUT/8821au.ko" | sed -n 's/^alias=usb:v\([0-9A-F]\{4\}\)p\([0-9A-F]\{4\}\).*/\1:\2/p' | tr 'A-F' 'a-f' | sort -u > "$OUT/usb-ids.txt"
 grep -qx 2357:011e "$OUT/usb-ids.txt"
-tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -C "$OUT" -cf - cfg80211.ko 8821au.ko wpa_supplicant usb-ids.txt | gzip -n -9 > "$OUT/wifi.tar.gz"
+tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -C "$OUT" -cf - cfg80211.ko 8821au.ko wpa_supplicant wpa_cli usb-ids.txt | gzip -n -9 > "$OUT/wifi.tar.gz"
 ls -l "$OUT"
 echo "built $OUT/wifi.tar.gz"
