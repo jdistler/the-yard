@@ -56,7 +56,8 @@ def ssh(cmd, stdin=None, timeout=300):
 
 def measure(mode):
     ssh("cat > /tmp/hb.script", stdin=SCRIPT)
-    out = ssh(f"sh -s {mode}", stdin=RUN, timeout=240).stdout
+    extra = os.environ.get("HOME_BENCH_ENV", "")   # e.g. "SDL_KMSDRM_SAFE=1": Home run with that set
+    out = ssh(f"sh -s {mode} 'env {extra}'" if extra else f"sh -s {mode}", stdin=RUN, timeout=240).stdout
     m = re.search(r"startup: main\.lua ([\d.]+).*first frame ([\d.]+)", out)
     startup = round(float(m.group(2)) - float(m.group(1)), 2) if m else -1
     fps = {}

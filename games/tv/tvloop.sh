@@ -23,7 +23,10 @@ IDX=$(head -n 1 "$LIST" | cut -f1)
 log() { echo "$(cut -d' ' -f1 /proc/uptime) $*" >> "$LOG"; }
 log "play from $IDX: $(sed -n "$((IDX + 1))p" "$LIST" | cut -f3) (available $(awk '/MemAvailable/ {print $2}' /proc/meminfo) kB; wifi $(cut -d' ' -f2- /tmp/wifi.link 2>/dev/null))"
 rm -f "$TMP/return"
-LD_LIBRARY_PATH=/data/love/lib SDL_VIDEODRIVER=kmsdrm SDL_KMSDRM_PIPELINE=1 ALSA_CONFIG_PATH=/data/home/alsa.conf \
+# SDL_KMSDRM_SAFE=1: each picture fully on the screen before the GPU may draw the next (games/love/patches): with
+# the pipelined swap the Mali drew into the picture being shown, and fast motion tore (2026-11-25, proven on the
+# cabinet with tools/cabview/fliptest.c and test patterns; 60 fps kept).
+LD_LIBRARY_PATH=/data/love/lib SDL_VIDEODRIVER=kmsdrm SDL_KMSDRM_SAFE=1 ALSA_CONFIG_PATH=/data/home/alsa.conf \
   TVPLAY_LOG=$PLOG TVPLAY_LIST="$LIST" TVPLAY_ACCOUNT="$DIR/account.conf" TVPLAY_EPGDIR="$TMP" \
   TVPLAY_VIEW="$DIR/view" TVPLAY_FONT="$DIR/tvfont.gz" TVPLAY_HINT=1 TVPLAY_RETURN="$TMP/return" \
   "$BIN/tvplay" </dev/null >/dev/null 2>&1

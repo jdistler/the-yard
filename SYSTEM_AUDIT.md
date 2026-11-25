@@ -274,6 +274,15 @@ Ticked as each lands, with the commit.
 - [ ] K6. The cabinet still fails the office AP's 5 GHz at boot (authentication times out) and uses 2.4 GHz; fine at
       26 Mbit/s, but 5 GHz would leave more room. Needs a look at the AP's 5 GHz settings or the antenna.
 
+- [x] K7a. TV tearing: SDL_KMSDRM_SAFE=1 for tvplay (the Mali drew into the shown picture; proven with test
+      patterns and fliptest on the cabinet; 60 fps kept). New libSDL2 on the cabinet (/data/love/lib; the old one
+      at /mnt/sdcard/partycade/libSDL2-2.0.so.0.before-safe); with SAFE unset it behaves as before.
+- [ ] K7b. Home and games: the same tearing with the pipelined swap. SAFE halves Home (29 fps), PIPELINE=2 gives 34.
+      Next: SDL keeps three scanout buffers of its own (GBM bos as EGLImage render targets, or a third offscreen
+      buffer), so the GPU never gets the shown one and CPU/GPU still overlap.
+- [ ] K8. 5 GHz: the cabinet associates with the office AP's 5 GHz and the handshake times out (it can't be heard?):
+      try a USB extension for the AC600 / the AP's 5 GHz settings. 2.4 GHz is pinned meanwhile (26 Mbit/s).
+
 **J. Sound (P2)**
 - [x] J1. Loudness measured for every game (E2); spread 7.3 dB -> 5.5 dB (Chomp down, Bake and Band up).
 

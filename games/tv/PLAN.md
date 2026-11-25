@@ -38,6 +38,17 @@ each measured with the player's own log (`tvplay.log`, now on the SD card) and `
   reads a pixel instead of one (thin moving lines no longer step and crawl, block edges softened); on 30 fps
   channels that fits the GPU (30 shown, none late), on 60 fps it does not (30 of 60), so it is chosen by the
   channel's frame rate. Also found: the Wi-Fi hopping to weak 5 GHz APs mid-game (now 2.4 GHz only).
+* **The tearing in fast motion: the GPU drew into the picture being shown** (found with the user watching test
+  patterns on the cabinet, 2026-11-25). Bars sliding down tore near the screen's right edge (where each frame's
+  scan starts, the panel being the framebuffer turned); sliding sideways did not. `tools/cabview/fliptest.c`
+  (dumb buffers, no GPU) switched cleanly every way (async flip at random moments, blocking set-CRTC): the VOP and
+  the panel latch at the frame boundary. With the GPU: the pipelined swap (SDL_KMSDRM_PIPELINE=1) tore at the
+  right; plain flips were clean only because the Mali defers its drawing to the swap; forcing it to finish early
+  tore mid-screen. `SDL_KMSDRM_SAFE=1` (games/love/patches: each flip waited for, the old buffer given back at
+  once) was clean in the worst case and keeps the TV at 60 fps; tvloop uses it. It halves Home (58 -> 29 fps:
+  Home overlaps CPU and GPU), and a pipelined variant (=2) reached only 34: the Mali surface's buffer accounting
+  contradicts itself. Home and the games still use the pipelined swap and can tear the same way; the fix there is
+  SDL's own three scanout buffers (open, SYSTEM_AUDIT.md K7).
 * Tearing was suspected from seams in screen grabs; a grab takes ~70 ms (four refreshes), and grabs taken with
   the picture held still (`TVPLAY_HOLD`) show none. Not a defect of the player.
 

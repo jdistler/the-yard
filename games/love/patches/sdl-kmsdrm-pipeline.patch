@@ -1,5 +1,5 @@
 diff --git a/src/video/kmsdrm/SDL_kmsdrmopengles.c b/src/video/kmsdrm/SDL_kmsdrmopengles.c
-index cbf86c9..cfdc4f4 100644
+index cbf86c9..191ba83 100644
 --- a/src/video/kmsdrm/SDL_kmsdrmopengles.c
 +++ b/src/video/kmsdrm/SDL_kmsdrmopengles.c
 @@ -1,3 +1,4 @@
@@ -7,7 +7,7 @@ index cbf86c9..cfdc4f4 100644
  /*
    Simple DirectMedia Layer
    Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
-@@ -86,8 +87,128 @@ SDL_EGL_CreateContext_impl(KMSDRM)
+@@ -86,8 +87,153 @@ SDL_EGL_CreateContext_impl(KMSDRM)
      return 0;
  }
  
@@ -15,6 +15,15 @@ index cbf86c9..cfdc4f4 100644
 +static int tm_on = -1, tm_n;
 +static double tm_wait, tm_swap, tm_lock, tm_flip;
 +static double tm_now(void) { return (double)SDL_GetPerformanceCounter() * 1000.0 / (double)SDL_GetPerformanceFrequency(); }
++
++/* Partycade: SDL_KMSDRM_SAFE=1. The Mali draws into whichever of the surface's buffers it is given, and on this
++   board (2 buffers, no fence wait in Rockchip's commit: "TODO: do fence wait here") that could be the one still on
++   the screen: work the GPU did before the old picture left the screen (a canvas switch, a texture upload, a
++   finish, or LÖVE's pipelined swap) was drawn into the picture being shown, and moving pictures tore (the TV,
++   2026-11-25: a dumb-buffer test showed the display itself switches cleanly at the frame boundary). Here each
++   swap waits for its flip to complete and gives the old buffer back at once: the only buffer the GPU can be
++   given is one the screen no longer shows. */
++static int safe_on = -1;
 +
 +/* Partycade: SDL_KMSDRM_PIPELINE=1. On the Mali-400, gbm_surface_lock_front_buffer waits for the GPU to finish
 +   the frame (10-18 ms), so the CPU idled while the GPU drew. Here a frame is handed to EGL and only locked and
@@ -68,7 +77,7 @@ index cbf86c9..cfdc4f4 100644
 +    }
 +    windata->bo = windata->next_bo;
 +    windata->next_bo = bo;
-+    if (!windata->bo) {
++    if (!windata->bo && !windata->crtc_ready) {
 +        kmsdrm_first_frame_finish();
 +        ret = KMSDRM_drmModeSetCrtc(viddata->drm_fd, dispdata->crtc->crtc_id, fb_info->fb_id, 0, 0,
 +                                    &dispdata->connector->connector_id, 1, &dispdata->mode);
@@ -76,6 +85,7 @@ index cbf86c9..cfdc4f4 100644
 +            SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not set videomode on CRTC.");
 +            return 0;
 +        }
++        windata->crtc_ready = SDL_TRUE;
 +    } else {
 +        ret = KMSDRM_drmModePageFlip(viddata->drm_fd, dispdata->crtc->crtc_id, fb_info->fb_id,
 +                                     DRM_MODE_PAGE_FLIP_EVENT, &windata->waiting_for_flip);
@@ -94,6 +104,19 @@ index cbf86c9..cfdc4f4 100644
 +    double t0 = tm_on ? tm_now() : 0, t1, t2;
 +    if (pipe_pending && !KMSDRM_GLES_FinishPending(_this, window)) {
 +        return 0;
++    }
++    /* Partycade: SDL_KMSDRM_PIPELINE=2. The flip just issued is waited for (it latches at the next frame start)
++       before this frame goes to the GPU, and the picture it replaced is given back then: the GPU draws only into a
++       buffer the screen no longer shows (with 1 the Mali drew into the shown picture and motion tore, 2026-11-25),
++       while the CPU still builds the next frame as the GPU draws this one. */
++    if (pipe_on == 2 && windata->waiting_for_flip) {
++        if (!KMSDRM_WaitPageflip(_this, windata)) {
++            return 0;
++        }
++        if (windata->bo) {
++            KMSDRM_gbm_surface_release_buffer(windata->gs, windata->bo);
++            windata->bo = NULL;
++        }
 +    }
 +    t1 = tm_on ? tm_now() : 0;
 +    if (!(_this->egl_data->eglSwapBuffers(_this->egl_data->egl_display, windata->egl_surface))) {
@@ -122,7 +145,9 @@ index cbf86c9..cfdc4f4 100644
  int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
  {
 +    double t0, t1, t2, t3, t4;
-+    if (pipe_on < 0) pipe_on = SDL_getenv("SDL_KMSDRM_PIPELINE") != NULL && SDL_atoi(SDL_getenv("SDL_KMSDRM_PIPELINE")) != 0;
++    if (pipe_on < 0) pipe_on = SDL_getenv("SDL_KMSDRM_PIPELINE") ? SDL_atoi(SDL_getenv("SDL_KMSDRM_PIPELINE")) : 0;
++    if (safe_on < 0) safe_on = SDL_getenv("SDL_KMSDRM_SAFE") != NULL && SDL_atoi(SDL_getenv("SDL_KMSDRM_SAFE")) != 0;
++    if (safe_on) pipe_on = 0;   /* (the pipelined swap overlaps drawing with the screen: what SAFE forbids) */
 +    if (tm_on < 0) tm_on = SDL_getenv("SDL_KMSDRM_TIMING") != NULL;
 +    if (SDL_getenv("SDL_KMSDRM_DEBUG")) {
 +        static int n;
@@ -136,7 +161,7 @@ index cbf86c9..cfdc4f4 100644
      SDL_WindowData *windata = ((SDL_WindowData *)window->driverdata);
      SDL_DisplayData *dispdata = (SDL_DisplayData *)SDL_GetDisplayForWindow(window)->driverdata;
      SDL_VideoData *viddata = ((SDL_VideoData *)_this->driverdata);
-@@ -108,8 +229,16 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+@@ -108,8 +254,16 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
      /* Recreate the GBM / EGL surfaces if the display mode has changed */
      if (windata->egl_surface_dirty) {
          KMSDRM_CreateSurfaces(_this, window);
@@ -153,7 +178,7 @@ index cbf86c9..cfdc4f4 100644
      /* Wait for confirmation that the next front buffer has been flipped, at which
         point the previous front buffer can be released */
      if (!KMSDRM_WaitPageflip(_this, windata)) {
-@@ -124,6 +253,7 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+@@ -124,6 +278,7 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
      }
  
      windata->bo = windata->next_bo;
@@ -161,7 +186,7 @@ index cbf86c9..cfdc4f4 100644
  
      /* Mark a buffer to become the next front buffer.
         This won't happen until pagelip completes. */
-@@ -136,7 +266,9 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+@@ -136,7 +291,9 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
      /* From the GBM surface, get the next BO to become the next front buffer,
         and lock it so it can't be allocated as a back buffer (to prevent EGL
         from drawing into it!) */
@@ -171,7 +196,12 @@ index cbf86c9..cfdc4f4 100644
      if (!windata->next_bo) {
          SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not lock front buffer on GBM surface");
          return 0;
-@@ -153,6 +285,7 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+@@ -149,10 +306,11 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+         return 0;
+     }
+ 
+-    if (!windata->bo) {
++    if (!windata->bo && !windata->crtc_ready) {
          /* On the first swap, immediately present the new front buffer. Before
             drmModePageFlip can be used the CRTC has to be configured to use
             the current connector and mode with drmModeSetCrtc */
@@ -179,10 +209,32 @@ index cbf86c9..cfdc4f4 100644
          ret = KMSDRM_drmModeSetCrtc(viddata->drm_fd,
                                      dispdata->crtc->crtc_id, fb_info->fb_id, 0, 0,
                                      &dispdata->connector->connector_id, 1, &dispdata->mode);
-@@ -203,6 +336,15 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+@@ -161,6 +319,7 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+             SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not set videomode on CRTC.");
+             return 0;
+         }
++        windata->crtc_ready = SDL_TRUE;
+     } else {
+         /* On subsequent swaps, queue the new front buffer to be flipped during
+            the next vertical blank
+@@ -196,12 +355,27 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+            Just leave it here and don't worry.
+            Run your SDL2 program with "SDL_VIDEO_DOUBLE_BUFFER=1 <program_name>"
+            to enable this. */
+-        if (windata->double_buffer) {
++        if (windata->double_buffer || safe_on) {
+             if (!KMSDRM_WaitPageflip(_this, windata)) {
+                 SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Immediate wait for previous pageflip failed");
+                 return 0;
              }
          }
-     }
++        /* Partycade (SDL_KMSDRM_SAFE): the new picture is on the screen now; the old one goes back at once, so
++           the next frame is drawn into it and never into the one shown. */
++        if (safe_on && windata->bo) {
++            KMSDRM_gbm_surface_release_buffer(windata->gs, windata->bo);
++            windata->bo = NULL;
++        }
++    }
 +    if (tm_on) {
 +        t4 = tm_now();
 +        tm_wait += t1 - t0; tm_swap += t2 - t1; tm_lock += t3 - t2; tm_flip += t4 - t3;
@@ -191,10 +243,9 @@ index cbf86c9..cfdc4f4 100644
 +                    tm_wait / 300, tm_swap / 300, tm_lock / 300, tm_flip / 300);
 +            tm_n = 0; tm_wait = tm_swap = tm_lock = tm_flip = 0;
 +        }
-+    }
+     }
  
      return 1;
- }
 diff --git a/src/video/kmsdrm/SDL_kmsdrmsym.h b/src/video/kmsdrm/SDL_kmsdrmsym.h
 index df46212..de1ebbd 100644
 --- a/src/video/kmsdrm/SDL_kmsdrmsym.h
@@ -207,3 +258,27 @@ index df46212..de1ebbd 100644
  
  SDL_KMSDRM_SYM_OPT(uint64_t,gbm_bo_get_modifier,(struct gbm_bo *bo))
  SDL_KMSDRM_SYM_OPT(int,gbm_bo_get_plane_count,(struct gbm_bo *bo))
+diff --git a/src/video/kmsdrm/SDL_kmsdrmvideo.c b/src/video/kmsdrm/SDL_kmsdrmvideo.c
+index dbcb052..99c97d4 100644
+--- a/src/video/kmsdrm/SDL_kmsdrmvideo.c
++++ b/src/video/kmsdrm/SDL_kmsdrmvideo.c
+@@ -1135,6 +1135,7 @@ static void KMSDRM_DestroySurfaces(_THIS, SDL_Window *window)
+     if (windata->next_bo) {
+         KMSDRM_gbm_surface_release_buffer(windata->gs, windata->next_bo);
+         windata->next_bo = NULL;
++        windata->crtc_ready = SDL_FALSE;
+     }
+ 
+     /***************************/
+diff --git a/src/video/kmsdrm/SDL_kmsdrmvideo.h b/src/video/kmsdrm/SDL_kmsdrmvideo.h
+index 1fe77f6..fc2018e 100644
+--- a/src/video/kmsdrm/SDL_kmsdrmvideo.h
++++ b/src/video/kmsdrm/SDL_kmsdrmvideo.h
+@@ -134,6 +134,7 @@ typedef struct SDL_WindowData
+ 
+     SDL_bool waiting_for_flip;
+     SDL_bool double_buffer;
++    SDL_bool crtc_ready;   /* Partycade: the CRTC shows one of ours (SDL_KMSDRM_SAFE frees bo early) */
+ 
+     EGLSurface egl_surface;
+     SDL_bool egl_surface_dirty;
