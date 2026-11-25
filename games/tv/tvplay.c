@@ -729,7 +729,8 @@ static int play_channel(const char *url, const char *tuning)
     double wall0 = -1, pts0 = 0;                  /* no audio: the clock is the wall clock from the first picture */
     long shown = 0, skipped = 0, late = 0, sent = 0, err_frames = 0, discard_frames = 0;
     long gap_hist[8] = {0};
-    double prev_pic = 0;
+    double prev_pic = 0, last_pts = 0, frame_dt = 0;
+    if (!vid_taps_fixed) vid_taps = 1;
     /* Skipping: only while the decoder is really behind. Before 2026-11-25 a "lead" grew with every late frame
        and shrank only after 90 on time; on a 720p60 channel that the VPU decodes at 100 fps it reached 0.4 s and
        threw away a quarter of the pictures (45 shown a second; 60 with no skipping, measured on the cabinet). */
@@ -865,6 +866,18 @@ static int play_channel(const char *url, const char *tuning)
             if (td > draw_max) draw_max = td;
             last_shown = now();
             if (first_pic < 0) { first_pic = now(); view_first_picture(); say("first picture %.1f s after start", first_pic - t_start); }
+            /* The filter for this channel's frame rate: from the time between its pictures (eased), and one read a
+               pixel again whenever frames come out late. */
+            {
+                double pt = mpp_frame_get_pts(f) / 1e6;
+                if (last_pts > 0 && pt > last_pts && pt - last_pts < 0.2)
+                    frame_dt = frame_dt > 0 ? frame_dt + 0.05 * ((pt - last_pts) - frame_dt) : pt - last_pts;
+                last_pts = pt;
+                if (!vid_taps_fixed && shown > 30) {
+                    int want = frame_dt > 0.028 && now() >= behind_until ? 4 : 1;
+                    if (want != vid_taps) { vid_taps = want; say("picture filter: %d read%s a pixel (%.1f fps)", want, want > 1 ? "s" : "", 1 / frame_dt); }
+                }
+            }
             /* The picture replaced goes back to the decoder two flips later: the GPU draws a frame or more behind
                the CPU, and a buffer handed back at once could be decoded into while still being read. */
             if (shown_ring[KEEP_SHOWN - 1]) mpp_frame_deinit(&shown_ring[KEEP_SHOWN - 1]);

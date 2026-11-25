@@ -71,7 +71,11 @@ static int holding(void)
 
 /* ------------------------------------------------------------------ programs */
 typedef struct { GLuint p; GLint m, o, col, d, tex; } Prog;
-static Prog P_VID, P_TEX, P_TEXT, P_SOLID;
+static Prog P_VID, P_VID2, P_VID4, P_TEX, P_TEXT, P_SOLID;
+/* Reads a pixel to shrink the picture (see P_VID4), chosen by the channel's frame rate (tvplay.c): four on a 30
+   fps channel (one picture every two refreshes: the GPU has time), one on 50/60 fps (four cost ~20 ms of GPU a
+   frame there: 30 shown of 60, measured 2026-11-25). TVPLAY_FILTER=1, 2 or 4 fixes it (for measuring). */
+static int vid_taps = 1, vid_taps_fixed;
 static float XM[4], XO[2];                        /* upright pixels -> clip space, for the current target */
 
 static Prog make_prog(const char *fs)
@@ -452,6 +456,22 @@ static void view_init(void)
     char fs[1024];
     snprintf(fs, sizeof fs, "%s void main() { gl_FragColor = texture2D(tex, v) * col; }", ext);
     P_VID = make_prog(fs);
+    /* The picture shrunk with four reads a pixel, each bilinear, a quarter of a screen pixel either way: a small box
+       filter over the pixel's footprint in the picture (1.7 texels at 720p, 2.5 at 1080p). One read a pixel keeps
+       only part of each footprint, so thin lines (yard lines, the first-down line, text) step and crawl as the
+       camera pans. */
+    snprintf(fs, sizeof fs, "%s uniform vec2 d; void main() { gl_FragColor = 0.25 * (texture2D(tex, v + vec2(-d.x, -d.y))"
+             " + texture2D(tex, v + vec2(d.x, -d.y)) + texture2D(tex, v + vec2(-d.x, d.y)) + texture2D(tex, v + d)) * col; }", ext);
+    P_VID4 = make_prog(fs);
+    glUseProgram_(P_VID4.p); glUniform1i_(P_VID4.tex, 0);
+    snprintf(fs, sizeof fs, "%s uniform vec2 d; void main() { gl_FragColor = 0.5 * (texture2D(tex, v - d)"
+             " + texture2D(tex, v + d)) * col; }", ext);
+    P_VID2 = make_prog(fs);
+    glUseProgram_(P_VID2.p); glUniform1i_(P_VID2.tex, 0);
+    {
+        const char *e = getenv("TVPLAY_FILTER");
+        if (e && (*e == '1' || *e == '2' || *e == '4')) { vid_taps = *e - '0'; vid_taps_fixed = 1; }
+    }
     /* One texture read a pixel: the GPU (one Mali-400 core) has ~16 ms of fragments a frame, and four reads over
        the bands alone took 10 of them (2026-11-01). */
     P_TEX = make_prog("precision mediump float; varying vec2 v; uniform sampler2D tex; uniform vec4 col;"
@@ -677,7 +697,15 @@ static void draw(MppFrame f, double sar)
         }
         glActiveTexture_(GL_TEXTURE0);
         glBindTexture_(GL_TEXTURE_EXTERNAL_OES, tex);
-        use(&P_VID, 1, 1, 1, 1);
+        if (vid_taps == 4) {
+            use(&P_VID4, 1, 1, 1, 1);
+            glUniform2f_(P_VID4.d, (float)(0.25 * crop / VW), 0.25f / ph);
+        } else if (vid_taps == 2) {
+            use(&P_VID2, 1, 1, 1, 1);
+            glUniform2f_(P_VID2.d, (float)(0.25 * crop / VW), 0.25f / ph);
+        } else {
+            use(&P_VID, 1, 1, 1, 1);
+        }
         quad(0, y0, VW, y0 + ph, (float)(0.5 - crop / 2), 0, (float)(0.5 + crop / 2), 1);
     }
     if (view_info && !plain) draw_bands(ph);

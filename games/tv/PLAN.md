@@ -30,6 +30,14 @@ each measured with the player's own log (`tvplay.log`, now on the SD card) and `
   tvplay plays the whole row (`TVPLAY_LIST`), flips in place: the next channel's bands at once over the last
   one's colours, its picture in 1.7-2.7 s. It reads the address from account.conf itself (the password was on
   its command line, visible in `ps`). tvloop is a launcher; `games/test.py system` checks it.
+* **"Blockiness and jitter in fast motion" on SEC Network** (the user, watching football): the player's numbers were
+  clean (30 shown a second, even cadence, no decoder errors). The stream is the limit: SEC Network arrives as
+  720p at 29.97 fps and ~3.4 Mbit/s (sports is usually 60 fps at 2-3 times that); the gate passes it through.
+  At 30 fps a fast pan moves in 33 ms steps (judder no player can remove without inventing frames), and at that
+  bitrate the encoder's own blocks show in fast motion. What the player could do: shrink the picture with four
+  reads a pixel instead of one (thin moving lines no longer step and crawl, block edges softened); on 30 fps
+  channels that fits the GPU (30 shown, none late), on 60 fps it does not (30 of 60), so it is chosen by the
+  channel's frame rate. Also found: the Wi-Fi hopping to weak 5 GHz APs mid-game (now 2.4 GHz only).
 * Tearing was suspected from seams in screen grabs; a grab takes ~70 ms (four refreshes), and grabs taken with
   the picture held still (`TVPLAY_HOLD`) show none. Not a defect of the player.
 
