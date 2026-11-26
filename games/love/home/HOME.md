@@ -76,6 +76,16 @@ in `ST`). A function is shared by reference; so is a table, as long as nobody re
   `ST.go("name")`, give it a branch in `idle.lua`'s `handle` and `menu.lua`'s `draw_scene`.
 * **New state:** a field of `ST`, not a new top-level `local` in `main.lua`.
 
+## The screen and the GPU's time
+
+Home draws into two of SDL's own scanout buffers (SDL_KMSDRM_BUFFERS=2, set by homeloop; SYSTEM_AUDIT.md K7): no
+tearing, but the GPU may start a frame only once the other buffer has left the screen, so a frame's GPU work must
+fit one refresh (~16 ms; the menu takes ~14.8). Measure before and after a drawing change: `SDL_KMSDRM_TIMING=1`
+prints the GPU's time a frame, `HOME_SKIP=background,marquee,tabs,carousel,frame,cardglow,cardfill,art` leaves
+parts out. Many small shapes cost more than their area (the GPU's vertex work no longer overlaps the last frame):
+paint them once into a picture or a batch (the card frame, the bulbs). Memory: idle.lua gives the GPU driver's
+pool of freed pages back (drop_caches=2) after the menu is let go and whenever under 20 MB.
+
 ## Before calling a change done
 
 1. `tools/home_tour.py`: 50 scripted, pixel-exact steps (sections, cards, shows tiles, attract, night, a show,

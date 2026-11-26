@@ -145,6 +145,11 @@ USED_GOOD=0
 INTRO=0
 [ "$MODE" = boot ] && INTRO=1
 log() { echo "$(cut -d' ' -f1 /proc/uptime) $*" >> "$LOG"; }
+# The GPU driver keeps up to 16 MB of freed pages in a pool of its own (MALI_OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB=16
+# in this kernel), out of MemAvailable: after Home quit, the next program started with that much less (the TV's
+# out-of-memory at a tune, 2026-11-23, likely). Its shrinker gives them back when asked: drop_caches=2 (kernel
+# caches only, not file data; +14.5 MB measured, 2026-11-25). Between programs, every time.
+give_back() { [ -z "$HOMELOOP_H" ] && echo 2 > /proc/sys/vm/drop_caches 2>/dev/null; }
 [ -n "$CARD_NOTE" ] && log "$CARD_NOTE"
 [ -n "$UD_NOTE" ] && log "$UD_NOTE"
 # The machine's memory and I/O every 2 s, written to the card in batches (SYSTEM_AUDIT.md B1): Home's log has
@@ -274,11 +279,12 @@ while :; do
   rm -f "$REQ"
   log "home: starting LOVE"
   STARTED=$(cut -d. -f1 /proc/uptime)
-  # (Home: SDL's own scanout buffers off: they cost ~10 MB, and Home with a show ran out of memory with them,
-  # 2026-11-25; the games, which run alone, have them from /data/love/run.sh: no tearing)
+  # (Home: two of SDL's scanout buffers, not run.sh's four: no more memory than the window surface took; with
+  # three, Home with a show ran out of memory, 2026-11-25. A frame's GPU work must then fit a refresh.)
   HOME_SAFE=$SAFE HOME_INTRO=$INTRO HOME_REQ=$REQ HOME_BACK=$BACK HOME_STATE=$H/state HOME_LOG=$LOG HOME_LOG_MAX=$LOG_MAX HOME_ART=$H/art HOME_GAMES=$GAMES HOME_MODE=$MODE \
-    SDL_KMSDRM_TRIPLE=0 $RUN $HOMEL
+    SDL_KMSDRM_BUFFERS=2 $RUN $HOMEL
   CODE=$?
+  give_back
   INTRO=0
   if [ ! -s "$REQ" ]; then
     # (a Home that ran a while and then died, killed for memory say, is restarted: only Home failing as it
@@ -370,6 +376,7 @@ while :; do
     *) log "bad request: $WHAT" ;;
   esac
   RC=$?
+  give_back
   back_picture
   T1=$(cut -d. -f1 /proc/uptime)
   # How long it was played, for Home's FAVORITES (favs.lua credits it to what Home launched, then drops it).

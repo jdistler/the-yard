@@ -46,6 +46,7 @@ local function free_menu_pictures()
   for i = #D.label_jobs, 1, -1 do D.label_jobs[i] = nil end
   ST.labels_for, ST.labels_sel, ST.labels_pre, ST.near_sel = {}, nil, {}, nil
   collectgarbage()
+  ST.give_back_in = 4
 end
 -- (ST.demo) -- started from a show's tiles: its id (back to them at the end)
 ST.auto_rot = 0                      -- AUTO: ordinary days take turns
@@ -133,9 +134,33 @@ local function restore_menu_pictures()
   if not ST.menu_freed then return end
   ST.wake = {phase = "cover", n = 0, good = 0, held = 0, f = 0}
 end
+-- The memory the menu's pictures held, back to the system a few frames after they are let go (the GPU frees them
+-- once it is done with them): the GPU driver keeps freed pages in a pool of its own, up to 16 MB, out of what the
+-- system counts as available; its shrinker returns them when asked (drop_caches=2: kernel caches only, not files).
+-- With them kept, Home with a show was at ~10 MB free and the out-of-memory killer struck (2026-11-25).
+local function give_back()
+  local f = io.open("/proc/sys/vm/drop_caches", "w")
+  if f then f:write("2\n") f:close() end
+end
 -- The wake's step (main.lua's love.update, every frame): the cover, then the fade.
 ST.WAKE_FADE = 0.3
+local mem_check = 0
 function ST.wake_step(dt)
+  -- (and whenever the system runs short: every 2 s, below 20 MB available, the pool goes back; the menu and the
+  -- attract fill it as labels and pictures come and go, and at ~6 MB the cabinet thrashed for seconds)
+  mem_check = mem_check + dt
+  if mem_check >= 2 then
+    mem_check = 0
+    local f = io.open("/proc/meminfo")
+    local m = f and f:read("*a") or ""
+    if f then f:close() end
+    local avail = tonumber(m:match("MemAvailable:%s*(%d+)") or "")
+    if avail and avail < 20000 then give_back() end
+  end
+  if ST.give_back_in then
+    ST.give_back_in = ST.give_back_in - 1
+    if ST.give_back_in <= 0 then ST.give_back_in = nil give_back() end
+  end
   local w = ST.wake
   if not w then return end
   w.n = w.n + 1

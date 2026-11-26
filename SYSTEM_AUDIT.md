@@ -274,20 +274,30 @@ Ticked as each lands, with the commit.
 - [ ] K6. The cabinet still fails the office AP's 5 GHz at boot (authentication times out) and uses 2.4 GHz; fine at
       26 Mbit/s, but 5 GHz would leave more room. Needs a look at the AP's 5 GHz settings or the antenna.
 
-- [x] K7a. TV tearing: SDL_KMSDRM_SAFE=1 for tvplay (the Mali drew into the shown picture; proven with test
-      patterns and fliptest on the cabinet; 60 fps kept). New libSDL2 on the cabinet (/data/love/lib; the old one
-      at /mnt/sdcard/partycade/libSDL2-2.0.so.0.before-safe); with SAFE unset it behaves as before.
-- [x] K7b. Games: SDL's own scanout buffers (SDL_KMSDRM_TRIPLE=4, the default in /data/love/run.sh; LÖVE patched
-      to draw its screen into them upright, games/love/patches/love-screen-fbo.patch). The Mali's surface has two
-      buffers (counted), so the pipelined swap drew into the shown one; ours: four display-driver buffers imported
-      as GL render targets (RGBA8888, scanned out as XBGR8888: the VOP's free red/blue swap), a fence each, a
-      presenter thread that flips when the GPU is done, the stencil discarded each frame (written back it cost 6.7
-      ms of GPU a frame). Test patterns on the cabinet: no tearing even with the GPU forced to draw early. All 13
-      games at or above their baselines (lamp 58.5, tea 53.8, chest 46.5, kart 56, band 47.8). ~12 MB: fine for a
-      game, which runs alone.
-- [ ] K7c. Home: still the pipelined swap (homeloop sets SDL_KMSDRM_TRIPLE=0). Own buffers cost ~10 MB and Home
-      with a show was OOM-killed; PIPELINE=4 (two buffers, tear-free) gives 52 fps. To get both: cut Home's GPU
-      frame (~15 ms, peaks 18-19) under ~14 ms, then PIPELINE=4; or free ~10 MB elsewhere.
+- [x] K7. One way pictures reach the screen (2026-11-25, after a day of patchwork modes, all removed): SDL's own
+      scanout buffers, `SDL_KMSDRM_BUFFERS=N` (games/love/patches/sdl-kmsdrm-pipeline.patch, rebuilt clean on stock
+      SDL 2.30.9 + the first-frame fixes). Why: the Mali's GBM surface has two buffers (counted); any CPU/GPU overlap
+      through it drew into the shown picture (tearing, proven with test patterns and tools/cabview/fliptest.c, which
+      showed the display itself switches cleanly). How: N display-driver buffers imported as GL render targets
+      (RA24, scanned out XBGR8888 with the VOP's free red/blue swap), a fence a frame, a presenter thread that flips
+      once the GPU is done, an 8-bit stencil discarded each frame (written back it cost 6.7 ms of GPU), the window
+      surface dropped before it is ever shown (shown once, the display kept its buffers). LÖVE draws its screen into
+      the buffer upright (love-screen-fbo.patch); tvplay flips its own drawing. N: games 4 (run.sh; full speed, all
+      13 at or above baseline), Home 2 (homeloop) and the TV 2 (tvloop): no more memory than the window surface;
+      the GPU may start a frame only once the other buffer has left the screen, so a frame must fit a refresh.
+      Verified on the cabinet: no tearing even with the GPU forced to draw early (N >= 3), TV 60 fps 0 late.
+- [x] K7b. Home's GPU frame to fit two buffers, measured with SDL_KMSDRM_TIMING=1 (GPU time a frame) and HOME_SKIP
+      (menu.lua: parts left out): menu 15.6 ms (carousel 6.1, background 4.3, marquee 1.6, tabs 0.7, rest 4.8).
+      The chosen card's frame painted once and drawn as eight pieces (1.4 ms of strokes), the marquee's bulbs one
+      batch of a painted bulb (~1100 triangles): 14.8 ms, menu 58-60 fps on two buffers (bench with section changes
+      and label painting: 55). Next: card fills (2 ms), titles (~2.5 ms).
+- [x] K7c. The GPU driver's page pool: freed GPU pages are kept, up to 16 MB (MALI_OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB
+      =16 in this kernel), out of MemAvailable; Home freeing its menu for a show gave nothing back, and a program
+      started after Home began short by that much. drop_caches=2 runs the driver's shrinker (+14.5 MB measured):
+      homeloop between programs, Home after letting its menu go and whenever under 20 MB. Home's lowest point in the
+      bench 9.9 -> 14.9 MB (stock swap); 12 MB on two buffers, no stalls, no OOM.
+- [ ] K7d. One Dig start of ~20 in the game bench showed no frames (not reproduced in 3 more): the bench starts a game
+      without waiting for the last to exit; homeloop waits. Watch.
 - [ ] K8. 5 GHz: the cabinet associates with the office AP's 5 GHz and the handshake times out (it can't be heard?):
       try a USB extension for the AC600 / the AP's 5 GHz settings. 2.4 GHz is pinned meanwhile (26 Mbit/s).
 

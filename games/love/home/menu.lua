@@ -3,6 +3,10 @@
 -- returns with them, where the section was: it fills the mirrors, then runs the section's text, so its
 -- top-level statements run in the same order as before.
 local M = {}
+-- HOME_SKIP=background,marquee,tabs,carousel,frame,cardglow,cardfill,art: those parts not drawn (only for
+-- measuring each one's GPU cost with SDL_KMSDRM_TIMING, 2026-11-25)
+local SKIP = {}
+for w in (os.getenv("HOME_SKIP") or ""):gmatch("[%w_]+") do SKIP[w] = true end
 local D, H, I, LEAVE, SECTIONS, ST, W, curtain_draw, fx, items, lg, night, shelf, shows, t, tv
 function M.sync_t(v) t = v end   -- (main assigns t; it hands the new value over)
 
@@ -145,10 +149,51 @@ do
   end
 end
 -- lit: 0..1 (the intro lights them in turn)
+-- The marquee's bulbs: one small picture of a bulb (its halo and its filament), all of them drawn as one batch.
+-- As two circles each they were ~1100 triangles a frame, and with SDL's two buffers the GPU's vertex work no
+-- longer overlaps the last frame's pixels (2026-11-25). (Painted before the first frame: a label job.)
+local bulb_img, bulb_batch
+D.label_jobs[#D.label_jobs + 1] = function()
+  local cv = lg.newCanvas(16, 16)
+  lg.push("all")
+  lg.setScissor()
+  lg.origin()
+  lg.setCanvas(cv)
+  lg.clear(0, 0, 0, 0)
+  lg.setColor(1, 0.86, 0.55, 0.35)
+  lg.circle("fill", 8, 8, 7, 10)
+  lg.setColor(1, 0.97, 0.85, 1)
+  lg.circle("fill", 8, 8, 3.2, 8)
+  lg.pop()
+  cv:setFilter("linear", "linear")
+  bulb_img = cv
+  bulb_batch = lg.newSpriteBatch(cv, 160, "stream")
+end
 function ST.draw_bulbs(alpha, lit)
   lit = lit or 1
   local n = #ST.bulbs
   local chase = math.floor(t * 8)
+  if bulb_batch then
+    bulb_batch:clear()
+    for i, b in ipairs(ST.bulbs) do
+      if i / n <= lit then
+        local k = (((i + chase) % 3) ~= 0 and 1 or 0.35) * alpha
+        bulb_batch:setColor(k, k, k, k)
+        bulb_batch:add(b[1] - 8, b[2] - 8)
+      end
+    end
+    lg.setBlendMode("alpha", "premultiplied")
+    lg.setColor(1, 1, 1, 1)
+    lg.draw(bulb_batch)
+    lg.setBlendMode("alpha")
+    if lit < 1 then
+      lg.setColor(0.3, 0.27, 0.24, alpha)
+      for i, b in ipairs(ST.bulbs) do
+        if i / n > lit then lg.circle("fill", b[1], b[2], 3.2, 8) end
+      end
+    end
+    return
+  end
   for i, b in ipairs(ST.bulbs) do
     if i / n <= lit then
       local on = ((i + chase) % 3) ~= 0
@@ -223,30 +268,84 @@ local function draw_tabs(cur)
   end
 end
 
+-- The chosen card's glowing frame: four wide strokes added up (13-34 px), painted once into a small picture and
+-- drawn as eight pieces round the card (corners as painted, sides stretched, the empty middle not drawn). The four
+-- strokes drawn every frame were 1.4 ms of the GPU's ~15.6 (SDL_KMSDRM_TIMING, 2026-11-25); the same light, since
+-- adding is linear: the picture holds 0.07 a stroke in white, drawn added with the card's colour times the pulse.
+local FR_M, FR_K, FR_R = 24, 44, 100      -- margin outside the frame's line, corner reach, the painted frame's size
+local frame_img, frame_quads
+local function build_frame()
+  local size = FR_R + 2 * FR_M
+  local cv = lg.newCanvas(size, size)
+  lg.push("all")
+  lg.setScissor()
+  lg.origin()
+  lg.setCanvas(cv)
+  lg.clear(0, 0, 0, 0)
+  lg.setBlendMode("add")
+  lg.setColor(1, 1, 1, 0.07)
+  for k = 1, 4 do
+    lg.setLineWidth(6 + k * 7)
+    D.rrect("line", FR_M, FR_M, FR_R, FR_R, 26)
+  end
+  lg.pop()
+  cv:setFilter("linear", "linear")
+  local e = {0, FR_M + FR_K, FR_M + FR_R - FR_K, size}
+  frame_quads = {}
+  for row = 1, 3 do
+    for col = 1, 3 do
+      if not (row == 2 and col == 2) then
+        frame_quads[#frame_quads + 1] = {col, row, lg.newQuad(e[col], e[row], e[col + 1] - e[col], e[row + 1] - e[row], size, size)}
+      end
+    end
+  end
+  frame_img = cv
+end
+D.label_jobs[#D.label_jobs + 1] = build_frame
+local function draw_frame(x0, y0, w, h, r, g, b, k)
+  -- target edges for the painted picture's columns and rows (its frame line maps onto the card's frame line)
+  local xs = {x0 - FR_M, x0 + FR_K, x0 + w - FR_K, x0 + w + FR_M}
+  local ys = {y0 - FR_M, y0 + FR_K, y0 + h - FR_K, y0 + h + FR_M}
+  local src = {0, FR_M + FR_K, FR_M + FR_R - FR_K, FR_R + 2 * FR_M}
+  lg.setBlendMode("add", "premultiplied")
+  lg.setColor(r * k, g * k, b * k, k)
+  for _, q in ipairs(frame_quads) do
+    local c, rr = q[1], q[2]
+    local sx = (xs[c + 1] - xs[c]) / (src[c + 1] - src[c])
+    local sy = (ys[rr + 1] - ys[rr]) / (src[rr + 1] - src[rr])
+    lg.draw(frame_img, q[3], xs[c], ys[rr], 0, sx, sy)
+  end
+  lg.setBlendMode("alpha")
+end
+
 -- A card, centered on (cx, cy), of width cw.
 local function draw_card(it, cx, cy, cw, focus, alpha)
   local ch = cw * 0.58
   local x, y = cx - cw / 2, cy - ch / 2
   local r, g, b = D.rgb(it.tint)
-  if focus > 0 then
+  if focus > 0 and not SKIP.frame then
     -- The glow and the pulsing frame of the chosen card.
     local p = 0.75 + 0.25 * math.sin(t * 4)
-    lg.setBlendMode("add")
-    for k = 1, 4 do
-      lg.setColor(r, g, b, 0.07 * focus * p)
-      lg.setLineWidth(6 + k * 7)
-      D.rrect("line", x - 6, y - 6, cw + 12, ch + 12, 26)
+    if frame_img and not SKIP.oldframe then
+      draw_frame(x - 6, y - 6, cw + 12, ch + 12, r, g, b, focus * p)
+    else
+      lg.setBlendMode("add")
+      for k = 1, 4 do
+        lg.setColor(r, g, b, 0.07 * focus * p)
+        lg.setLineWidth(6 + k * 7)
+        D.rrect("line", x - 6, y - 6, cw + 12, ch + 12, 26)
+      end
+      lg.setBlendMode("alpha")
     end
-    lg.setBlendMode("alpha")
   end
   lg.setColor(0.07, 0.03, 0.14, 0.9 * alpha)
-  D.rrect("fill", x, y, cw, ch, 22)
-  if it.art then
+  if not SKIP.cardfill then D.rrect("fill", x, y, cw, ch, 22) end
+  if it.art and not SKIP.art then
     -- A classic: its logo on a soft light of its own colour, gently breathing when chosen.
     local iw, ih = it.art:getDimensions()
     local s = math.min((cw - 56) / iw, (ch - 46) / ih)
     local breathe = 1 + 0.015 * focus * math.sin(t * 2.2)
-    if focus > 0.05 then fx.glow(cx, cy, cw * 0.4, ch * 0.36, r, g, b, 0.3 * focus * alpha) end
+    if focus > 0.05 and not SKIP.cardglow then fx.glow(cx, cy, cw * 0.4, ch * 0.36, r, g, b, 0.3 * focus * alpha) end
     lg.setColor(1, 1, 1, alpha)
     lg.draw(it.art, cx, cy, 0, s * breathe, s * breathe, iw / 2, ih / 2)
   elseif it.kind == "classic" then
@@ -667,7 +766,7 @@ local function draw_scene()
     return
   end
   local dim = ST.scene == "night" and 1 or 0
-  draw_background(dim)
+  if not SKIP.background then draw_background(dim) end
   if ST.scene == "intro" then
     draw_intro()
     return
@@ -676,9 +775,9 @@ local function draw_scene()
     draw_night()
     return
   end
-  draw_marquee()
-  draw_tabs(items[ST.sel].section)
-  draw_carousel()
+  if not SKIP.marquee then draw_marquee() end
+  if not SKIP.tabs then draw_tabs(items[ST.sel].section) end
+  if not SKIP.carousel then draw_carousel() end
   if ST.scene == "attract" then
     lg.setColor(0, 0, 0, 0.25)
     lg.rectangle("fill", 0, 780, W, H - 780)

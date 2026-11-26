@@ -245,16 +245,10 @@ cat > "$OUT/run.sh" <<'EOF'
 D=$(cd "$(dirname "$0")" && pwd)
 export LD_LIBRARY_PATH="$D/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export SDL_VIDEODRIVER=${SDL_VIDEODRIVER:-kmsdrm}
-# The CPU builds the next frame while the GPU draws this one (patches/sdl-kmsdrm-pipeline.patch).
-# (1: the pipelined swap. It lets the GPU draw into the picture shown, so fast motion can tear (found with test
-# patterns on the cabinet 2026-11-25); the tear-free modes are chosen per program: SDL_KMSDRM_SAFE (tvplay),
-# SDL_KMSDRM_TRIPLE (the games, which run alone and have the memory), PIPELINE=4 (two buffers, no tearing, but
-# a GPU frame must fit one refresh: the games fell to ~30 fps).)
-export SDL_KMSDRM_PIPELINE=${SDL_KMSDRM_PIPELINE:-1}
-# Four scanout buffers of SDL's own (games/love/patches): the GPU never draws into the picture shown, and the
-# games keep their speed (chest 46.8, band 47.8, safari 51 fps on the cabinet). ~12 MB: fine for a game, which runs
-# alone; Home turns it off (homeloop: SDL_KMSDRM_TRIPLE=0).
-export SDL_KMSDRM_TRIPLE=${SDL_KMSDRM_TRIPLE:-4}
+# How pictures reach the screen: SDL's own scanout buffers (games/love/patches/sdl-kmsdrm-pipeline.patch), so the
+# GPU never draws into the picture shown (moving pictures tore, 2026-11-25). 4 for a game (it runs alone: full
+# speed, ~12 MB); Home and the TV set 2 (homeloop, tvloop: no more memory than before).
+export SDL_KMSDRM_BUFFERS=${SDL_KMSDRM_BUFFERS:-4}
 export LOVE_GRAPHICS_USE_OPENGLES=1
 export ALSOFT_CONF=${ALSOFT_CONF:-$D/alsoft.conf}
 exec "$D/love.bin" "$@"

@@ -20,6 +20,7 @@
  * TVPLAY_VIEW (the remembered view), TVPLAY_FONT, TVPLAY_HINT=1 (show the controls for a few seconds),
  * TVPLAY_TUNING (instead of "TUNING IN...", e.g. "RECONNECTING..."). */
 #include <zlib.h>
+#include <dlfcn.h>
 
 #define GL_TEXTURE_2D 0x0DE1
 #define GL_TEXTURE1 0x84C1
@@ -117,12 +118,23 @@ static void use(Prog *P, float r, float g, float b, float a)
     glUniform4f_(P->col, r, g, b, a);
 }
 
+/* SDL's own scanout buffers (SDL_KMSDRM_BUFFERS, games/love/patches): the screen is the framebuffer object it
+   names here, and a picture drawn into one lands upside down compared with the window's (memory row 0 is GL's
+   bottom row there, the screen's top row on the display): flipped. 0: the window surface, as before. */
+static unsigned int *sdl_fbo;
 static void target_screen(void)
 {
+    static int looked;
+    if (!looked) {
+        void *self = dlopen(NULL, RTLD_LAZY);
+        looked = 1;
+        sdl_fbo = self ? (unsigned int *)dlsym(self, "partycade_kmsdrm_fbo") : NULL;
+    }
     glViewport_(0, 0, ww, wh);
     /* Upright (u right, v down) is the framebuffer's (x = v, y = 767 - u): clip X = 2v/1024 - 1, Y = 2u/768 - 1. */
     XM[0] = 0; XM[1] = 2.0f / VH; XM[2] = 2.0f / VW; XM[3] = 0;
     XO[0] = -1; XO[1] = -1;
+    if (sdl_fbo && *sdl_fbo) { XM[2] = -XM[2]; XO[1] = 1; }
 }
 
 static void quad(float x0, float y0, float x1, float y1, float s0, float t0, float s1, float t1)

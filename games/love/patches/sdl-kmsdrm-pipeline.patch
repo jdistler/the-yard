@@ -1,5 +1,5 @@
 diff --git a/src/video/kmsdrm/SDL_kmsdrmopengles.c b/src/video/kmsdrm/SDL_kmsdrmopengles.c
-index cbf86c9..6169ff1 100644
+index cbf86c9..9393502 100644
 --- a/src/video/kmsdrm/SDL_kmsdrmopengles.c
 +++ b/src/video/kmsdrm/SDL_kmsdrmopengles.c
 @@ -1,3 +1,4 @@
@@ -11,8 +11,8 @@ index cbf86c9..6169ff1 100644
  #include "SDL_kmsdrmopengles.h"
  #include "SDL_kmsdrmdyn.h"
  #include <errno.h>
-+#include <poll.h>
 +#include <fcntl.h>
++#include <poll.h>
 +#include <sys/ioctl.h>
 +#include <unistd.h>
 +#include "SDL_mutex.h"
@@ -20,7 +20,7 @@ index cbf86c9..6169ff1 100644
  
  #ifndef EGL_PLATFORM_GBM_MESA
  #define EGL_PLATFORM_GBM_MESA 0x31D7
-@@ -86,8 +93,516 @@ SDL_EGL_CreateContext_impl(KMSDRM)
+@@ -86,8 +93,431 @@ SDL_EGL_CreateContext_impl(KMSDRM)
      return 0;
  }
  
@@ -28,15 +28,6 @@ index cbf86c9..6169ff1 100644
 +static int tm_on = -1, tm_n;
 +static double tm_wait, tm_swap, tm_lock, tm_flip;
 +static double tm_now(void) { return (double)SDL_GetPerformanceCounter() * 1000.0 / (double)SDL_GetPerformanceFrequency(); }
-+
-+/* Partycade: SDL_KMSDRM_SAFE=1. The Mali draws into whichever of the surface's buffers it is given, and on this
-+   board (2 buffers, no fence wait in Rockchip's commit: "TODO: do fence wait here") that could be the one still on
-+   the screen: work the GPU did before the old picture left the screen (a canvas switch, a texture upload, a
-+   finish, or LÖVE's pipelined swap) was drawn into the picture being shown, and moving pictures tore (the TV,
-+   2026-11-25: a dumb-buffer test showed the display itself switches cleanly at the frame boundary). Here each
-+   swap waits for its flip to complete and gives the old buffer back at once: the only buffer the GPU can be
-+   given is one the screen no longer shows. */
-+static int safe_on = -1;
 +
 +/* Partycade: SDL_KMSDRM_PIPELINE=1. On the Mali-400, gbm_surface_lock_front_buffer waits for the GPU to finish
 +   the frame (10-18 ms), so the CPU idled while the GPU drew. Here a frame is handed to EGL and only locked and
@@ -64,18 +55,6 @@ index cbf86c9..6169ff1 100644
 +    }
 +}
 +
-+/* Partycade: SDL_KMSDRM_COUNT=1 logs how many distinct buffers the GBM surface hands out (every 300 locks). */
-+static void count_bo(struct gbm_bo *bo)
-+{
-+    static int on = -1, n, seen_n, locks;
-+    static struct gbm_bo *seen[16];
-+    if (on < 0) on = SDL_getenv("SDL_KMSDRM_COUNT") != NULL;
-+    if (!on || !bo) return;
-+    for (n = 0; n < seen_n && seen[n] != bo; n++) {}
-+    if (n == seen_n && seen_n < 16) seen[seen_n++] = bo;
-+    if (++locks % 300 == 0) fprintf(stderr, "kmsdrm: %d distinct buffers in %d locks\n", seen_n, locks);
-+}
-+
 +static int KMSDRM_GLES_FinishPending(_THIS, SDL_Window *window)
 +{
 +    SDL_WindowData *windata = ((SDL_WindowData *)window->driverdata);
@@ -90,26 +69,9 @@ index cbf86c9..6169ff1 100644
 +        SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not lock front buffer on GBM surface");
 +        return 0;
 +    }
-+    count_bo(bo);
 +    fb_info = KMSDRM_FBFromBO(_this, bo);
 +    if (!fb_info) {
 +        return 0;
-+    }
-+    /* Partycade: SDL_KMSDRM_PIPELINE=4. The frame on the screen with a blocking set-CRTC: the driver writes the
-+       display's registers in the call (a page flip goes through a deferred worker, which often missed the frame
-+       start and cost a refresh: mode 3 ran Home at 36 fps) and returns once the frame has latched. Then the picture
-+       it replaced is given back and is the only one the GPU can be given: no tearing, no extra memory (the Mali's
-+       own two buffers). */
-+    if (pipe_on == 4 && windata->crtc_ready) {
-+        if (KMSDRM_drmModeSetCrtc(viddata->drm_fd, dispdata->crtc->crtc_id, fb_info->fb_id, 0, 0,
-+                                  &dispdata->connector->connector_id, 1, &dispdata->mode)) {
-+            SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not set the CRTC");
-+        }
-+        if (windata->bo) KMSDRM_gbm_surface_release_buffer(windata->gs, windata->bo);
-+        if (windata->next_bo) KMSDRM_gbm_surface_release_buffer(windata->gs, windata->next_bo);
-+        windata->bo = NULL;
-+        windata->next_bo = bo;
-+        return 1;
 +    }
 +    if (!KMSDRM_WaitPageflip(_this, windata)) {
 +        return 0;
@@ -119,7 +81,7 @@ index cbf86c9..6169ff1 100644
 +    }
 +    windata->bo = windata->next_bo;
 +    windata->next_bo = bo;
-+    if (!windata->bo && !windata->crtc_ready) {
++    if (!windata->bo) {
 +        kmsdrm_first_frame_finish();
 +        ret = KMSDRM_drmModeSetCrtc(viddata->drm_fd, dispdata->crtc->crtc_id, fb_info->fb_id, 0, 0,
 +                                    &dispdata->connector->connector_id, 1, &dispdata->mode);
@@ -127,7 +89,6 @@ index cbf86c9..6169ff1 100644
 +            SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not set videomode on CRTC.");
 +            return 0;
 +        }
-+        windata->crtc_ready = SDL_TRUE;
 +    } else {
 +        ret = KMSDRM_drmModePageFlip(viddata->drm_fd, dispdata->crtc->crtc_id, fb_info->fb_id,
 +                                     DRM_MODE_PAGE_FLIP_EVENT, &windata->waiting_for_flip);
@@ -147,28 +108,13 @@ index cbf86c9..6169ff1 100644
 +    if (pipe_pending && !KMSDRM_GLES_FinishPending(_this, window)) {
 +        return 0;
 +    }
-+    /* Partycade: SDL_KMSDRM_PIPELINE=2. The flip just issued is waited for (it latches at the next frame start)
-+       before this frame goes to the GPU, and the picture it replaced is given back then: the GPU draws only into a
-+       buffer the screen no longer shows (with 1 the Mali drew into the shown picture and motion tore, 2026-11-25),
-+       while the CPU still builds the next frame as the GPU draws this one. */
-+    if (pipe_on >= 2 && windata->waiting_for_flip) {
-+        if (!KMSDRM_WaitPageflip(_this, windata)) {
-+            return 0;
-+        }
-+        if (windata->bo) {
-+            KMSDRM_gbm_surface_release_buffer(windata->gs, windata->bo);
-+            windata->bo = NULL;
-+        }
-+    }
 +    t1 = tm_on ? tm_now() : 0;
 +    if (!(_this->egl_data->eglSwapBuffers(_this->egl_data->egl_display, windata->egl_surface))) {
 +        SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "eglSwapBuffers failed");
 +        return 0;
 +    }
 +    pipe_pending = SDL_TRUE;
-+    /* (=3: as 2, without this check: the Mali's surface has two buffers, so after the swap it never has a free one,
-+       and 2 fell back to finishing every frame at once: 34 fps for Home) */
-+    if (pipe_on < 3 && (!KMSDRM_gbm_surface_has_free_buffers || !KMSDRM_gbm_surface_has_free_buffers(windata->gs))) {
++    if (!KMSDRM_gbm_surface_has_free_buffers || !KMSDRM_gbm_surface_has_free_buffers(windata->gs)) {
 +        if (!KMSDRM_GLES_FinishPending(_this, window)) {
 +            return 0;
 +        }
@@ -186,283 +132,244 @@ index cbf86c9..6169ff1 100644
 +    return 1;
 +}
 +
-+/* Partycade: SDL_KMSDRM_TRIPLE=1. Three scanout buffers of SDL's own, drawn into directly (no copy), so the CPU
-+   and the GPU overlap (Home at ~58 fps needs it) and the GPU is never given the picture on the screen.
-+   The Mali's GBM surface has two buffers (counted, 2026-11-25): overlapping with two meant drawing into the shown
-+   one (the tearing), and not overlapping halved Home (29-36 fps). Each buffer is a GBM bo the display can scan
-+   out, imported into GL as an EGLImage texture behind a framebuffer object; the application draws into
-+   partycade_kmsdrm_fbo (LÖVE's patched getDefaultFBO; LÖVE draws it upright as it draws a canvas). At a swap
-+   the finished buffer gets a fence and goes to a presenter thread, which waits for the GPU, flips to it and,
-+   when the flip has latched, frees the buffer it replaced. The application draws on into the third. */
-+#define TRI_MAX 4
-+static int tri_n = 4;       /* SDL_KMSDRM_TRIPLE=N: N buffers (3 or 4; 1 or other values: 4) */
-+#define TRI_N (tri_n)
-+enum { TRI_FREE, TRI_RENDER, TRI_QUEUED, TRI_SHOWN };
-+typedef void *TriEGLSync;
-+typedef struct { uint32_t handle, pitch, fb; unsigned int tex, fbo; void *img; int state; TriEGLSync fence; double queued; } TriBuf;
-+static double tri_gpu_sum, tri_gpu_max, tri_lat_sum;
-+static int tri_gpu_n;
-+static TriBuf tri_b[TRI_MAX];
-+static int tri_on = -1, tri_ready, tri_cur, tri_q[TRI_MAX], tri_qn, tri_flip_done;
-+static SDL_mutex *tri_mu;
-+static SDL_cond *tri_cv;
-+static SDL_Thread *tri_thread;
-+static void *tri_dpy;
-+static int tri_drm_fd;
-+static uint32_t tri_crtc, tri_conn;
-+static drmModeModeInfo tri_mode;
-+static int tri_crtc_set;
-+static long tri_frames, tri_waits;
++/* ======================================================================================================== */
++/* Partycade: SDL_KMSDRM_BUFFERS=N (2, 3 or 4). The one way pictures reach the screen (2026-11-25).
++
++   Why. The Mali's GBM surface has two buffers. Any overlap of the CPU and GPU through it (the pipelined swap)
++   had the GPU draw the next picture into the one still on the screen: moving pictures tore, found with test
++   patterns on the cabinet (tools/cabview/fliptest.c showed the display itself switches cleanly at the frame
++   boundary). So SDL keeps buffers of its own, and the GPU is never given the one on the screen:
++
++   - N buffers made by the display driver (the Mali refused its own GBM buffers as render targets), imported as
++     GL textures behind framebuffer objects (format RA24, the one this Mali takes; scanned out as XBGR8888, the
++     display's red/blue swap is free). The application draws into partycade_kmsdrm_fbo (LÖVE's patched
++     getDefaultFBO, games/love/patches/love-screen-fbo.patch; tvplay binds it itself), upright, as into a canvas.
++   - A swap fences the frame and queues it to a presenter thread, which waits for the GPU, flips to it (the
++     first: set-CRTC, which may change the pixel format) and, once it has latched, frees the buffer it replaced.
++   - One stencil (8 bits) shared, discarded after each frame (written back it cost 6.7 ms of GPU a frame).
++   - The window surface is dropped before it is ever shown (shown once, the display kept its buffers: 3-6 MB).
++
++   N: 2 costs no more memory than the window surface did; the GPU starts a frame once the other buffer has left
++   the screen, so a frame's GPU work must fit a refresh (Home, TV). 3 and 4 let the GPU run on into a free buffer
++   while the last one waits for its frame: full speed, 3 MB a buffer plus ~3 MB of the Mali's (the games, which
++   run alone). Measured on the cabinet: SYSTEM_AUDIT.md K7. Any set-up step refused: the usual swap. */
++#define PC_MAX 4
++enum { PC_FREE, PC_RENDER, PC_QUEUED, PC_SHOWN };
++typedef void *PcSync;
++typedef struct { uint32_t handle, pitch, fb; unsigned int tex, fbo; void *img; int state; PcSync fence; Uint64 queued; } PcBuf;
++/* SDL_KMSDRM_TIMING=1: every 300 frames, how long after the swap the GPU finished a frame (with 3-4 buffers the
++   GPU seldom waits for one, so this is close to its time a frame: the profiler for what a frame costs) */
++static int pc_timing = -1, pc_tn;
++static double pc_tsum, pc_tmax;
++static PcBuf pc_b[PC_MAX];
++static int pc_n = -1, pc_ready, pc_cur, pc_q[PC_MAX], pc_qn, pc_busy, pc_flip_done, pc_crtc_set;
++static SDL_mutex *pc_mu;
++static SDL_cond *pc_cv;
++static void *pc_dpy;
++static int pc_drm_fd;
++static uint32_t pc_crtc, pc_conn;
++static drmModeModeInfo pc_mode;
 +__attribute__((visibility("default"))) unsigned int partycade_kmsdrm_fbo;
 +
-+#define TRI_EGL_LINUX_DMA_BUF_EXT 0x3270
-+#define TRI_EGL_WIDTH 0x3057
-+#define TRI_EGL_HEIGHT 0x3056
-+#define TRI_EGL_LINUX_DRM_FOURCC_EXT 0x3271
-+#define TRI_EGL_DMA_BUF_PLANE0_FD_EXT 0x3272
-+#define TRI_EGL_DMA_BUF_PLANE0_OFFSET_EXT 0x3273
-+#define TRI_EGL_DMA_BUF_PLANE0_PITCH_EXT 0x3274
-+#define TRI_EGL_NONE 0x3038
-+#define TRI_EGL_SYNC_FENCE_KHR 0x30F9
-+#define TRI_EGL_FOREVER_KHR 0xFFFFFFFFFFFFFFFFull
-+#define TRI_GL_TEXTURE_2D 0x0DE1
-+#define TRI_GL_FRAMEBUFFER 0x8D40
-+#define TRI_GL_RENDERBUFFER 0x8D41
-+#define TRI_GL_COLOR_ATTACHMENT0 0x8CE0
-+#define TRI_GL_DEPTH_ATTACHMENT 0x8D00
-+#define TRI_GL_STENCIL_ATTACHMENT 0x8D20
-+#define TRI_GL_DEPTH24_STENCIL8_OES 0x88F0
-+#define TRI_GL_FRAMEBUFFER_COMPLETE 0x8CD5
-+#define TRI_GL_TEXTURE_MIN_FILTER 0x2801
-+#define TRI_GL_TEXTURE_MAG_FILTER 0x2800
-+#define TRI_GL_NEAREST 0x2600
-+#define TRI_DRM_FORMAT_XRGB8888 0x34325258
++static void *(*pc_eglCreateImageKHR)(void *, void *, unsigned int, void *, const int *);
++static PcSync (*pc_eglCreateSyncKHR)(void *, unsigned int, const int *);
++static int (*pc_eglClientWaitSyncKHR)(void *, PcSync, int, unsigned long long);
++static unsigned int (*pc_eglDestroySyncKHR)(void *, PcSync);
++static void (*pc_glGenFramebuffers)(int, unsigned int *);
++static void (*pc_glBindFramebuffer)(unsigned int, unsigned int);
++static void (*pc_glFramebufferTexture2D)(unsigned int, unsigned int, unsigned int, unsigned int, int);
++static void (*pc_glGenRenderbuffers)(int, unsigned int *);
++static void (*pc_glBindRenderbuffer)(unsigned int, unsigned int);
++static void (*pc_glRenderbufferStorage)(unsigned int, unsigned int, int, int);
++static void (*pc_glFramebufferRenderbuffer)(unsigned int, unsigned int, unsigned int, unsigned int);
++static unsigned int (*pc_glCheckFramebufferStatus)(unsigned int);
++static void (*pc_glGenTextures)(int, unsigned int *);
++static void (*pc_glBindTexture)(unsigned int, unsigned int);
++static void (*pc_glTexParameteri)(unsigned int, unsigned int, int);
++static void (*pc_glEGLImageTargetTexture2DOES)(unsigned int, void *);
++static void (*pc_glFlush)(void);
++static void (*pc_glDiscardFramebufferEXT)(unsigned int, int, const unsigned int *);
 +
-+static void *(*tri_eglCreateImageKHR)(void *, void *, unsigned int, void *, const int *);
-+static TriEGLSync (*tri_eglCreateSyncKHR)(void *, unsigned int, const int *);
-+static int (*tri_eglClientWaitSyncKHR)(void *, TriEGLSync, int, unsigned long long);
-+static unsigned int (*tri_eglDestroySyncKHR)(void *, TriEGLSync);
-+static void (*tri_glGenFramebuffers)(int, unsigned int *);
-+static void (*tri_glBindFramebuffer)(unsigned int, unsigned int);
-+static void (*tri_glFramebufferTexture2D)(unsigned int, unsigned int, unsigned int, unsigned int, int);
-+static void (*tri_glGenRenderbuffers)(int, unsigned int *);
-+static void (*tri_glBindRenderbuffer)(unsigned int, unsigned int);
-+static void (*tri_glRenderbufferStorage)(unsigned int, unsigned int, int, int);
-+static void (*tri_glFramebufferRenderbuffer)(unsigned int, unsigned int, unsigned int, unsigned int);
-+static unsigned int (*tri_glCheckFramebufferStatus)(unsigned int);
-+static void (*tri_glGenTextures)(int, unsigned int *);
-+static void (*tri_glBindTexture)(unsigned int, unsigned int);
-+static void (*tri_glTexParameteri)(unsigned int, unsigned int, int);
-+static void (*tri_glEGLImageTargetTexture2DOES)(unsigned int, void *);
-+static void (*tri_glFlush)(void);
-+static void (*tri_glDiscardFramebufferEXT)(unsigned int, int, const unsigned int *);
++#define PC_GL_TEXTURE_2D 0x0DE1
++#define PC_GL_FRAMEBUFFER 0x8D40
++#define PC_GL_RENDERBUFFER 0x8D41
++#define PC_GL_COLOR_ATTACHMENT0 0x8CE0
++#define PC_GL_STENCIL_ATTACHMENT 0x8D20
++#define PC_GL_STENCIL_INDEX8 0x8D48
++#define PC_GL_FRAMEBUFFER_COMPLETE 0x8CD5
++#define PC_EGL_NONE 0x3038
 +
-+static void tri_flip_handler(int fd, unsigned int frame, unsigned int sec, unsigned int usec, void *data)
++static void pc_flip_handler(int fd, unsigned int frame, unsigned int sec, unsigned int usec, void *data)
 +{
 +    (void)fd; (void)frame; (void)sec; (void)usec; (void)data;
-+    tri_flip_done = 1;
++    pc_flip_done = 1;
 +}
 +
-+static int tri_present(void *arg)
++static void pc_wait_flip(void)
 +{
 +    drmEventContext ev = { 0 };
-+    (void)arg;
 +    ev.version = DRM_EVENT_CONTEXT_VERSION;
-+    ev.page_flip_handler = tri_flip_handler;
++    ev.page_flip_handler = pc_flip_handler;
++    while (!pc_flip_done) {
++        struct pollfd pfd = { 0 };
++        pfd.fd = pc_drm_fd;
++        pfd.events = POLLIN;
++        if (poll(&pfd, 1, 100) > 0) KMSDRM_drmHandleEvent(pc_drm_fd, &ev);
++    }
++}
++
++/* The presenter: each queued buffer, once the GPU is done with it, onto the screen at the next frame start. */
++static int pc_present(void *arg)
++{
++    (void)arg;
 +    for (;;) {
 +        int i, j;
-+        SDL_LockMutex(tri_mu);
-+        while (tri_qn == 0) SDL_CondWait(tri_cv, tri_mu);
-+        i = tri_q[0];
-+        SDL_memmove(tri_q, tri_q + 1, (--tri_qn) * sizeof tri_q[0]);
-+        SDL_UnlockMutex(tri_mu);
-+        /* the GPU done with it */
-+        if (tri_b[i].fence) {
-+            double tw = tm_now();
-+            tri_eglClientWaitSyncKHR(tri_dpy, tri_b[i].fence, 0, TRI_EGL_FOREVER_KHR);
-+            {   /* (SDL_KMSDRM_TIMING: how long after the swap the GPU finished the frame, every 300) */
-+                double done = tm_now(), lat = done - tri_b[i].queued;
-+                tri_lat_sum += lat;
-+                tri_gpu_sum += done - tw;
-+                if (lat > tri_gpu_max) tri_gpu_max = lat;
-+                if (++tri_gpu_n == 300) {
-+                    if (SDL_getenv("SDL_KMSDRM_TIMING"))
-+                        fprintf(stderr, "kmsdrm triple: GPU done %.1f ms after the swap (max %.0f), presenter waited %.1f\n",
-+                                tri_lat_sum / 300, tri_gpu_max, tri_gpu_sum / 300);
-+                    tri_gpu_n = 0; tri_lat_sum = tri_gpu_sum = tri_gpu_max = 0;
++        SDL_LockMutex(pc_mu);
++        while (pc_qn == 0) SDL_CondWait(pc_cv, pc_mu);
++        i = pc_q[0];
++        SDL_memmove(pc_q, pc_q + 1, (--pc_qn) * sizeof pc_q[0]);
++        pc_busy = 1;
++        SDL_UnlockMutex(pc_mu);
++        if (pc_b[i].fence) {
++            pc_eglClientWaitSyncKHR(pc_dpy, pc_b[i].fence, 0, 0xFFFFFFFFFFFFFFFFull);
++            if (pc_timing) {
++                double ms = (double)(SDL_GetPerformanceCounter() - pc_b[i].queued) * 1000.0 / (double)SDL_GetPerformanceFrequency();
++                pc_tsum += ms;
++                if (ms > pc_tmax) pc_tmax = ms;
++                if (++pc_tn == 300) {
++                    fprintf(stderr, "kmsdrm buffers: GPU done %.1f ms after the swap (max %.0f)\n", pc_tsum / 300, pc_tmax);
++                    pc_tn = 0; pc_tsum = pc_tmax = 0;
 +                }
 +            }
-+            tri_eglDestroySyncKHR(tri_dpy, tri_b[i].fence);
-+            tri_b[i].fence = NULL;
++            pc_eglDestroySyncKHR(pc_dpy, pc_b[i].fence);
++            pc_b[i].fence = NULL;
 +        }
-+        /* the flip (latched by the display at the next frame start), and its completion */
-+        tri_flip_done = 0;
-+        if (!tri_crtc_set) {
-+            /* (the first: a page flip may not change the pixel format, and the screen shows SDL's first, XRGB,
-+               frame; setting the CRTC does, and returns once it is on the screen) */
-+            tri_crtc_set = 1;
-+            if (KMSDRM_drmModeSetCrtc(tri_drm_fd, tri_crtc, tri_b[i].fb, 0, 0, &tri_conn, 1, &tri_mode))
-+                SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "triple: set CRTC failed");
-+        } else if (KMSDRM_drmModePageFlip(tri_drm_fd, tri_crtc, tri_b[i].fb, DRM_MODE_PAGE_FLIP_EVENT, NULL) == 0) {
-+            while (!tri_flip_done) {
-+                struct pollfd pfd = { 0 };
-+                pfd.fd = tri_drm_fd;
-+                pfd.events = POLLIN;
-+                if (poll(&pfd, 1, 100) > 0) KMSDRM_drmHandleEvent(tri_drm_fd, &ev);
-+            }
++        pc_flip_done = 0;
++        if (!pc_crtc_set) {
++            pc_crtc_set = 1;
++            if (KMSDRM_drmModeSetCrtc(pc_drm_fd, pc_crtc, pc_b[i].fb, 0, 0, &pc_conn, 1, &pc_mode))
++                SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "buffers: set CRTC failed");
++        } else if (KMSDRM_drmModePageFlip(pc_drm_fd, pc_crtc, pc_b[i].fb, DRM_MODE_PAGE_FLIP_EVENT, NULL) == 0) {
++            pc_wait_flip();
 +        } else {
-+            /* (busy: once more after a moment; otherwise, typically SDL restoring the screen at the program's end,
-+               only noted) */
++            /* (busy: once more after a moment; else, typically SDL restoring the screen at the end: only noted) */
 +            SDL_Delay(4);
-+            if (KMSDRM_drmModePageFlip(tri_drm_fd, tri_crtc, tri_b[i].fb, DRM_MODE_PAGE_FLIP_EVENT, NULL) == 0) {
-+                while (!tri_flip_done) {
-+                    struct pollfd pfd = { 0 };
-+                    pfd.fd = tri_drm_fd;
-+                    pfd.events = POLLIN;
-+                    if (poll(&pfd, 1, 100) > 0) KMSDRM_drmHandleEvent(tri_drm_fd, &ev);
-+                }
-+            } else {
-+                SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "triple: flip failed (%d)", errno);
-+            }
++            if (KMSDRM_drmModePageFlip(pc_drm_fd, pc_crtc, pc_b[i].fb, DRM_MODE_PAGE_FLIP_EVENT, NULL) == 0) pc_wait_flip();
++            else SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "buffers: flip failed (%d)", errno);
 +        }
-+        SDL_LockMutex(tri_mu);
-+        for (j = 0; j < TRI_N; j++) if (tri_b[j].state == TRI_SHOWN) tri_b[j].state = TRI_FREE;
-+        tri_b[i].state = TRI_SHOWN;
-+        SDL_CondBroadcast(tri_cv);
-+        SDL_UnlockMutex(tri_mu);
++        SDL_LockMutex(pc_mu);
++        for (j = 0; j < pc_n; j++) if (pc_b[j].state == PC_SHOWN) pc_b[j].state = PC_FREE;
++        pc_b[i].state = PC_SHOWN;
++        pc_busy = 0;
++        SDL_CondBroadcast(pc_cv);
++        SDL_UnlockMutex(pc_mu);
 +    }
 +    return 0;
 +}
 +
-+#define TRI_PROC(var, name) do { *(void **)&var = SDL_GL_GetProcAddress(name); if (!var) { \
-+        SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "triple: no %s", name); return 0; } } while (0)
++#define PC_PROC(var, name) do { *(void **)&var = SDL_GL_GetProcAddress(name); if (!var) { \
++        SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "buffers: no %s", name); return 0; } } while (0)
 +
-+static int tri_setup(_THIS, SDL_Window *window)
++static int pc_setup(_THIS, SDL_Window *window)
 +{
 +    SDL_VideoData *viddata = ((SDL_VideoData *)_this->driverdata);
 +    SDL_DisplayData *dispdata = (SDL_DisplayData *)SDL_GetDisplayForWindow(window)->driverdata;
 +    int w = dispdata->mode.hdisplay, h = dispdata->mode.vdisplay, i;
-+    unsigned int depth;
-+    TRI_PROC(tri_eglCreateImageKHR, "eglCreateImageKHR");
-+    TRI_PROC(tri_eglCreateSyncKHR, "eglCreateSyncKHR");
-+    TRI_PROC(tri_eglClientWaitSyncKHR, "eglClientWaitSyncKHR");
-+    TRI_PROC(tri_eglDestroySyncKHR, "eglDestroySyncKHR");
-+    TRI_PROC(tri_glGenFramebuffers, "glGenFramebuffers");
-+    TRI_PROC(tri_glBindFramebuffer, "glBindFramebuffer");
-+    TRI_PROC(tri_glFramebufferTexture2D, "glFramebufferTexture2D");
-+    TRI_PROC(tri_glGenRenderbuffers, "glGenRenderbuffers");
-+    TRI_PROC(tri_glBindRenderbuffer, "glBindRenderbuffer");
-+    TRI_PROC(tri_glRenderbufferStorage, "glRenderbufferStorage");
-+    TRI_PROC(tri_glFramebufferRenderbuffer, "glFramebufferRenderbuffer");
-+    TRI_PROC(tri_glCheckFramebufferStatus, "glCheckFramebufferStatus");
-+    TRI_PROC(tri_glGenTextures, "glGenTextures");
-+    TRI_PROC(tri_glBindTexture, "glBindTexture");
-+    TRI_PROC(tri_glTexParameteri, "glTexParameteri");
-+    TRI_PROC(tri_glEGLImageTargetTexture2DOES, "glEGLImageTargetTexture2DOES");
-+    TRI_PROC(tri_glFlush, "glFlush");
-+    *(void **)&tri_glDiscardFramebufferEXT = SDL_GL_GetProcAddress("glDiscardFramebufferEXT");
-+    tri_dpy = _this->egl_data->egl_display;
-+    tri_drm_fd = viddata->drm_fd;
-+    tri_crtc = dispdata->crtc->crtc_id;
-+    tri_conn = dispdata->connector->connector_id;
-+    tri_mode = dispdata->mode;
-+    /* one stencil for all of them (LÖVE's stencils on the screen: the night's moon, the Yard), 8 bits: nothing on
-+       the cabinet draws with depth, and depth + stencil was 3 MB more (memory is what this board runs out of) */
-+    tri_glGenRenderbuffers(1, &depth);
-+    tri_glBindRenderbuffer(TRI_GL_RENDERBUFFER, depth);
-+    tri_glRenderbufferStorage(TRI_GL_RENDERBUFFER, 0x8D48 /* GL_STENCIL_INDEX8 */, w, h);
-+    for (i = 0; i < TRI_N; i++) {
-+        TriBuf *b = &tri_b[i];
++    unsigned int stencil;
++    PC_PROC(pc_eglCreateImageKHR, "eglCreateImageKHR");
++    PC_PROC(pc_eglCreateSyncKHR, "eglCreateSyncKHR");
++    PC_PROC(pc_eglClientWaitSyncKHR, "eglClientWaitSyncKHR");
++    PC_PROC(pc_eglDestroySyncKHR, "eglDestroySyncKHR");
++    PC_PROC(pc_glGenFramebuffers, "glGenFramebuffers");
++    PC_PROC(pc_glBindFramebuffer, "glBindFramebuffer");
++    PC_PROC(pc_glFramebufferTexture2D, "glFramebufferTexture2D");
++    PC_PROC(pc_glGenRenderbuffers, "glGenRenderbuffers");
++    PC_PROC(pc_glBindRenderbuffer, "glBindRenderbuffer");
++    PC_PROC(pc_glRenderbufferStorage, "glRenderbufferStorage");
++    PC_PROC(pc_glFramebufferRenderbuffer, "glFramebufferRenderbuffer");
++    PC_PROC(pc_glCheckFramebufferStatus, "glCheckFramebufferStatus");
++    PC_PROC(pc_glGenTextures, "glGenTextures");
++    PC_PROC(pc_glBindTexture, "glBindTexture");
++    PC_PROC(pc_glTexParameteri, "glTexParameteri");
++    PC_PROC(pc_glEGLImageTargetTexture2DOES, "glEGLImageTargetTexture2DOES");
++    PC_PROC(pc_glFlush, "glFlush");
++    *(void **)&pc_glDiscardFramebufferEXT = SDL_GL_GetProcAddress("glDiscardFramebufferEXT");
++    pc_dpy = _this->egl_data->egl_display;
++    pc_timing = SDL_getenv("SDL_KMSDRM_TIMING") != NULL;
++    pc_drm_fd = viddata->drm_fd;
++    pc_crtc = dispdata->crtc->crtc_id;
++    pc_conn = dispdata->connector->connector_id;
++    pc_mode = dispdata->mode;
++    pc_glGenRenderbuffers(1, &stencil);
++    pc_glBindRenderbuffer(PC_GL_RENDERBUFFER, stencil);
++    pc_glRenderbufferStorage(PC_GL_RENDERBUFFER, PC_GL_STENCIL_INDEX8, w, h);
++    for (i = 0; i < pc_n; i++) {
++        PcBuf *b = &pc_b[i];
++        struct drm_mode_create_dumb cd;
++        uint32_t handles[4] = {0}, pitches[4] = {0}, offsets[4] = {0};
 +        int fd = -1, attr[13];
-+        /* (display-driver "dumb" buffers: the Mali refused its own GBM buffers as render targets, EGL_BAD_MATCH; it
-+           takes the display driver's, as tvplay's decoded video shows) */
-+        {
-+            struct drm_mode_create_dumb cd;
-+            SDL_zero(cd);
-+            cd.width = w; cd.height = h; cd.bpp = 32;
-+            if (ioctl(viddata->drm_fd, DRM_IOCTL_MODE_CREATE_DUMB, &cd)) {
-+                SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "triple: no dumb buffer");
-+                return 0;
-+            }
-+            b->handle = cd.handle;
-+            b->pitch = cd.pitch;
-+            /* (XBGR8888: the GPU writes R, G, B, A in byte order, which the display reads with its red/blue swap
-+               bit, free; as XRGB8888 red and blue came out swapped) */
-+            uint32_t handles[4] = {cd.handle}, pitches[4] = {cd.pitch}, offsets[4] = {0};
-+            if (!KMSDRM_drmModeAddFB2 ||
-+                KMSDRM_drmModeAddFB2(viddata->drm_fd, w, h, 0x34324258 /* XB24 */, handles, pitches, offsets, &b->fb, 0)) {
-+                SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "triple: no framebuffer");
-+                return 0;
-+            }
-+        }
-+        /* (read-write: a render target is written; a read-only export was refused with EGL_BAD_MATCH) */
-+        if (KMSDRM_drmPrimeHandleToFD(viddata->drm_fd, b->handle, DRM_CLOEXEC | O_RDWR, &fd) || fd < 0) {
-+            SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "triple: no dma-buf");
++        SDL_zero(cd);
++        cd.width = w; cd.height = h; cd.bpp = 32;
++        if (ioctl(pc_drm_fd, DRM_IOCTL_MODE_CREATE_DUMB, &cd)) { SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "buffers: no dumb buffer"); return 0; }
++        b->handle = cd.handle;
++        b->pitch = cd.pitch;
++        handles[0] = cd.handle; pitches[0] = cd.pitch;
++        if (!KMSDRM_drmModeAddFB2 ||
++            KMSDRM_drmModeAddFB2(pc_drm_fd, w, h, 0x34324258 /* XB24 */, handles, pitches, offsets, &b->fb, 0)) {
++            SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "buffers: no framebuffer");
 +            return 0;
 +        }
-+        {
-+            /* (the same bytes under the names the Mali may take: ARGB first, the display ignores the alpha) */
-+            /* (RA24 is the one this Mali takes, 2026-11-25; the rest refused with EGL_BAD_MATCH) */
-+            static const int fourccs[] = {0x34324152 /* RA24 */, 0x34324142 /* BA24 */, 0x34325241 /* AR24 */,
-+                                          0x34325258 /* XR24 */, 0x34324241 /* AB24 */, 0x34324258 /* XB24 */};
-+            unsigned f;
-+            b->img = NULL;
-+            for (f = 0; f < sizeof fourccs / sizeof fourccs[0] && !b->img; f++) {
-+                attr[0] = TRI_EGL_WIDTH; attr[1] = w; attr[2] = TRI_EGL_HEIGHT; attr[3] = h;
-+                attr[4] = TRI_EGL_LINUX_DRM_FOURCC_EXT; attr[5] = fourccs[f];
-+                attr[6] = TRI_EGL_DMA_BUF_PLANE0_FD_EXT; attr[7] = fd;
-+                attr[8] = TRI_EGL_DMA_BUF_PLANE0_OFFSET_EXT; attr[9] = 0;
-+                attr[10] = TRI_EGL_DMA_BUF_PLANE0_PITCH_EXT; attr[11] = (int)b->pitch;
-+                attr[12] = TRI_EGL_NONE;
-+                b->img = tri_eglCreateImageKHR(tri_dpy, NULL, TRI_EGL_LINUX_DMA_BUF_EXT, NULL, attr);
-+                if (!b->img) SDL_LogDebug(SDL_LOG_CATEGORY_VIDEO, "triple: EGLImage %08x refused (0x%x)", fourccs[f],
-+                                          _this->egl_data->eglGetError());
-+            }
++        if (KMSDRM_drmPrimeHandleToFD(pc_drm_fd, b->handle, DRM_CLOEXEC | O_RDWR, &fd) || fd < 0) {
++            SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "buffers: no dma-buf");
++            return 0;
 +        }
++        attr[0] = 0x3057 /* EGL_WIDTH */; attr[1] = w; attr[2] = 0x3056 /* EGL_HEIGHT */; attr[3] = h;
++        attr[4] = 0x3271 /* EGL_LINUX_DRM_FOURCC_EXT */; attr[5] = 0x34324152 /* RA24 */;
++        attr[6] = 0x3272 /* EGL_DMA_BUF_PLANE0_FD_EXT */; attr[7] = fd;
++        attr[8] = 0x3273 /* EGL_DMA_BUF_PLANE0_OFFSET_EXT */; attr[9] = 0;
++        attr[10] = 0x3274 /* EGL_DMA_BUF_PLANE0_PITCH_EXT */; attr[11] = (int)b->pitch;
++        attr[12] = PC_EGL_NONE;
++        b->img = pc_eglCreateImageKHR(pc_dpy, NULL, 0x3270 /* EGL_LINUX_DMA_BUF_EXT */, NULL, attr);
 +        close(fd);
-+        if (!b->img) { SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "triple: no EGLImage"); return 0; }
-+        tri_glGenTextures(1, &b->tex);
-+        tri_glBindTexture(TRI_GL_TEXTURE_2D, b->tex);
-+        tri_glTexParameteri(TRI_GL_TEXTURE_2D, TRI_GL_TEXTURE_MIN_FILTER, TRI_GL_NEAREST);
-+        tri_glTexParameteri(TRI_GL_TEXTURE_2D, TRI_GL_TEXTURE_MAG_FILTER, TRI_GL_NEAREST);
-+        tri_glEGLImageTargetTexture2DOES(TRI_GL_TEXTURE_2D, b->img);
-+        tri_glGenFramebuffers(1, &b->fbo);
-+        tri_glBindFramebuffer(TRI_GL_FRAMEBUFFER, b->fbo);
-+        tri_glFramebufferTexture2D(TRI_GL_FRAMEBUFFER, TRI_GL_COLOR_ATTACHMENT0, TRI_GL_TEXTURE_2D, b->tex, 0);
-+        tri_glFramebufferRenderbuffer(TRI_GL_FRAMEBUFFER, TRI_GL_STENCIL_ATTACHMENT, TRI_GL_RENDERBUFFER, depth);
-+        if (tri_glCheckFramebufferStatus(TRI_GL_FRAMEBUFFER) != TRI_GL_FRAMEBUFFER_COMPLETE) {
-+            SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "triple: framebuffer incomplete");
++        if (!b->img) { SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "buffers: no EGLImage (0x%x)", _this->egl_data->eglGetError()); return 0; }
++        pc_glGenTextures(1, &b->tex);
++        pc_glBindTexture(PC_GL_TEXTURE_2D, b->tex);
++        pc_glTexParameteri(PC_GL_TEXTURE_2D, 0x2801 /* MIN_FILTER */, 0x2600 /* NEAREST */);
++        pc_glTexParameteri(PC_GL_TEXTURE_2D, 0x2800 /* MAG_FILTER */, 0x2600);
++        pc_glEGLImageTargetTexture2DOES(PC_GL_TEXTURE_2D, b->img);
++        pc_glGenFramebuffers(1, &b->fbo);
++        pc_glBindFramebuffer(PC_GL_FRAMEBUFFER, b->fbo);
++        pc_glFramebufferTexture2D(PC_GL_FRAMEBUFFER, PC_GL_COLOR_ATTACHMENT0, PC_GL_TEXTURE_2D, b->tex, 0);
++        pc_glFramebufferRenderbuffer(PC_GL_FRAMEBUFFER, PC_GL_STENCIL_ATTACHMENT, PC_GL_RENDERBUFFER, stencil);
++        if (pc_glCheckFramebufferStatus(PC_GL_FRAMEBUFFER) != PC_GL_FRAMEBUFFER_COMPLETE) {
++            SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "buffers: framebuffer incomplete");
 +            return 0;
 +        }
-+        b->state = TRI_FREE;
++        b->state = PC_FREE;
 +    }
-+    tri_glBindTexture(TRI_GL_TEXTURE_2D, 0);
-+    tri_mu = SDL_CreateMutex();
-+    tri_cv = SDL_CreateCond();
-+    tri_thread = SDL_CreateThreadInternal(tri_present, "kmsdrm-present", 0, NULL);
-+    tri_cur = 0;
-+    tri_b[0].state = TRI_RENDER;
-+    partycade_kmsdrm_fbo = tri_b[0].fbo;
-+    tri_glBindFramebuffer(TRI_GL_FRAMEBUFFER, tri_b[0].fbo);
-+    if (SDL_getenv("SDL_KMSDRM_DEBUG")) fprintf(stderr, "kmsdrm: triple buffering on, %dx%d\n", w, h);
++    pc_glBindTexture(PC_GL_TEXTURE_2D, 0);
++    pc_mu = SDL_CreateMutex();
++    pc_cv = SDL_CreateCond();
++    SDL_CreateThreadInternal(pc_present, "kmsdrm-present", 0, NULL);
++    pc_cur = 0;
++    pc_b[0].state = PC_RENDER;
++    partycade_kmsdrm_fbo = pc_b[0].fbo;
++    pc_glBindFramebuffer(PC_GL_FRAMEBUFFER, pc_b[0].fbo);
 +    return 1;
 +}
 +
-+/* Once one of ours is on the screen, the window surface's own two buffers (6 MB) are never used again: the context
-+   moves to a 16 x 16 pbuffer and the window surface and its GBM surface go. (Any step refused: all kept.) */
-+static int tri_reclaimed;
-+static void tri_reclaim(_THIS, SDL_Window *window)
++/* The window surface's buffers are never used now: the context moves to a 16 x 16 pbuffer and the window surface
++   and its GBM surface go, before any of their buffers is locked or put on the screen. (Refused: all kept.) */
++static void pc_drop_window(_THIS, SDL_Window *window)
 +{
 +    SDL_WindowData *windata = (SDL_WindowData *)window->driverdata;
-+    static const int pa[] = {0x3057 /* EGL_WIDTH */, 16, 0x3056 /* EGL_HEIGHT */, 16, TRI_EGL_NONE};
++    static const int pa[] = {0x3057, 16, 0x3056, 16, PC_EGL_NONE};
 +    void *ctx = SDL_GL_GetCurrentContext();
 +    EGLSurface pb;
-+    tri_reclaimed = 1;
 +    if (!ctx || !_this->egl_data->eglCreatePbufferSurface) return;
 +    pb = _this->egl_data->eglCreatePbufferSurface(_this->egl_data->egl_display, _this->egl_data->egl_config, pa);
-+    if (pb == EGL_NO_SURFACE) { SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "triple: no pbuffer: window buffers kept"); return; }
++    if (pb == EGL_NO_SURFACE) return;
 +    if (!_this->egl_data->eglMakeCurrent(_this->egl_data->egl_display, pb, pb, (EGLContext)ctx)) {
-+        SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "triple: pbuffer not current: window buffers kept");
 +        _this->egl_data->eglDestroySurface(_this->egl_data->egl_display, pb);
 +        return;
 +    }
@@ -472,57 +379,65 @@ index cbf86c9..6169ff1 100644
 +    _this->egl_data->eglDestroySurface(_this->egl_data->egl_display, windata->egl_surface);
 +    windata->egl_surface = pb;
 +    if (windata->gs) { KMSDRM_gbm_surface_destroy(windata->gs); windata->gs = NULL; }
-+    tri_glBindFramebuffer(TRI_GL_FRAMEBUFFER, tri_b[tri_cur].fbo);
-+    if (SDL_getenv("SDL_KMSDRM_DEBUG")) fprintf(stderr, "kmsdrm: triple: window surface released\n");
++    pc_glBindFramebuffer(PC_GL_FRAMEBUFFER, pc_b[pc_cur].fbo);
 +}
 +
-+static int tri_swap(_THIS, SDL_Window *window)
++static int pc_swap(void)
 +{
 +    int i, next = -1;
-+    /* The depth and stencil are not kept past a frame: discarded, the GPU does not write them back to memory (3 MB a
-+       frame: with them written, Home took 21.7 ms of GPU a frame instead of 15, 2026-11-25). */
-+    if (tri_glDiscardFramebufferEXT) {
-+        static const unsigned int ds[1] = {TRI_GL_STENCIL_ATTACHMENT};
-+        tri_glDiscardFramebufferEXT(TRI_GL_FRAMEBUFFER, 1, ds);
++    if (pc_glDiscardFramebufferEXT) {
++        static const unsigned int st[1] = {PC_GL_STENCIL_ATTACHMENT};
++        pc_glDiscardFramebufferEXT(PC_GL_FRAMEBUFFER, 1, st);
 +    }
-+    tri_b[tri_cur].fence = tri_eglCreateSyncKHR(tri_dpy, TRI_EGL_SYNC_FENCE_KHR, NULL);
-+    tri_b[tri_cur].queued = tm_now();
-+    tri_glFlush();
-+    SDL_LockMutex(tri_mu);
-+    tri_b[tri_cur].state = TRI_QUEUED;
-+    tri_q[tri_qn++] = tri_cur;
-+    SDL_CondBroadcast(tri_cv);
++    SDL_LockMutex(pc_mu);
++    /* (two buffers: this frame's buffer was the one on the screen when it was given; its drawing goes to the GPU
++       only once the other has replaced it there) */
++    if (pc_n == 2) while (pc_qn > 0 || pc_busy) SDL_CondWait(pc_cv, pc_mu);
++    SDL_UnlockMutex(pc_mu);
++    pc_b[pc_cur].fence = pc_eglCreateSyncKHR(pc_dpy, 0x30F9 /* EGL_SYNC_FENCE_KHR */, NULL);
++    pc_b[pc_cur].queued = SDL_GetPerformanceCounter();
++    pc_glFlush();
++    SDL_LockMutex(pc_mu);
++    pc_b[pc_cur].state = PC_QUEUED;
++    pc_q[pc_qn++] = pc_cur;
++    SDL_CondBroadcast(pc_cv);
 +    for (;;) {
-+        for (i = 0; i < TRI_N; i++) if (tri_b[i].state == TRI_FREE) { next = i; break; }
++        for (i = 0; i < pc_n; i++) if (pc_b[i].state == PC_FREE) { next = i; break; }
++        /* (two buffers: the other one, still on the screen; drawn into only after the wait above, next swap) */
++        if (next < 0 && pc_n == 2) for (i = 0; i < pc_n; i++) if (i != pc_cur && pc_b[i].state == PC_SHOWN) { next = i; break; }
 +        if (next >= 0) break;
-+        tri_waits++;
-+        SDL_CondWait(tri_cv, tri_mu);
++        SDL_CondWait(pc_cv, pc_mu);
 +    }
-+    tri_b[next].state = TRI_RENDER;
-+    SDL_UnlockMutex(tri_mu);
-+    tri_cur = next;
-+    partycade_kmsdrm_fbo = tri_b[next].fbo;
-+    tri_glBindFramebuffer(TRI_GL_FRAMEBUFFER, tri_b[next].fbo);
-+    if (!tri_reclaimed && tri_crtc_set && tri_frames > 2 && !SDL_getenv("SDL_KMSDRM_TRIPLE_KEEP")) tri_reclaim(_this, window);
-+    if (++tri_frames % 600 == 0 && SDL_getenv("SDL_KMSDRM_TIMING"))
-+        fprintf(stderr, "kmsdrm triple: %ld frames, waited for a free buffer %ld times\n", tri_frames, tri_waits);
++    pc_b[next].state = PC_RENDER;
++    SDL_UnlockMutex(pc_mu);
++    pc_cur = next;
++    partycade_kmsdrm_fbo = pc_b[next].fbo;
++    pc_glBindFramebuffer(PC_GL_FRAMEBUFFER, pc_b[next].fbo);
 +    return 1;
 +}
++/* ======================================================================================================== */
 +
  int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
  {
 +    double t0, t1, t2, t3, t4;
-+    if (pipe_on < 0) pipe_on = SDL_getenv("SDL_KMSDRM_PIPELINE") ? SDL_atoi(SDL_getenv("SDL_KMSDRM_PIPELINE")) : 0;
-+    if (safe_on < 0) safe_on = SDL_getenv("SDL_KMSDRM_SAFE") != NULL && SDL_atoi(SDL_getenv("SDL_KMSDRM_SAFE")) != 0;
-+    if (safe_on) pipe_on = 0;   /* (the pipelined swap overlaps drawing with the screen: what SAFE forbids) */
-+    if (tri_on < 0) {
-+        tri_on = SDL_getenv("SDL_KMSDRM_TRIPLE") != NULL && SDL_atoi(SDL_getenv("SDL_KMSDRM_TRIPLE")) != 0;
-+        if (tri_on && SDL_atoi(SDL_getenv("SDL_KMSDRM_TRIPLE")) == 3) tri_n = 3;
++    if (pipe_on < 0) pipe_on = SDL_getenv("SDL_KMSDRM_PIPELINE") != NULL && SDL_atoi(SDL_getenv("SDL_KMSDRM_PIPELINE")) != 0;
++    if (pc_n < 0) {
++        const char *e = SDL_getenv("SDL_KMSDRM_BUFFERS");
++        pc_n = e ? SDL_atoi(e) : 0;
++        if (pc_n != 0 && (pc_n < 2 || pc_n > PC_MAX)) pc_n = 3;
 +    }
-+    if (tri_on) {
-+        pipe_on = 0;
-+        safe_on = 0;
-+        if (tri_ready) return tri_swap(_this, window);
++    if (pc_n > 0) {
++        SDL_WindowData *wd = (SDL_WindowData *)window->driverdata;
++        if (pc_ready) return pc_swap();
++        /* the first swap after SDL's surface set-up (below): our buffers from here; this frame is dropped */
++        if (!wd->egl_surface_dirty && wd->egl_surface != EGL_NO_SURFACE) {
++            pc_ready = pc_setup(_this, window);
++            if (pc_ready) {
++                pc_drop_window(_this, window);
++                return 1;
++            }
++            pc_n = 0;
++        }
 +    }
 +    if (tm_on < 0) tm_on = SDL_getenv("SDL_KMSDRM_TIMING") != NULL;
 +    if (SDL_getenv("SDL_KMSDRM_DEBUG")) {
@@ -537,7 +452,7 @@ index cbf86c9..6169ff1 100644
      SDL_WindowData *windata = ((SDL_WindowData *)window->driverdata);
      SDL_DisplayData *dispdata = (SDL_DisplayData *)SDL_GetDisplayForWindow(window)->driverdata;
      SDL_VideoData *viddata = ((SDL_VideoData *)_this->driverdata);
-@@ -108,8 +623,16 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+@@ -108,8 +538,16 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
      /* Recreate the GBM / EGL surfaces if the display mode has changed */
      if (windata->egl_surface_dirty) {
          KMSDRM_CreateSurfaces(_this, window);
@@ -554,7 +469,7 @@ index cbf86c9..6169ff1 100644
      /* Wait for confirmation that the next front buffer has been flipped, at which
         point the previous front buffer can be released */
      if (!KMSDRM_WaitPageflip(_this, windata)) {
-@@ -124,6 +647,7 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+@@ -124,6 +562,7 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
      }
  
      windata->bo = windata->next_bo;
@@ -562,7 +477,7 @@ index cbf86c9..6169ff1 100644
  
      /* Mark a buffer to become the next front buffer.
         This won't happen until pagelip completes. */
-@@ -136,7 +660,9 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
+@@ -136,7 +575,9 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
      /* From the GBM surface, get the next BO to become the next front buffer,
         and lock it so it can't be allocated as a back buffer (to prevent EGL
         from drawing into it!) */
@@ -572,12 +487,7 @@ index cbf86c9..6169ff1 100644
      if (!windata->next_bo) {
          SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not lock front buffer on GBM surface");
          return 0;
-@@ -149,10 +675,11 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
-         return 0;
-     }
- 
--    if (!windata->bo) {
-+    if (!windata->bo && !windata->crtc_ready) {
+@@ -153,6 +594,7 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
          /* On the first swap, immediately present the new front buffer. Before
             drmModePageFlip can be used the CRTC has to be configured to use
             the current connector and mode with drmModeSetCrtc */
@@ -585,32 +495,10 @@ index cbf86c9..6169ff1 100644
          ret = KMSDRM_drmModeSetCrtc(viddata->drm_fd,
                                      dispdata->crtc->crtc_id, fb_info->fb_id, 0, 0,
                                      &dispdata->connector->connector_id, 1, &dispdata->mode);
-@@ -161,6 +688,7 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
-             SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Could not set videomode on CRTC.");
-             return 0;
-         }
-+        windata->crtc_ready = SDL_TRUE;
-     } else {
-         /* On subsequent swaps, queue the new front buffer to be flipped during
-            the next vertical blank
-@@ -196,14 +724,35 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
-            Just leave it here and don't worry.
-            Run your SDL2 program with "SDL_VIDEO_DOUBLE_BUFFER=1 <program_name>"
-            to enable this. */
--        if (windata->double_buffer) {
-+        if (windata->double_buffer || safe_on) {
-             if (!KMSDRM_WaitPageflip(_this, windata)) {
-                 SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Immediate wait for previous pageflip failed");
-                 return 0;
+@@ -203,6 +645,15 @@ int KMSDRM_GLES_SwapWindow(_THIS, SDL_Window *window)
              }
          }
-+        /* Partycade (SDL_KMSDRM_SAFE): the new picture is on the screen now; the old one goes back at once, so
-+           the next frame is drawn into it and never into the one shown. */
-+        if (safe_on && windata->bo) {
-+            KMSDRM_gbm_surface_release_buffer(windata->gs, windata->bo);
-+            windata->bo = NULL;
-+        }
-+    }
+     }
 +    if (tm_on) {
 +        t4 = tm_now();
 +        tm_wait += t1 - t0; tm_swap += t2 - t1; tm_lock += t3 - t2; tm_flip += t4 - t3;
@@ -619,17 +507,10 @@ index cbf86c9..6169ff1 100644
 +                    tm_wait / 300, tm_swap / 300, tm_lock / 300, tm_flip / 300);
 +            tm_n = 0; tm_wait = tm_swap = tm_lock = tm_flip = 0;
 +        }
-     }
- 
-+    /* Partycade (SDL_KMSDRM_TRIPLE): the first frame went out the usual way (it set the mode); from here on, our
-+       own three buffers (falling back to this swap if they cannot be made) */
-+    if (tri_on && !tri_ready) {
-+        tri_ready = tri_setup(_this, window);
-+        if (!tri_ready) tri_on = 0;
 +    }
+ 
      return 1;
  }
- 
 diff --git a/src/video/kmsdrm/SDL_kmsdrmsym.h b/src/video/kmsdrm/SDL_kmsdrmsym.h
 index df46212..bf32d91 100644
 --- a/src/video/kmsdrm/SDL_kmsdrmsym.h
@@ -650,27 +531,3 @@ index df46212..bf32d91 100644
  
  SDL_KMSDRM_SYM_OPT(uint64_t,gbm_bo_get_modifier,(struct gbm_bo *bo))
  SDL_KMSDRM_SYM_OPT(int,gbm_bo_get_plane_count,(struct gbm_bo *bo))
-diff --git a/src/video/kmsdrm/SDL_kmsdrmvideo.c b/src/video/kmsdrm/SDL_kmsdrmvideo.c
-index dbcb052..99c97d4 100644
---- a/src/video/kmsdrm/SDL_kmsdrmvideo.c
-+++ b/src/video/kmsdrm/SDL_kmsdrmvideo.c
-@@ -1135,6 +1135,7 @@ static void KMSDRM_DestroySurfaces(_THIS, SDL_Window *window)
-     if (windata->next_bo) {
-         KMSDRM_gbm_surface_release_buffer(windata->gs, windata->next_bo);
-         windata->next_bo = NULL;
-+        windata->crtc_ready = SDL_FALSE;
-     }
- 
-     /***************************/
-diff --git a/src/video/kmsdrm/SDL_kmsdrmvideo.h b/src/video/kmsdrm/SDL_kmsdrmvideo.h
-index 1fe77f6..fc2018e 100644
---- a/src/video/kmsdrm/SDL_kmsdrmvideo.h
-+++ b/src/video/kmsdrm/SDL_kmsdrmvideo.h
-@@ -134,6 +134,7 @@ typedef struct SDL_WindowData
- 
-     SDL_bool waiting_for_flip;
-     SDL_bool double_buffer;
-+    SDL_bool crtc_ready;   /* Partycade: the CRTC shows one of ours (SDL_KMSDRM_SAFE frees bo early) */
- 
-     EGLSurface egl_surface;
-     SDL_bool egl_surface_dirty;
